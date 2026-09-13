@@ -2,7 +2,10 @@
 
 ## Repository status
 
-Newly initialized with Repository Operating System 2.0.1.
+Newly initialized with Repository Operating System 2.0.1 (greenfield
+profile), State-Directed Engineering execution package 1.1.1 (`.sde/`), and
+`@echelon-foundry/typescript-wasm-kernel` 0.4.1 as the sole runtime
+dependency. No application code exists yet.
 
 ## Observed facts
 

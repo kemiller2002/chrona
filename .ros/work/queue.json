@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "repository": "chrona",
-  "nextSeq": 2,
+  "nextSeq": 3,
   "items": [
     {
       "id": "WI-0001",
@@ -15,6 +15,22 @@
       "attachments": [],
       "createdAt": "2026-09-13T23:28:39.124Z",
       "updatedAt": "2026-09-13T23:28:54Z",
+      "createdBy": "unknown",
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0002",
+      "title": "Record toolchain handoff state: SDE and wasm kernel alongside ROS",
+      "description": null,
+      "tags": [
+        "governance"
+      ],
+      "priority": "medium",
+      "status": "ready",
+      "attachments": [],
+      "createdAt": "2026-09-13T23:51:48.481Z",
+      "updatedAt": "2026-09-13T23:51:57.000Z",
       "createdBy": "unknown",
       "source": "manual",
       "sourceReference": null

@@ -1,0 +1,30 @@
+{
+  "name": "chrona",
+  "version": "1.0.0",
+  "description": "Chrona",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kemiller2002/chrona.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/kemiller2002/chrona/issues"
+  },
+  "homepage": "https://github.com/kemiller2002/chrona#readme",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "private": true,
+  "dependencies": {
+    "@echelon-foundry/typescript-wasm-kernel": "^0.4.1"
+  }
+}

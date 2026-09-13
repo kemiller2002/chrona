@@ -1,0 +1,46 @@
+{
+  "schemaVersion": "1.0.0",
+  "protocolVersion": "1.0.0",
+  "repository": "chrona",
+  "actor": "kemiller2002",
+  "startedAt": "2026-09-13T23:27:16.701Z",
+  "updatedAt": "2026-09-13T23:29:30Z",
+  "baselineDirtyPaths": [],
+  "workItems": [
+    {
+      "id": "ROS-INSTALL-2-0-1",
+      "type": "mechanical",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "installation",
+          "path": ".ros/installation.json"
+        }
+      ],
+      "updatedAt": "2026-09-13T23:27:16.701Z",
+      "completedAt": "2026-09-13T23:27:16.701Z"
+    },
+    {
+      "id": "WI-0001",
+      "type": "mechanical",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "installation",
+          "path": "package.json"
+        },
+        {
+          "type": "installation",
+          "path": ".sde/MANIFEST.json"
+        }
+      ],
+      "updatedAt": "2026-09-13T23:29:30Z",
+      "telemetryExecutionIds": [
+        "EXE-20260913T232916655Z-58b69271"
+      ],
+      "completedAt": "2026-09-13T23:29:30Z"
+    }
+  ]
+}

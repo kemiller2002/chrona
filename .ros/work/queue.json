@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "1.0.0",
+  "repository": "chrona",
+  "nextSeq": 2,
+  "items": [
+    {
+      "id": "WI-0001",
+      "title": "Install and verify Echelon Foundry toolchain: ROS, SDE, typescript-wasm-kernel",
+      "description": null,
+      "tags": [
+        "setup,dependencies"
+      ],
+      "priority": "high",
+      "status": "ready",
+      "attachments": [],
+      "createdAt": "2026-09-13T23:28:39.124Z",
+      "updatedAt": "2026-09-13T23:28:54Z",
+      "createdBy": "unknown",
+      "source": "manual",
+      "sourceReference": null
+    }
+  ]
+}

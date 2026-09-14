@@ -32,9 +32,16 @@ Run:
 npx @echelon-foundry/sde verify
 ```
 
-All three passed on 2026-09-13. `./ros validate` enforces work-item
+All three passed locally on 2026-09-13. `./ros validate` enforces work-item
 attribution, so a meaningful change with no active or completed work item
 fails it; see the Work Protocol section of `AGENTS.md`.
+
+CI runs the first two automatically via `.github/workflows/ros-validation.yml`
+on every push and pull request. Those runs failed from repository creation
+until 2026-09-14 because GitHub never dispatched a runner; an owner settings
+change fixed it, and both branches have been green since
+`a117b1796ee31c890bbde0fd7b2fb00e7156e7e3`. See `.ros/work/items/WI-0003.md`
+for the diagnosis, the evidence, and one unexercised watch item.
 
 ## Unresolved questions
 

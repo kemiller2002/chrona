@@ -43,10 +43,10 @@
         "ci,infrastructure"
       ],
       "priority": "high",
-      "status": "captured",
+      "status": "ready",
       "attachments": [],
       "createdAt": "2026-09-14T00:27:33.505Z",
-      "updatedAt": "2026-09-14T00:27:33.505Z",
+      "updatedAt": "2026-09-14T00:29:29.000Z",
       "createdBy": "unknown",
       "source": "manual",
       "sourceReference": null

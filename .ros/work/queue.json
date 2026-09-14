@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "repository": "chrona",
-  "nextSeq": 6,
+  "nextSeq": 7,
   "items": [
     {
       "id": "WI-0001",
@@ -81,6 +81,23 @@
       "attachments": [],
       "createdAt": "2026-09-14T01:40:12.153Z",
       "updatedAt": "2026-09-14T01:40:20.000Z",
+      "createdBy": "unknown",
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0006",
+      "title": "Kernel verification slice: run the wasm kernel bridge end to end in a real browser",
+      "description": null,
+      "tags": [
+        "wasm-kernel",
+        "verification"
+      ],
+      "priority": "high",
+      "status": "ready",
+      "attachments": [],
+      "createdAt": "2026-09-14T01:45:21.613Z",
+      "updatedAt": "2026-09-14T01:45:32.000Z",
       "createdBy": "unknown",
       "source": "manual",
       "sourceReference": null

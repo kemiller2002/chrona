@@ -6,7 +6,10 @@
     "doc": "docs"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build:slice": "tsc -p verification/kernel-slice/tsconfig.json",
+    "test:slice": "node --test verification/kernel-slice/test/*.test.mjs",
+    "verify:slice": "verification/kernel-slice/run-browser-verification.sh"
   },
   "repository": {
     "type": "git",
@@ -26,5 +29,8 @@
   "private": true,
   "dependencies": {
     "@echelon-foundry/typescript-wasm-kernel": "^0.4.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
   }
 }

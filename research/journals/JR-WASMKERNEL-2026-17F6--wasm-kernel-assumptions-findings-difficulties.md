@@ -166,6 +166,88 @@ under `node_modules`. Chrona's own scaffold is ROS `2.0.1`.
 *Consequence:* two different major versions of ROS coexist by design. Do not
 "reconcile" them.
 
+### F11 — A form's flush list fires every `data-event` inside it, buttons included
+
+`#bindEvent` pushes an element onto the form's flush list whenever
+`trigger !== "submit" && form !== null`. `"form" in el` is true for
+`HTMLButtonElement`, so **any** `<button data-event="...">` inside a `<form>`
+is fired on every submit of that form — not only "pending change-bound
+fields" as `docs/USAGE.md` describes it.
+
+*Verified by observation, 2026-09-14:* with a
+`<button type="button" data-event="load">` inside the slice's form, clicking
+Save produced log entries `load requested` / `Loading: Success` and left the
+phase `Loading`, so the subsequent `save` was rejected as illegal from that
+phase. The status read `Nothing stored yet.` and `localStorage` was still
+`null`. Moving the button outside the form fixed it, with no other change.
+
+*Consequence:* an action button that is not a form control must live outside
+the form, or it becomes a hidden side effect of submitting. The failure is
+silent — no bridge error, no console error — and presents as "save is broken"
+rather than "load fired."
+
+*Methodological note:* the flush code was **read** during the 2026-09-14
+review and this behavior was not noticed; it surfaced within minutes of
+running. This is a direct instance of the caution in
+`.sde/method/AGENT-EXECUTION-RULES.md` — a green read is not behavioral proof.
+
+### F12 — Consumers need an import map; the compiled output keeps the bare specifier
+
+`tsc` emits `import { BrowserKernel } from "@echelon-foundry/typescript-wasm-kernel"`
+unchanged, and browsers cannot resolve a bare specifier. Loading the page
+without an import map fails at module resolution.
+
+*Verified:* inspected `dist/main.js` after compilation; page loads only once
+an `importmap` mapping the package name to
+`/node_modules/.../dist/index.js` is present.
+
+*Consequence:* `docs/USAGE.md` step 6 (`npm run build; python3 -m http.server`)
+works for the kernel's own repository, whose imports are relative, but is
+insufficient for a consumer installing from npm. A bundler or an import map is
+required and is not mentioned.
+
+### F13 — The kernel runs correctly in a real browser from this repository (A2 resolved)
+
+14 checks pass against real Chromium, covering: initial projection;
+`data-bind-disabled` reflected as a DOM property; `data-event` +
+`data-on="input"` per keystroke; `data-if` mount and unmount; the engine guard
+shadowing native validation; native `reportValidity` gating dispatch when
+reachable; a complete `Storage` effect round trip (request → kernel → result →
+transition); the value genuinely present in `localStorage`; `data-each`
+rendering from item scope; state surviving reload; keyed reconciliation
+preserving DOM node identity; and no bridge or page errors across the run.
+
+*Verified:* `npm run verify:slice`
+(`verification/kernel-slice/test/browser-verification.mjs`), screenshot at
+`verification/kernel-slice/browser-verification.png`.
+
+*Consequence:* **A2 is withdrawn as an assumption.** Behavioral claims about
+the primitives this slice exercises are now observed. Claims about the `Http`
+path remain read-derived — see A6.
+
+### F14 — An engine-driven `data-bind-disabled` can shadow native validation entirely
+
+Where the projection disables the submit control for the same condition HTML
+would reject, `reportValidity` is never reached: the button is already
+disabled. The two mechanisms overlap silently and the engine guard wins.
+
+*Verified by observation:* an empty field left `#save` disabled, so a click
+never produced a native validation gate. Only a case the engine accepts and
+HTML rejects (`minlength="2"` vs. a 1-character guard) made the gate
+observable.
+
+*Consequence:* F5 is true of the kernel but frequently unobservable in
+practice. Do not rely on native validation as a backstop for a rule the engine
+already guards — it may never run.
+
+### F15 — Keyed reconciliation genuinely preserves DOM node identity
+
+An attribute set by hand on the first `data-each` item survived a subsequent
+projection that appended two further entries.
+
+*Verified by observation:* set `data-probe="kept"` on the first `<li>`,
+triggered another save, re-read the attribute — still present.
+
 ---
 
 ## Assumptions
@@ -179,17 +261,16 @@ break would at least fail loudly rather than silently.
 
 *Unverified:* whether the project intends `0.x` minors to be breaking.
 
-### A2 — That the kernel actually works in a browser from this repository
+### A2 — ~~That the kernel actually works in a browser from this repository~~ **WITHDRAWN 2026-09-14**
 
-Never demonstrated here. What was demonstrated is only that the module
-resolves and exports its documented names under Node:
+Superseded by finding **F13**. The original entry read: the kernel had never
+been run in a browser from Chrona, only imported under Node, so any claim
+beyond "it imports" was an assumption.
 
-```
-BrowserKernel, DirectTypeScriptTransport, PROTOCOL_VERSION, ReferenceEngine, project
-```
-
-There is no HTML, no build, no server, and no browser run in Chrona. Any
-claim beyond "it imports" is currently an assumption.
+Resolved by building `verification/kernel-slice/` and running it against real
+Chromium. Retained here rather than deleted, per this log's append-only rule.
+Scope of the resolution is limited to the primitives that slice exercises;
+`Http` remains unexercised (A6).
 
 ### A3 — That `ReferenceEngine` is demonstration code, not a starting point
 
@@ -209,6 +290,20 @@ test has been run from Chrona.
 `EngineTransport` is documented as the WASM swap point, and the direct
 transport is the only one shipped, so it is the only available choice today.
 Whether a WASM transport changes the authoring model is unknown.
+
+### A6 — That the `Http` effect path behaves as its source suggests
+
+The verification slice uses `Storage` only. `OutcomeUnknown`,
+`timeout-after-dispatch`, cancellation via `cancellations`, and header/body
+handling are all still read-derived. F6 in particular — that a timeout is
+always `OutcomeUnknown` — has not been observed.
+
+### A7 — That the flush behavior in F11 is unintended rather than designed
+
+F11 is recorded as observed behavior. Whether the kernel's authors consider a
+`data-event` button inside a form firing on submit a defect or an intentional
+consequence of the mechanical rule has not been established. No issue has been
+filed and no maintainer statement has been read.
 
 ---
 
@@ -279,11 +374,55 @@ the record rather than being erased.
 *Consequence:* classify the deliverable before `work start`, not after. The
 type is effectively immutable once work begins.
 
+### D7 — A silent misdispatch presented as the wrong defect
+
+F11 cost the majority of the debugging time on the slice. The symptom was
+"saving does not work": correct-looking status text, no bridge error, no
+console error, `localStorage` empty. The actual cause was a *different* event
+firing first. Nothing in the failure pointed at the form flush.
+
+*Workaround:* dump the round-trip log and read which event actually arrived,
+rather than reasoning forward from the click.
+
+*Consequence:* build an observable log of dispatched events into any non-trivial
+slice. Without the `data-each` round-trip log, this would have been far harder
+to see.
+
+### D8 — Playwright is global, and ESM cannot reach it the usual way
+
+`NODE_PATH` does not apply to ESM imports, so `import { chromium } from
+"playwright"` fails from a project script. Resolving `npm root -g` and
+importing the absolute path works, but Playwright ships CJS, so `chromium`
+may only appear under `.default` depending on lexing — both shapes have to be
+handled.
+
+### D9 — A verification check that silently verified nothing
+
+The first version of the browser run asserted `window.__bridgeErrors` was
+empty *after* a `page.reload()`, which wipes it. The check passed while
+proving nothing. Caught only because the run was re-read after the failures
+were fixed.
+
+*Consequence:* a check that passes on a broken run is worse than no check.
+Bridge errors are now drained before the reload and combined afterwards.
+
+### D10 — TypeScript was not present and had to be added
+
+The scaffold ships no compiler. `typescript@^5.9.2` was added as a
+devDependency to build the slice, matching the kernel's own pinned version.
+Recorded as a dependency decision rather than made silently.
+
 ---
 
 ## Highest-value next step
 
-Build one minimal vertical slice in Chrona that actually runs the bridge in a
-browser, to convert A2 from assumption to finding. Until then, treat every
-behavioral statement about the kernel here as derived from reading its source,
-not from observing it run.
+**Done 2026-09-14** — `verification/kernel-slice/` exists and A2 is withdrawn
+(F13).
+
+Next: exercise the `Http` effect path, which would resolve A6 and let F6
+(timeout is always `OutcomeUnknown`) be observed rather than read. That needs a
+stub endpoint that can be made to hang, so the slice would gain a small server.
+
+Then decide whether F11 warrants an upstream issue, which first requires
+resolving A7 — whether the behavior is considered a defect. A one-line
+reproduction already exists in this repository's git history.

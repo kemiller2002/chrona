@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Kernel verification slice</title>
+    <style>
+      body { font: 16px/1.5 system-ui, sans-serif; margin: 0; padding: 2rem; max-width: 40rem; }
+      fieldset { border: 1px solid #ccc; border-radius: 6px; }
+      .problem { color: #a11; font-weight: 600; }
+      ul { padding-left: 1.2rem; }
+      button[disabled] { opacity: .5; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Kernel verification slice</h1>
+      <p>Exercises the bridge vocabulary end to end. Not a Chrona product feature.</p>
+
+      <form data-event="save">
+        <fieldset>
+          <legend>Label</legend>
+          <label for="label">Label (engine accepts 1<label for="label">Label (1&ndash;24 characters)</label>ndash;24; HTML requires 2+)</label>
+          <!-- minlength=2 is deliberately stricter than the engine guard, which
+               accepts 1 character. Without a case that HTML rejects and the
+               engine accepts, the native reportValidity gate is unobservable:
+               data-bind-disabled would disable the button first and the gate
+               would never be reached. The mismatch is the probe. -->
+          <input id="label" name="label" type="text" required minlength="2"
+                 data-event="draftChanged" data-on="input" data-bind-value="draft">
+          <button id="save" type="submit" data-bind-disabled="saveDisabled">Save</button>
+        </fieldset>
+      </form>
+
+      <!-- Load sits OUTSIDE the form deliberately. The kernel's flush list
+           registers every element inside a form whose trigger is not
+           "submit" -- buttons included, since `"form" in el` is true for
+           HTMLButtonElement. A data-event button inside this form would
+           therefore fire on every submit. Observed, not theorised: with Load
+           inside the form, clicking Save dispatched "load" first, leaving the
+           phase Loading so the subsequent "save" was rejected as illegal. -->
+      <p><button id="load" type="button" data-event="load" data-bind-disabled="loadDisabled">Load</button></p>
+
+      <p id="status" role="status" aria-live="polite" data-text="statusText"></p>
+      <p id="phase" hidden data-text="phaseKind"></p>
+
+      <template data-if="hasProblem">
+        <p class="problem" role="alert" data-text="problemText"></p>
+      </template>
+
+      <h2>Observed round trips</h2>
+      <ul id="log">
+        <template data-each="log" data-key="id">
+          <li data-text="text"></li>
+        </template>
+      </ul>
+    </main>
+    <!-- Consumers loading the kernel by its package name need an import map:
+         the compiled output keeps the bare specifier, and browsers cannot
+         resolve one. docs/USAGE.md does not mention this. Paths are absolute
+         because the page is served from the repository root. -->
+    <script type="importmap">
+      {
+        "imports": {
+          "@echelon-foundry/typescript-wasm-kernel": "/node_modules/@echelon-foundry/typescript-wasm-kernel/dist/index.js"
+        }
+      }
+    </script>
+    <script type="module" src="./dist/main.js"></script>
+  </body>
+</html>

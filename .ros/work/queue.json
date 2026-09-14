@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "repository": "chrona",
-  "nextSeq": 3,
+  "nextSeq": 4,
   "items": [
     {
       "id": "WI-0001",
@@ -31,6 +31,22 @@
       "attachments": [],
       "createdAt": "2026-09-13T23:51:48.481Z",
       "updatedAt": "2026-09-13T23:51:57.000Z",
+      "createdBy": "unknown",
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0003",
+      "title": "GitHub Actions never dispatches a runner: ROS validation workflow fails in ~3s with no job steps",
+      "description": null,
+      "tags": [
+        "ci,infrastructure"
+      ],
+      "priority": "high",
+      "status": "captured",
+      "attachments": [],
+      "createdAt": "2026-09-14T00:27:33.505Z",
+      "updatedAt": "2026-09-14T00:27:33.505Z",
       "createdBy": "unknown",
       "source": "manual",
       "sourceReference": null

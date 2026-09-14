@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "kemiller2002",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-09-14T00:30:04.000Z",
+  "updatedAt": "2026-09-14T01:40:42.000Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -83,6 +83,36 @@
         "EXE-20260914T002930184Z-9a7c2fd7"
       ],
       "completedAt": "2026-09-14T00:30:04.000Z"
+    },
+    {
+      "id": "WI-0004",
+      "type": "feature",
+      "state": "blocked",
+      "semanticState": "blocked",
+      "evidence": [],
+      "updatedAt": "2026-09-14T01:40:02.000Z",
+      "telemetryExecutionIds": [
+        "EXE-20260914T013756178Z-6a544612"
+      ],
+      "blockReason": "Misclassified at start: typed 'feature', which requires implementation+tests evidence, but the deliverable is a research record. Superseded by WI-0005 typed 'research'."
+    },
+    {
+      "id": "WI-0005",
+      "type": "research",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "research-record",
+          "path": "research/journals/JR-WASMKERNEL-2026-17F6--wasm-kernel-assumptions-findings-difficulties.md"
+        }
+      ],
+      "updatedAt": "2026-09-14T01:40:42.000Z",
+      "telemetryExecutionIds": [
+        "EXE-20260914T014021239Z-4b50d2e3"
+      ],
+      "completedAt": "2026-09-14T01:40:42.000Z",
+      "conclusion": "inconclusive"
     }
   ]
 }

@@ -1,1 +1,25 @@
-[]
+[
+  {
+    "author_agent": "claude-code",
+    "created": "2026-09-14",
+    "evidence_ids": [],
+    "hypothesis_ids": [],
+    "id": "JR-WASMKERNEL-2026-17F6",
+    "path": "research/journals/JR-WASMKERNEL-2026-17F6--wasm-kernel-assumptions-findings-difficulties.md",
+    "related_mission": {},
+    "related_package": {},
+    "research_area": "wasm-kernel",
+    "status": "active",
+    "tags": [
+      "wasm-kernel",
+      "typescript-wasm-kernel",
+      "running-log",
+      "assumptions",
+      "findings",
+      "difficulties"
+    ],
+    "theory_ids": [],
+    "title": "Running log — assumptions, findings, and difficulties using the wasm kernel",
+    "updated": "2026-09-14"
+  }
+]

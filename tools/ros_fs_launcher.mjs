@@ -19,7 +19,20 @@ const RID_BY_PLATFORM_ARCH = {
 };
 
 function rosVersion() {
-  return JSON.parse(fs.readFileSync(path.join(projectRoot, "ros.json"), "utf8")).rosVersion;
+  const manifestPath = path.join(projectRoot, ".echelon", "ros.json");
+  if (fs.existsSync(manifestPath)) {
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    if (typeof manifest.installedVersion !== "string" || manifest.installedVersion.trim().length === 0) {
+      throw new Error(".echelon/ros.json does not contain a usable installedVersion");
+    }
+    return manifest.installedVersion;
+  }
+
+  const configuration = JSON.parse(fs.readFileSync(path.join(projectRoot, "ros.json"), "utf8"));
+  if (typeof configuration.rosVersion !== "string" || configuration.rosVersion.trim().length === 0) {
+    throw new Error("ros.json does not contain a usable rosVersion");
+  }
+  return configuration.rosVersion;
 }
 
 function isStableVersion(version) {
@@ -148,7 +161,14 @@ export async function run(argv, { log = (message) => process.stderr.write(`${mes
     return 1;
   }
 
-  const version = rosVersion();
+  let version;
+  try {
+    version = rosVersion();
+  } catch (error) {
+    log(`./ros: cannot determine the installed ROS version: ${error.message}`);
+    return 1;
+  }
+
   if (!isStableVersion(version)) {
     log(nonStableVersionMessage(version));
     return 1;

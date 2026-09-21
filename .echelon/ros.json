@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "tool": "ros",
   "package": "@echelon-foundry/repository-operating-system",
-  "installedVersion": "3.1.2",
+  "installedVersion": "3.1.3",
   "configurationVersion": 1,
   "profile": "greenfield",
   "managedArtifacts": [
@@ -23,7 +23,7 @@
     },
     {
       "path": ".github/workflows/ros-validation.yml",
-      "ownership": "tool-owned",
+      "ownership": "shared",
       "sha256": "e517535bf2b44ede484fa6b012369ded42c8a1c7503f6ba2017ef55f9507a1a6"
     },
     {
@@ -154,7 +154,7 @@
     {
       "path": "docs/work-protocol.md",
       "ownership": "tool-owned",
-      "sha256": "268e84e3cd154c8462afdc51cf5dc4022279450fdf74f0a8e93d99a65b6530ce"
+      "sha256": "fa214ad6b9a21ff053c79530f5b2ac492d23c8c025b2e1d1c4a14ca55ac10b5d"
     },
     {
       "path": "framework/REP-SPECIFICATION.md",
@@ -444,7 +444,7 @@
     {
       "path": "tools/ros_fs_launcher.mjs",
       "ownership": "tool-owned",
-      "sha256": "dea9a5734c0b4cef9e6dd809508aa12e58e03aef222da44548c9bb423a1a6f34"
+      "sha256": "416b34f91e20569b36398fe07519b59743e2614991686547805920d1606835d4"
     }
   ]
 }

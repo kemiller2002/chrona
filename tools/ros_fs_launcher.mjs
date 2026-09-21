@@ -22,6 +22,10 @@ function rosVersion() {
   return JSON.parse(fs.readFileSync(path.join(projectRoot, "ros.json"), "utf8")).rosVersion;
 }
 
+function isStableVersion(version) {
+  return /^\d+\.\d+\.\d+$/.test(version);
+}
+
 function resolveRid({ platform = process.platform, arch = process.arch } = {}) {
   return RID_BY_PLATFORM_ARCH[`${platform}-${arch}`] ?? null;
 }
@@ -128,6 +132,15 @@ export function unsupportedPlatformMessage({ platform = process.platform, arch =
   );
 }
 
+export function nonStableVersionMessage(version) {
+  return (
+    `./ros: version ${version} is a main-branch snapshot, not a stable release -- ` +
+    "no GitHub Release (and therefore no ros-fs binary) is ever published for a snapshot " +
+    "version. Bootstrap with a stable published version instead (see PACKAGE-USAGE.md's " +
+    '"Install from npm" section), or wait for the next stable release.'
+  );
+}
+
 export async function run(argv, { log = (message) => process.stderr.write(`${message}\n`) } = {}) {
   const rid = resolveRid();
   if (!rid) {
@@ -136,6 +149,11 @@ export async function run(argv, { log = (message) => process.stderr.write(`${mes
   }
 
   const version = rosVersion();
+  if (!isStableVersion(version)) {
+    log(nonStableVersionMessage(version));
+    return 1;
+  }
+
   let binaryPath;
   try {
     binaryPath = await ensureBinary({ version, rid, log });
@@ -156,4 +174,4 @@ export async function run(argv, { log = (message) => process.stderr.write(`${mes
   return result.status ?? 1;
 }
 
-export const internal = { resolveRid, binaryName, releaseAssetName, releaseBaseUrl, cacheDirectory, parseChecksums, ensureBinary, rosVersion };
+export const internal = { resolveRid, binaryName, releaseAssetName, releaseBaseUrl, cacheDirectory, parseChecksums, ensureBinary, rosVersion, isStableVersion };

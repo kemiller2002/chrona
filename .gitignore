@@ -39,3 +39,9 @@ logs/*
 # Build output and run artifacts of the kernel verification slice.
 verification/kernel-slice/dist/
 verification/kernel-slice/browser-verification.png
+
+# BEGIN echelon:visual-engineering
+# Installed Visual Engineering context. Refresh it with:
+#   npx @echelon-foundry/visual-engineering init
+.visual-engineering/
+# END echelon:visual-engineering

@@ -1,0 +1,43 @@
+name: Begin application readiness work
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/readiness-work.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  begin:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Begin GH-4
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./ros add "Prepare Chrona implementation baseline"             --id "GH-4"             --tag readiness,bootstrap             --priority high             --source github-issue             --source-reference "https://github.com/kemiller2002/chrona/issues/4"             --actor "agent:chatgpt"
+          NOW="$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"
+          ./ros work backlog-transition --action ready --id "GH-4" --occurred-at "$NOW"
+          NOW="$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"
+          ./ros work start --id "GH-4" --occurred-at "$NOW" --type feature
+          ./ros work context "GH-4"
+      - name: Commit active work state
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .ros/context .ros/events .ros/work || true
+          if [ -d .ros/telemetry ]; then git add -f .ros/telemetry; fi
+          git commit -m "Begin GH-4 readiness work"
+          git pull --rebase origin main
+          git push

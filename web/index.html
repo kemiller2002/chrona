@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chrona readiness slice</title>
+  <link rel="stylesheet" href="./assets/forma.css">
+  <link rel="stylesheet" href="./app.css">
+</head>
+<body>
+  <main class="chrona-shell">
+    <header class="ef-record-header">
+      <div class="ef-record-header__main">
+        <div class="ef-record-header__type">Chrona / readiness slice</div>
+        <div class="ef-record-header__title">
+          <div>
+            <h1>Record time</h1>
+          </div>
+          <span class="ef-status-lozenge" data-state="ok">F# + WASM + Limen + Forma</span>
+        </div>
+        <p>Manual entry is the first browser vertical slice. Shared persistence remains an explicit next effect boundary.</p>
+      </div>
+    </header>
+
+    <template data-if="hasNotice">
+      <aside class="ef-alert" role="status">
+        <div class="ef-alert__icon" aria-hidden="true">i</div>
+        <div>
+          <h2 class="ef-alert__title">Chrona state</h2>
+          <p data-text="notice"></p>
+        </div>
+      </aside>
+    </template>
+
+    <section class="chrona-grid">
+      <form class="chrona-form" data-event="recordActivity">
+        <span class="ef-component-kicker">Manual entry</span>
+        <h2>Activity details</h2>
+
+        <label for="business-date">Business date</label>
+        <input id="business-date" name="business-date" type="date"
+               data-event="dateChanged" data-on="input"
+               data-bind-value="date">
+        <template data-if="dateErrorVisible">
+          <p class="chrona-error" role="alert" data-text="dateError"></p>
+        </template>
+
+        <label for="minutes">Exact minutes</label>
+        <input id="minutes" name="minutes" type="number" min="1" max="1440" step="1"
+               inputmode="numeric"
+               data-event="minutesChanged" data-on="input"
+               data-bind-value="minutes">
+        <template data-if="minutesErrorVisible">
+          <p class="chrona-error" role="alert" data-text="minutesError"></p>
+        </template>
+
+        <label for="description">Description</label>
+        <textarea id="description" name="description" rows="4"
+                  data-event="descriptionChanged" data-on="input"
+                  data-bind-value="description"></textarea>
+        <template data-if="descriptionErrorVisible">
+          <p class="chrona-error" role="alert" data-text="descriptionError"></p>
+        </template>
+
+        <button class="ef-button chrona-primary" type="submit" data-bind-disabled="recordDisabled">
+          Record activity
+        </button>
+      </form>
+
+      <section aria-labelledby="activities-title">
+        <div class="chrona-list-heading">
+          <div>
+            <span class="ef-component-kicker">Projection</span>
+            <h2 id="activities-title">Recorded activities</h2>
+          </div>
+          <span class="ef-status-lozenge" data-text="summary"></span>
+        </div>
+
+        <template data-if="isEmpty">
+          <section class="ef-empty-state">
+            <div class="ef-empty-state__symbol" aria-hidden="true">□</div>
+            <h3>No activities yet</h3>
+            <p>Record one manual activity to prove the F# state and browser projection.</p>
+          </section>
+        </template>
+
+        <template data-if="hasActivities">
+          <div class="ef-data-grid" role="region" tabindex="0" aria-label="Recorded activities">
+            <table>
+              <caption class="ef-visually-hidden">Recorded Chrona activities</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Date</th>
+                  <th scope="col">Minutes</th>
+                  <th scope="col">Description</th>
+                  <th scope="col">Revision</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template data-each="activities" data-key="id">
+                  <tr>
+                    <td data-label="Date" data-text="date"></td>
+                    <td data-label="Minutes" data-text="minutes"></td>
+                    <td data-label="Description" data-text="description"></td>
+                    <td data-label="Revision" data-text="revision"></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </template>
+      </section>
+    </section>
+  </main>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "@echelon-foundry/typescript-wasm-kernel": "./limen/index.js"
+      }
+    }
+  </script>
+  <script type="module" src="./app/main.js"></script>
+</body>
+</html>

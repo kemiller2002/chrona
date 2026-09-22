@@ -9,7 +9,14 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build:slice": "tsc -p verification/kernel-slice/tsconfig.json",
     "test:slice": "node --test verification/kernel-slice/test/*.test.mjs",
-    "verify:slice": "verification/kernel-slice/run-browser-verification.sh"
+    "verify:slice": "verification/kernel-slice/run-browser-verification.sh",
+    "build:domain": "dotnet build src/Chrona.Application/Chrona.Application.fsproj --nologo",
+    "test:domain": "dotnet run --project tests/Chrona.Tests/Chrona.Tests.fsproj --configuration Release",
+    "build:wasm": "dotnet workload restore src/Chrona.Host.Wasm/Chrona.Host.Wasm.csproj && dotnet publish src/Chrona.Host.Wasm/Chrona.Host.Wasm.csproj -c Release -o build/wasm",
+    "build:web": "tsc -p web/tsconfig.json",
+    "build:app": "npm run build:wasm && npm run build:web && node scripts/build-reference-app.mjs",
+    "test:browser": "playwright test",
+    "check:app": "npm run test:domain && npm run build:app && npm run test:browser"
   },
   "repository": {
     "type": "git",
@@ -28,9 +35,11 @@
   },
   "private": true,
   "dependencies": {
-    "@echelon-foundry/typescript-wasm-kernel": "^0.4.1"
+    "@echelon-foundry/design-system": "https://github.com/kemiller2002/echelon-design-system/releases/download/v0.1.0/echelon-foundry-design-system-0.1.0.tgz",
+    "@echelon-foundry/typescript-wasm-kernel": "0.6.2"
   },
   "devDependencies": {
-    "typescript": "^5.9.3"
+    "typescript": "5.9.3",
+    "@playwright/test": "1.63.0"
   }
 }

@@ -5,12 +5,16 @@ let fail message =
     eprintfn "FAIL: %s" message
     1
 
+let unwrap = function
+    | Ok value -> value
+    | Error error -> failwithf "Unexpected transition error: %A" error
+
 let run () =
     let edited =
         Engine.initial
-        |> fun state -> Engine.transition state (EditDraft(BusinessDate, "2026-09-23")) |> Result.get
-        |> fun state -> Engine.transition state (EditDraft(Minutes, "90")) |> Result.get
-        |> fun state -> Engine.transition state (EditDraft(Description, "Architecture review")) |> Result.get
+        |> fun state -> Engine.transition state (EditDraft(BusinessDate, "2026-09-23")) |> unwrap
+        |> fun state -> Engine.transition state (EditDraft(Minutes, "90")) |> unwrap
+        |> fun state -> Engine.transition state (EditDraft(Description, "Architecture review")) |> unwrap
 
     match Engine.transition edited RecordManualActivity with
     | Error error -> fail $"Could not record activity: {error}"

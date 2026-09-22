@@ -101,6 +101,22 @@
       "createdBy": "unknown",
       "source": "manual",
       "sourceReference": null
+    },
+    {
+      "id": "GH-4",
+      "title": "Prepare Chrona implementation baseline",
+      "description": null,
+      "tags": [
+        "readiness,bootstrap"
+      ],
+      "priority": "high",
+      "status": "ready",
+      "attachments": [],
+      "createdAt": "2026-09-22T22:12:01.633Z",
+      "updatedAt": "2026-09-22T22:12:01.000Z",
+      "createdBy": "agent:chatgpt",
+      "source": "github-issue",
+      "sourceReference": "https://github.com/kemiller2002/chrona/issues/4"
     }
   ]
 }

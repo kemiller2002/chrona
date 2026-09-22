@@ -1,0 +1,1063 @@
+# Chrona Requirements Expansion and Gap Review
+Date: 2026-09-22
+
+## Purpose
+
+The current `chrona` repository is still mostly a greenfield ROS/SDE shell. The substantive time-entry requirements already developed in `time-tracking-application` must be migrated and reconciled into Chrona rather than discarded.
+
+Chrona is the time-entry/time-tracking application.
+
+The implementation agent must preserve applicable requirements from:
+- `time-tracking-application/docs/DOMAIN-REQUIREMENTS.md`
+- `time-tracking-application/docs/integration/`
+- applicable UI, accessibility, offline, architecture, and decision records
+
+Any intentional semantic change must be explicit and recorded.
+
+---
+
+## 0. Mandatory engineering constraints
+
+### 0.1 ROS
+Chrona must follow ROS absolutely. Meaningful work must use the repository's current ROS workflow, evidence, validation, state, and handoff rules. If ROS cannot be followed, implementation stops until corrected.
+
+### 0.2 SDE / Ordo
+Chrona must follow the installed/current SDE/Ordo methodology without deviation, including:
+- explicit domain states
+- legal transitions
+- illegal states made unrepresentable where practical
+- capabilities exposing legal actions
+- obligations exposing unresolved work
+- explicit external effects
+- evidence-backed transitions
+- version/concurrency checks
+- unknown-effect handling
+- negative knowledge where applicable
+- four-tier architecture and boundary preservation
+
+If implementation conflicts with SDE/Ordo, implementation stops until corrected.
+
+### 0.3 Limen
+Chrona must explicitly use Limen, formerly called the WASM kernel, as the browser/application boundary.
+
+Required direction:
+- F# owns domain and application logic
+- WebAssembly owns browser-side state and behavior
+- HTML owns semantic structure
+- CSS owns presentation
+- JavaScript is limited to the minimum browser interoperability required by Limen
+
+Business rules must not move into JavaScript.
+
+### 0.4 F# architecture
+Preferred dependency direction:
+
+Chrona.Domain
+    ↑
+Chrona.Engine
+    ↑
+Chrona.Wasm / Limen
+    ↑
+Browser host
+
+`Chrona.Integration` remains a receiver-owned, transport-independent public contract assembly.
+
+---
+
+## 1. Product identity and migration
+
+### 1.1 Purpose
+Chrona records, corrects, reviews, reports, and publishes business time for downstream operational and financial use.
+
+The current generic Chrona charter/current-state documents must be replaced or revised so they describe the actual time-tracking product.
+
+### 1.2 Preserve existing domain capabilities
+At minimum preserve:
+- timer entry
+- manual entry
+- exact-minute recording
+- separate billing projection
+- project classification
+- activity type
+- tags
+- description
+- business purpose
+- overlap prevention
+- amendment
+- void
+- restore
+- split
+- merge
+- evidence references
+- daily attestation
+- optimistic revision checks
+- stable diagnostics
+- GitHub synchronization semantics
+- offline usability
+- unknown-outcome reconciliation
+- shared reference data
+- integration observations
+- candidates
+- processing receipts
+- receiver-owned integration contracts
+- accessibility requirements
+
+---
+
+## 2. GitHub storage and authentication
+
+### 2.1 Authoritative storage
+GitHub is the authoritative shared durable store.
+
+Local browser storage may provide offline durability, pending operations, caches/projections, active timer recovery, and settings, but it must not silently become a competing shared authority.
+
+### 2.2 Login
+Login is through a GitHub token. Chrona resolves the actual GitHub identity from GitHub rather than trusting a typed username.
+
+Authentication and Chrona authorization are separate.
+
+### 2.3 Token safety
+Tokens must never be written to repository data, activities, integration messages, telemetry, logs, exports, or artifacts.
+
+Chrona must support disconnect/clear token. Session-only storage should be supported where practical.
+
+### 2.4 Multi-application repositories
+Chrona must never assume it owns the repository root.
+
+The repository may also contain other Echelon applications or unrelated content. Chrona must use a configurable application base path.
+
+### 2.5 Organization isolation
+Different organizations use different folders.
+
+Each organization has an immutable OrganizationId independent of mutable display names/slugs.
+
+The model must also permit different organizations to use different repositories.
+
+### 2.6 Organization manifest
+Each organization should have a manifest containing:
+- OrganizationId
+- display name
+- slug
+- schema/storage version
+- default timezone
+- week-start preference
+- default billing policy
+- approval policy
+- relevant reference/configuration locations
+- created timestamp
+
+### 2.7 Production repository safety
+Chrona should detect repository visibility. Production business time should not accidentally be initialized into a public repository without an explicit override/decision.
+
+---
+
+## 3. Identity, membership, and authorization
+
+Chrona must distinguish:
+- Human
+- Agent
+- Service
+- Integration
+
+A person may belong to multiple organizations.
+
+Use capability-based authorization rather than hard-coded role checks.
+
+Possible capabilities:
+- RecordOwnTime
+- AmendOwnTime
+- SubmitOwnTime
+- AttestOwnDay
+- ViewOwnTime
+- ViewOrganizationTime
+- ApproveTime
+- RejectTime
+- ReopenTime
+- ManageProjects
+- ManageActivityTypes
+- ManageTags
+- ManageOrganizationSettings
+- ExportTime
+- PublishBillableTime
+
+Shared reference-data changes require appropriate admin capability.
+
+---
+
+## 4. Reference data
+
+Organization-scoped reference data should support:
+- Clients
+- Projects
+- Engagements
+- Activity Types
+- Tags
+
+All require stable immutable IDs and active/archived state.
+
+Archived references remain valid historically but are not normally selectable for new work.
+
+Chrona must not assume ownership of shared concepts owned by other systems. Cross-application references use stable IDs.
+
+---
+
+## 5. Authoritative activity record
+
+Every activity should retain at least:
+- ActivityId
+- OrganizationId
+- ActorId
+- business date
+- start instant/time where applicable
+- exact duration
+- project
+- optional client
+- optional engagement
+- activity type
+- description
+- business purpose
+- tags
+- entry method
+- record lifecycle state
+- revision
+- created timestamp
+- last-change timestamp
+- source/provenance
+- optional work-item reference
+- optional external-source reference
+- optional evidence/artifact reference
+- billable classification
+- review state
+- downstream publication state
+
+---
+
+## 6. Separate state dimensions
+
+Do not create one giant status enum.
+
+Model at least:
+
+### 6.1 Record lifecycle
+- Recorded
+- Voided
+- Superseded
+
+### 6.2 Review lifecycle
+- Unsubmitted
+- Submitted
+- Approved
+- Rejected
+- Reopened
+
+Approval workflow may be disabled for an organization.
+
+### 6.3 Publication/billing lifecycle
+Conceptually:
+- NotBillable
+- Unpublished
+- ReadyForPublication
+- Published
+- InvoicedExternally
+- AdjustmentRequired
+
+Exact naming may change through SDE, but these concerns must remain separate.
+
+---
+
+## 7. Exact time versus billable time
+
+Exact recorded time must never be destroyed by billing rules.
+
+The existing six-minute upward-rounding behavior remains the default legacy billing projection unless deliberately superseded.
+
+Billing policy should be explicit and versioned, with possible scope by:
+- organization
+- client
+- engagement
+- project
+
+Policy may define:
+- increment
+- rounding rule
+- effective date
+
+When billable time is published downstream, preserve the billing-policy identity/version used.
+
+---
+
+## 8. Billability and rate references
+
+Activities should support:
+- Billable
+- NonBillable
+- PendingClassification
+
+Chrona should not become the authoritative money/accounting system.
+
+Money and final invoice amounts belong primarily to Summa.
+
+Chrona may retain:
+- billing-rate reference
+- billing class
+- contract/rate identifier
+- source policy
+
+but should not duplicate Summa's ledger.
+
+---
+
+## 9. Manual entry additions
+
+Existing manual-entry rules remain.
+
+Add:
+- support start/end or start+duration where appropriate
+- deterministic derived duration
+- historical/reconstructed entries require the existing explanatory reason
+- future actual time is rejected unless a separate planned-time feature exists
+- prior entry may be copied only as a new draft/new identity
+- bulk entry may be supported, but each resulting activity validates independently
+
+---
+
+## 10. Timer additions
+
+Existing one-active-timer and pause/resume rules remain.
+
+### 10.1 Persistence
+An active timer must survive:
+- refresh
+- browser restart where supported
+- temporary network loss
+- device sleep
+
+Elapsed time must be derived from persisted timestamps/segments, not a UI interval counter.
+
+### 10.2 Recovery
+On startup, recover a previously active timer explicitly. Never silently discard elapsed time.
+
+### 10.3 Cross-midnight
+Because an activity cannot cross the business-day boundary, a timer running across midnight should be split automatically at the boundary, preserving lineage and exact total working time.
+
+### 10.4 Long-running safety
+Detect unusually long timers and require review rather than assuming all elapsed time was worked.
+
+### 10.5 Multiple devices
+The same person may use multiple devices. Concurrent/offline active timers must not silently create authoritative overlaps. Ambiguous cases create a reconciliation obligation.
+
+---
+
+## 11. Time zone and calendar semantics
+
+Time zone is a domain concern.
+
+Timer instants must be stored unambiguously.
+
+Activities must preserve enough context to reconstruct intended business time:
+- IANA timezone
+- UTC offset at occurrence
+- local date
+- local start time
+
+DST transitions must not corrupt elapsed duration.
+
+Changing device timezone must not rewrite historical activities.
+
+---
+
+## 12. Overlap and conflict rules
+
+Existing overlap prevention remains.
+
+Add:
+- overlap is scoped by actor and organization
+- Voided/Superseded entries do not consume active time
+- Submitted/Approved entries still consume time
+- imports cannot bypass overlap rules
+- restore rechecks against current state
+- concurrent divergent edits to the same activity must not silently resolve by last-write-wins
+
+Same-record divergence becomes an explicit semantic conflict.
+
+---
+
+## 13. Split and merge semantics
+
+Existing duration invariants remain.
+
+### Split
+Children retain source lineage and normally inherit:
+- organization
+- actor
+- project
+- client
+- engagement
+- activity type
+- billability
+- tags
+- business purpose
+
+Evidence treatment must be explicit and must not falsely duplicate proof.
+
+### Merge
+Merged activity retains all source IDs. Sources become Superseded, never deleted.
+
+Evidence provenance remains traceable.
+
+Do not merge sources with incompatible downstream publication states without an explicit reconciliation decision.
+
+---
+
+## 14. Submission and approval
+
+Approval is organization-configurable.
+
+Submission captures the exact activity IDs/revisions covered.
+
+Approval records:
+- approver
+- timestamp
+- period
+- activity IDs/revisions
+- optional note
+
+Rejection records reason, reviewer, and timestamp.
+
+Reopening is an explicit legal transition.
+
+Changing time after approval makes the prior approval stale or requires reapproval. It must not silently remain valid.
+
+---
+
+## 15. Timesheet periods
+
+Support configurable operational periods:
+- Daily
+- Weekly
+- Biweekly
+- Semi-monthly
+- Monthly
+
+Organization configuration may define:
+- period cadence
+- week start
+- timezone
+- submission expectation
+- approval requirement
+
+Period views should show:
+- exact time
+- billable time
+- non-billable time
+- unclassified time
+- submission state
+- approval state
+- outstanding obligations
+
+---
+
+## 16. Attestation
+
+Existing daily attestation remains.
+
+Attestation and approval are separate.
+
+Attestation snapshots preserve activity IDs and revisions, not just totals.
+
+Changes after attestation or approval must be detectable as stale review.
+
+---
+
+## 17. Summa integration
+
+Chrona owns time.
+
+Summa owns accounting, invoices, receivables, and payments.
+
+Chrona publishes billable time only when policy allows it.
+
+Possible gates:
+- approved where required
+- valid client/project/engagement
+- valid billing classification
+- no unresolved conflict
+- not already published
+
+Publication must be idempotent.
+
+If published time is later amended, voided, restored, split, or merged, Chrona creates an explicit downstream correction/adjustment obligation.
+
+If Summa reports time already invoiced, Chrona may still correct its truth, but must create a downstream reconciliation requirement rather than silently rewriting history.
+
+---
+
+## 18. Receiver-owned integration assembly
+
+Preserve the existing `EchelonFoundry.Chrona.Integration` model:
+- receiver-owned
+- transport-independent
+- independently package-versioned
+- explicit contract version
+- side-by-side incompatible versions
+- explicit serialization
+- compatibility fixtures
+- structural validation at the boundary
+- domain validation inside Chrona
+- safe storage path construction
+
+---
+
+## 19. Observation processing
+
+Preserve TimeObservation -> TimeCandidate -> ProcessingReceipt.
+
+Add candidate dispositions such as:
+- Pending
+- Accepted
+- AcceptedWithChanges
+- Rejected
+- Duplicate
+- NeedsAttention
+
+Default imported observations should require review unless source policy explicitly allows auto-accept.
+
+Rejected observations remain preserved with reason.
+
+Accepted activities retain:
+- SourceSystem
+- ObservationId
+- optional WorkItemId
+- external URL/reference where available
+- ingestion timestamp
+
+Invalid payloads must be distinguishable from valid rejected observations.
+
+A receipt must never claim processing succeeded before the durable candidate/decision exists.
+
+---
+
+## 20. Startup/reconciliation
+
+Existing non-blocking startup reconciliation remains.
+
+Add:
+- first usable render never waits for all inboxes
+- reconciliation status is observable
+- failure does not block normal time entry
+- reconciliation is resumable/idempotent
+- large inboxes are bounded/paged
+- one failed item does not permanently block unrelated observations
+
+---
+
+## 21. GitHub concurrency
+
+Use optimistic concurrency based on repository state.
+
+If repository state changed:
+- do not overwrite blindly
+- reload/reconcile
+- rerun domain validation
+- preserve independent changes
+- surface semantic conflicts
+
+A clean Git merge is not sufficient proof of domain correctness.
+
+---
+
+## 22. Storage scale
+
+The old monolithic per-user ledger may be supported for compatibility, but the target model should avoid unbounded whole-ledger rewrites.
+
+Storage should support partitioning by combinations such as:
+- organization
+- actor
+- year/month
+- activity/event
+
+Exact layout is an SDE decision, but requirements are:
+- bounded reads/writes
+- deterministic paths
+- stable IDs
+- safe concurrency
+- rebuildable projections
+- no repo-root ownership assumption
+
+---
+
+## 23. Offline behavior
+
+Core time recording remains usable offline.
+
+Required:
+- timer works
+- manual entry works
+- edits persist locally
+- sync state is visible
+- unsynced data is not represented as globally synchronized
+- reconnect performs safe reconciliation
+- retries are idempotent
+- unknown outcomes remain explicit
+
+Offline/remote conflicts create visible reconciliation obligations. Neither side is silently discarded.
+
+---
+
+## 24. External artifacts and evidence
+
+Binary artifacts live outside the Chrona repository.
+
+Chrona stores references such as:
+- stable ID
+- URL
+- type
+- label/description
+- captured timestamp
+- optional hash
+- source
+- notes
+
+Do not couple the domain to one future artifact provider.
+
+---
+
+## 25. Audit and provenance
+
+Every material transition preserves:
+- actor
+- timestamp
+- source
+- command/transition
+- prior revision
+- resulting revision
+- reason where applicable
+- correlation ID where applicable
+
+Audit at least:
+- create
+- amend
+- void
+- restore
+- split
+- merge
+- submit
+- approve
+- reject
+- reopen
+- evidence link/unlink
+- publish
+- downstream correction
+- import accept/reject
+- reference-data change
+
+Audit history is append-oriented and not normally rewritten.
+
+---
+
+## 26. Stable diagnostics
+
+Extend stable diagnostics to include:
+- unauthorized capability
+- organization mismatch
+- actor mismatch
+- submitted-period restriction
+- approval conflict
+- stale approval
+- duplicate publication
+- already-invoiced correction
+- concurrent timer conflict
+- ambiguous timezone/local time
+- unsupported integration contract
+- invalid source reference
+- unresolved semantic merge conflict
+- unsafe public-repository production storage
+- corrupt authoritative file
+- unsupported storage/schema version
+
+---
+
+## 27. Search
+
+Support search/filtering by:
+- date
+- actor
+- organization
+- client
+- project
+- engagement
+- activity type
+- tags
+- description
+- business purpose
+- source system
+- work item
+- billability
+- approval state
+- publication state
+
+Search indexes are derived and rebuildable.
+
+---
+
+## 28. Reporting
+
+Preserve daily/monthly reports and add:
+- weekly
+- custom date range
+- organization
+- person
+- client
+- project
+- engagement
+- activity type
+- tag
+- exact time
+- billable time
+- non-billable time
+- timer vs manual
+- approved/unapproved
+- published/unpublished
+- amended-after-review
+- corrections after publication
+
+Reports must clearly distinguish exact recorded time from billable/rounded time.
+
+---
+
+## 29. Export
+
+Support deterministic CSV and JSON export.
+
+Exports identify:
+- organization
+- generated timestamp
+- date range
+- schema/storage version
+- filters
+- exact vs billable duration semantics
+
+---
+
+## 30. Legacy migration
+
+Provide a migration path from the previous time-tracking application.
+
+Preserve where available:
+- ActivityId
+- revision
+- exact duration
+- start time
+- project
+- activity type
+- tags
+- description
+- business purpose
+- entry method
+- lifecycle status
+- amendment provenance
+- split/merge lineage
+- evidence
+- attestations
+- billing projection
+- identity metadata
+- settings
+
+Do not invent missing historical facts.
+
+Unknown remains unknown.
+
+Validate record counts and totals before/after migration.
+
+---
+
+## 31. Rename/source compatibility
+
+Historical data may refer to:
+- time-tracking-application
+- Business Activity Ledger
+- older package/application IDs
+
+Define explicit compatibility aliases/migration behavior.
+
+Canonical product name: Chrona.
+
+---
+
+## 32. Core UX
+
+Primary workflows should be fast:
+- Start timer
+- Pause/resume
+- Stop/classify timer
+- Add manual time
+- Amend time
+- View today
+- View week
+- Review unclassified time
+- Review imported candidates
+- Submit period
+- Approve/reject where authorized
+- View sync state
+- Resolve conflicts
+
+---
+
+## 33. Quick entry
+
+Support:
+- recent project/activity combinations
+- configurable common durations
+- copy prior entry as new draft
+- keyboard-first entry
+- mobile-friendly entry
+
+Convenience must never change exact time silently.
+
+---
+
+## 34. Obligations/work queue
+
+Chrona should expose unresolved work explicitly.
+
+Examples:
+- unclassified timer result
+- candidate awaiting review
+- period awaiting submission
+- submission awaiting approval
+- rejected time needing correction
+- sync conflict
+- unknown GitHub write outcome
+- published activity changed afterward
+- Summa reconciliation required
+- invalid observation
+- failed artifact link
+
+This should be a first-class projection, not scattered warnings.
+
+---
+
+## 35. Accessibility
+
+Preserve WCAG 2.2 AA target and existing requirements:
+- semantic HTML
+- keyboard navigation
+- visible focus
+- screen-reader labels
+- no color-only meaning
+- reduced motion
+- forced-colors support
+- zoom/reflow
+- touch targets
+- accessible tables
+- restrained live regions
+- iPhone VoiceOver testing
+
+Timer ticks must not generate repeated announcements.
+
+---
+
+## 36. Responsive/mobile
+
+Mobile priority workflows:
+- start/stop timer
+- pause/resume
+- manual entry
+- classify time
+- view today
+- review candidates
+- inspect weekly totals
+- resolve basic sync problems
+
+---
+
+## 37. Browser reliability
+
+Handle safely:
+- refresh
+- back/forward navigation
+- browser suspension
+- service-worker update
+- stale cached shell
+- intermittent cellular connectivity
+
+Updates must not silently lose local pending time.
+
+---
+
+## 38. GitHub API efficiency
+
+Avoid repository-wide scans.
+
+Support:
+- deterministic paths
+- partitioned reads
+- conditional requests where useful
+- cached derived indexes
+- paging/batching
+- rate-limit awareness
+- retry/backoff
+
+Rendering today's view must not require loading all historical time.
+
+---
+
+## 39. Data integrity
+
+Detect:
+- invalid JSON
+- invalid schema
+- unsupported schema version
+- broken references
+- duplicate IDs
+- impossible revisions
+- overlapping recorded time
+- invalid split/merge lineage
+- receipt without durable processing result
+- publication without source activity/revision
+
+Corruption must not be silently ignored.
+
+---
+
+## 40. Recovery
+
+All derived state must be rebuildable from authoritative GitHub records.
+
+Examples:
+- indexes
+- totals
+- reports
+- work queues
+- billing projections
+- approval projections
+- publication projections
+
+Git history is supporting evidence, not the sole domain model.
+
+---
+
+## 41. Manual repository edits
+
+Manual edits to authoritative Chrona data are untrusted external mutations.
+
+They require validation before being accepted.
+
+Agents must not bypass Chrona transitions by editing authoritative time files except in an explicitly authorized migration or recovery workflow.
+
+---
+
+## 42. Telemetry/privacy
+
+Telemetry must not leak:
+- GitHub tokens
+- private client descriptions
+- business-purpose text
+- artifact contents
+- sensitive URLs unless explicitly safe
+
+Prefer IDs and operational measurements over business content.
+
+---
+
+## 43. Required scenario tests
+
+At minimum test:
+
+1. Manual exact-minute entry
+2. Timer entry
+3. Pause/resume
+4. Timer recovery after browser restart
+5. Timer crossing midnight
+6. DST transition
+7. Travel/timezone change
+8. Overlap rejection
+9. Concurrent-device overlap
+10. Revision conflict
+11. Void/restore
+12. Split
+13. Merge
+14. Split/merge evidence lineage
+15. Archived references
+16. Daily attestation
+17. Amendment after attestation
+18. Submission
+19. Approval
+20. Rejection
+21. Reopen
+22. Amendment after approval
+23. Billable/non-billable classification
+24. Billing rounding without altering raw time
+25. Observation accepted
+26. Observation modified before acceptance
+27. Observation rejected
+28. Duplicate observation
+29. Candidate succeeds / receipt fails
+30. Invalid observation handling
+31. Unknown GitHub outcome reconciliation
+32. Same-record semantic conflict
+33. Offline entry then reconnect
+34. Cross-device sync
+35. Publish approved time to Summa
+36. Duplicate publication retry
+37. Published activity correction
+38. Already-invoiced correction
+39. Legacy migration
+40. Derived-state rebuild
+41. Public-repository safety
+42. Mobile timer workflow
+43. Keyboard-only workflow
+44. Screen-reader timer behavior
+
+---
+
+## 44. Production completion gate
+
+Chrona is not production-ready until it demonstrates:
+
+- correct manual entry
+- correct timer behavior
+- persistent/recoverable active timer
+- overlap protection
+- revision-safe amendments
+- void/restore/split/merge correctness
+- audit provenance
+- offline usability
+- deterministic GitHub synchronization
+- explicit unknown outcomes
+- semantic conflict handling
+- organization separation
+- GitHub identity handling
+- optional approval flow
+- billability separation
+- clean Summa publication contract
+- correction propagation
+- legacy migration or explicit retirement decision
+- accessibility verification
+- mobile core workflow
+- derived-state rebuild
+- ROS validation
+- SDE/Ordo validation
+- Limen architecture verification
+
+---
+
+## 45. Architectural boundary
+
+Chrona should be treated as:
+
+Work evidence / observations
+          ↓
+       Chrona
+  authoritative time
+          ↓
+Approved/publishable time
+          ↓
+        Summa
+ invoices / accounting
+
+ROS and other systems may propose or observe work.
+
+Chrona owns the decision that a fact becomes authoritative recorded time.
+
+Summa owns the financial consequence.

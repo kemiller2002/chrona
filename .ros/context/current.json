@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "kemiller2002",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-09-14T01:59:13.000Z",
+  "updatedAt": "2026-09-22T16:48:09.000Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -146,6 +146,24 @@
         "EXE-20260914T014532609Z-6735ee83"
       ],
       "completedAt": "2026-09-14T01:59:13.000Z"
+    },
+    {
+      "id": "CHR-REQ-001",
+      "type": "research",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "research-record",
+          "path": "docs/requirements/CHRONA-REQUIREMENTS-EXPANSION.txt"
+        }
+      ],
+      "updatedAt": "2026-09-22T16:48:09.000Z",
+      "telemetryExecutionIds": [
+        "EXE-20260922T164808729Z-ccfb4734"
+      ],
+      "completedAt": "2026-09-22T16:48:09.000Z",
+      "conclusion": "inconclusive"
     }
   ]
 }

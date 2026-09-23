@@ -1061,3 +1061,11 @@ ROS and other systems may propose or observe work.
 Chrona owns the decision that a fact becomes authoritative recorded time.
 
 Summa owns the financial consequence.
+
+---
+
+## 0.5 Shared Echelon application foundations
+
+The cross-cutting requirements in `docs/requirements/ECHELON-SHARED-APPLICATION-FOUNDATIONS.md` are normative for every Chrona requirement when applicable.
+
+Chrona therefore MUST use Aegis for unexpected operational failures at architectural boundaries, Forma for interactive browser UI, and Folio for printable/PDF/paginated time reports, summaries, and exports. The shared-foundation document defines ownership boundaries, conditional applicability, dependency pinning, testing, and exception rules.

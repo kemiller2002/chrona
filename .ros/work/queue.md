@@ -3,7 +3,10 @@
 | ID | Work | Status | Tags | Priority |
 |---|---|---|---|---|
 | CHR-REQ-001 | CHR-REQ-001 | complete |  |  |
-| GH-4 | Prepare Chrona implementation baseline | ready | readiness,bootstrap | high |
+| FEAT-ECHELON-PROVENANCE | FEAT-ECHELON-PROVENANCE | complete |  |  |
+| FEAT-ECHELON-PROVENANCE-R11 | FEAT-ECHELON-PROVENANCE-R11 | complete |  |  |
+| FEAT-ECHELON-PROVENANCE-R12 | Echelon provenance: Praxis contract revision 1.2 | complete | provenance | high |
+| GH-4 | Prepare Chrona implementation baseline | active | readiness,bootstrap | high |
 | ROS-INSTALL-2-0-1 | ROS-INSTALL-2-0-1 | complete |  |  |
 | WI-0001 | Install and verify Echelon Foundry toolchain: ROS, SDE, typescript-wasm-kernel | complete | setup,dependencies | high |
 | WI-0002 | Record toolchain handoff state: SDE and wasm kernel alongside ROS | complete | governance | medium |

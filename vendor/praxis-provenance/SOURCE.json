@@ -1,0 +1,27 @@
+{
+  "repository": "kemiller2002/praxis",
+  "commit": "b0037183389c8b9392919f58521b9487d1b4d5c6",
+  "note": "Vendored unchanged from Praxis (RQ-ROS-2026-A018). Do not edit these files; re-vendor from a newer Praxis commit and update the hashes instead. tests/provenance/vendored.test.mjs recomputes every hash.",
+  "origins": {
+    "lib/provenance-interchange.mjs": "lib/provenance-interchange.mjs",
+    "schemas/provenance-actor.schema.json": "schemas/provenance-actor.schema.json",
+    "schemas/provenance-interchange.schema.json": "schemas/provenance-interchange.schema.json",
+    "fixtures/cases.json": "tests/fixtures/provenance-interchange/cases.json",
+    "fixtures/echelon-chain.json": "tests/fixtures/provenance-interchange/echelon-chain.json",
+    "fixtures/identity-environment.json": "tests/fixtures/provenance-interchange/identity-environment.json",
+    "fixtures/text-cases.json": "tests/fixtures/provenance-interchange/text-cases.json",
+    "fixtures/envelope-key-cases.json": "tests/fixtures/provenance-interchange/envelope-key-cases.json",
+    "fixtures/lineage-cases.json": "tests/fixtures/provenance-interchange/lineage-cases.json"
+  },
+  "files": {
+    "lib/provenance-interchange.mjs": "e8f55323282084b62a0dac5a70a7e6a99ba33037d0bd2353488411310a06ca9d",
+    "schemas/provenance-actor.schema.json": "f64a7f1c61c0c5b5c46a2d2ae8aebc78e177dc03e4b7c1f3e800e82bcb02b845",
+    "schemas/provenance-interchange.schema.json": "3879b36c9723733adc4468fcd28f5121ef1495a6038a94f866b7b989ede4d679",
+    "fixtures/cases.json": "8f8551d9299891874d0d398cb20f14b96426a60cd2174da40fc1c3bb1831869b",
+    "fixtures/echelon-chain.json": "deaad21e322d80f3bcbd09947c20befa139db4d50aaca80d2b3d24eb94b1b3d8",
+    "fixtures/identity-environment.json": "f4f2cde8517313677746d9983c7c399021c5e945534d4951ac0d92cc371db5b3",
+    "fixtures/text-cases.json": "4221fb84e84f81b2f50de642a8584f122fd67deed739c23517df8b764cc94bd6",
+    "fixtures/envelope-key-cases.json": "f3391e83bbb1d5522bc795c07d7bd0e9ba0d4457127c24c8b0c829fec7acdf4c",
+    "fixtures/lineage-cases.json": "db2381fe924d634c890839e495584e16772a4f35c34f75efb5bcb77576efe1f8"
+  }
+}

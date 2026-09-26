@@ -1,0 +1,305 @@
+{
+  "contract": "praxis.provenance/1",
+  "description": "Cross-system end-to-end provenance scenario (DF-ROS-2026-A037): agent A creates a requirement, agent B modifies it, an implementation execution produces a change, Dokimos measures it, an Aegis review discovers a security finding, Vigila generates a follow-up, another execution of agent A remediates and resolves it, CI validates the fix, and a human reviews the resolution. Replaying the steps with any conforming implementation must yield the expectations: every record keeps its own originator, lineage links the records without merging their authors, and no single actor is presented as the author of the chain.",
+  "records": [
+    "RQ-APP-2026-A001",
+    "git:commit/5e1f0c2",
+    "dokimos:observation/OBS-2026-0001",
+    "aegis:finding/SF-0001",
+    "vigila:followup/FU-0001"
+  ],
+  "steps": [
+    {
+      "record": "RQ-APP-2026-A001",
+      "append": {
+        "key": "EXE-20260926T080000000Z-a1a1a1a1",
+        "contribution": {
+          "operations": [
+            "created"
+          ],
+          "at": "2026-09-26T08:00:00.000Z",
+          "actor": {
+            "kind": "agent",
+            "id": "openai/codex",
+            "provider": "openai",
+            "model": "gpt-5-codex",
+            "runtime": "codex"
+          },
+          "reason": "Agent A captures the requirement"
+        }
+      }
+    },
+    {
+      "record": "RQ-APP-2026-A001",
+      "append": {
+        "key": "EXE-20260926T081000000Z-b1b1b1b1",
+        "contribution": {
+          "operations": [
+            "modified"
+          ],
+          "at": "2026-09-26T08:10:00.000Z",
+          "actor": {
+            "kind": "agent",
+            "id": "anthropic/claude-code",
+            "provider": "anthropic",
+            "model": "unknown",
+            "runtime": "claude-code"
+          },
+          "reason": "Agent B tightens acceptance criteria"
+        }
+      }
+    },
+    {
+      "record": "git:commit/5e1f0c2",
+      "append": {
+        "key": "EXE-20260926T083000000Z-b2b2b2b2",
+        "contribution": {
+          "operations": [
+            "created"
+          ],
+          "at": "2026-09-26T08:30:00.000Z",
+          "actor": {
+            "kind": "agent",
+            "id": "anthropic/claude-code",
+            "provider": "anthropic",
+            "model": "unknown",
+            "runtime": "claude-code"
+          },
+          "reason": "Implementation execution produces the change"
+        }
+      }
+    },
+    {
+      "record": "git:commit/5e1f0c2",
+      "lineage": [
+        "RQ-APP-2026-A001"
+      ]
+    },
+    {
+      "record": "dokimos:observation/OBS-2026-0001",
+      "append": {
+        "key": "EXT-dokimos.snapshot-20260926-01",
+        "contribution": {
+          "operations": [
+            "created",
+            "measured"
+          ],
+          "at": "2026-09-26T08:45:00.000Z",
+          "actor": {
+            "kind": "automation",
+            "id": "echelon/dokimos",
+            "provider": "echelon",
+            "model": "unknown",
+            "runtime": "dokimos"
+          },
+          "reason": "Dokimos measures the change; the change's author is not the measurer"
+        }
+      }
+    },
+    {
+      "record": "dokimos:observation/OBS-2026-0001",
+      "lineage": [
+        "git:commit/5e1f0c2"
+      ]
+    },
+    {
+      "record": "aegis:finding/SF-0001",
+      "append": {
+        "key": "EXE-20260926T090000000Z-c1c1c1c1",
+        "contribution": {
+          "operations": [
+            "created",
+            "discovered"
+          ],
+          "at": "2026-09-26T09:00:00.000Z",
+          "actor": {
+            "kind": "agent",
+            "id": "google/gemini-cli",
+            "provider": "google",
+            "model": "unknown",
+            "runtime": "gemini-cli"
+          },
+          "reason": "Aegis review discovers an injection risk",
+          "evidence": [
+            "aegis:evidence/EVD-0001"
+          ]
+        }
+      }
+    },
+    {
+      "record": "aegis:finding/SF-0001",
+      "lineage": [
+        "git:commit/5e1f0c2",
+        "dokimos:observation/OBS-2026-0001"
+      ]
+    },
+    {
+      "record": "vigila:followup/FU-0001",
+      "append": {
+        "key": "EXT-vigila.op-followup-0001",
+        "contribution": {
+          "operations": [
+            "created"
+          ],
+          "at": "2026-09-26T09:05:00.000Z",
+          "actor": {
+            "kind": "automation",
+            "id": "echelon/vigila",
+            "provider": "echelon",
+            "model": "unknown",
+            "runtime": "vigila"
+          },
+          "reason": "Vigila generates a follow-up for the finding"
+        }
+      }
+    },
+    {
+      "record": "vigila:followup/FU-0001",
+      "lineage": [
+        "aegis:finding/SF-0001"
+      ]
+    },
+    {
+      "record": "aegis:finding/SF-0001",
+      "append": {
+        "key": "EXE-20260926T100000000Z-a2a2a2a2",
+        "contribution": {
+          "operations": [
+            "remediated"
+          ],
+          "at": "2026-09-26T10:00:00.000Z",
+          "actor": {
+            "kind": "agent",
+            "id": "openai/codex",
+            "provider": "openai",
+            "model": "gpt-5-codex",
+            "runtime": "codex"
+          },
+          "reason": "Another execution of agent A fixes the defect"
+        }
+      }
+    },
+    {
+      "record": "vigila:followup/FU-0001",
+      "append": {
+        "key": "EXE-20260926T100000000Z-a2a2a2a2",
+        "contribution": {
+          "operations": [
+            "resolved"
+          ],
+          "at": "2026-09-26T10:05:00.000Z",
+          "actor": {
+            "kind": "agent",
+            "id": "openai/codex",
+            "provider": "openai",
+            "model": "gpt-5-codex",
+            "runtime": "codex"
+          },
+          "reason": "The fixing execution resolves the follow-up"
+        }
+      }
+    },
+    {
+      "record": "aegis:finding/SF-0001",
+      "append": {
+        "key": "EXT-github-actions.run-777-1",
+        "contribution": {
+          "operations": [
+            "validated"
+          ],
+          "at": "2026-09-26T10:20:00.000Z",
+          "actor": {
+            "kind": "automation",
+            "id": "github/github-actions",
+            "provider": "github",
+            "model": "unknown",
+            "runtime": "github-actions"
+          },
+          "reason": "CI re-runs the security check and confirms the fix"
+        }
+      }
+    },
+    {
+      "record": "vigila:followup/FU-0001",
+      "append": {
+        "key": "CTB-20260926-5f2e19aa",
+        "contribution": {
+          "operations": [
+            "reviewed"
+          ],
+          "at": "2026-09-26T11:00:00.000Z",
+          "actor": {
+            "kind": "human",
+            "id": "kevin"
+          },
+          "reason": "Human reviews the resolution"
+        }
+      }
+    }
+  ],
+  "expect": {
+    "originators": {
+      "RQ-APP-2026-A001": {
+        "key": "EXE-20260926T080000000Z-a1a1a1a1",
+        "actorId": "openai/codex"
+      },
+      "git:commit/5e1f0c2": {
+        "key": "EXE-20260926T083000000Z-b2b2b2b2",
+        "actorId": "anthropic/claude-code"
+      },
+      "dokimos:observation/OBS-2026-0001": {
+        "key": "EXT-dokimos.snapshot-20260926-01",
+        "actorId": "echelon/dokimos"
+      },
+      "aegis:finding/SF-0001": {
+        "key": "EXE-20260926T090000000Z-c1c1c1c1",
+        "actorId": "google/gemini-cli"
+      },
+      "vigila:followup/FU-0001": {
+        "key": "EXT-vigila.op-followup-0001",
+        "actorId": "echelon/vigila"
+      }
+    },
+    "roles": {
+      "aegis:finding/SF-0001": {
+        "discovered": [
+          "EXE-20260926T090000000Z-c1c1c1c1"
+        ],
+        "remediated": [
+          "EXE-20260926T100000000Z-a2a2a2a2"
+        ],
+        "validated": [
+          "EXT-github-actions.run-777-1"
+        ]
+      },
+      "vigila:followup/FU-0001": {
+        "resolved": [
+          "EXE-20260926T100000000Z-a2a2a2a2"
+        ],
+        "reviewed": [
+          "CTB-20260926-5f2e19aa"
+        ]
+      },
+      "dokimos:observation/OBS-2026-0001": {
+        "measured": [
+          "EXT-dokimos.snapshot-20260926-01"
+        ]
+      }
+    },
+    "lineageFrom": "vigila:followup/FU-0001",
+    "lineageReaches": [
+      "aegis:finding/SF-0001",
+      "git:commit/5e1f0c2",
+      "dokimos:observation/OBS-2026-0001",
+      "RQ-APP-2026-A001"
+    ],
+    "distinctExecutionsOfOneAgent": {
+      "actorId": "openai/codex",
+      "keys": [
+        "EXE-20260926T080000000Z-a1a1a1a1",
+        "EXE-20260926T100000000Z-a2a2a2a2"
+      ]
+    },
+    "chainOriginatorCount": 5
+  }
+}

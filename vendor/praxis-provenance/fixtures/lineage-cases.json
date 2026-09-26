@@ -1,0 +1,178 @@
+{
+  "contract": "praxis.provenance/1",
+  "contractRevision": "1.2",
+  "description": "addLineage (contract 1.2): lineage is held to the same rules as contributions. The block must be supported; every reference must be a non-empty (ASCII-trimmed), credential-free, well-formed string; duplicates are dropped keeping first occurrence; the result must classify as supported. 'ok': false means the addition is refused and nothing is stored.",
+  "cases": [
+    {
+      "name": "adds-in-order",
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "CTB-20260926-00000001": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "human",
+              "id": "kevin"
+            }
+          }
+        }
+      },
+      "references": [
+        "RQ-1",
+        "aegis:finding/F-2"
+      ],
+      "ok": true,
+      "derivedFrom": [
+        "RQ-1",
+        "aegis:finding/F-2"
+      ]
+    },
+    {
+      "name": "keeps-existing-and-dedupes",
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "CTB-20260926-00000001": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "human",
+              "id": "kevin"
+            }
+          }
+        },
+        "derivedFrom": [
+          "RQ-1"
+        ]
+      },
+      "references": [
+        "RQ-1",
+        "RQ-2",
+        "RQ-2"
+      ],
+      "ok": true,
+      "derivedFrom": [
+        "RQ-1",
+        "RQ-2"
+      ]
+    },
+    {
+      "name": "credential-reference-refused",
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "CTB-20260926-00000001": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "human",
+              "id": "kevin"
+            }
+          }
+        }
+      },
+      "references": [
+        "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+      ],
+      "ok": false
+    },
+    {
+      "name": "blank-reference-refused",
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "CTB-20260926-00000001": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "human",
+              "id": "kevin"
+            }
+          }
+        }
+      },
+      "references": [
+        " \t"
+      ],
+      "ok": false
+    },
+    {
+      "name": "non-string-reference-refused",
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "CTB-20260926-00000001": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "human",
+              "id": "kevin"
+            }
+          }
+        }
+      },
+      "references": [
+        7
+      ],
+      "ok": false
+    },
+    {
+      "name": "malformed-block-refused",
+      "block": {
+        "contributions": {
+          "bad": {}
+        }
+      },
+      "references": [
+        "RQ-1"
+      ],
+      "ok": false
+    },
+    {
+      "name": "unsupported-block-refused",
+      "block": {
+        "schema": "praxis.provenance/2"
+      },
+      "references": [
+        "RQ-1"
+      ],
+      "ok": false
+    },
+    {
+      "name": "nel-reference-is-content",
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "CTB-20260926-00000001": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "human",
+              "id": "kevin"
+            }
+          }
+        }
+      },
+      "references": [
+        ""
+      ],
+      "ok": true,
+      "derivedFrom": [
+        ""
+      ]
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "contract": "praxis.provenance/1",
+  "contractRevision": "1.1",
+  "description": "Every environment variable Praxis identity discovery reads (Ros.Domain.Telemetry.Identity). A launcher, hub, or worker starting a process on behalf of another actor MUST remove all of them before setting that actor's explicit identity (RQ-ROS-2026-A016); otherwise its own identity, session, or run keys leak into the other actor's execution and runs can be merged.",
+  "variables": [
+    "ROS_ACTOR",
+    "ROS_ACTOR_KIND",
+    "ROS_EXECUTION_ID",
+    "ROS_TELEMETRY_PROVIDER",
+    "ROS_TELEMETRY_MODEL",
+    "ROS_TELEMETRY_MODEL_VERSION",
+    "ROS_TELEMETRY_RUNTIME",
+    "ROS_TELEMETRY_RUNTIME_VERSION",
+    "ROS_TELEMETRY_SESSION_ID",
+    "ROS_TELEMETRY_CONVERSATION_ID",
+    "ROS_TELEMETRY_RUN_ID",
+    "CLAUDE_CODE_SESSION_ID",
+    "CODEX_SESSION_ID",
+    "CODEX_THREAD_ID",
+    "GEMINI_SESSION_ID",
+    "COPILOT_SESSION_ID",
+    "GITHUB_ACTIONS",
+    "GITHUB_RUN_ID",
+    "OLLAMA_HOST"
+  ]
+}

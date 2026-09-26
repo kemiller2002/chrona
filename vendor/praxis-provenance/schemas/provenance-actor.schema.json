@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kemiller2002/praxis/schemas/provenance-actor.schema.json",
+  "title": "Praxis provenance actor",
+  "description": "The portable, self-reported identity of whoever performed an action (RQ-ROS-2026-A001). Provenance, not authentication: it records who claims to have acted, and is cross-checked against the execution record, but is not cryptographic proof. provider/model/runtime are omitted when not applicable (a human) and are the literal \"unknown\" when applicable but not known.",
+  "type": "object",
+  "required": ["kind", "id"],
+  "properties": {
+    "kind": {
+      "description": "agent: autonomous or semi-autonomous AI system; human; automation: deterministic non-agent process such as CI; unknown; or a namespaced x-... extension.",
+      "type": "string",
+      "pattern": "^(agent|human|automation|unknown|x-[a-z0-9][a-z0-9-]*)$"
+    },
+    "id": {
+      "description": "Stable identity across executions: an explicit agent/actor ID, else provider/runtime for a non-human actor whose provider and runtime are known, else \"unknown\".",
+      "type": "string",
+      "minLength": 1
+    },
+    "provider": { "type": "string", "minLength": 1 },
+    "model": { "type": "string", "minLength": 1 },
+    "runtime": { "type": "string", "minLength": 1 }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "kind": { "const": "agent" } } },
+      "then": { "required": ["provider", "model", "runtime"] }
+    }
+  ],
+  "additionalProperties": true,
+  "examples": [
+    { "kind": "agent", "id": "openai/codex", "provider": "openai", "model": "gpt-5-codex", "runtime": "codex" },
+    { "kind": "agent", "id": "anthropic/claude-code", "provider": "anthropic", "model": "unknown", "runtime": "claude-code" },
+    { "kind": "automation", "id": "github/github-actions", "provider": "github", "model": "unknown", "runtime": "github-actions" },
+    { "kind": "human", "id": "kevin" }
+  ]
+}

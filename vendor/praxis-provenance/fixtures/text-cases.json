@@ -1,0 +1,77 @@
+{
+  "contract": "praxis.provenance/1",
+  "contractRevision": "1.2",
+  "description": "Blocks received as JSON text (contract 1.2). A reader must classify the text itself: invalid JSON, a member name repeated within any one object, or an unpaired UTF-16 surrogate (\\\\uD800-\\\\uDFFF escape without its partner) anywhere in the block makes it malformed, whatever its major version. Each 'text' is the exact JSON text to classify.",
+  "cases": [
+    {
+      "name": "valid-block-text",
+      "expect": "supported",
+      "text": "{\"schema\":\"praxis.provenance/1\",\"contributions\":{\"CTB-1\":{\"operations\":[\"created\"],\"at\":\"2026-09-26T08:00:00.000Z\",\"actor\":{\"kind\":\"human\",\"id\":\"kevin\"}}}}"
+    },
+    {
+      "name": "same-name-in-different-objects-is-not-duplicate",
+      "expect": "supported",
+      "text": "{\"schema\":\"praxis.provenance/1\",\"contributions\":{\"CTB-1\":{\"operations\":[\"created\"],\"at\":\"2026-09-26T08:00:00.000Z\",\"actor\":{\"kind\":\"human\",\"id\":\"kevin\"},\"x-meta\":{\"id\":\"a\"}}}}"
+    },
+    {
+      "name": "duplicate-contribution-key-smuggles-originator",
+      "expect": "malformed",
+      "text": "{\"schema\":\"praxis.provenance/1\",\"contributions\":{\"EXE-A\":{\"operations\":[\"created\"],\"at\":\"2026-09-26T08:00:00.000Z\",\"actor\":{\"kind\":\"human\",\"id\":\"mallory\"}},\"EXE-A\":{\"operations\":[\"modified\"],\"at\":\"2026-09-26T09:00:00.000Z\",\"actor\":{\"kind\":\"human\",\"id\":\"alice\"}}}}"
+    },
+    {
+      "name": "duplicate-actor-id",
+      "expect": "malformed",
+      "text": "{\"schema\":\"praxis.provenance/1\",\"contributions\":{\"CTB-1\":{\"operations\":[\"created\"],\"at\":\"2026-09-26T08:00:00.000Z\",\"actor\":{\"kind\":\"human\",\"id\":\"kevin\",\"id\":\"mallory\"}}}}"
+    },
+    {
+      "name": "duplicate-schema-tag",
+      "expect": "malformed",
+      "text": "{\"schema\":\"praxis.provenance/2\",\"schema\":\"praxis.provenance/1\",\"contributions\":{}}"
+    },
+    {
+      "name": "duplicate-in-unsupported-major",
+      "expect": "malformed",
+      "text": "{\"schema\":\"praxis.provenance/2\",\"x\":1,\"x\":2}"
+    },
+    {
+      "name": "duplicate-in-nested-unknown-field",
+      "expect": "malformed",
+      "text": "{\"schema\":\"praxis.provenance/1\",\"contributions\":{},\"x-meta\":{\"a\":[{\"b\":1,\"b\":1}]}}"
+    },
+    {
+      "name": "unpaired-high-surrogate-in-reason",
+      "expect": "malformed",
+      "text": "{\"schema\":\"praxis.provenance/1\",\"contributions\":{\"CTB-1\":{\"operations\":[\"created\"],\"at\":\"2026-09-26T08:00:00.000Z\",\"actor\":{\"kind\":\"human\",\"id\":\"kevin\"},\"reason\":\"\\ud800\"}}}"
+    },
+    {
+      "name": "unpaired-low-surrogate-in-unsupported-major",
+      "expect": "malformed",
+      "text": "{\"schema\":\"praxis.provenance/2\",\"x-a\":\"\\udc00\"}"
+    },
+    {
+      "name": "unpaired-surrogate-in-member-name",
+      "expect": "malformed",
+      "text": "{\"schema\":\"praxis.provenance/1\",\"contributions\":{},\"x-\\ud800\":1}"
+    },
+    {
+      "name": "escaped-surrogate-pair-is-well-formed",
+      "expect": "supported",
+      "text": "{\"schema\":\"praxis.provenance/1\",\"contributions\":{\"CTB-1\":{\"operations\":[\"created\"],\"at\":\"2026-09-26T08:00:00.000Z\",\"actor\":{\"kind\":\"human\",\"id\":\"kevin\"},\"reason\":\"\\ud83d\\ude00 ok\"}}}"
+    },
+    {
+      "name": "unsupported-major-text-is-unsupported",
+      "expect": "unsupported",
+      "text": "{\"schema\":\"praxis.provenance/2\",\"anything\":{\"goes\":true}}"
+    },
+    {
+      "name": "trailing-comma-is-not-json",
+      "expect": "malformed",
+      "text": "{\"schema\":\"praxis.provenance/1\",\"contributions\":{},}"
+    },
+    {
+      "name": "not-an-object",
+      "expect": "malformed",
+      "text": "[]"
+    }
+  ]
+}

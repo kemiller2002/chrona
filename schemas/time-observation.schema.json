@@ -1,0 +1,156 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kemiller2002/chrona/schemas/time-observation.schema.json",
+  "title": "Chrona TimeObservation intake, provenance portion (chrona.time-observation/1)",
+  "description": "The provenance-bearing portion of a TimeObservation received through the chrona time.record v1 capability (docs/requirements/CHRONA-PROVENANCE.md, CHR-PROV-001..011). Identity is the Praxis actor (schemas/provenance-actor.schema.json, vendored unchanged under vendor/praxis-provenance/); Chrona does not define a second identity model. `provenance` is the Praxis praxis.provenance/1 block received with the observation; it describes the SOURCE. time.record is a create: Chrona stores this block verbatim as source provenance (never appended to; an unsupported major is carried verbatim, a malformed block rejects the observation) and gives the new record its own block (Praxis docs/echelon-provenance-architecture.md, \"Creating a record versus relaying one\"). This schema is the structural floor; lib/time-observation-intake.mjs enforces the rules JSON Schema cannot express (credential tripwire, contribution-history invariants, interval ordering, agent execution keys). Identity is self-reported provenance, not authentication or authorization (RQ-ROS-2026-A010, RQ-ROS-2026-A019).",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "observationId",
+    "sourceSystem",
+    "recordedAt",
+    "performer"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "chrona.time-observation/1"
+    },
+    "observationId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable id assigned by the source system (\u00a719 ObservationId)."
+    },
+    "sourceSystem": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Echelon registry id or other stable source-system id (\u00a719 SourceSystem)."
+    },
+    "workItemId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Optional work item the time was spent on (\u00a719 WorkItemId), e.g. a ROS work item id or `praxis:FEAT-...`."
+    },
+    "externalReference": {
+      "type": "string",
+      "minLength": 1
+    },
+    "recordedAt": {
+      "$ref": "#/$defs/instant"
+    },
+    "performer": {
+      "description": "Who performed the work being timed (the activity's ActorId, \u00a75) and, for agent or automated work, the execution that performed it. The actor is a Praxis actor taken only from explicit declarations; an unknown performer is recorded as kind/id 'unknown', never guessed.",
+      "type": "object",
+      "required": [
+        "actor"
+      ],
+      "properties": {
+        "actor": {
+          "$ref": "https://github.com/kemiller2002/praxis/schemas/provenance-actor.schema.json"
+        },
+        "execution": {
+          "description": "Praxis execution id (EXE-...) or another Echelon system's execution (EXT-<system>.<run-id>). Absent when not known; never fabricated.",
+          "type": "string",
+          "pattern": "^(EXE-[A-Za-z0-9._-]+|EXT-[a-z][a-z0-9-]*\\.[A-Za-z0-9._-]+)$"
+        }
+      },
+      "additionalProperties": true
+    },
+    "measurement": {
+      "description": "Recorded duration evidence. Absent means Chrona has no duration evidence: the observation is preserved but no time entry can be produced from it (CHR-PROV-004). Values are never estimated from provenance, execution existence, or commit timestamps.",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "kind",
+            "startedAt",
+            "endedAt",
+            "source"
+          ],
+          "properties": {
+            "kind": {
+              "const": "interval"
+            },
+            "startedAt": {
+              "$ref": "#/$defs/instant"
+            },
+            "endedAt": {
+              "$ref": "#/$defs/instant"
+            },
+            "source": {
+              "$ref": "#/$defs/measurementSource"
+            }
+          },
+          "additionalProperties": true
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind",
+            "seconds",
+            "source"
+          ],
+          "properties": {
+            "kind": {
+              "const": "duration"
+            },
+            "seconds": {
+              "type": "number",
+              "minimum": 0
+            },
+            "source": {
+              "$ref": "#/$defs/measurementSource"
+            }
+          },
+          "additionalProperties": true
+        }
+      ]
+    },
+    "provenance": {
+      "description": "Praxis praxis.provenance/1 interchange block describing this observation (contributions keyed by EXE-/EXT-/CTB-, derivedFrom lineage). Optional: an observation without provenance is valid and reads as unattributed. A block tagged with another major version (praxis.provenance/N, N != 1) is outside this floor and is carried verbatim.",
+      "type": "object",
+      "if": {
+        "anyOf": [
+          {
+            "not": {
+              "required": [
+                "schema"
+              ]
+            }
+          },
+          {
+            "required": [
+              "schema"
+            ],
+            "properties": {
+              "schema": {
+                "const": "praxis.provenance/1"
+              }
+            }
+          }
+        ]
+      },
+      "then": {
+        "$ref": "https://github.com/kemiller2002/praxis/schemas/provenance-interchange.schema.json"
+      }
+    }
+  },
+  "patternProperties": {
+    "^x-": {}
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "instant": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,9})?Z$"
+    },
+    "measurementSource": {
+      "description": "Where the duration was recorded: a running timer, a person's manual entry, execution telemetry (for example a finalized Praxis execution record), or an import from another time system.",
+      "enum": [
+        "timer",
+        "manual-entry",
+        "telemetry",
+        "import"
+      ]
+    }
+  }
+}

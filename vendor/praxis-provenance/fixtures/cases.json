@@ -1,0 +1,1330 @@
+{
+  "contract": "praxis.provenance/1",
+  "description": "Conformance cases for the Praxis provenance interchange block (RQ-ROS-2026-A015). Every implementation of the contract (Praxis F#, the Praxis JS reference library, and any downstream Echelon codec) MUST reach the same verdict for every case: supported (with the stated number of tolerated-content warnings), unsupported (carry verbatim, never interpret), or malformed (reject at the boundary). Downstream repositories vendor this file unchanged and record its source commit and SHA-256. Revision 1.1 adds cases for exact anchoring (no trailing newline), calendar-valid timestamps compared at millisecond precision, and JSON null never standing in for an absent field.",
+  "cases": [
+    {
+      "name": "agent-created",
+      "expect": "supported",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "human-and-agent",
+      "expect": "supported",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            }
+          },
+          "CTB-20260926-5f2e19aa": {
+            "operations": [
+              "approved"
+            ],
+            "at": "2026-09-26T09:00:00.000Z",
+            "actor": {
+              "kind": "human",
+              "id": "kevin"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "multiple-agents",
+      "expect": "supported",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            }
+          },
+          "EXE-20260926T083000000Z-bbbb0002": {
+            "operations": [
+              "modified"
+            ],
+            "at": "2026-09-26T08:30:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "anthropic/claude-code",
+              "provider": "anthropic",
+              "model": "unknown",
+              "runtime": "claude-code"
+            },
+            "reason": "Tighten criteria"
+          }
+        }
+      }
+    },
+    {
+      "name": "same-agent-two-executions",
+      "expect": "supported",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            }
+          },
+          "EXE-20260926T090000000Z-aaaa0003": {
+            "operations": [
+              "modified"
+            ],
+            "at": "2026-09-26T09:00:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "foreign-execution-agent",
+      "expect": "supported",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXT-dokimos.run-20260926-07": {
+            "operations": [
+              "created",
+              "measured"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "anthropic/claude-code",
+              "provider": "anthropic",
+              "model": "unknown",
+              "runtime": "claude-code"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "automation-ci",
+      "expect": "supported",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXT-github-actions.123456789-1": {
+            "operations": [
+              "created",
+              "validated"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "automation",
+              "id": "github/github-actions",
+              "provider": "github",
+              "model": "unknown",
+              "runtime": "github-actions"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "unknown-actor",
+      "expect": "supported",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "CTB-20260926-0000abcd": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "unknown",
+              "id": "unknown",
+              "provider": "unknown",
+              "model": "unknown",
+              "runtime": "unknown"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "extension-actor-kind",
+      "expect": "supported",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "CTB-20260926-0000abce": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "x-org-bot",
+              "id": "acme/triage",
+              "provider": "acme",
+              "model": "unknown",
+              "runtime": "triage"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "role-operations",
+      "expect": "supported",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001": {
+            "operations": [
+              "created",
+              "discovered"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            }
+          },
+          "EXT-vigila.op-42": {
+            "operations": [
+              "transformed"
+            ],
+            "at": "2026-09-26T08:30:00.000Z",
+            "actor": {
+              "kind": "automation",
+              "id": "echelon/vigila",
+              "provider": "echelon",
+              "model": "unknown",
+              "runtime": "vigila"
+            }
+          },
+          "EXE-20260926T083000000Z-bbbb0002": {
+            "operations": [
+              "remediated"
+            ],
+            "at": "2026-09-26T08:30:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "anthropic/claude-code",
+              "provider": "anthropic",
+              "model": "unknown",
+              "runtime": "claude-code"
+            }
+          },
+          "CTB-20260926-5f2e19aa": {
+            "operations": [
+              "validated",
+              "resolved"
+            ],
+            "at": "2026-09-26T09:00:00.000Z",
+            "actor": {
+              "kind": "human",
+              "id": "kevin"
+            }
+          }
+        },
+        "derivedFrom": [
+          "aegis:fault/F-12"
+        ]
+      }
+    },
+    {
+      "name": "extension-operation",
+      "expect": "supported",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001": {
+            "operations": [
+              "created",
+              "x-triaged"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "future-operation-tolerated",
+      "expect": "supported",
+      "warnings": 1,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001": {
+            "operations": [
+              "created",
+              "quarantined"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "unknown-fields-preserved",
+      "expect": "supported",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            },
+            "attestation": {
+              "type": "x-future",
+              "signature": "not-a-real-signature"
+            }
+          }
+        },
+        "x-future-top": {
+          "any": "thing"
+        }
+      }
+    },
+    {
+      "name": "bare-registry-projection",
+      "expect": "supported",
+      "warnings": 0,
+      "block": {
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "empty-unattributed",
+      "expect": "supported",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {}
+      }
+    },
+    {
+      "name": "last-after-at",
+      "expect": "supported",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001": {
+            "operations": [
+              "created",
+              "modified"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            },
+            "last": "2026-09-26T09:00:00.000Z"
+          }
+        }
+      }
+    },
+    {
+      "name": "lineage-foreign-refs",
+      "expect": "supported",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            }
+          }
+        },
+        "derivedFrom": [
+          "RQ-APP-2026-A007",
+          "ordo:resolution/r-17"
+        ]
+      }
+    },
+    {
+      "name": "unsupported-major",
+      "expect": "unsupported",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/2",
+        "contributions": [
+          {
+            "totally": "different"
+          }
+        ],
+        "whatever": true
+      }
+    },
+    {
+      "name": "minor-version-tag",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1.1",
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "foreign-schema",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "echelon.execution-envelope/v1",
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "agent-missing-model",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "runtime": "codex"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "agent-without-execution",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "CTB-20260926-11111111": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "two-creators",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            }
+          },
+          "EXE-20260926T083000000Z-bbbb0002": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:30:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "anthropic/claude-code",
+              "provider": "anthropic",
+              "model": "unknown",
+              "runtime": "claude-code"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "creation-not-first",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001": {
+            "operations": [
+              "modified"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            }
+          },
+          "EXE-20260926T083000000Z-bbbb0002": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:30:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "anthropic/claude-code",
+              "provider": "anthropic",
+              "model": "unknown",
+              "runtime": "claude-code"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "invalid-key",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "run-1": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "human",
+              "id": "kevin"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "foreign-key-without-run",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXT-dokimos": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "anthropic/claude-code",
+              "provider": "anthropic",
+              "model": "unknown",
+              "runtime": "claude-code"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "bad-timestamp",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26 08:00",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "last-before-at",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:30:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            },
+            "last": "2026-09-26T08:00:00.000Z"
+          }
+        }
+      }
+    },
+    {
+      "name": "invalid-kind",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "robot",
+              "id": "r2"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "empty-actor-id",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "CTB-20260926-22222222": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "human",
+              "id": ""
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "missing-actor",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z"
+          }
+        }
+      }
+    },
+    {
+      "name": "empty-operations",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001": {
+            "operations": [],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "duplicate-operations",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001": {
+            "operations": [
+              "created",
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "invalid-operation-code",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001": {
+            "operations": [
+              "Created!"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "lineage-not-array",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            }
+          }
+        },
+        "derivedFrom": "RQ-APP-2026-A007"
+      }
+    },
+    {
+      "name": "contributions-missing",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1"
+      }
+    },
+    {
+      "name": "contributions-array",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": [
+          {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "not-an-object",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": [
+        {
+          "operations": [
+            "created"
+          ],
+          "at": "2026-09-26T08:00:00.000Z",
+          "actor": {
+            "kind": "agent",
+            "id": "openai/codex",
+            "provider": "openai",
+            "model": "gpt-5-codex",
+            "runtime": "codex"
+          }
+        }
+      ]
+    },
+    {
+      "name": "credential-in-actor",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "CTB-20260926-33333333": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "human",
+              "id": "ghp_0123456789abcdefghijABCDEFGHIJ0123"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "credential-in-reason",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            },
+            "reason": "called API with Bearer abcdefghijklmnopqrstuvwxyz012345"
+          }
+        }
+      }
+    },
+    {
+      "name": "credential-in-unsupported-major",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/2",
+        "token": "sk-ant-api03-abcdefghijklmnopqrstuvwxyz"
+      }
+    },
+    {
+      "name": "second-creator-trailing-newline",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "CTB-20260926-aaaaaaaa": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "human",
+              "id": "kevin"
+            }
+          },
+          "CTB-20260926-bbbbbbbb": {
+            "operations": [
+              "created\n"
+            ],
+            "at": "2026-09-26T09:00:00.000Z",
+            "actor": {
+              "kind": "human",
+              "id": "kevin"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "key-trailing-newline",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001\n": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "schema-trailing-newline",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/2\n",
+        "contributions": {}
+      }
+    },
+    {
+      "name": "kind-trailing-newline",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "CTB-20260926-cccccccc": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "human\n",
+              "id": "kevin"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "extension-kind-trailing-newline",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "CTB-20260926-dddddddd": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "x-bot\n",
+              "id": "acme/bot",
+              "provider": "acme",
+              "model": "unknown",
+              "runtime": "bot"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "calendar-invalid-date",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-02-30T08:00:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "hour-24",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T24:00:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "year-zero",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001": {
+            "operations": [
+              "created"
+            ],
+            "at": "0000-01-01T00:00:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "sub-millisecond-order",
+      "expect": "supported",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.0009Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            }
+          },
+          "CTB-20260926-eeeeeeee": {
+            "operations": [
+              "reviewed"
+            ],
+            "at": "2026-09-26T08:00:00.0001Z",
+            "actor": {
+              "kind": "human",
+              "id": "kevin"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "nine-digit-fraction-at-maximum",
+      "expect": "supported",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001": {
+            "operations": [
+              "created"
+            ],
+            "at": "9999-12-31T23:59:59.999999999Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "null-schema",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": null,
+        "contributions": {}
+      }
+    },
+    {
+      "name": "null-last",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            },
+            "last": null
+          }
+        }
+      }
+    },
+    {
+      "name": "null-reason",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            },
+            "reason": null
+          }
+        }
+      }
+    },
+    {
+      "name": "null-evidence",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            },
+            "evidence": null
+          }
+        }
+      }
+    },
+    {
+      "name": "null-derivedFrom",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            }
+          }
+        },
+        "derivedFrom": null
+      }
+    },
+    {
+      "name": "null-human-provider",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "CTB-20260926-ffffffff": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "human",
+              "id": "kevin",
+              "provider": null
+            }
+          }
+        }
+      }
+    }
+  ],
+  "contractRevision": "1.1"
+}

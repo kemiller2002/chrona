@@ -1,0 +1,21 @@
+{
+  "repository": "kemiller2002/praxis",
+  "commit": "c2657efb4d54f11d0fd0617cc1bcd5b8418601d5",
+  "note": "Vendored unchanged from Praxis (RQ-ROS-2026-A018). Do not edit these files; re-vendor from a newer Praxis commit and update the hashes instead. tests/provenance/vendored.test.mjs recomputes every hash.",
+  "origins": {
+    "lib/provenance-interchange.mjs": "lib/provenance-interchange.mjs",
+    "schemas/provenance-actor.schema.json": "schemas/provenance-actor.schema.json",
+    "schemas/provenance-interchange.schema.json": "schemas/provenance-interchange.schema.json",
+    "fixtures/cases.json": "tests/fixtures/provenance-interchange/cases.json",
+    "fixtures/echelon-chain.json": "tests/fixtures/provenance-interchange/echelon-chain.json",
+    "fixtures/identity-environment.json": "tests/fixtures/provenance-interchange/identity-environment.json"
+  },
+  "files": {
+    "lib/provenance-interchange.mjs": "a7f81a1cc9ea3199cf7778e2666ad1fd0f13af5f1a234e58f4707aaa54a34ff1",
+    "schemas/provenance-actor.schema.json": "f64a7f1c61c0c5b5c46a2d2ae8aebc78e177dc03e4b7c1f3e800e82bcb02b845",
+    "schemas/provenance-interchange.schema.json": "33c11f4582040103f6415b5a18e017bea0c674f96d8f36fd08165bb73e9f4b80",
+    "fixtures/cases.json": "23abac4a98b0507bd31740475b784e051d801ac4555db6e8757fdf7a997df202",
+    "fixtures/echelon-chain.json": "deaad21e322d80f3bcbd09947c20befa139db4d50aaca80d2b3d24eb94b1b3d8",
+    "fixtures/identity-environment.json": "f4f2cde8517313677746d9983c7c399021c5e945534d4951ac0d92cc371db5b3"
+  }
+}

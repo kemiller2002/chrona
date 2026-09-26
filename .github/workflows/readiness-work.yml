@@ -21,16 +21,37 @@ jobs:
         with:
           node-version: "24"
       - name: Begin GH-4
+        id: begin
         shell: bash
+        # This job is GitHub Actions automation, not an agent. It declares no
+        # actor string of its own: ROS resolves GitHub Actions as `automation`,
+        # and ROS_ACTOR_KIND states that explicitly for CLIs that read it
+        # (Praxis RQ-ROS-2026-A016; docs/requirements/CHRONA-PROVENANCE.md
+        # CHR-PROV-008). Earlier runs recorded `agent:chatgpt`; that history is
+        # left unchanged (never rewritten).
+        env:
+          ROS_ACTOR_KIND: automation
         run: |
           set -euo pipefail
-          ./ros add "Prepare Chrona implementation baseline"             --id "GH-4"             --tag readiness,bootstrap             --priority high             --source github-issue             --source-reference "https://github.com/kemiller2002/chrona/issues/4"             --actor "agent:chatgpt"
+          if ./ros work show "GH-4" > /dev/null 2>&1; then
+            echo "GH-4 is already recorded; nothing to begin."
+            echo "begun=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          ./ros add "Prepare Chrona implementation baseline" \
+            --id "GH-4" \
+            --tag readiness,bootstrap \
+            --priority high \
+            --source github-issue \
+            --source-reference "https://github.com/kemiller2002/chrona/issues/4"
           NOW="$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"
           ./ros work backlog-transition --action ready --id "GH-4" --occurred-at "$NOW"
           NOW="$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"
           ./ros work start --id "GH-4" --occurred-at "$NOW" --type feature
           ./ros work context "GH-4"
+          echo "begun=true" >> "$GITHUB_OUTPUT"
       - name: Commit active work state
+        if: steps.begin.outputs.begun == 'true'
         shell: bash
         run: |
           set -euo pipefail

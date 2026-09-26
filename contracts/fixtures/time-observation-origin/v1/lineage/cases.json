@@ -1,0 +1,617 @@
+{
+  "cases": [
+    {
+      "name": "accept",
+      "operation": "accept",
+      "sources": [
+        [
+          {
+            "from": "OBS-001",
+            "origin": {
+              "contract": "chrona.time-observation-origin",
+              "version": "1.0.0",
+              "sourceSystem": "praxis",
+              "originActor": {
+                "kind": "agent",
+                "id": "anthropic/claude-code",
+                "provider": "anthropic",
+                "model": "unknown",
+                "runtime": "claude-code"
+              },
+              "originExecution": "EXE-20260926T100000000Z-c3c3c3c3"
+            }
+          }
+        ]
+      ],
+      "result": [
+        {
+          "from": "OBS-001",
+          "origin": {
+            "contract": "chrona.time-observation-origin",
+            "version": "1.0.0",
+            "sourceSystem": "praxis",
+            "originActor": {
+              "kind": "agent",
+              "id": "anthropic/claude-code",
+              "provider": "anthropic",
+              "model": "unknown",
+              "runtime": "claude-code"
+            },
+            "originExecution": "EXE-20260926T100000000Z-c3c3c3c3"
+          }
+        }
+      ],
+      "expect": "preserved",
+      "why": "acceptance keeps the observation's origin"
+    },
+    {
+      "name": "split-child",
+      "operation": "split",
+      "sources": [
+        [
+          {
+            "from": "OBS-001",
+            "origin": {
+              "contract": "chrona.time-observation-origin",
+              "version": "1.0.0",
+              "sourceSystem": "praxis",
+              "originActor": {
+                "kind": "agent",
+                "id": "anthropic/claude-code",
+                "provider": "anthropic",
+                "model": "unknown",
+                "runtime": "claude-code"
+              },
+              "originExecution": "EXE-20260926T100000000Z-c3c3c3c3"
+            }
+          }
+        ]
+      ],
+      "result": [
+        {
+          "from": "OBS-001",
+          "origin": {
+            "contract": "chrona.time-observation-origin",
+            "version": "1.0.0",
+            "sourceSystem": "praxis",
+            "originActor": {
+              "kind": "agent",
+              "id": "anthropic/claude-code",
+              "provider": "anthropic",
+              "model": "unknown",
+              "runtime": "claude-code"
+            },
+            "originExecution": "EXE-20260926T100000000Z-c3c3c3c3"
+          }
+        }
+      ],
+      "expect": "preserved",
+      "why": "each split child carries the parent's lineage verbatim"
+    },
+    {
+      "name": "merge",
+      "operation": "merge",
+      "sources": [
+        [
+          {
+            "from": "OBS-001",
+            "origin": {
+              "contract": "chrona.time-observation-origin",
+              "version": "1.0.0",
+              "sourceSystem": "praxis",
+              "originActor": {
+                "kind": "agent",
+                "id": "anthropic/claude-code",
+                "provider": "anthropic",
+                "model": "unknown",
+                "runtime": "claude-code"
+              },
+              "originExecution": "EXE-20260926T100000000Z-c3c3c3c3"
+            }
+          }
+        ],
+        [
+          {
+            "from": "OBS-002",
+            "origin": {
+              "contract": "chrona.time-observation-origin",
+              "version": "1.0.0",
+              "sourceSystem": "praxis",
+              "originActor": {
+                "kind": "agent",
+                "id": "openai/codex",
+                "provider": "openai",
+                "model": "unknown",
+                "runtime": "codex"
+              },
+              "originExecution": "EXE-20260926T140000000Z-e5e5e5e5"
+            }
+          }
+        ]
+      ],
+      "result": [
+        {
+          "from": "OBS-001",
+          "origin": {
+            "contract": "chrona.time-observation-origin",
+            "version": "1.0.0",
+            "sourceSystem": "praxis",
+            "originActor": {
+              "kind": "agent",
+              "id": "anthropic/claude-code",
+              "provider": "anthropic",
+              "model": "unknown",
+              "runtime": "claude-code"
+            },
+            "originExecution": "EXE-20260926T100000000Z-c3c3c3c3"
+          }
+        },
+        {
+          "from": "OBS-002",
+          "origin": {
+            "contract": "chrona.time-observation-origin",
+            "version": "1.0.0",
+            "sourceSystem": "praxis",
+            "originActor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "unknown",
+              "runtime": "codex"
+            },
+            "originExecution": "EXE-20260926T140000000Z-e5e5e5e5"
+          }
+        }
+      ],
+      "expect": "preserved",
+      "why": "a merged activity keeps each source's origin, tied to its own source"
+    },
+    {
+      "name": "merge-of-merge",
+      "operation": "merge",
+      "sources": [
+        [
+          {
+            "from": "OBS-001",
+            "origin": {
+              "contract": "chrona.time-observation-origin",
+              "version": "1.0.0",
+              "sourceSystem": "praxis",
+              "originActor": {
+                "kind": "agent",
+                "id": "anthropic/claude-code",
+                "provider": "anthropic",
+                "model": "unknown",
+                "runtime": "claude-code"
+              },
+              "originExecution": "EXE-20260926T100000000Z-c3c3c3c3"
+            }
+          },
+          {
+            "from": "OBS-002",
+            "origin": {
+              "contract": "chrona.time-observation-origin",
+              "version": "1.0.0",
+              "sourceSystem": "praxis",
+              "originActor": {
+                "kind": "agent",
+                "id": "openai/codex",
+                "provider": "openai",
+                "model": "unknown",
+                "runtime": "codex"
+              },
+              "originExecution": "EXE-20260926T140000000Z-e5e5e5e5"
+            }
+          }
+        ],
+        [
+          {
+            "from": "OBS-003",
+            "origin": {
+              "contract": "chrona.time-observation-origin",
+              "version": "1.0.0",
+              "sourceSystem": "praxis",
+              "originActor": {
+                "kind": "human",
+                "id": "kevin"
+              }
+            }
+          }
+        ]
+      ],
+      "result": [
+        {
+          "from": "OBS-001",
+          "origin": {
+            "contract": "chrona.time-observation-origin",
+            "version": "1.0.0",
+            "sourceSystem": "praxis",
+            "originActor": {
+              "kind": "agent",
+              "id": "anthropic/claude-code",
+              "provider": "anthropic",
+              "model": "unknown",
+              "runtime": "claude-code"
+            },
+            "originExecution": "EXE-20260926T100000000Z-c3c3c3c3"
+          }
+        },
+        {
+          "from": "OBS-002",
+          "origin": {
+            "contract": "chrona.time-observation-origin",
+            "version": "1.0.0",
+            "sourceSystem": "praxis",
+            "originActor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "unknown",
+              "runtime": "codex"
+            },
+            "originExecution": "EXE-20260926T140000000Z-e5e5e5e5"
+          }
+        },
+        {
+          "from": "OBS-003",
+          "origin": {
+            "contract": "chrona.time-observation-origin",
+            "version": "1.0.0",
+            "sourceSystem": "praxis",
+            "originActor": {
+              "kind": "human",
+              "id": "kevin"
+            }
+          }
+        }
+      ],
+      "expect": "preserved",
+      "why": "lineage accumulates across repeated merges"
+    },
+    {
+      "name": "split-drops-origin",
+      "operation": "split",
+      "sources": [
+        [
+          {
+            "from": "OBS-001",
+            "origin": {
+              "contract": "chrona.time-observation-origin",
+              "version": "1.0.0",
+              "sourceSystem": "praxis",
+              "originActor": {
+                "kind": "agent",
+                "id": "anthropic/claude-code",
+                "provider": "anthropic",
+                "model": "unknown",
+                "runtime": "claude-code"
+              },
+              "originExecution": "EXE-20260926T100000000Z-c3c3c3c3"
+            }
+          },
+          {
+            "from": "OBS-002",
+            "origin": {
+              "contract": "chrona.time-observation-origin",
+              "version": "1.0.0",
+              "sourceSystem": "praxis",
+              "originActor": {
+                "kind": "agent",
+                "id": "openai/codex",
+                "provider": "openai",
+                "model": "unknown",
+                "runtime": "codex"
+              },
+              "originExecution": "EXE-20260926T140000000Z-e5e5e5e5"
+            }
+          }
+        ]
+      ],
+      "result": [
+        {
+          "from": "OBS-001",
+          "origin": {
+            "contract": "chrona.time-observation-origin",
+            "version": "1.0.0",
+            "sourceSystem": "praxis",
+            "originActor": {
+              "kind": "agent",
+              "id": "anthropic/claude-code",
+              "provider": "anthropic",
+              "model": "unknown",
+              "runtime": "claude-code"
+            },
+            "originExecution": "EXE-20260926T100000000Z-c3c3c3c3"
+          }
+        }
+      ],
+      "expect": "destructive",
+      "why": "a split child lost one of the parent's origins"
+    },
+    {
+      "name": "merge-collapses-authorship",
+      "operation": "merge",
+      "sources": [
+        [
+          {
+            "from": "OBS-001",
+            "origin": {
+              "contract": "chrona.time-observation-origin",
+              "version": "1.0.0",
+              "sourceSystem": "praxis",
+              "originActor": {
+                "kind": "agent",
+                "id": "anthropic/claude-code",
+                "provider": "anthropic",
+                "model": "unknown",
+                "runtime": "claude-code"
+              },
+              "originExecution": "EXE-20260926T100000000Z-c3c3c3c3"
+            }
+          }
+        ],
+        [
+          {
+            "from": "OBS-002",
+            "origin": {
+              "contract": "chrona.time-observation-origin",
+              "version": "1.0.0",
+              "sourceSystem": "praxis",
+              "originActor": {
+                "kind": "agent",
+                "id": "openai/codex",
+                "provider": "openai",
+                "model": "unknown",
+                "runtime": "codex"
+              },
+              "originExecution": "EXE-20260926T140000000Z-e5e5e5e5"
+            }
+          }
+        ]
+      ],
+      "result": [
+        {
+          "from": "OBS-001",
+          "origin": {
+            "contract": "chrona.time-observation-origin",
+            "version": "1.0.0",
+            "sourceSystem": "praxis",
+            "originActor": {
+              "kind": "agent",
+              "id": "anthropic/claude-code",
+              "provider": "anthropic",
+              "model": "unknown",
+              "runtime": "claude-code"
+            },
+            "originExecution": "EXE-20260926T100000000Z-c3c3c3c3"
+          }
+        }
+      ],
+      "expect": "destructive",
+      "why": "merge replaced several origins with one author"
+    },
+    {
+      "name": "overwritten-actor",
+      "operation": "amend",
+      "sources": [
+        [
+          {
+            "from": "OBS-001",
+            "origin": {
+              "contract": "chrona.time-observation-origin",
+              "version": "1.0.0",
+              "sourceSystem": "praxis",
+              "originActor": {
+                "kind": "agent",
+                "id": "anthropic/claude-code",
+                "provider": "anthropic",
+                "model": "unknown",
+                "runtime": "claude-code"
+              },
+              "originExecution": "EXE-20260926T100000000Z-c3c3c3c3"
+            }
+          }
+        ]
+      ],
+      "result": [
+        {
+          "from": "OBS-001",
+          "origin": {
+            "contract": "chrona.time-observation-origin",
+            "version": "1.0.0",
+            "sourceSystem": "praxis",
+            "originActor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "unknown",
+              "runtime": "codex"
+            },
+            "originExecution": "EXE-20260926T100000000Z-c3c3c3c3"
+          }
+        }
+      ],
+      "expect": "destructive",
+      "why": "the originating actor was overwritten"
+    },
+    {
+      "name": "reviewer-as-origin",
+      "operation": "accept",
+      "sources": [
+        [
+          {
+            "from": "OBS-001",
+            "origin": {
+              "contract": "chrona.time-observation-origin",
+              "version": "1.0.0",
+              "sourceSystem": "praxis",
+              "originActor": {
+                "kind": "agent",
+                "id": "anthropic/claude-code",
+                "provider": "anthropic",
+                "model": "unknown",
+                "runtime": "claude-code"
+              },
+              "originExecution": "EXE-20260926T100000000Z-c3c3c3c3"
+            }
+          }
+        ]
+      ],
+      "result": [
+        {
+          "from": "OBS-001",
+          "origin": {
+            "contract": "chrona.time-observation-origin",
+            "version": "1.0.0",
+            "sourceSystem": "praxis",
+            "originActor": {
+              "kind": "human",
+              "id": "kevin"
+            }
+          }
+        }
+      ],
+      "expect": "destructive",
+      "why": "the reviewer replaced the agent as origin"
+    },
+    {
+      "name": "invented-origin",
+      "operation": "merge",
+      "sources": [
+        [
+          {
+            "from": "OBS-001",
+            "origin": {
+              "contract": "chrona.time-observation-origin",
+              "version": "1.0.0",
+              "sourceSystem": "praxis",
+              "originActor": {
+                "kind": "agent",
+                "id": "anthropic/claude-code",
+                "provider": "anthropic",
+                "model": "unknown",
+                "runtime": "claude-code"
+              },
+              "originExecution": "EXE-20260926T100000000Z-c3c3c3c3"
+            }
+          }
+        ],
+        []
+      ],
+      "result": [
+        {
+          "from": "OBS-001",
+          "origin": {
+            "contract": "chrona.time-observation-origin",
+            "version": "1.0.0",
+            "sourceSystem": "praxis",
+            "originActor": {
+              "kind": "agent",
+              "id": "anthropic/claude-code",
+              "provider": "anthropic",
+              "model": "unknown",
+              "runtime": "claude-code"
+            },
+            "originExecution": "EXE-20260926T100000000Z-c3c3c3c3"
+          }
+        },
+        {
+          "from": "OBS-002",
+          "origin": {
+            "contract": "chrona.time-observation-origin",
+            "version": "1.0.0",
+            "sourceSystem": "praxis",
+            "originActor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "unknown",
+              "runtime": "codex"
+            },
+            "originExecution": "EXE-20260926T140000000Z-e5e5e5e5"
+          }
+        }
+      ],
+      "expect": "destructive",
+      "why": "lineage may not invent an origin no source had"
+    },
+    {
+      "name": "duplicated-entry",
+      "operation": "merge",
+      "sources": [
+        [
+          {
+            "from": "OBS-001",
+            "origin": {
+              "contract": "chrona.time-observation-origin",
+              "version": "1.0.0",
+              "sourceSystem": "praxis",
+              "originActor": {
+                "kind": "agent",
+                "id": "anthropic/claude-code",
+                "provider": "anthropic",
+                "model": "unknown",
+                "runtime": "claude-code"
+              },
+              "originExecution": "EXE-20260926T100000000Z-c3c3c3c3"
+            }
+          }
+        ],
+        [
+          {
+            "from": "OBS-001",
+            "origin": {
+              "contract": "chrona.time-observation-origin",
+              "version": "1.0.0",
+              "sourceSystem": "praxis",
+              "originActor": {
+                "kind": "agent",
+                "id": "anthropic/claude-code",
+                "provider": "anthropic",
+                "model": "unknown",
+                "runtime": "claude-code"
+              },
+              "originExecution": "EXE-20260926T100000000Z-c3c3c3c3"
+            }
+          }
+        ]
+      ],
+      "result": [
+        {
+          "from": "OBS-001",
+          "origin": {
+            "contract": "chrona.time-observation-origin",
+            "version": "1.0.0",
+            "sourceSystem": "praxis",
+            "originActor": {
+              "kind": "agent",
+              "id": "anthropic/claude-code",
+              "provider": "anthropic",
+              "model": "unknown",
+              "runtime": "claude-code"
+            },
+            "originExecution": "EXE-20260926T100000000Z-c3c3c3c3"
+          }
+        },
+        {
+          "from": "OBS-001",
+          "origin": {
+            "contract": "chrona.time-observation-origin",
+            "version": "1.0.0",
+            "sourceSystem": "praxis",
+            "originActor": {
+              "kind": "agent",
+              "id": "anthropic/claude-code",
+              "provider": "anthropic",
+              "model": "unknown",
+              "runtime": "claude-code"
+            },
+            "originExecution": "EXE-20260926T100000000Z-c3c3c3c3"
+          }
+        }
+      ],
+      "expect": "destructive",
+      "why": "the same source's origin appears once, not duplicated"
+    }
+  ]
+}

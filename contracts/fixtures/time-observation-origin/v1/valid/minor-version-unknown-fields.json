@@ -1,0 +1,19 @@
+{
+  "contract": "chrona.time-observation-origin",
+  "version": "1.3.0",
+  "sourceSystem": "praxis",
+  "originActor": {
+    "kind": "agent",
+    "id": "openai/codex",
+    "provider": "openai",
+    "model": "unknown",
+    "runtime": "codex",
+    "x-attestation": {
+      "type": "none"
+    }
+  },
+  "originExecution": "EXE-20260926T140000000Z-e5e5e5e5",
+  "x-added-in-1.3": {
+    "note": "future minor field"
+  }
+}

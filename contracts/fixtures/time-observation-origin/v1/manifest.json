@@ -1,0 +1,118 @@
+{
+  "contract": "chrona.time-observation-origin",
+  "version": "1.0.0",
+  "description": "Fixtures for the receiver-owned time observation origin contract (CHR-PROV-001..010).",
+  "cases": [
+    {
+      "file": "valid/praxis-agent-minimal.json",
+      "expect": "valid",
+      "why": "agent observation keyed by the propagated Praxis execution (ROS_EXECUTION_ID)"
+    },
+    {
+      "file": "valid/praxis-agent-with-provenance.json",
+      "expect": "valid",
+      "why": "provenance record carried verbatim; originExecution is its contribution by the same actor"
+    },
+    {
+      "file": "valid/foreign-execution.json",
+      "expect": "valid",
+      "why": "a system without a propagated Praxis execution keys its own run as EXE-<system>.<run>"
+    },
+    {
+      "file": "valid/unknown-attributes.json",
+      "expect": "valid",
+      "why": "unknown is recorded as unknown, never guessed"
+    },
+    {
+      "file": "valid/human-outside-run.json",
+      "expect": "valid",
+      "why": "a human acting outside any run uses a CTB- key"
+    },
+    {
+      "file": "valid/human-without-execution.json",
+      "expect": "valid",
+      "why": "a non-agent origin may omit the execution; absence stays absence"
+    },
+    {
+      "file": "valid/minor-version-unknown-fields.json",
+      "expect": "valid",
+      "why": "a newer minor of major 1 is accepted; fields it adds are preserved"
+    },
+    {
+      "file": "valid/unsupported-provenance-carried.json",
+      "expect": "valid",
+      "why": "a provenance record in an unsupported major is carried verbatim, not interpreted"
+    },
+    {
+      "file": "valid/unversioned-provenance.json",
+      "expect": "valid",
+      "why": "a legacy bare {contributions} block is read as provenance v1"
+    },
+    {
+      "file": "invalid/agent-without-execution.json",
+      "expect": "invalid",
+      "why": "an agent origin must name the execution that produced it"
+    },
+    {
+      "file": "invalid/agent-with-contribution-key.json",
+      "expect": "invalid",
+      "why": "an agent contribution is always keyed EXE-"
+    },
+    {
+      "file": "invalid/agent-missing-model.json",
+      "expect": "invalid",
+      "why": "an agent states provider, model, and runtime (unknown when unknown)"
+    },
+    {
+      "file": "invalid/missing-actor.json",
+      "expect": "invalid",
+      "why": "an origin without an actor is not an origin"
+    },
+    {
+      "file": "invalid/empty-actor-id.json",
+      "expect": "invalid",
+      "why": "unknown must be spelled unknown"
+    },
+    {
+      "file": "invalid/unknown-kind.json",
+      "expect": "invalid",
+      "why": "kind outside the Praxis vocabulary"
+    },
+    {
+      "file": "invalid/bad-execution-key.json",
+      "expect": "invalid",
+      "why": "executions are EXE- or CTB- keys"
+    },
+    {
+      "file": "invalid/credential-in-actor.json",
+      "expect": "invalid",
+      "why": "identity never carries a credential"
+    },
+    {
+      "file": "invalid/execution-not-in-provenance.json",
+      "expect": "invalid",
+      "why": "originExecution must be a contribution of the carried record"
+    },
+    {
+      "file": "invalid/actor-contradicts-provenance.json",
+      "expect": "invalid",
+      "why": "the carried record attributes the execution to a different actor (forged or confused origin)"
+    },
+    {
+      "file": "invalid/malformed-provenance.json",
+      "expect": "invalid",
+      "why": "malformed provenance (two creations) is reported, not dropped"
+    },
+    {
+      "file": "invalid/unsupported-origin-major.json",
+      "expect": "invalid",
+      "why": "an unsupported major of Chrona's own origin contract is an invalid payload"
+    },
+    {
+      "file": "invalid/wrong-contract.json",
+      "expect": "invalid",
+      "why": "contract discriminator mismatch"
+    }
+  ],
+  "lineage": "lineage/cases.json"
+}

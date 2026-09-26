@@ -1,0 +1,9 @@
+{
+  "contract": "chrona.time-observation-origin",
+  "version": "1.0.0",
+  "sourceSystem": "praxis",
+  "originActor": {
+    "kind": "robot",
+    "id": "r2"
+  }
+}

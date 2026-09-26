@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kemiller2002/chrona/contracts/time-observation-origin.v1.schema.json",
+  "title": "Chrona time observation origin (v1)",
+  "description": "Receiver-owned contract (CHRONA-AGENT-PROVENANCE-REQUIREMENTS CHR-PROV-001, CHR-PROV-008) for the origin of a TimeObservation derived from an agent or other execution. The actor and provenance record shapes are owned by Praxis (RQ-ROS-2026-A001, A002, A013..A015); Chrona validates their shape only and never requires Praxis to be reachable. Self-reported provenance: not authentication, not authorization, not evidence (CHR-PROV-005). Unknown fields are preserved.",
+  "type": "object",
+  "required": ["contract", "version", "sourceSystem", "originActor"],
+  "properties": {
+    "contract": { "const": "chrona.time-observation-origin" },
+    "version": {
+      "description": "Semantic version of this contract. Any minor/patch of major 1 is accepted.",
+      "type": "string",
+      "pattern": "^1\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"
+    },
+    "sourceSystem": {
+      "description": "Namespaced system that supplied the observation, e.g. praxis.",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "originActor": { "$ref": "#/$defs/actor" },
+    "originExecution": {
+      "description": "Execution that produced the observation: Praxis EXE-<timestamp>-<random>, foreign EXE-<system>.<run>, or CTB-... for a non-agent actor outside any run. Stored as supplied; never dereferenced.",
+      "type": "string",
+      "pattern": "^(EXE|CTB)-[A-Za-z0-9._-]+$"
+    },
+    "provenance": {
+      "description": "Optional Praxis provenance interchange record (contract praxis.provenance-record), carried verbatim. Structural rules are enforced by the contract codec, not by this schema.",
+      "type": "object"
+    }
+  },
+  "allOf": [
+    {
+      "description": "An agent origin must name the execution (EXE-...) that produced it.",
+      "if": {
+        "type": "object",
+        "required": ["originActor"],
+        "properties": { "originActor": { "type": "object", "required": ["kind"], "properties": { "kind": { "const": "agent" } } } }
+      },
+      "then": {
+        "type": "object",
+        "required": ["originExecution"],
+        "properties": { "originExecution": { "type": "string", "pattern": "^EXE-" } }
+      }
+    }
+  ],
+  "additionalProperties": true,
+  "$defs": {
+    "actor": {
+      "description": "Praxis actor shape (RQ-ROS-2026-A001). provider/model/runtime are omitted for a human and the literal unknown when not known.",
+      "type": "object",
+      "required": ["kind", "id"],
+      "properties": {
+        "kind": { "type": "string", "pattern": "^(agent|human|automation|unknown|x-[a-z0-9][a-z0-9-]*)$" },
+        "id": { "type": "string", "minLength": 1 },
+        "provider": { "type": "string", "minLength": 1 },
+        "model": { "type": "string", "minLength": 1 },
+        "runtime": { "type": "string", "minLength": 1 }
+      },
+      "allOf": [
+        {
+          "if": { "type": "object", "required": ["kind"], "properties": { "kind": { "const": "agent" } } },
+          "then": { "type": "object", "required": ["provider", "model", "runtime"] }
+        }
+      ],
+      "additionalProperties": true
+    },
+    "originLineageEntry": {
+      "description": "One entry of an activity's originLineage (CHR-PROV-006): the source observation/activity and its origin, verbatim.",
+      "type": "object",
+      "required": ["from", "origin"],
+      "properties": {
+        "from": { "type": "string", "pattern": "^\\S+$" },
+        "origin": { "$ref": "#" }
+      },
+      "additionalProperties": true
+    },
+    "originLineage": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/originLineageEntry" }
+    }
+  }
+}

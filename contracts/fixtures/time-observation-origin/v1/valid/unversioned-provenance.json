@@ -1,0 +1,30 @@
+{
+  "contract": "chrona.time-observation-origin",
+  "version": "1.0.0",
+  "sourceSystem": "praxis",
+  "originActor": {
+    "kind": "agent",
+    "id": "anthropic/claude-code",
+    "provider": "anthropic",
+    "model": "unknown",
+    "runtime": "claude-code"
+  },
+  "originExecution": "EXE-20260926T100000000Z-c3c3c3c3",
+  "provenance": {
+    "contributions": {
+      "EXE-20260926T100000000Z-c3c3c3c3": {
+        "operations": [
+          "created"
+        ],
+        "at": "2026-09-26T10:00:00.000Z",
+        "actor": {
+          "kind": "agent",
+          "id": "anthropic/claude-code",
+          "provider": "anthropic",
+          "model": "unknown",
+          "runtime": "claude-code"
+        }
+      }
+    }
+  }
+}

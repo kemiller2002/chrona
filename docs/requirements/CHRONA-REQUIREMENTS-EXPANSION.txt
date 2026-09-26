@@ -1069,3 +1069,11 @@ Summa owns the financial consequence.
 The cross-cutting requirements in `docs/requirements/ECHELON-SHARED-APPLICATION-FOUNDATIONS.md` are normative for every Chrona requirement when applicable.
 
 Chrona therefore MUST use Aegis for unexpected operational failures at architectural boundaries, Forma for interactive browser UI, and Folio for printable/PDF/paginated time reports, summaries, and exports. The shared-foundation document defines ownership boundaries, conditional applicability, dependency pinning, testing, and exception rules.
+
+---
+
+## 0.6 Agent execution provenance
+
+The requirements in `docs/requirements/CHRONA-AGENT-PROVENANCE-REQUIREMENTS.md` (`CHR-PROV-001` through `CHR-PROV-010`) are normative and refine §3, §5, §13, §17, §18, §19, §25, and §45.
+
+Where time or work information originates from agent activity, Chrona MUST preserve the originating execution identity (Praxis actor and `EXE-...` execution, plus any Praxis provenance record verbatim) through observation, acceptance, split/merge lineage, audit, and publication to Summa. Chrona validates the shape of that identity only, never depends on Praxis availability, never invents origin values, and still requires review before agent-originated time becomes authoritative: identity is not authorization.

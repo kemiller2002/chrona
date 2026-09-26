@@ -1,0 +1,13 @@
+{
+  "contract": "chrona.time-observation-origin",
+  "version": "1.0.0",
+  "sourceSystem": "vigila",
+  "originActor": {
+    "kind": "automation",
+    "id": "echelon/vigila",
+    "provider": "echelon",
+    "model": "unknown",
+    "runtime": "vigila"
+  },
+  "originExecution": "EXE-vigila.run-7"
+}

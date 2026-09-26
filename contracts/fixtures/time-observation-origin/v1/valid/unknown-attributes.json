@@ -1,0 +1,13 @@
+{
+  "contract": "chrona.time-observation-origin",
+  "version": "1.0.0",
+  "sourceSystem": "praxis",
+  "originActor": {
+    "kind": "agent",
+    "id": "unknown",
+    "provider": "unknown",
+    "model": "unknown",
+    "runtime": "unknown"
+  },
+  "originExecution": "EXE-20260926T110000000Z-0a0a0a0a"
+}

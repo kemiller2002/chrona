@@ -61,13 +61,25 @@ const CREDENTIAL_PATTERNS = [
   /AKIA[0-9A-Z]{16}/,
   /xox[abprs]-[A-Za-z0-9-]{10,}/,
   /-----BEGIN [A-Z ]*PRIVATE KEY-----/,
-  /\bbearer\s+[A-Za-z0-9._~+/=-]{16,}/i,
+  // ASCII-only semantics (contract 1.2): no \b, \s, or case folding, which differ across
+  // JavaScript, .NET, and Python regular expression engines.
+  /(?:^|[^A-Za-z0-9_])[Bb][Ee][Aa][Rr][Ee][Rr][\t\n\v\f\r ]+[A-Za-z0-9._~+/=-]{16,}/,
   /eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\./,
 ];
 
 const isObject = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
 const isString = (value) => typeof value === "string";
-const isNonEmptyString = (value) => isString(value) && value.trim().length > 0;
+/**
+ * Contract 1.2: "blank" is defined over ASCII whitespace only (tab, LF, VT, FF, CR, space).
+ * Engines disagree about Unicode whitespace (U+0085, U+FEFF, U+001C, ...), so any other
+ * character is content.
+ */
+const ASCII_EDGE_WHITESPACE = /^[\t\n\v\f\r ]+|[\t\n\v\f\r ]+$/g;
+const asciiTrim = (value) => value.replace(ASCII_EDGE_WHITESPACE, "");
+const isNonEmptyString = (value) => isString(value) && asciiTrim(value).length > 0;
+/** True when the string contains an unpaired UTF-16 surrogate (not well-formed Unicode). */
+const LONE_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;
+const hasLoneSurrogate = (value) => LONE_SURROGATE.test(value);
 /**
  * Milliseconds since the epoch for a calendar-valid UTC timestamp (year 0001-9999, no
  * rollover such as Feb 30 or 24:00), or undefined. Ordering is compared at millisecond
@@ -87,9 +99,22 @@ export const parseTimestamp = (value) => {
 };
 const isTimestamp = (value) => parseTimestamp(value) !== undefined;
 const instant = (value) => parseTimestamp(value) ?? Number.POSITIVE_INFINITY;
-const isKnown = (value) => isString(value) && value.trim().length > 0 && value.trim() !== UNKNOWN;
+const isKnown = (value) => isNonEmptyString(value) && asciiTrim(value) !== UNKNOWN;
 
 export const isCredentialLike = (value) => CREDENTIAL_PATTERNS.some((pattern) => pattern.test(value));
+
+/** Dotted paths of every key or string value that is not well-formed Unicode (contract 1.2). */
+const surrogateFindings = (node, path = "") => {
+  if (isString(node)) return hasLoneSurrogate(node) ? [path] : [];
+  if (Array.isArray(node)) return node.flatMap((item, index) => surrogateFindings(item, `${path}[${index}]`));
+  if (isObject(node)) {
+    return Object.entries(node).flatMap(([key, value]) => {
+      const child = path ? `${path}.${key}` : key;
+      return [...(hasLoneSurrogate(key) ? [child] : []), ...surrogateFindings(value, child)];
+    });
+  }
+  return [];
+};
 
 /** Dotted paths of every key or string value that looks like a credential. */
 export const credentialFindings = (node, path = "") => {
@@ -195,6 +220,11 @@ const historyProblems = (contributions) => {
  */
 export const classify = (block) => {
   if (!isObject(block)) return { verdict: "malformed", problems: ["provenance must be a JSON object"], warnings: [] };
+  // Contract 1.2: a block that is not well-formed Unicode cannot be carried verbatim, whatever its version.
+  const unpaired = surrogateFindings(block);
+  if (unpaired.length > 0) {
+    return { verdict: "malformed", problems: unpaired.map((path) => `${path}: unpaired UTF-16 surrogate; provenance must be well-formed Unicode`), warnings: [] };
+  }
   const secrets = credentialFindings(block);
   if (secrets.length > 0) {
     return { verdict: "malformed", problems: secrets.map((path) => `${path}: credential-like value; provenance must never carry authentication material`), warnings: [] };
@@ -220,6 +250,90 @@ export const classify = (block) => {
       .filter((op) => !KNOWN_OPERATIONS.includes(op) && !EXTENSION.test(op))
       .map((op) => `contributions.${key}.operations: '${op}' is not an operation this version knows; preserved verbatim`));
   return { verdict: "supported", problems: [], warnings };
+};
+
+/**
+ * Member names repeated within one JSON object, found by scanning the text itself
+ * (JSON.parse silently keeps the last). Returns undefined when the text is not JSON.
+ */
+const duplicateMembers = (text) => {
+  let index = 0;
+  const found = [];
+  const fail = () => { throw new SyntaxError(`invalid JSON at offset ${index}`); };
+  const space = () => { while (index < text.length && " \t\n\r".includes(text[index])) index += 1; };
+  const string = () => {
+    const start = index;
+    index += 1;
+    while (index < text.length && text[index] !== '"') index += text[index] === "\\" ? 2 : 1;
+    if (index >= text.length) fail();
+    index += 1;
+    return JSON.parse(text.slice(start, index));
+  };
+  const value = (path) => {
+    space();
+    const char = text[index];
+    if (char === "{") {
+      index += 1;
+      const seen = new Set();
+      space();
+      if (text[index] === "}") { index += 1; return; }
+      for (;;) {
+        space();
+        if (text[index] !== '"') fail();
+        const name = string();
+        const child = path ? `${path}.${name}` : name;
+        if (seen.has(name)) found.push(child);
+        seen.add(name);
+        space();
+        if (text[index] !== ":") fail();
+        index += 1;
+        value(child);
+        space();
+        if (text[index] === ",") { index += 1; continue; }
+        if (text[index] === "}") { index += 1; return; }
+        fail();
+      }
+    }
+    if (char === "[") {
+      index += 1;
+      space();
+      if (text[index] === "]") { index += 1; return; }
+      for (let item = 0; ; item += 1) {
+        value(`${path}[${item}]`);
+        space();
+        if (text[index] === ",") { index += 1; continue; }
+        if (text[index] === "]") { index += 1; return; }
+        fail();
+      }
+    }
+    if (char === '"') { string(); return; }
+    const scalar = /^(?:-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?|true|false|null)/.exec(text.slice(index));
+    if (!scalar) fail();
+    index += scalar[0].length;
+  };
+  try {
+    JSON.parse(text);
+    value("");
+    return found;
+  } catch {
+    return undefined;
+  }
+};
+
+/**
+ * Classifies a block received as JSON text (contract 1.2). Text that is not JSON, or
+ * that repeats a member name within any object, is malformed: readers otherwise
+ * disagree about which duplicate wins, so a second `created` could be smuggled past
+ * one reader and seen by another.
+ */
+export const classifyText = (text) => {
+  if (!isString(text)) return { verdict: "malformed", problems: ["provenance text must be a string"], warnings: [] };
+  const duplicates = duplicateMembers(text);
+  if (duplicates === undefined) return { verdict: "malformed", problems: ["provenance is not valid JSON"], warnings: [] };
+  if (duplicates.length > 0) {
+    return { verdict: "malformed", problems: duplicates.map((path) => `${path}: member name repeated within one object`), warnings: [] };
+  }
+  return classify(JSON.parse(text));
 };
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -298,11 +412,35 @@ export const appendContribution = (block, key, contribution) => {
   return finish(next, changed);
 };
 
-/** Adds lineage references (never authorship), preserving existing order. */
+/**
+ * Adds lineage references (never authorship), preserving existing order.
+ * Contract 1.2: lineage is held to the same rules as a contribution. The block must be
+ * supported, every reference a non-empty, credential-free, well-formed string, and the
+ * result must itself classify as supported. Returns `{ ok: true, block, changed }` or
+ * `{ ok: false, error }`; the input is never mutated.
+ */
 export const addLineage = (block, references) => {
+  const received = classify(block);
+  if (received.verdict !== "supported") {
+    return { ok: false, error: `refusing to add lineage to a ${received.verdict} provenance block${received.schema ? ` (${received.schema})` : ""}` };
+  }
+  if (!Array.isArray(references)) return { ok: false, error: "lineage references must be an array" };
+  const invalid = references.filter((reference) => !isNonEmptyString(reference));
+  if (invalid.length > 0) return { ok: false, error: "lineage references must be non-empty strings" };
+  const unpaired = surrogateFindings(references, "derivedFrom");
+  if (unpaired.length > 0) return { ok: false, error: `${unpaired.join(", ")}: unpaired UTF-16 surrogate` };
+  const secrets = credentialFindings(references, "derivedFrom");
+  if (secrets.length > 0) {
+    return { ok: false, error: `${secrets.join(", ")}: credential-like value; provenance must never carry authentication material` };
+  }
   const current = Array.isArray(block.derivedFrom) ? block.derivedFrom : [];
-  const additions = references.filter((reference) => !current.includes(reference));
-  return additions.length === 0 ? clone(block) : { ...clone(block), derivedFrom: [...current, ...additions] };
+  const additions = references.filter((reference, index) => !current.includes(reference) && references.indexOf(reference) === index);
+  if (additions.length === 0) return { ok: true, block: clone(block), changed: false };
+  const next = { ...clone(block), derivedFrom: [...current, ...additions] };
+  const result = classify(next);
+  return result.verdict === "supported"
+    ? { ok: true, block: next, changed: true }
+    : { ok: false, error: `the resulting lineage would be ${result.verdict}: ${result.problems.join("; ")}` };
 };
 
 /**
@@ -365,17 +503,28 @@ export const actorFromEnvelopeV1 = (envelopeActor) => {
 };
 
 /**
+ * Escapes one key segment injectively (contract 1.2): every Unicode code point other than
+ * ASCII letters, digits, and '-' becomes the lowercase hex of its UTF-8 bytes, each as _xx.
+ * '.' is escaped too, so a segment never contains the separator and a namespaced key
+ * (`EXT-run.<namespace>.<id>`) can never equal an un-namespaced one. A string that is not
+ * well-formed Unicode (an unpaired surrogate) has no UTF-8 form and cannot become a key.
+ */
+export const escapeKeySegment = (text) => {
+  if (!isString(text) || text.length === 0) throw new Error("a key segment must be a non-empty string");
+  if (hasLoneSurrogate(text)) throw new Error("a key segment must be well-formed Unicode (unpaired surrogate)");
+  return [...text].map((char) => (/^[A-Za-z0-9-]$/.test(char) ? char
+    : [...new TextEncoder().encode(char)].map((byte) => `_${byte.toString(16).padStart(2, "0")}`).join(""))).join("");
+};
+
+/**
  * The contribution key for work carried by a v1 envelope, which names no executing system:
- * `EXT-run.<runId>` when a run id is known, otherwise `EXT-op.<operationId>`.
- * Characters a key cannot carry are escaped injectively as _xx (UTF-8 hex).
+ * `EXT-run.<runId>` when a run id is known, otherwise `EXT-op.<operationId>`, with the id
+ * escaped by `escapeKeySegment`. Throws when the id cannot form a key; the receiver must then
+ * reject the envelope rather than invent a key.
  */
 export const keyFromEnvelopeV1 = (envelope) => {
-  // Injective escaping: '_' and every character a key cannot carry become _xx (hex),
-  // so two different ids can never map to the same key (contract 1.1).
-  const safe = (text) => String(text).replace(/[^A-Za-z0-9.-]/g, (char) =>
-    [...new TextEncoder().encode(char)].map((byte) => `_${byte.toString(16).padStart(2, "0")}`).join(""));
   const run = envelope.actor?.runId;
   return isObject(run) && run.state === "known" && isNonEmptyString(run.value)
-    ? `EXT-run.${safe(run.value)}`
-    : `EXT-op.${safe(envelope.operationId)}`;
+    ? `EXT-run.${escapeKeySegment(run.value)}`
+    : `EXT-op.${escapeKeySegment(envelope.operationId)}`;
 };

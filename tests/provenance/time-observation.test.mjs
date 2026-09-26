@@ -1,12 +1,15 @@
-// Chrona time.record v1 intake: provenance portion (CHR-PROV-001..011),
-// Praxis contract revision 1.1.
+// Chrona time.record v1 intake: provenance portion (CHR-PROV-001..012),
+// Praxis contract revisions 1.1 and 1.2.
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  receiveTimeObservation, candidateFromObservation, acceptCandidate, toInterchange, provenanceStatus,
+  receiveTimeObservation, receiveTimeObservationText, candidateFromObservation, acceptCandidate, toInterchange, provenanceStatus,
   principalToActor, principalKindsFor, invokerKey, chronaKey, recordedDurationSeconds, CHRONA_ACTOR, UNKNOWN_ACTOR,
 } from "../../lib/time-observation-intake.mjs";
-import { classify, originator, preservationViolations, withRole } from "../../vendor/praxis-provenance/lib/provenance-interchange.mjs";
+import { readFileSync } from "node:fs";
+import { classify, keyFromEnvelopeV1, originator, preservationViolations, withRole } from "../../vendor/praxis-provenance/lib/provenance-interchange.mjs";
+
+const fixture = (name) => JSON.parse(readFileSync(new URL(`../../vendor/praxis-provenance/fixtures/${name}`, import.meta.url), "utf8"));
 
 const AGENT = { kind: "agent", id: "openai/codex", provider: "openai", model: "gpt-5-codex", runtime: "codex" };
 const OTHER_AGENT = { kind: "agent", id: "anthropic/claude-code", provider: "anthropic", model: "unknown", runtime: "claude-code" };
@@ -306,4 +309,122 @@ test("intake functions never mutate their inputs", () => {
   const received = receiveTimeObservation(obs, deepFreeze(request()));
   const { candidate } = candidateFromObservation(deepFreeze(received.record), { operationId: "op-2", at: t(9, 5) });
   assert.ok(acceptCandidate(deepFreeze(candidate), { key: CTB, actor: HUMAN, at: t(10), entryId: "ACT-3" }).ok);
+});
+
+// ---- contract revision 1.2 (CHR-PROV-012) ------------------------------------
+
+const TOKEN = "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+
+test("contract 1.2 finding 6: keys use the vendored per-code-point escaping; astral ids never collide", () => {
+  assert.equal(invokerKey({ operationId: "op-\u{1F600}" }), "EXT-op.op-_f0_9f_98_80");
+  assert.notEqual(invokerKey({ operationId: "op-\u{1F600}" }), invokerKey({ operationId: "op-\u{1F601}" }));
+  assert.equal(chronaKey("op-\u{1F600}"), "EXT-chrona.op-_f0_9f_98_80");
+  assert.notEqual(chronaKey("op-\u{1F600}"), chronaKey("op-\u{1F601}"));
+  assert.equal(chronaKey("a.b"), "EXT-chrona.a_2eb", "'.' is escaped");
+  assert.equal(chronaKey("a_b"), "EXT-chrona.a_5fb");
+  // Every envelope-key fixture: Chrona's operation key is the reference key.
+  for (const item of fixture("envelope-key-cases.json").cases) {
+    const envelope = item.envelopeText !== undefined ? JSON.parse(item.envelopeText) : item.envelope;
+    if (envelope.actor?.runId?.state === "known") continue;
+    if (item.error) {
+      assert.throws(() => invokerKey({ operationId: envelope.operationId }), item.name);
+      assert.throws(() => chronaKey(envelope.operationId), item.name);
+    } else {
+      assert.equal(invokerKey({ operationId: envelope.operationId }), item.key, item.name);
+      assert.equal(chronaKey(envelope.operationId), item.key.replace(/^EXT-op\./, "EXT-chrona."), item.name);
+      assert.equal(invokerKey({ operationId: envelope.operationId }), keyFromEnvelopeV1(envelope));
+    }
+  }
+});
+
+test("contract 1.2 rule 4: an operation id that cannot form a key rejects the request", () => {
+  const lone = receive(observation(), request({ operationId: "op-\ud83d", invoker: undefined }));
+  assert.equal(lone.ok, false);
+  assert.equal(lone.errors[0].code, "invalid-request");
+  assert.match(lone.errors[0].message, /cannot form a contribution key/);
+  const candidate = candidateOf(receive().record, "op-\udc00");
+  assert.equal(candidate.ok, false);
+  assert.equal(candidate.errors[0].code, "invalid-request");
+});
+
+test("contract 1.2 rule 3: lineage derived from the payload is checked; a refusal rejects the request", () => {
+  // An unpaired surrogate in the source reference (from observationId) is refused by addLineage.
+  const surrogate = receive(observation({ observationId: "OBS-\ud800" }));
+  assert.equal(surrogate.ok, false);
+  assert.equal(surrogate.record, undefined, "nothing is stored");
+  assert.ok(surrogate.errors.some((item) => item.code === "lineage-refused" || item.code === "malformed-provenance"), JSON.stringify(surrogate.errors));
+  // A credential in the payload's source identity never reaches derivedFrom.
+  const leak = receive(observation({ sourceSystem: TOKEN }));
+  assert.equal(leak.ok, false);
+  assert.equal(leak.record, undefined);
+  // Upstream lineage is carried through the checked path, de-duplicated, first occurrence kept.
+  const source = { ...upstream(), derivedFrom: ["vigila:item/IT-4", "praxis:observation/OBS-1"] };
+  const carried = receive(observation({ provenance: source }));
+  assert.ok(carried.ok, JSON.stringify(carried.errors));
+  assert.deepEqual(carried.record.provenance.derivedFrom, ["vigila:item/IT-4", "praxis:observation/OBS-1"]);
+});
+
+test("contract 1.2 rule 3: a surrogate-bearing observation id is refused at the lineage check", () => {
+  const result = receive(observation({ observationId: "OBS-\udfff" }));
+  assert.equal(result.ok, false);
+  assert.equal(result.errors[0].code, "lineage-refused");
+  assert.match(result.errors[0].message, /^derivedFrom: .*unpaired UTF-16 surrogate/);
+});
+
+test("contract 1.2 rule 1: an observation received as JSON text is classified as text", () => {
+  const ok = receiveTimeObservationText(JSON.stringify(observation({ provenance: upstream() })), request());
+  assert.ok(ok.ok, JSON.stringify(ok.errors));
+  assert.deepEqual(ok.record, receive(observation({ provenance: upstream() })).record);
+  // Every text fixture embedded as the observation's provenance member.
+  for (const item of fixture("text-cases.json").cases) {
+    const text = JSON.stringify(observation()).replace(/}$/, `,"provenance":${item.text}}`);
+    let valid = true;
+    try { JSON.parse(text); } catch { valid = false; }
+    const result = receiveTimeObservationText(text, request());
+    if (!valid) { assert.equal(result.errors[0].code, "malformed-text", item.name); continue; }
+    if (item.expect === "malformed") assert.equal(result.ok, false, item.name);
+    else assert.equal(result.ok, true, `${item.name}: ${JSON.stringify(result.errors)}`);
+  }
+  // A duplicated contribution key that would smuggle an originator past JSON.parse.
+  const smuggled = `{"schemaVersion":"chrona.time-observation/1","observationId":"OBS-1","sourceSystem":"praxis","recordedAt":"${t(9)}",`
+    + `"performer":{"actor":{"kind":"human","id":"kevin"}},"provenance":{"schema":"praxis.provenance/1","contributions":{`
+    + `"CTB-A":{"operations":["created"],"at":"${t(7)}","actor":{"kind":"human","id":"mallory"}},`
+    + `"CTB-A":{"operations":["modified"],"at":"${t(8)}","actor":{"kind":"human","id":"alice"}}}}}`;
+  const refusedText = receiveTimeObservationText(smuggled, request());
+  assert.equal(refusedText.ok, false);
+  assert.equal(refusedText.errors[0].code, "malformed-text");
+  assert.match(refusedText.errors[0].message, /^provenance\.contributions\.CTB-A: member name repeated/);
+  // Duplicates outside the block count too: JSON.parse would silently keep the last performer.
+  const dupPerformer = JSON.stringify(observation()).replace(/}$/, `,"performer":{"actor":{"kind":"human","id":"mallory"}}}`);
+  assert.equal(receiveTimeObservationText(dupPerformer, request()).errors[0].code, "malformed-text");
+  assert.equal(receiveTimeObservationText("{", request()).errors[0].code, "malformed-text");
+  assert.equal(receiveTimeObservationText(undefined, request()).errors[0].code, "invalid-observation");
+  // A credential in text is still reported as a credential by the object intake.
+  const credential = JSON.stringify(observation({ externalReference: TOKEN }));
+  assert.equal(receiveTimeObservationText(credential, request()).errors[0].code, "credential");
+});
+
+test("contract 1.2 rule 2: only ASCII whitespace is blank", () => {
+  for (const id of ["\u0085", "\ufeff", "\u001c", "\u00a0"]) {
+    assert.equal(receive(observation({ observationId: id })).ok, true, `U+${id.codePointAt(0).toString(16)} is content`);
+  }
+  for (const id of ["", " \t\n\v\f\r"]) {
+    assert.equal(receive(observation({ observationId: id })).errors[0].code, "invalid-observation");
+  }
+});
+
+test("contract 1.2 rule 6: a stored null provenance is malformed, never read as absent", () => {
+  const { candidate } = candidateOf(receive().record);
+  const result = acceptCandidate({ ...candidate, provenance: null }, { key: CTB, actor: HUMAN, at: t(10), entryId: "ACT-9" });
+  assert.equal(result.ok, false);
+  assert.equal(result.errors[0].code, "provenance-refused");
+  assert.equal(candidateOf({ ...receive().record, provenance: null }).ok, false);
+  assert.equal(provenanceStatus(null), "malformed");
+});
+
+test("contract 1.2: request timestamps use the strict parser (no offset, space, or date-only forms)", () => {
+  for (const receivedAt of ["2026-09-26T09:01:00+00:00", "2026-09-26 09:01:00.000Z", "2026-09-26", "2026-09-26T09:01:00.000"]) {
+    assert.equal(receive(observation(), request({ receivedAt })).errors[0].code, "invalid-request", receivedAt);
+  }
+  assert.equal(candidateOf(receive().record, "op-2", "2026-09-26T09:02:00+00:00").ok, false);
 });

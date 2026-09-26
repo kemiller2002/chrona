@@ -2,7 +2,7 @@
 id: CHR-PROV
 title: Chrona Agent Provenance and Execution Identity Requirements
 status: required
-version: 1.1.0
+version: 1.2.0
 owners:
   - chrona
 created: 2026-09-26
@@ -39,6 +39,16 @@ provenance:
         model: unknown
         runtime: claude-code
       reason: "Contract revision 1.1: time.record creates a record; received provenance is source provenance"
+    EXE-20260926T094829454Z-8f0e8fc4:
+      operations: [modified]
+      at: 2026-09-26T20:45:15.000Z
+      actor:
+        kind: agent
+        id: anthropic/claude-code
+        provider: anthropic
+        model: unknown
+        runtime: claude-code
+      reason: "Contract revision 1.2: checked lineage, per-code-point key escaping, text classification, one identity source"
 ---
 
 # Chrona Agent Provenance and Execution Identity Requirements
@@ -54,7 +64,7 @@ time and work information that originates from agent activity.
 
 Praxis is authoritative for identity and provenance. Chrona adopts, and does
 not restate or redefine, the Praxis contract at commit
-`c2657efb4d54f11d0fd0617cc1bcd5b8418601d5` of `kemiller2002/praxis` (contract revision 1.1):
+`b0037183389c8b9392919f58521b9487d1b4d5c6` of `kemiller2002/praxis` (contract revision 1.2):
 
 - `docs/agent-provenance.md` (actor, execution, contribution, lineage, unknown, legacy);
 - `DF-ROS-2026-A036` (agent identity and provenance) and `DF-ROS-2026-A037`
@@ -165,7 +175,42 @@ Chrona's own validation MUST follow Praxis contract revision 1.1: timestamps
 must be calendar-valid (year 0001-9999, no February 30, no `24:00`) and are
 ordered at millisecond precision; a field present with JSON `null` is invalid,
 never absent; keys derived from operation ids use the reference's injective
-escaping (`op 1` -> `EXT-op.op_201`).
+escaping (`op 1` -> `EXT-op.op_201`; revised by CHR-PROV-012).
+
+### CHR-PROV-012 Contract revision 1.2
+
+Chrona MUST follow Praxis contract revision 1.2 (`docs/agent-provenance.md`,
+"Contract revision 1.2"):
+
+1. **Lineage is checked.** Every lineage Chrona adds, including lineage derived
+   from the request payload (the received block's `derivedFrom` and the
+   `<sourceSystem>:observation/<observationId>` reference), goes through the
+   vendored `addLineage`, which returns `{ ok, block }`. A refusal (credential,
+   blank, unpaired surrogate, or a result that would not classify as
+   supported) rejects the request with `lineage-refused`; nothing is stored and
+   the lineage is never dropped silently.
+2. **Key segments.** Operation-derived keys (`EXT-op.<id>`, `EXT-chrona.<id>`)
+   use the vendored `escapeKeySegment`: per Unicode code point, everything but
+   ASCII letters, digits and `-` becomes `_xx` per UTF-8 byte, so `.`, `_` and
+   characters outside the BMP are escaped injectively. An id that is empty or
+   holds an unpaired surrogate cannot form a key and rejects the request
+   (`invalid-request`). Keys already stored are never rewritten.
+3. **Text.** An observation received as JSON text (a file, stdin, or a request
+   body) is read with `receiveTimeObservationText`, which classifies the text
+   with the vendored `classifyText` before parsing: a repeated member name or an
+   unpaired surrogate anywhere rejects it (`malformed-text`).
+4. **ASCII whitespace.** "Blank" means empty after trimming tab, LF, VT, FF, CR
+   and space only; U+0085, U+FEFF, U+001C, U+00A0 are content.
+5. **Timestamps** read from a request use the vendored strict `parseTimestamp`
+   (no offsets, space separators, or date-only forms).
+6. **One identity source** (`RQ-ROS-2026-A016` 1.2.0). Chrona does not resolve
+   identity itself; the caller passes the invoker resolved from one source,
+   with Summa's `resolveRequester` as the reference behaviour: an explicit
+   declaration replaces the environment wholly and does not inherit
+   `ROS_EXECUTION_ID`, which is honoured only with an identity declared in the
+   same environment.
+7. **Null.** A stored `"provenance": null` is malformed, not absent: accepting
+   such a candidate is refused, never started from an empty block.
 
 ### CHR-PROV-010 Provenance is not authority
 
@@ -188,8 +233,21 @@ Legacy observations and activities without provenance remain valid and read as
 | CHR-PROV-006 | `receiveTimeObservation` (new block, `sourceProvenance`), `candidateFromObservation`, `acceptCandidate` | time.record creates a new record …; a received block is source provenance …; regression: reviewer token / back-dated / re-attribution / unknown extension refused; replaying the same request is deterministic |
 | CHR-PROV-007 | candidate/entry fields; `toInterchange` | agent execution keeps EXE and actor …; round trip: export classifies as supported … |
 | CHR-PROV-008 | `.github/workflows/readiness-work.yml` | workflow review (declares `ROS_ACTOR_KIND=automation`, no agent actor) |
-| CHR-PROV-009 | `vendor/praxis-provenance/` + `SOURCE.json` | `tests/provenance/vendored.test.mjs` (SHA-256, 40 conformance cases, echelon chain) |
+| CHR-PROV-009 | `vendor/praxis-provenance/` + `SOURCE.json` | `tests/provenance/vendored.test.mjs` (SHA-256, 70 conformance cases, text, envelope-key and lineage cases, echelon chain) |
 | CHR-PROV-010 | no actor-based decision exists in the intake | legacy observation … unattributed; review of `lib/time-observation-intake.mjs` |
 | CHR-PROV-011 | `parseTimestamp` (vendored), null checks, `invokerKey`/`chronaKey` escaping | contract 1.1: calendar-invalid timestamps and null values …; operation-derived keys are escaped injectively; 56 vendored cases |
+| CHR-PROV-012 | `addLineage` result handling, `escapeKeySegment` (`invokerKey`, `chronaKey`), `receiveTimeObservationText` (`classifyText`), ASCII `isNonEmptyString`, `acceptCandidate` null handling | `time-observation.test.mjs`: contract 1.2 finding 6 / rule 1 / 2 / 3 / 4 / 6 / timestamps; `vendored.test.mjs`: text, envelope-key and lineage cases |
+
+## Revision history
+
+- **1.2.0** (2026-09-26, FEAT-ECHELON-PROVENANCE-R12): Praxis contract revision
+  1.2 (`b0037183`). Added CHR-PROV-012 (checked lineage, including lineage from
+  the payload; per-code-point key escaping replacing Chrona's local escaper,
+  review finding 6; text classification; ASCII whitespace; strict request
+  timestamps; one identity source; stored null is malformed). CHR-PROV-009
+  now covers the 70 cases and the three new fixtures.
+- **1.1.0** (2026-09-26, FEAT-ECHELON-PROVENANCE-R11): contract revision 1.1;
+  CHR-PROV-006 revised, CHR-PROV-011 added.
+- **1.0.0** (2026-09-26, FEAT-ECHELON-PROVENANCE): initial requirements.
 
 Run: `npm test` (alias of `npm run test:provenance`).

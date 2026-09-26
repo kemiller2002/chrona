@@ -1,0 +1,146 @@
+{
+  "contract": "praxis.provenance/1",
+  "contractRevision": "1.2",
+  "description": "keyFromEnvelopeV1 (contract 1.2): the v1 run id (when known) or the operation id is escaped per Unicode code point; everything except ASCII letters, digits and '-' becomes _xx per UTF-8 byte (lowercase hex), so '.', '_' and non-ASCII are always escaped and the mapping is injective. Namespaced keys (EXT-run.<namespace>.<id>, echelon-registry REG-PROV-008) escape both segments the same way. An id that is empty or not well-formed Unicode cannot form a key: 'error': true means the envelope must be rejected. 'envelopeText' is JSON text for inputs JSON fixtures cannot hold decoded.",
+  "cases": [
+    {
+      "name": "op-plain",
+      "envelope": {
+        "operationId": "op-1",
+        "actor": {
+          "runId": {
+            "state": "unknown"
+          }
+        }
+      },
+      "key": "EXT-op.op-1"
+    },
+    {
+      "name": "op-space",
+      "envelope": {
+        "operationId": "op 1",
+        "actor": {
+          "runId": {
+            "state": "unknown"
+          }
+        }
+      },
+      "key": "EXT-op.op_201"
+    },
+    {
+      "name": "run-slash",
+      "envelope": {
+        "operationId": "op-1",
+        "actor": {
+          "runId": {
+            "state": "known",
+            "value": "gh/99"
+          }
+        }
+      },
+      "key": "EXT-run.gh_2f99"
+    },
+    {
+      "name": "underscore-is-escaped",
+      "envelope": {
+        "operationId": "a_b",
+        "actor": {
+          "runId": {
+            "state": "unknown"
+          }
+        }
+      },
+      "key": "EXT-op.a_5fb"
+    },
+    {
+      "name": "dot-is-escaped",
+      "envelope": {
+        "operationId": "op-1",
+        "actor": {
+          "runId": {
+            "state": "known",
+            "value": "vigila.7"
+          }
+        }
+      },
+      "key": "EXT-run.vigila_2e7"
+    },
+    {
+      "name": "astral-code-point-1",
+      "envelope": {
+        "operationId": "op-😀",
+        "actor": {
+          "runId": {
+            "state": "unknown"
+          }
+        }
+      },
+      "key": "EXT-op.op-_f0_9f_98_80"
+    },
+    {
+      "name": "astral-code-point-2",
+      "envelope": {
+        "operationId": "op-😁",
+        "actor": {
+          "runId": {
+            "state": "unknown"
+          }
+        }
+      },
+      "key": "EXT-op.op-_f0_9f_98_81"
+    },
+    {
+      "name": "replacement-character",
+      "envelope": {
+        "operationId": "op-�",
+        "actor": {
+          "runId": {
+            "state": "unknown"
+          }
+        }
+      },
+      "key": "EXT-op.op-_ef_bf_bd"
+    },
+    {
+      "name": "two-byte",
+      "envelope": {
+        "operationId": "café",
+        "actor": {
+          "runId": {
+            "state": "unknown"
+          }
+        }
+      },
+      "key": "EXT-op.caf_c3_a9"
+    },
+    {
+      "name": "unknown-run-uses-operation",
+      "envelope": {
+        "operationId": "op-2",
+        "actor": {
+          "runId": {
+            "state": "unknown"
+          }
+        }
+      },
+      "key": "EXT-op.op-2"
+    },
+    {
+      "name": "unpaired-surrogate-cannot-form-a-key",
+      "envelopeText": "{\"operationId\":\"op-\\ud83d\",\"actor\":{\"runId\":{\"state\":\"unknown\"}}}",
+      "error": true
+    },
+    {
+      "name": "empty-operation-id-cannot-form-a-key",
+      "envelope": {
+        "operationId": "",
+        "actor": {
+          "runId": {
+            "state": "unknown"
+          }
+        }
+      },
+      "error": true
+    }
+  ]
+}

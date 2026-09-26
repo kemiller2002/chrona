@@ -9,6 +9,7 @@ import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import {
   classify, appendContribution, addLineage, preservationViolations, originator, withRole, emptyBlock,
+  IDENTITY_ENVIRONMENT_VARIABLES,
 } from "../../vendor/praxis-provenance/lib/provenance-interchange.mjs";
 
 const vendorRoot = new URL("../../vendor/praxis-provenance/", import.meta.url);
@@ -17,7 +18,7 @@ const json = (path) => JSON.parse(readFileSync(new URL(path, vendorRoot), "utf8"
 
 test("SOURCE.json pins the Praxis contract commit", () => {
   assert.equal(source.repository, "kemiller2002/praxis");
-  assert.equal(source.commit, "a42c44e8ae0e6e16fdd513141460b700e5fa6648");
+  assert.equal(source.commit, "c2657efb4d54f11d0fd0617cc1bcd5b8418601d5");
   assert.deepEqual(Object.keys(source.files).sort(), Object.keys(source.origins).sort());
 });
 
@@ -29,7 +30,7 @@ for (const [path, expected] of Object.entries(source.files)) {
 }
 
 const cases = json("fixtures/cases.json").cases;
-test("the shared conformance suite is present", () => assert.ok(cases.length >= 40));
+test("the shared conformance suite is present (revision 1.1: 56 cases)", () => assert.equal(cases.length, 56));
 for (const item of cases) {
   test(`conformance: ${item.name} is ${item.expect}`, () => {
     const result = classify(item.block);
@@ -79,4 +80,10 @@ test("time-observation schema references only the vendored Praxis schemas", () =
   const interchange = json("schemas/provenance-interchange.schema.json");
   const actorRef = new URL(interchange.$defs.contribution.properties.actor.$ref, interchange.$id).href;
   assert.ok(ids.has(actorRef));
+});
+
+test("the identity-environment list matches the vendored fixture", () => {
+  const fixture = json("fixtures/identity-environment.json");
+  assert.equal(fixture.contractRevision, "1.1");
+  assert.deepEqual([...IDENTITY_ENVIRONMENT_VARIABLES].sort(), [...fixture.variables].sort());
 });

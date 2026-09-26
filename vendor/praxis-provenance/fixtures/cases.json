@@ -1,6 +1,6 @@
 {
   "contract": "praxis.provenance/1",
-  "description": "Conformance cases for the Praxis provenance interchange block (RQ-ROS-2026-A015). Every implementation of the contract (Praxis F#, the Praxis JS reference library, and any downstream Echelon codec) MUST reach the same verdict for every case: supported (with the stated number of tolerated-content warnings), unsupported (carry verbatim, never interpret), or malformed (reject at the boundary). Downstream repositories vendor this file unchanged and record its source commit and SHA-256.",
+  "description": "Conformance cases for the Praxis provenance interchange block (RQ-ROS-2026-A015). Every implementation of the contract (Praxis F#, the Praxis JS reference library, and any downstream Echelon codec) MUST reach the same verdict for every case: supported (with the stated number of tolerated-content warnings), unsupported (carry verbatim, never interpret), or malformed (reject at the boundary). Downstream repositories vendor this file unchanged and record its source commit and SHA-256. Revision 1.1 adds cases for exact anchoring (no trailing newline), calendar-valid timestamps compared at millisecond precision, and JSON null never standing in for an absent field.",
   "cases": [
     {
       "name": "agent-created",
@@ -968,6 +968,363 @@
         "schema": "praxis.provenance/2",
         "token": "sk-ant-api03-abcdefghijklmnopqrstuvwxyz"
       }
+    },
+    {
+      "name": "second-creator-trailing-newline",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "CTB-20260926-aaaaaaaa": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "human",
+              "id": "kevin"
+            }
+          },
+          "CTB-20260926-bbbbbbbb": {
+            "operations": [
+              "created\n"
+            ],
+            "at": "2026-09-26T09:00:00.000Z",
+            "actor": {
+              "kind": "human",
+              "id": "kevin"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "key-trailing-newline",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001\n": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "schema-trailing-newline",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/2\n",
+        "contributions": {}
+      }
+    },
+    {
+      "name": "kind-trailing-newline",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "CTB-20260926-cccccccc": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "human\n",
+              "id": "kevin"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "extension-kind-trailing-newline",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "CTB-20260926-dddddddd": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "x-bot\n",
+              "id": "acme/bot",
+              "provider": "acme",
+              "model": "unknown",
+              "runtime": "bot"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "calendar-invalid-date",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-02-30T08:00:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "hour-24",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T24:00:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "year-zero",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001": {
+            "operations": [
+              "created"
+            ],
+            "at": "0000-01-01T00:00:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "sub-millisecond-order",
+      "expect": "supported",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.0009Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            }
+          },
+          "CTB-20260926-eeeeeeee": {
+            "operations": [
+              "reviewed"
+            ],
+            "at": "2026-09-26T08:00:00.0001Z",
+            "actor": {
+              "kind": "human",
+              "id": "kevin"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "nine-digit-fraction-at-maximum",
+      "expect": "supported",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001": {
+            "operations": [
+              "created"
+            ],
+            "at": "9999-12-31T23:59:59.999999999Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "null-schema",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": null,
+        "contributions": {}
+      }
+    },
+    {
+      "name": "null-last",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            },
+            "last": null
+          }
+        }
+      }
+    },
+    {
+      "name": "null-reason",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            },
+            "reason": null
+          }
+        }
+      }
+    },
+    {
+      "name": "null-evidence",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            },
+            "evidence": null
+          }
+        }
+      }
+    },
+    {
+      "name": "null-derivedFrom",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "EXE-20260926T080000000Z-aaaa0001": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "agent",
+              "id": "openai/codex",
+              "provider": "openai",
+              "model": "gpt-5-codex",
+              "runtime": "codex"
+            }
+          }
+        },
+        "derivedFrom": null
+      }
+    },
+    {
+      "name": "null-human-provider",
+      "expect": "malformed",
+      "warnings": 0,
+      "block": {
+        "schema": "praxis.provenance/1",
+        "contributions": {
+          "CTB-20260926-ffffffff": {
+            "operations": [
+              "created"
+            ],
+            "at": "2026-09-26T08:00:00.000Z",
+            "actor": {
+              "kind": "human",
+              "id": "kevin",
+              "provider": null
+            }
+          }
+        }
+      }
     }
-  ]
+  ],
+  "contractRevision": "1.1"
 }

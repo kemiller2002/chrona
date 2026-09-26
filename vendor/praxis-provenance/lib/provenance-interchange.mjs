@@ -11,6 +11,28 @@
 // Every function is pure: inputs are never mutated, and results are new
 // frozen-free plain objects that can be serialized as-is.
 
+/**
+ * Every environment variable Praxis identity discovery reads (Ros.Domain.Telemetry.Identity).
+ * A launcher, hub, or worker that starts a process on behalf of another actor must remove
+ * all of them before setting that actor's explicit identity, or its own identity and run
+ * keys leak into the other actor's execution (contract 1.1). Pinned by
+ * tests/fixtures/provenance-interchange/identity-environment.json.
+ */
+export const IDENTITY_ENVIRONMENT_VARIABLES = Object.freeze([
+  "ROS_ACTOR", "ROS_ACTOR_KIND", "ROS_EXECUTION_ID",
+  "ROS_TELEMETRY_PROVIDER", "ROS_TELEMETRY_MODEL", "ROS_TELEMETRY_MODEL_VERSION",
+  "ROS_TELEMETRY_RUNTIME", "ROS_TELEMETRY_RUNTIME_VERSION", "ROS_TELEMETRY_SESSION_ID",
+  "ROS_TELEMETRY_CONVERSATION_ID", "ROS_TELEMETRY_RUN_ID",
+  "CLAUDE_CODE_SESSION_ID", "CODEX_SESSION_ID", "CODEX_THREAD_ID", "GEMINI_SESSION_ID",
+  "COPILOT_SESSION_ID", "GITHUB_ACTIONS", "GITHUB_RUN_ID", "OLLAMA_HOST",
+]);
+
+/** A pure environment for a child acting as `declared`: identity variables removed, declared ones set. */
+export const identityEnvironment = (inherited, declared) => ({
+  ...Object.fromEntries(Object.entries(inherited).filter(([name]) => !IDENTITY_ENVIRONMENT_VARIABLES.includes(name))),
+  ...Object.fromEntries(Object.entries(declared).filter(([, value]) => value !== undefined && value !== null && value !== "")),
+});
+
 export const SCHEMA_TAG = "praxis.provenance/1";
 
 const SCHEMA_PATTERN = /^praxis\.provenance\/([1-9][0-9]*)$/;
@@ -20,7 +42,7 @@ const FOREIGN_EXECUTION_KEY = /^EXT-([a-z][a-z0-9-]*)\.([A-Za-z0-9._-]+)$/;
 const KIND_PATTERN = /^(agent|human|automation|unknown|x-[a-z0-9][a-z0-9-]*)$/;
 const OPERATION_GRAMMAR = /^[a-z][a-z0-9-]*$/;
 const EXTENSION = /^x-[a-z0-9][a-z0-9-]*$/;
-const TIMESTAMP = /^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]{1,9})?Z$/;
+const TIMESTAMP = /^([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})(?:\.([0-9]{1,9}))?Z$/;
 const UNKNOWN = "unknown";
 
 export const KNOWN_OPERATIONS = Object.freeze([
@@ -46,7 +68,25 @@ const CREDENTIAL_PATTERNS = [
 const isObject = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
 const isString = (value) => typeof value === "string";
 const isNonEmptyString = (value) => isString(value) && value.trim().length > 0;
-const instant = (value) => (TIMESTAMP.test(value) && !Number.isNaN(Date.parse(value)) ? Date.parse(value) : Number.POSITIVE_INFINITY);
+/**
+ * Milliseconds since the epoch for a calendar-valid UTC timestamp (year 0001-9999, no
+ * rollover such as Feb 30 or 24:00), or undefined. Ordering is compared at millisecond
+ * precision: extra fractional digits are truncated, never rounded (contract 1.1).
+ */
+export const parseTimestamp = (value) => {
+  const match = isString(value) ? TIMESTAMP.exec(value) : null;
+  if (!match) return undefined;
+  const [year, month, day, hour, minute, second] = match.slice(1, 7).map(Number);
+  const millisecond = Number((match[7] ?? "").padEnd(3, "0").slice(0, 3));
+  if (year < 1 || hour > 23 || minute > 59 || second > 59) return undefined;
+  const date = new Date(0);
+  date.setUTCFullYear(year, month - 1, day);
+  date.setUTCHours(hour, minute, second, millisecond);
+  const valid = date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+  return valid ? date.getTime() : undefined;
+};
+const isTimestamp = (value) => parseTimestamp(value) !== undefined;
+const instant = (value) => parseTimestamp(value) ?? Number.POSITIVE_INFINITY;
 const isKnown = (value) => isString(value) && value.trim().length > 0 && value.trim() !== UNKNOWN;
 
 export const isCredentialLike = (value) => CREDENTIAL_PATTERNS.some((pattern) => pattern.test(value));
@@ -122,9 +162,9 @@ export const contributionProblems = (key, entry) => {
           ...operations.filter((op) => !isString(op) || !OPERATION_GRAMMAR.test(op)).map((op) => `${prefix}.operations: '${op}' is not a valid operation code`),
           ...(new Set(operations).size !== operations.length ? [`${prefix}.operations must not repeat an operation`] : []),
         ]),
-    ...(!isString(entry.at) || !TIMESTAMP.test(entry.at) || Number.isNaN(Date.parse(entry.at)) ? [`${prefix}.at must be an ISO-8601 UTC timestamp`] : []),
+    ...(!isTimestamp(entry.at) ? [`${prefix}.at must be a calendar-valid ISO-8601 UTC timestamp`] : []),
     ...(entry.last === undefined ? []
-      : !isString(entry.last) || !TIMESTAMP.test(entry.last) ? [`${prefix}.last must be an ISO-8601 UTC timestamp`]
+      : !isTimestamp(entry.last) ? [`${prefix}.last must be a calendar-valid ISO-8601 UTC timestamp`]
         : instant(entry.last) < instant(entry.at) ? [`${prefix}.last must not precede at`] : []),
     ...(entry.actor === undefined ? [`${prefix}.actor is required`] : actorProblems(entry.actor, `${prefix}.actor`)),
     ...(isObject(entry.actor) && entry.actor.kind === "agent" && kind !== "execution" && kind !== "foreign-execution"
@@ -198,40 +238,64 @@ export const appendContribution = (block, key, contribution) => {
   if (received.verdict !== "supported") {
     return { ok: false, error: `refusing to append to a ${received.verdict} provenance block${received.schema ? ` (${received.schema})` : ""}` };
   }
+  const secrets = credentialFindings({ [key]: contribution });
+  if (secrets.length > 0) {
+    return { ok: false, error: `${secrets.join(", ")}: credential-like value; provenance must never carry authentication material` };
+  }
   const problems = contributionProblems(key, contribution);
   if (problems.length > 0) return { ok: false, error: problems.join("; ") };
+
+  const refuse = (error) => ({ ok: false, error });
+  const finish = (next, changed) => {
+    // Contract 1.1: whatever an append returns must itself classify as supported.
+    const result = classify(next);
+    return result.verdict === "supported"
+      ? { ok: true, block: next, changed }
+      : refuse(`the resulting history would be ${result.verdict}: ${result.problems.join("; ")}`);
+  };
 
   const next = clone(block);
   const existing = next.contributions[key];
   if (existing === undefined) {
     if (contribution.operations.includes("created")) {
-      if (creators(next.contributions).length > 0) return { ok: false, error: "the record already has an originator; record 'modified' instead of 'created'" };
+      if (creators(next.contributions).length > 0) return refuse("the record already has an originator; record 'modified' instead of 'created'");
       if (Object.values(next.contributions).some((entry) => instant(entry.at) < instant(contribution.at))) {
-        return { ok: false, error: "a 'created' contribution cannot follow existing contributions" };
+        return refuse("a 'created' contribution cannot follow existing contributions");
       }
     }
     next.contributions[key] = clone(contribution);
-    return { ok: true, block: next, changed: true };
+    return finish(next, true);
   }
   if (!actorsAgree(existing.actor, contribution.actor)) {
-    return { ok: false, error: `contribution '${key}' is already attributed to ${existing.actor.kind}:${existing.actor.id}; refusing to re-attribute it` };
+    return refuse(`contribution '${key}' is already attributed to ${existing.actor.kind}:${existing.actor.id}; refusing to re-attribute it`);
+  }
+  // An actor whose identity is unknown cannot add work to an entry a known actor holds:
+  // "unknown" never contradicts, but it never proves the same run either.
+  if ((isKnown(existing.actor.id) && !isKnown(contribution.actor.id)) || (existing.actor.kind !== UNKNOWN && contribution.actor.kind === UNKNOWN)) {
+    return refuse(`contribution '${key}' belongs to ${existing.actor.kind}:${existing.actor.id}; an actor with unknown identity cannot extend it`);
+  }
+  if (contribution.operations.includes("created") && !existing.operations.includes("created")) {
+    const earlier = Object.entries(next.contributions).some(([other, entry]) => other !== key && instant(entry.at) < instant(existing.at));
+    if (creators(next.contributions).length > 0 || earlier) {
+      return refuse("the record's originator is already recorded or precedes this contribution; record 'modified' instead of 'created'");
+    }
   }
   const operations = [...existing.operations, ...contribution.operations.filter((op) => !existing.operations.includes(op))];
-  if (contribution.operations.includes("created") && !existing.operations.includes("created") && creators(next.contributions).length > 0) {
-    return { ok: false, error: "the record already has an originator; record 'modified' instead of 'created'" };
-  }
   const evidence = [...(existing.evidence ?? []), ...(contribution.evidence ?? []).filter((item) => !(existing.evidence ?? []).includes(item))];
-  const latest = existing.last ?? existing.at;
+  const latest = [existing.last ?? existing.at, contribution.last ?? contribution.at]
+    .reduce((a, b) => (instant(b) > instant(a) ? b : a));
   const merged = {
+    // Unknown fields from the incoming contribution are kept; the existing entry wins on conflict.
+    ...clone(contribution),
     ...existing,
     operations,
     ...(evidence.length > 0 ? { evidence } : {}),
-    ...(instant(contribution.at) > instant(latest) ? { last: contribution.at } : {}),
+    ...(instant(latest) > instant(existing.at) ? { last: latest } : {}),
     ...(existing.reason === undefined && contribution.reason !== undefined ? { reason: contribution.reason } : {}),
   };
   const changed = JSON.stringify(merged) !== JSON.stringify(existing);
   next.contributions[key] = merged;
-  return { ok: true, block: next, changed };
+  return finish(next, changed);
 };
 
 /** Adds lineage references (never authorship), preserving existing order. */
@@ -303,10 +367,13 @@ export const actorFromEnvelopeV1 = (envelopeActor) => {
 /**
  * The contribution key for work carried by a v1 envelope, which names no executing system:
  * `EXT-run.<runId>` when a run id is known, otherwise `EXT-op.<operationId>`.
- * Characters a key cannot carry are replaced with '-'.
+ * Characters a key cannot carry are escaped injectively as _xx (UTF-8 hex).
  */
 export const keyFromEnvelopeV1 = (envelope) => {
-  const safe = (text) => text.replace(/[^A-Za-z0-9._-]/g, "-");
+  // Injective escaping: '_' and every character a key cannot carry become _xx (hex),
+  // so two different ids can never map to the same key (contract 1.1).
+  const safe = (text) => String(text).replace(/[^A-Za-z0-9.-]/g, (char) =>
+    [...new TextEncoder().encode(char)].map((byte) => `_${byte.toString(16).padStart(2, "0")}`).join(""));
   const run = envelope.actor?.runId;
   return isObject(run) && run.state === "known" && isNonEmptyString(run.value)
     ? `EXT-run.${safe(run.value)}`

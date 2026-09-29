@@ -3,12 +3,26 @@ name: ROS validation
 on:
   pull_request:
   push:
+    branches-ignore:
+      - "praxis-inbox/**"
+
+concurrency:
+  group: ros-validation-${{ github.event.pull_request.head.repo.full_name || github.repository }}-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
+  debounce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Wait for commit batch
+        run: sleep 600
+
   validate:
+    needs: debounce
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

@@ -10,10 +10,17 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: limen-verify-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   limen-verify:
     runs-on: ubuntu-latest
     steps:
+      - name: Wait for commit batch
+        run: sleep 600
+
       - name: Check out repository
         uses: actions/checkout@v4
       - name: Set up Node.js

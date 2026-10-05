@@ -3,6 +3,7 @@
 | ID | Work | Status | Tags | Priority |
 |---|---|---|---|---|
 | CHR-REQ-001 | CHR-REQ-001 | complete |  |  |
+| FOUNDATIONS-APPLICABILITY | FOUNDATIONS-APPLICABILITY | complete |  |  |
 | GH-4 | Prepare Chrona implementation baseline | active | readiness,bootstrap | high |
 | ROS-INSTALL-2-0-1 | ROS-INSTALL-2-0-1 | complete |  |  |
 | WI-0001 | Install and verify Echelon Foundry toolchain: ROS, SDE, typescript-wasm-kernel | complete | setup,dependencies | high |
@@ -15,3 +16,4 @@
 | WI-0008 | Align the declared Limen foundation baseline with the 0.7.0 installation | complete |  | medium |
 | WI-0009 | Repin echelon-foundations workflow to praxis a95dbf2 (Limen 0.7.0-aware foundations verifier) | complete |  | medium |
 | WI-0010 | Move the kernel slice to @echelon-foundry/limen 0.7.0 exactly and adapt it to the 0.7.0 protocol | complete |  | medium |
+| WI-0011 | Upgrade the ROS installation to 3.1.4, the praxis baseline declared in .echelon/foundations.json (ECHELON-FND-PRAXIS-002) | complete |  | medium |

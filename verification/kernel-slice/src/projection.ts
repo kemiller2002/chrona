@@ -1,7 +1,7 @@
 // Tier 3 — projection only. Turns authoritative state into a flat ViewState.
 // No DOM operations; the kernel decides how a ViewState reaches the page.
 
-import type { ViewState } from "@echelon-foundry/typescript-wasm-kernel";
+import type { ViewState } from "@echelon-foundry/limen";
 import { assertNever, type Model, type Phase } from "./domain.js";
 
 const statusText = (phase: Phase): string => {

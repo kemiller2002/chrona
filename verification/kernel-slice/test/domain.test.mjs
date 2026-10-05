@@ -2,7 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { decodeLabel, eventToCommand, initialModel, transition } from "../dist/domain.js";
 import { project } from "../dist/projection.js";
-import { step } from "../dist/transport.js";
+import { REQUIREMENTS, step } from "../dist/transport.js";
+import { CORE_CONTRACT_IDENTITY, PROTOCOL_MINOR, PROTOCOL_VERSION } from "@echelon-foundry/limen/protocol";
 
 const draft = (model, value) => transition(model, { kind: "DraftChanged", value });
 
@@ -116,15 +117,107 @@ test("unknown event names are rejected rather than silently ignored", () => {
   assert.throws(() => eventToCommand({ kind: "Event", name: "nope" }, "c1"), /Unknown event name/);
 });
 
+// Protocol 1.4 messages, shaped as the Limen 0.7.0 kernel sends them.
+const location = { origin: "http://127.0.0.1:4173", path: "/verification/kernel-slice/index.html", query: "", hash: "" };
+const offer = {
+  protocol: { major: PROTOCOL_VERSION, minor: PROTOCOL_MINOR },
+  contract: { ...CORE_CONTRACT_IDENTITY },
+  capabilities: [],
+};
+const initialize = (overrides = {}) => ({
+  kind: "Initialize",
+  protocolVersion: PROTOCOL_VERSION,
+  capabilities: ["Http", "Storage", "Clipboard", "Navigation"],
+  location,
+  handshake: offer,
+  ...overrides,
+});
+const savingModel = () => transition(draft(initialModel(), "note").model, { kind: "Save", correlationId: "c1" }).model;
+
 test("step rejects a mismatched protocol version", () => {
-  assert.throws(
-    () => step(initialModel(), { kind: "Initialize", protocolVersion: 99, capabilities: ["Http", "Storage"] }, "c1"),
-    /Unsupported protocol version/,
-  );
+  assert.throws(() => step(initialModel(), initialize({ protocolVersion: 99 }), "c1"), /Unsupported protocol version/);
+});
+
+test("step refuses a kernel that does not offer the Storage effect", () => {
+  assert.throws(() => step(initialModel(), initialize({ capabilities: ["Http"] }), "c1"), /does not offer the Storage effect/);
 });
 
 test("Initialize projects the initial view without requesting effects", () => {
-  const { response } = step(initialModel(), { kind: "Initialize", protocolVersion: 1, capabilities: ["Http", "Storage"] }, "c1");
+  const { response } = step(initialModel(), initialize(), "c1");
   assert.deepEqual(response.effects, []);
+  assert.deepEqual(response.cancellations, []);
   assert.equal(response.view.phaseKind, "Empty");
+});
+
+test("Initialize answers the host's handshake: Accepted at protocol 1.4, core contract, no capability packs", () => {
+  const { response } = step(initialModel(), initialize(), "c1");
+  assert.deepEqual(response.handshake, {
+    kind: "Accepted",
+    protocol: { major: 1, minor: 4 },
+    contract: { ...CORE_CONTRACT_IDENTITY },
+    capabilities: [],
+  });
+  assert.deepEqual(REQUIREMENTS.required, []);
+  assert.deepEqual(REQUIREMENTS.optional, []);
+});
+
+test("Initialize without a handshake offer (a pre-1.1 kernel) is answered HandshakeMissing", () => {
+  const { handshake, ...legacy } = initialize();
+  assert.ok(handshake);
+  const { response } = step(initialModel(), legacy, "c1");
+  assert.deepEqual(response.handshake, { kind: "Rejected", reason: { kind: "HandshakeMissing" } });
+});
+
+test("Initialize from a host on a different core contract is answered ContractMismatch", () => {
+  const foreign = { ...offer, contract: { ...offer.contract, fingerprint: "sha256:00" } };
+  const { response } = step(initialModel(), initialize({ handshake: foreign }), "c1");
+  assert.equal(response.handshake.kind, "Rejected");
+  assert.equal(response.handshake.reason.kind, "ContractMismatch");
+});
+
+test("only Initialize carries a handshake", () => {
+  const { response } = step(initialModel(), { kind: "Event", event: { kind: "Event", name: "draftChanged", value: "a" } }, "c1");
+  assert.equal("handshake" in response, false);
+});
+
+test("LocationChanged re-projects the model unchanged and requests nothing", () => {
+  const model = savingModel();
+  const { model: after, response } = step(model, { kind: "LocationChanged", location: { ...location, hash: "#x" } }, "c2");
+  assert.equal(after, model, "the model must be the same value");
+  assert.deepEqual(response.effects, []);
+  assert.deepEqual(response.view, project(model));
+});
+
+test("a CapabilityFact is a contract violation: no capability was negotiated", () => {
+  assert.throws(
+    () => step(initialModel(), { kind: "CapabilityFact", capability: "limen.focus", version: 1, fact: {} }, "c1"),
+    /Unexpected CapabilityFact from limen\.focus/,
+  );
+});
+
+test("a StorageResult is routed to the domain as RecordStorage", () => {
+  const { model, response } = step(savingModel(), {
+    kind: "EffectResult",
+    result: { kind: "StorageResult", correlationId: "c1", outcome: { kind: "Success", value: null } },
+  }, "c2");
+  assert.equal(model.phase.kind, "Saved");
+  assert.equal(response.view.statusText, 'Saved "note".');
+});
+
+for (const result of [
+  { kind: "HttpResult", correlationId: "c1", outcome: { kind: "Cancelled" } },
+  { kind: "ClipboardResult", correlationId: "c1", outcome: { kind: "Success" } },
+  { kind: "NavigationResult", correlationId: "c1", outcome: { kind: "Dispatched" } },
+  { kind: "CapabilityResult", correlationId: "c1", capability: "limen.focus", version: 1, outcome: { kind: "Unsupported", reason: "not-negotiated" } },
+]) {
+  test(`a ${result.kind} has no request behind it and is refused, not applied`, () => {
+    assert.throws(
+      () => step(savingModel(), { kind: "EffectResult", result }, "c2"),
+      new RegExp(`Unexpected ${result.kind} \\(c1\\): this slice only requests Storage effects`),
+    );
+  });
+}
+
+test("an unknown message kind fails loudly rather than being ignored", () => {
+  assert.throws(() => step(initialModel(), { kind: "Bogus" }, "c1"), /Unhandled variant/);
 });

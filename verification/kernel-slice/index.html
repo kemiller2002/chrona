@@ -4,6 +4,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Kernel verification slice</title>
+    <!-- An empty icon: without it Chromium requests /favicon.ico, the static
+         server answers 404, and that console error fails the no-errors check. -->
+    <link rel="icon" href="data:,">
     <style>
       body { font: 16px/1.5 system-ui, sans-serif; margin: 0; padding: 2rem; max-width: 40rem; }
       fieldset { border: 1px solid #ccc; border-radius: 6px; }
@@ -20,7 +23,7 @@
       <form data-event="save">
         <fieldset>
           <legend>Label</legend>
-          <label for="label">Label (engine accepts 1<label for="label">Label (1&ndash;24 characters)</label>ndash;24; HTML requires 2+)</label>
+          <label for="label">Label (engine accepts 1&ndash;24; HTML requires 2+)</label>
           <!-- minlength=2 is deliberately stricter than the engine guard, which
                accepts 1 character. Without a case that HTML rejects and the
                engine accepts, the native reportValidity gate is unobservable:
@@ -57,12 +60,13 @@
     </main>
     <!-- Consumers loading the kernel by its package name need an import map:
          the compiled output keeps the bare specifier, and browsers cannot
-         resolve one. docs/USAGE.md does not mention this. Paths are absolute
+         resolve one. docs/USAGE.md does not mention this. Only the root specifier
+         is mapped: the root module imports its own files relatively. Paths are absolute
          because the page is served from the repository root. -->
     <script type="importmap">
       {
         "imports": {
-          "@echelon-foundry/typescript-wasm-kernel": "/node_modules/@echelon-foundry/typescript-wasm-kernel/dist/index.js"
+          "@echelon-foundry/limen": "/node_modules/@echelon-foundry/limen/dist/index.js"
         }
       }
     </script>

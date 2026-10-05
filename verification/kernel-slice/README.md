@@ -5,7 +5,8 @@ user, the communication problem, and owner decision authority explicitly
 unassigned. Choosing those is the owner's call, so this slice deliberately
 claims no product territory. Its only job is to answer one question:
 
-> Does `@echelon-foundry/typescript-wasm-kernel` actually work, in a real
+> Does the Limen kernel (`@echelon-foundry/limen`, formerly
+> `@echelon-foundry/typescript-wasm-kernel`) actually work, in a real
 > browser, when driven from this repository?
 
 Before it existed, every behavioral claim about the kernel in Chrona was
@@ -29,13 +30,33 @@ never calls `localStorage`.
 
 ```sh
 npm run build:slice     # tsc
-npm run test:slice      # 14 pure domain/projection tests, no browser
-npm run verify:slice    # 14 checks against real Chromium via Playwright
+npm run test:slice      # 27 pure domain/projection/transport tests, no browser
+npm run verify:slice    # 16 checks against real Chromium via Playwright
 ```
 
 `verify:slice` serves the repository root on port 4173, drives the page, and
 writes `browser-verification.png`. Playwright is resolved from the global
-install; there is no Playwright project dependency.
+install; there is no Playwright project dependency. To use a Chromium that is
+already on disk instead of a Playwright download, set
+`PLAYWRIGHT_CHROMIUM_EXECUTABLE` to its path.
+
+## Protocol
+
+The slice depends on `@echelon-foundry/limen` at exactly `0.7.0` (protocol
+1.4). `transport.ts` handles every `BrowserToEngineMessage` kind and every
+`EffectResult` kind exhaustively:
+
+| Message | Handling |
+|---|---|
+| `Initialize` | checks the protocol version and that `Storage` is offered, and answers the handshake with `answerHandshake` (core contract, no capability packs) |
+| `Event` | domain command |
+| `EffectResult` / `StorageResult` | domain command (`RecordStorage`) |
+| `EffectResult` / `HttpResult`, `ClipboardResult`, `NavigationResult`, `CapabilityResult` | refused: the slice never requests these, so a result has no request behind it |
+| `LocationChanged` | re-projects unchanged; the slice has no URL-driven state |
+| `CapabilityFact` | refused: no capability was negotiated |
+
+`main.ts` starts the kernel with `requireHandshake: true`, so the slice is never
+silently run as a legacy (pre-1.1) engine.
 
 ## Two deliberate oddities, both load-bearing
 

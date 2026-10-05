@@ -13,10 +13,12 @@ Bootstrap Chrona as a greenfield Repository Operating System pilot.
   (`npx @echelon-foundry/sde init`). SDE and ROS are independent; neither
   requires the other. Files under `.sde/` are versioned methodology inputs
   and must not be hand-edited -- change them with `sde update`.
-- `@echelon-foundry/typescript-wasm-kernel` 0.4.1 added as the first runtime
-  dependency. It pulls in `repository-operating-system` 1.2.1 transitively
-  under `node_modules/`; that is the kernel's own library dependency and is
-  unrelated to the ROS 2.0.1 scaffold governing this repository.
+- `@echelon-foundry/typescript-wasm-kernel` 0.4.1 was added as the first
+  runtime dependency on 2026-09-13. On 2026-10-05 (WI-0010) it was replaced
+  by `@echelon-foundry/limen` pinned exactly at 0.7.0 (the same library under
+  its new package name), and `verification/kernel-slice/` was adapted to the
+  0.7.0 protocol. Limen 0.7.0 has no runtime dependencies; the transitive
+  `repository-operating-system` 1.2.1 that 0.4.1 pulled in is gone.
 - Project charter is a draft.
 - No first vertical slice, evidence record, hypothesis, or experiment has been
   accepted.

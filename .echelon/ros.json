@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "tool": "ros",
   "package": "@echelon-foundry/repository-operating-system",
-  "installedVersion": "3.1.3",
+  "installedVersion": "3.1.4",
   "configurationVersion": 1,
   "profile": "greenfield",
   "managedArtifacts": [
@@ -54,7 +54,7 @@
     {
       "path": "HANDOFF.md",
       "ownership": "shared",
-      "sha256": "97246b85fbdbccce7bf03f61210fd9b05f7735e174da3ba9175e56d245f2f0c2"
+      "sha256": "32fa89fb5e97ad4733842c98a7537fdc4dfacb2af8562a32b5b5584af6973242"
     },
     {
       "path": "PROJECT-CHARTER.md",
@@ -74,7 +74,7 @@
     {
       "path": "context/CURRENT-STATE.md",
       "ownership": "shared",
-      "sha256": "b8dce0c4c9cb1254d2b54287adda276175ef8a264ffc80173b0a3129c6d76b87"
+      "sha256": "c5e41e836edd9750404fdfa6f65178af7dbaa3b1a9e8d9f836962b40c02c91ee"
     },
     {
       "path": "context/DECISIONS.md",
@@ -229,7 +229,7 @@
     {
       "path": "registries/decisions.json",
       "ownership": "generated",
-      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+      "sha256": "fefd0b87d4bc926a73e9180bde6950aa124dd2b73e5d3689c6d5f34b0df4b681"
     },
     {
       "path": "registries/evidence.json",
@@ -249,7 +249,7 @@
     {
       "path": "registries/journals.json",
       "ownership": "generated",
-      "sha256": "605c97e98ad35b9cd03d73fc609bf9264a95a762abbd4d183e23164452861bdb"
+      "sha256": "99af6b507671124dbccb327d4df325e460478dac5ed58035afb767cf6c004140"
     },
     {
       "path": "registries/missions.json",

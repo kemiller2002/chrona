@@ -32,7 +32,9 @@ const check = async (name, fn) => {
   }
 };
 
-const browser = await chromium.launch();
+// A preinstalled Chromium can be named instead of a Playwright download.
+const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || undefined;
+const browser = await chromium.launch(executablePath ? { executablePath } : {});
 const page = await browser.newPage();
 const consoleErrors = [];
 page.on("console", (m) => { if (m.type() === "error") consoleErrors.push(m.text()); });
@@ -46,6 +48,15 @@ const logItems = () => page.$$eval("#log li", (els) => els.map((e) => e.textCont
 
 await check("the module graph loads and the engine projects an initial view", async () => {
   assert.equal((await status())?.trim(), "Type a label, then save it.");
+});
+
+await check("the 0.7.0 handshake negotiates protocol 1.4 on the core contract, with no capability packs", async () => {
+  const verdict = await page.evaluate(() => window.__handshake);
+  assert.equal(verdict?.kind, "Compatible", JSON.stringify(verdict));
+  assert.equal(verdict.negotiation.kind, "Negotiated", "the slice must not run as a legacy engine");
+  assert.deepEqual(verdict.negotiation.protocol, { major: 1, minor: 4 });
+  assert.deepEqual(verdict.negotiation.capabilities, []);
+  assert.equal(await page.evaluate(() => window.__kernelStatus), "running");
 });
 
 await check("data-bind-disabled reflects a boolean into the DOM property", async () => {
@@ -123,6 +134,21 @@ await check("state survives reload and Load projects it back", async () => {
   await page.click("#load");
   await page.waitForFunction(() => document.querySelector("#status")?.textContent?.startsWith("Loaded"));
   assert.equal((await status())?.trim(), 'Loaded "alpha".');
+});
+
+await check("a browser navigation reaches the engine as LocationChanged and changes nothing", async () => {
+  const before = { status: await status(), log: await logItems() };
+  const dispatchedBefore = await page.evaluate(() => window.__dispatched.length);
+  await page.evaluate(() => history.pushState(null, "", "#probe"));
+  await page.evaluate(() => new Promise((resolve) => {
+    window.addEventListener("popstate", () => setTimeout(resolve, 100), { once: true });
+    history.back();
+  }));
+  assert.equal(await status(), before.status);
+  assert.deepEqual(await logItems(), before.log);
+  const dispatched = await page.evaluate((n) => window.__dispatched.slice(n), dispatchedBefore);
+  assert.deepEqual(dispatched, ["LocationChanged"], "exactly one LocationChanged must reach the engine");
+  assert.deepEqual(await bridgeErrors(), [], "LocationChanged must be handled, not thrown");
 });
 
 await check("data-each reconciliation keeps DOM node identity for unchanged keys", async () => {

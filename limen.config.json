@@ -1,1 +1,11 @@
-{"configurationVersion":1,"boundary":{"engine":[],"kernel":[]}}
+{
+  "configurationVersion": 1,
+  "boundary": {
+    "engine": [
+      "verification/kernel-slice/src/domain.ts",
+      "verification/kernel-slice/src/projection.ts",
+      "verification/kernel-slice/src/transport.ts"
+    ],
+    "kernel": ["verification/kernel-slice/src/main.ts"]
+  }
+}

@@ -3,22 +3,22 @@
   "application": "Chrona",
   "capabilities": {
     "aegis": {
-      "required": true,
+      "required": false,
       "version": "1.0.0",
       "boundaryManifest": "aegis-boundaries.json"
     },
     "forma": {
-      "required": true,
+      "required": false,
       "version": "0.2.0"
     },
     "folio": {
-      "required": true,
+      "required": false,
       "version": "0.3.0",
       "sourceCommit": "273b18f5b23db15cddd173c05af5d1a8484fc4cf"
     },
     "limen": {
       "required": true,
-      "version": "0.6.1"
+      "version": "0.7.0"
     },
     "ordo": {
       "required": true,

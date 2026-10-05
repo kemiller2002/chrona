@@ -1,1 +1,32 @@
-[]
+[
+  {
+    "created": "2026-10-05",
+    "id": "DF-CHRONA-FND-2026-0001",
+    "owners": [
+      "repository-governance"
+    ],
+    "path": "research/decisions/DF-CHRONA-FND-2026-0001--aegis-forma-folio-not-yet-applicable.md",
+    "related_documents": [
+      ".echelon/foundations.json",
+      "docs/requirements/ECHELON-SHARED-APPLICATION-FOUNDATIONS.md",
+      "docs/requirements/CHRONA-REQUIREMENTS-EXPANSION.txt",
+      "verification/kernel-slice/README.md",
+      ".github/workflows/echelon-foundations.yml"
+    ],
+    "review_cycle": "on-trigger",
+    "status": "accepted",
+    "superseded_by": [],
+    "supersedes": [],
+    "tags": [
+      "governance",
+      "foundations",
+      "aegis",
+      "forma",
+      "folio",
+      "applicability"
+    ],
+    "title": "Aegis, Forma and Folio are declared not yet applicable until Chrona's first product slice",
+    "updated": "2026-10-05",
+    "version": "1.0.0"
+  }
+]

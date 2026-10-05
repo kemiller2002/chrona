@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "repository": "chrona",
-  "nextSeq": 7,
+  "nextSeq": 15,
   "items": [
     {
       "id": "WI-0001",
@@ -117,6 +117,118 @@
       "createdBy": "agent:chatgpt",
       "source": "github-issue",
       "sourceReference": "https://github.com/kemiller2002/chrona/issues/4"
+    },
+    {
+      "id": "WI-0007",
+      "title": "Upgrade the Limen installation to 0.7.0 (@echelon-foundry/limen) and declare the kernel slice as its boundary",
+      "description": null,
+      "tags": [],
+      "priority": "medium",
+      "status": "complete",
+      "attachments": [],
+      "createdAt": "2026-10-05T17:01:52.239Z",
+      "updatedAt": "2026-10-05T17:03:36.000Z",
+      "createdBy": "unknown",
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0008",
+      "title": "Align the declared Limen foundation baseline with the 0.7.0 installation",
+      "description": null,
+      "tags": [],
+      "priority": "medium",
+      "status": "complete",
+      "attachments": [],
+      "createdAt": "2026-10-05T17:07:58.549Z",
+      "updatedAt": "2026-10-05T17:08:05.000Z",
+      "createdBy": "unknown",
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0009",
+      "title": "Repin echelon-foundations workflow to praxis a95dbf2 (Limen 0.7.0-aware foundations verifier)",
+      "description": null,
+      "tags": [],
+      "priority": "medium",
+      "status": "complete",
+      "attachments": [],
+      "createdAt": "2026-10-05T17:59:22.509Z",
+      "updatedAt": "2026-10-05T17:59:51.000Z",
+      "createdBy": "unknown",
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0010",
+      "title": "Move the kernel slice to @echelon-foundry/limen 0.7.0 exactly and adapt it to the 0.7.0 protocol",
+      "description": null,
+      "tags": [],
+      "priority": "medium",
+      "status": "complete",
+      "attachments": [],
+      "createdAt": "2026-10-05T18:03:30.025Z",
+      "updatedAt": "2026-10-05T18:13:09.000Z",
+      "createdBy": "unknown",
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0011",
+      "title": "Upgrade the ROS installation to 3.1.4, the praxis baseline declared in .echelon/foundations.json (ECHELON-FND-PRAXIS-002)",
+      "description": null,
+      "tags": [],
+      "priority": "medium",
+      "status": "complete",
+      "attachments": [],
+      "createdAt": "2026-10-05T18:14:00.658Z",
+      "updatedAt": "2026-10-05T18:14:24.000Z",
+      "createdBy": "unknown",
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0012",
+      "title": "Restore Aegis to required in .echelon/foundations.json when the first .NET/F# project is added (DF-CHRONA-FND-2026-0001 trigger 1): reference EchelonFoundry.Aegis.Core 1.0.0, use it at the boundary, add aegis-boundaries.json",
+      "description": null,
+      "tags": [],
+      "priority": "medium",
+      "status": "captured",
+      "attachments": [],
+      "createdAt": "2026-10-05T18:14:42.570Z",
+      "updatedAt": "2026-10-05T18:14:42.570Z",
+      "createdBy": "unknown",
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0013",
+      "title": "Restore Forma to required in .echelon/foundations.json when the first interactive product surface is added or the kernel slice is promoted (DF-CHRONA-FND-2026-0001 trigger 2): consume the pinned @echelon-foundry/design-system",
+      "description": null,
+      "tags": [],
+      "priority": "medium",
+      "status": "captured",
+      "attachments": [],
+      "createdAt": "2026-10-05T18:14:43.058Z",
+      "updatedAt": "2026-10-05T18:14:43.058Z",
+      "createdBy": "unknown",
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0014",
+      "title": "Restore Folio to required in .echelon/foundations.json when the first time report, printable summary or PDF export is added (DF-CHRONA-FND-2026-0001 trigger 3): consume the pinned @echelon-foundry/print-components",
+      "description": null,
+      "tags": [],
+      "priority": "medium",
+      "status": "captured",
+      "attachments": [],
+      "createdAt": "2026-10-05T18:14:43.416Z",
+      "updatedAt": "2026-10-05T18:14:43.416Z",
+      "createdBy": "unknown",
+      "source": "manual",
+      "sourceReference": null
     }
   ]
 }

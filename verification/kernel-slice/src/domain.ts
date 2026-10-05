@@ -7,18 +7,19 @@ import type {
   CorrelationId,
   EffectRequest,
   SemanticEvent,
+  StorageFailureReason,
   StorageOutcome,
-} from "@echelon-foundry/typescript-wasm-kernel";
+} from "@echelon-foundry/limen";
 
 const STORAGE_KEY = "chrona.kernel-slice.label";
 const MAX_LABEL = 24;
 
 export type Label = string & { readonly __label: unique symbol };
 
-/** The kernel's StorageOutcome failure reasons, named explicitly.
- *  Deriving this with a conditional type collapses to `never`, because the
- *  Success arm of the union has no `reason` field. */
-export type StorageFailureReason = "unavailable" | "quota-exceeded";
+/** The contract's StorageOutcome failure reasons. Limen 0.7.0 exports the
+ *  generated enum by name; 0.4.1 did not, which is why this was once a
+ *  hand-copied union. */
+export type { StorageFailureReason };
 
 /** Phase is the closed set of things that can be true. */
 export type Phase =

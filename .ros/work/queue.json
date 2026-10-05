@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "repository": "chrona",
-  "nextSeq": 8,
+  "nextSeq": 9,
   "items": [
     {
       "id": "WI-0001",
@@ -128,6 +128,20 @@
       "attachments": [],
       "createdAt": "2026-10-05T17:01:52.239Z",
       "updatedAt": "2026-10-05T17:03:36.000Z",
+      "createdBy": "unknown",
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0008",
+      "title": "Align the declared Limen foundation baseline with the 0.7.0 installation",
+      "description": null,
+      "tags": [],
+      "priority": "medium",
+      "status": "complete",
+      "attachments": [],
+      "createdAt": "2026-10-05T17:07:58.549Z",
+      "updatedAt": "2026-10-05T17:08:05.000Z",
       "createdBy": "unknown",
       "source": "manual",
       "sourceReference": null

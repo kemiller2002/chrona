@@ -12,3 +12,4 @@
 | WI-0005 | Record wasm kernel assumptions, findings, and difficulties as a ROS research journal | complete | wasm-kernel, journal | high |
 | WI-0006 | Kernel verification slice: run the wasm kernel bridge end to end in a real browser | complete | wasm-kernel, verification | high |
 | WI-0007 | Upgrade the Limen installation to 0.7.0 (@echelon-foundry/limen) and declare the kernel slice as its boundary | complete |  | medium |
+| WI-0008 | Align the declared Limen foundation baseline with the 0.7.0 installation | complete |  | medium |

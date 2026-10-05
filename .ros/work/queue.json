@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "repository": "chrona",
-  "nextSeq": 12,
+  "nextSeq": 15,
   "items": [
     {
       "id": "WI-0001",
@@ -184,6 +184,48 @@
       "attachments": [],
       "createdAt": "2026-10-05T18:14:00.658Z",
       "updatedAt": "2026-10-05T18:14:24.000Z",
+      "createdBy": "unknown",
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0012",
+      "title": "Restore Aegis to required in .echelon/foundations.json when the first .NET/F# project is added (DF-CHRONA-FND-2026-0001 trigger 1): reference EchelonFoundry.Aegis.Core 1.0.0, use it at the boundary, add aegis-boundaries.json",
+      "description": null,
+      "tags": [],
+      "priority": "medium",
+      "status": "captured",
+      "attachments": [],
+      "createdAt": "2026-10-05T18:14:42.570Z",
+      "updatedAt": "2026-10-05T18:14:42.570Z",
+      "createdBy": "unknown",
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0013",
+      "title": "Restore Forma to required in .echelon/foundations.json when the first interactive product surface is added or the kernel slice is promoted (DF-CHRONA-FND-2026-0001 trigger 2): consume the pinned @echelon-foundry/design-system",
+      "description": null,
+      "tags": [],
+      "priority": "medium",
+      "status": "captured",
+      "attachments": [],
+      "createdAt": "2026-10-05T18:14:43.058Z",
+      "updatedAt": "2026-10-05T18:14:43.058Z",
+      "createdBy": "unknown",
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0014",
+      "title": "Restore Folio to required in .echelon/foundations.json when the first time report, printable summary or PDF export is added (DF-CHRONA-FND-2026-0001 trigger 3): consume the pinned @echelon-foundry/print-components",
+      "description": null,
+      "tags": [],
+      "priority": "medium",
+      "status": "captured",
+      "attachments": [],
+      "createdAt": "2026-10-05T18:14:43.416Z",
+      "updatedAt": "2026-10-05T18:14:43.416Z",
       "createdBy": "unknown",
       "source": "manual",
       "sourceReference": null

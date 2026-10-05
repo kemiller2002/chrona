@@ -11,6 +11,15 @@ These requirements are cross-cutting. Every existing and future requirement in t
 
 An implementation MAY mark one of Aegis, Forma, or Folio not applicable only when the capability is genuinely outside that feature's boundary. The reason MUST be explicit and reviewable. Silence is not an exception.
 
+**Current repository state (2026-10-05).** Chrona has no .NET/F# project, no
+product browser surface (the kernel verification slice is explicitly not a
+product feature) and no report or export, so `.echelon/foundations.json`
+declares Aegis, Forma and Folio `required: false`. The reason, the evidence and
+the trigger that restores each capability to `required: true` are recorded in
+[`DF-CHRONA-FND-2026-0001`](../../research/decisions/DF-CHRONA-FND-2026-0001--aegis-forma-folio-not-yet-applicable.md).
+This does not relax any requirement below for the code that first owns the
+boundary.
+
 Shared Echelon capabilities MUST be consumed rather than independently reimplemented when they already provide the required behavior. A missing shared capability MUST be recorded as a gap in the owning shared repository instead of being silently forked in Chrona.
 
 Dependencies MUST be pinned to an explicit released version or immutable artifact. Floating versions and tracking a moving repository branch are not acceptable application baselines.

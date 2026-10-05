@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "kemiller2002",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-05T17:59:51.000Z",
+  "updatedAt": "2026-10-05T18:11:11.000Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -242,6 +242,31 @@
         "EXE-20261005T175945460Z-7e7c5845"
       ],
       "completedAt": "2026-10-05T17:59:51.000Z"
+    },
+    {
+      "id": "FOUNDATIONS-APPLICABILITY",
+      "type": "task",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "implementation",
+          "path": ".echelon/foundations.json"
+        },
+        {
+          "type": "implementation",
+          "path": "research/decisions/DF-CHRONA-FND-2026-0001--aegis-forma-folio-not-yet-applicable.md"
+        },
+        {
+          "type": "tests",
+          "path": ".github/workflows/echelon-foundations.yml"
+        }
+      ],
+      "updatedAt": "2026-10-05T18:11:11.000Z",
+      "telemetryExecutionIds": [
+        "EXE-20261005T181030746Z-7ccab5e1"
+      ],
+      "completedAt": "2026-10-05T18:11:11.000Z"
     }
   ]
 }

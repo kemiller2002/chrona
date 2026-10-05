@@ -14,3 +14,4 @@
 | WI-0007 | Upgrade the Limen installation to 0.7.0 (@echelon-foundry/limen) and declare the kernel slice as its boundary | complete |  | medium |
 | WI-0008 | Align the declared Limen foundation baseline with the 0.7.0 installation | complete |  | medium |
 | WI-0009 | Repin echelon-foundations workflow to praxis a95dbf2 (Limen 0.7.0-aware foundations verifier) | complete |  | medium |
+| WI-0010 | Move the kernel slice to @echelon-foundry/limen 0.7.0 exactly and adapt it to the 0.7.0 protocol | complete |  | medium |

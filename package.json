@@ -27,10 +27,10 @@
     "node": ">=22"
   },
   "private": true,
-  "dependencies": {
-    "@echelon-foundry/typescript-wasm-kernel": "^0.4.1"
-  },
   "devDependencies": {
     "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@echelon-foundry/limen": "0.7.0"
   }
 }

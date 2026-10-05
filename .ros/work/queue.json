@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "repository": "chrona",
-  "nextSeq": 10,
+  "nextSeq": 11,
   "items": [
     {
       "id": "WI-0001",
@@ -156,6 +156,20 @@
       "attachments": [],
       "createdAt": "2026-10-05T17:59:22.509Z",
       "updatedAt": "2026-10-05T17:59:51.000Z",
+      "createdBy": "unknown",
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0010",
+      "title": "Move the kernel slice to @echelon-foundry/limen 0.7.0 exactly and adapt it to the 0.7.0 protocol",
+      "description": null,
+      "tags": [],
+      "priority": "medium",
+      "status": "complete",
+      "attachments": [],
+      "createdAt": "2026-10-05T18:03:30.025Z",
+      "updatedAt": "2026-10-05T18:13:09.000Z",
       "createdBy": "unknown",
       "source": "manual",
       "sourceReference": null

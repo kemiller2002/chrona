@@ -11,14 +11,12 @@ These requirements are cross-cutting. Every existing and future requirement in t
 
 An implementation MAY mark one of Aegis, Forma, or Folio not applicable only when the capability is genuinely outside that feature's boundary. The reason MUST be explicit and reviewable. Silence is not an exception.
 
-**Current repository state (2026-10-05).** Chrona has no .NET/F# project, no
-product browser surface (the kernel verification slice is explicitly not a
-product feature) and no report or export, so `.echelon/foundations.json`
-declares Aegis, Forma and Folio `required: false`. The reason, the evidence and
-the trigger that restores each capability to `required: true` are recorded in
-[`DF-CHRONA-FND-2026-0001`](../../research/decisions/DF-CHRONA-FND-2026-0001--aegis-forma-folio-not-yet-applicable.md).
-This does not relax any requirement below for the code that first owns the
-boundary.
+**Current repository state (2026-10-05).** Aegis, Forma and Folio are
+`required: true` in `.echelon/foundations.json` and consumed by the kernel
+verification slice, promoted to the way every Echelon application is built
+([`DF-CHRONA-FND-2026-0002`](../../research/decisions/DF-CHRONA-FND-2026-0002--build-chrona-on-the-full-echelon-foundation-stack.md),
+which supersedes `DF-CHRONA-FND-2026-0001`). The slice is still not a product
+feature; the first time-entry surface inherits the same foundations.
 
 Shared Echelon capabilities MUST be consumed rather than independently reimplemented when they already provide the required behavior. A missing shared capability MUST be recorded as a gap in the owning shared repository instead of being silently forked in Chrona.
 
@@ -27,12 +25,11 @@ Dependencies MUST be pinned to an explicit released version or immutable artifac
 Current baselines:
 
 - `EchelonFoundry.Aegis.Core` **1.0.0**.
-- `@echelon-foundry/design-system` (Forma) **0.2.0**, consumed from the
-  immutable v0.2.0 release artifact until npm is the selected canonical source.
-- `@echelon-foundry/print-components` (Folio) **0.3.0**. Until a canonical
-  v0.3.0 package/release artifact exists, pin immutable Folio commit
-  `2b101b6d840a670abb959148fff8e1477c059eda`; once published, pin the exact
-  canonical package version.
+- `@echelon-foundry/design-system` (Forma) **0.3.0** (the `echelon-current`
+  registry selection), consumed as the immutable `v0.3.0` release artifact.
+- `@echelon-foundry/print-components` (Folio) **0.3.0** (the
+  `echelon-current` registry selection), consumed as the immutable `v0.3.0`
+  release artifact.
 
 Merely listing a shared dependency is not sufficient. Completion requires
 evidence that the applicable canonical capability is actually used.

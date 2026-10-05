@@ -1,0 +1,63 @@
+name: Build
+
+on:
+  pull_request:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      # The page loads Limen, Forma and Folio from node_modules, the
+      # conformance tests read the installed packages, and the browser suite
+      # needs its runner, so dependencies are installed before anything runs.
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Restore
+        run: dotnet restore Chrona.sln
+
+      # Warnings are errors (Directory.Build.props), so this also gates
+      # warning regressions.
+      - name: Build
+        run: dotnet build Chrona.sln --no-restore --configuration Release
+
+      # The slice engine (ported TypeScript tests), the Limen protocol and Aegis boundary, the
+      # foundations conformance tests and the HTML/engine binding agreement.
+      - name: Test
+        run: dotnet test Chrona.sln --no-build --configuration Release --verbosity normal
+
+      - name: Verify the Limen boundary
+        run: npm run check:limen
+
+      # Publishing proves the engine still compiles to WebAssembly. It does
+      # not prove the page works, which is what the browser suite is for.
+      - name: Publish the WASM engine
+        run: npm run build:wasm
+
+      - name: Install Chromium for the browser suite
+        run: npx playwright install --with-deps chromium
+
+      # The composed path: DOM event, Limen kernel, WASM shim, F# engine
+      # and back, in a real browser, with Forma and Folio presenting it.
+      - name: Verify the composed browser path
+        run: npx playwright test
+
+      - name: Upload browser traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7

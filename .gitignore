@@ -36,9 +36,12 @@ logs/*
 
 # Project-owned additions (deliberate divergence from the ROS-managed
 # template, recorded under WI-0006; ros-bootstrap verify will report it).
-# Build output and run artifacts of the kernel verification slice.
-verification/kernel-slice/dist/
-verification/kernel-slice/browser-verification.png
+# Build and test output.
+bin/
+obj/
+build/
+test-results/
+playwright-report/
 
 # BEGIN echelon:visual-engineering
 # Installed Visual Engineering context. Refresh it with:

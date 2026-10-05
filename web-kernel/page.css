@@ -1,0 +1,53 @@
+/* Page composition. Every control, colour, focus ring, field,
+   alert, fault, table and status cue comes from Forma (imported by
+   styles.css); this file only lays the page out. State cues are data-*
+   attributes set by the engine, matched here, never inline styles (Limen
+   refuses style bindings). */
+
+/* Projected `hidden` must win over any display a Forma layout gives a child. */
+[hidden] {
+  display: none !important;
+}
+
+.app {
+  max-inline-size: 48rem;
+  margin-inline: auto;
+  padding: clamp(1rem, 4vw, 2rem) 1rem 4rem;
+}
+
+.page-header h1,
+.log-header h2 {
+  margin: 0;
+}
+
+.log-header {
+  align-items: baseline;
+}
+
+/* The status line names the phase it is in (data-phase, set by the
+   engine); a busy phase is muted so the cue is not the text alone. */
+#status[data-phase="Saving"],
+#status[data-phase="Loading"] {
+  color: var(--ef-color-text-secondary);
+}
+
+/* Folio's document is a projection of the same round trips; on screen the
+   interactive surface is the presentation. */
+.print-surface {
+  display: none;
+}
+
+@media print {
+  .app {
+    max-inline-size: none;
+    padding: 0;
+  }
+
+  .app > :not(.print-surface) {
+    display: none !important;
+  }
+
+  .print-surface {
+    display: block;
+  }
+}

@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Limen engine, application tier: Limen's protocol (JSON in, view and effects out)
+       and the Aegis boundary every kernel message crosses. Deterministic
+       apart from the Aegis fault ids and timestamps; no browser, network or
+       file access. -->
+
+  <ItemGroup>
+    <Compile Include="Json.fs" />
+    <Compile Include="Limen.fs" />
+    <Compile Include="Boundary.fs" />
+    <Compile Include="Wire.fs" />
+    <Compile Include="Runtime.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="EchelonFoundry.Aegis.Core" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Chrona.Engine/Chrona.Engine.fsproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Limen engine: the authority side of Chrona's browser boundary. Pure F#:
+       state, legal transitions, effects as data and view projection. No
+       browser, storage, network, clock or file-system access, and no package
+       dependencies beyond FSharp.Core. -->
+
+  <ItemGroup>
+    <Compile Include="View.fs" />
+    <Compile Include="KernelSlice.fs" />
+    <Compile Include="KernelSliceView.fs" />
+  </ItemGroup>
+
+</Project>

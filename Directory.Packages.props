@@ -1,0 +1,21 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- EchelonFoundry.Aegis.Core requires FSharp.Core >= 10.1.400. The F# SDK
+         would otherwise inject an older FSharp.Core implicitly and NuGet would
+         report a downgrade, so the version is pinned here and the implicit
+         reference is disabled in Directory.Build.props. -->
+    <PackageVersion Include="FSharp.Core" Version="10.1.400" />
+    <PackageVersion Include="EchelonFoundry.Aegis.Core" Version="1.0.0" />
+  </ItemGroup>
+
+  <ItemGroup Label="Test">
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageVersion Include="xunit" Version="2.9.2" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+</Project>

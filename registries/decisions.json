@@ -14,8 +14,10 @@
       ".github/workflows/echelon-foundations.yml"
     ],
     "review_cycle": "on-trigger",
-    "status": "accepted",
-    "superseded_by": [],
+    "status": "superseded",
+    "superseded_by": [
+      "DF-CHRONA-FND-2026-0002"
+    ],
     "supersedes": [],
     "tags": [
       "governance",
@@ -26,6 +28,44 @@
       "applicability"
     ],
     "title": "Aegis, Forma and Folio are declared not yet applicable until Chrona's first product slice",
+    "updated": "2026-10-05",
+    "version": "1.0.1"
+  },
+  {
+    "created": "2026-10-05",
+    "id": "DF-CHRONA-FND-2026-0002",
+    "owners": [
+      "repository-governance"
+    ],
+    "path": "research/decisions/DF-CHRONA-FND-2026-0002--build-chrona-on-the-full-echelon-foundation-stack.md",
+    "related_documents": [
+      ".echelon/foundations.json",
+      "aegis-boundaries.json",
+      "limen.config.json",
+      "package.json",
+      "Directory.Packages.props",
+      "docs/requirements/ECHELON-SHARED-APPLICATION-FOUNDATIONS.md",
+      "verification/kernel-slice/README.md",
+      ".github/workflows/build.yml",
+      ".github/workflows/echelon-foundations.yml",
+      "research/decisions/DF-CHRONA-FND-2026-0001--aegis-forma-folio-not-yet-applicable.md"
+    ],
+    "review_cycle": "on-trigger",
+    "status": "accepted",
+    "superseded_by": [],
+    "supersedes": [
+      "DF-CHRONA-FND-2026-0001"
+    ],
+    "tags": [
+      "governance",
+      "foundations",
+      "aegis",
+      "forma",
+      "folio",
+      "limen",
+      "architecture"
+    ],
+    "title": "Chrona is built the same way as the other Echelon applications, on Limen, Forma, Aegis and Folio",
     "updated": "2026-10-05",
     "version": "1.0.0"
   }

@@ -1,0 +1,40 @@
+{
+  "$comment": "Chrona operational failure boundaries. Expected outcomes (an invalid label, a storage failure the kernel reports, a stale storage result) remain typed engine outcomes shown as ordinary page content and are not Aegis faults. See src/Chrona.Application/Boundary.fs.",
+  "schema": "aegis/boundaries/v1",
+  "application": "Chrona",
+  "boundaries": [
+    {
+      "name": "Limen engine message dispatch (kernel verification slice)",
+      "kind": "ui-interop",
+      "owner": "Chrona.Application",
+      "codes": [
+        "CHRONA.BOUNDARY.MESSAGE_INVALID",
+        "CHRONA.BOUNDARY.CAPABILITY_UNAVAILABLE",
+        "CHRONA.BOUNDARY.UNEXPECTED"
+      ],
+      "guarded": true,
+      "$comment": "Every kernel message is parsed and dispatched inside Aegis.capture (Wire.handle). A message that is not the Limen shape the engine relies on (including an unsupported protocol version) is MESSAGE_INVALID; a kernel without the Storage effect, or a result or fact for something the engine never requested or negotiated, is CAPABILITY_UNAVAILABLE. Programming defects (an event name index.html sends that the engine does not know) keep Aegis fail-loud semantics and surface as a Limen bridge error."
+    },
+    {
+      "name": "Browser localStorage",
+      "kind": "browser-capability",
+      "owner": "Limen BrowserKernel",
+      "codes": [],
+      "guarded": false,
+      "$comment": "The kernel performs the Storage effects the engine requests. Their outcomes (including unavailable and quota-exceeded) cross the Limen protocol as explicit typed StorageResults; this declaration does not pretend the .NET Aegis runtime guards JavaScript localStorage."
+    }
+  ],
+  "persistence": {
+    "sinks": [
+      {
+        "name": "stderr",
+        "kind": "console",
+        "level": "optional",
+        "durable": false
+      }
+    ],
+    "requiredDurableStorage": false,
+    "fallbackBehaviour": "Aegis sink failures are contained by the configured fallback; Chrona does not treat diagnostic persistence as business success.",
+    "retentionPolicy": "No durable Aegis sink is configured; in the browser the standard-error sink writes to the console."
+  }
+}

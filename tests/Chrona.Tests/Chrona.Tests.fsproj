@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <!-- Tests read JSON through indexers that are nullable by annotation;
+         a missing value fails the assertion that reads it. -->
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Support.fs" />
+    <Compile Include="KernelSliceTests.fs" />
+    <Compile Include="TransportTests.fs" />
+    <Compile Include="BoundaryTests.fs" />
+    <Compile Include="FoundationsConformanceTests.fs" />
+    <Compile Include="BindingAgreementTests.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="EchelonFoundry.Aegis.Core" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Chrona.Engine/Chrona.Engine.fsproj" />
+    <ProjectReference Include="../../src/Chrona.Application/Chrona.Application.fsproj" />
+  </ItemGroup>
+
+</Project>

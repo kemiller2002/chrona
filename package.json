@@ -2,35 +2,36 @@
   "name": "chrona",
   "version": "1.0.0",
   "description": "Chrona",
-  "directories": {
-    "doc": "docs"
-  },
+  "private": true,
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build:slice": "tsc -p verification/kernel-slice/tsconfig.json",
-    "test:slice": "node --test verification/kernel-slice/test/*.test.mjs",
-    "verify:slice": "verification/kernel-slice/run-browser-verification.sh"
+    "build:wasm": "dotnet publish src/Chrona.Wasm/Chrona.Wasm.csproj -c Release -o build/wasm",
+    "build": "dotnet build Chrona.sln -c Release && npm run build:wasm",
+    "check:limen": "limen verify --strict",
+    "test:dotnet": "dotnet test Chrona.sln -c Release",
+    "test:browser": "npm run build:wasm && playwright test",
+    "test": "npm run check:limen && npm run test:dotnet && npm run test:browser",
+    "serve": "python3 -m http.server 4321",
+    "start": "npm run build:wasm && npm run serve"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/kemiller2002/chrona.git"
   },
-  "keywords": [],
-  "author": "",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/kemiller2002/chrona/issues"
   },
   "homepage": "https://github.com/kemiller2002/chrona#readme",
-  "type": "module",
   "engines": {
-    "node": ">=22"
-  },
-  "private": true,
-  "devDependencies": {
-    "typescript": "^5.9.3"
+    "node": ">=24"
   },
   "dependencies": {
-    "@echelon-foundry/limen": "0.7.0"
+    "@echelon-foundry/design-system": "https://github.com/kemiller2002/forma/releases/download/v0.3.0/echelon-foundry-design-system-0.3.0.tgz",
+    "@echelon-foundry/limen": "0.7.0",
+    "@echelon-foundry/print-components": "https://github.com/kemiller2002/folio/releases/download/v0.3.0/echelon-foundry-print-components-0.3.0.tgz"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0"
   }
 }

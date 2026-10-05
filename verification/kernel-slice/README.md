@@ -5,58 +5,38 @@ user, the communication problem, and owner decision authority explicitly
 unassigned. Choosing those is the owner's call, so this slice deliberately
 claims no product territory. Its only job is to answer one question:
 
-> Does the Limen kernel (`@echelon-foundry/limen`, formerly
-> `@echelon-foundry/typescript-wasm-kernel`) actually work, in a real
+> Does the Limen kernel (`@echelon-foundry/limen`) actually work, in a real
 > browser, when driven from this repository?
 
-Before it existed, every behavioral claim about the kernel in Chrona was
-derived from reading its source. That gap was recorded as assumption **A2** in
-`research/journals/JR-WASMKERNEL-2026-17F6--*.md`. This slice closes it.
+It first answered that with a TypeScript engine in this directory (assumption
+**A2** in `research/journals/JR-WASMKERNEL-2026-17F6--*.md`). On 2026-10-05 it
+was promoted to the way every Echelon application is built
+(`research/decisions/DF-CHRONA-FND-2026-0002--build-chrona-on-the-full-echelon-foundation-stack.md`):
+the same decisions, now made by an F# engine published to .NET WebAssembly,
+behind Limen's kernel, under an Aegis boundary, presented with Forma and
+printed with Folio. The TypeScript sources and tests were ported decision for
+decision and assertion for assertion, and removed; they remain in the git
+history (`git show 1cfbd29:verification/kernel-slice/src/domain.ts`).
 
-## Layout
+## Where it lives now
 
 | Path | Tier | Contents |
 |---|---|---|
-| `src/domain.ts` | 1 / 2 | `Phase`, `Command`, guards, `transition`. Pure; no DOM, no fetch, no storage. |
-| `src/projection.ts` | 3 | `project(model) -> ViewState`. Pure; returns data, never touches the DOM. |
-| `src/transport.ts` | 3 | `EngineTransport` over a pure `step` fold. The WASM swap point. |
-| `src/main.ts` | 4 | Wiring only. |
-| `index.html` | 4 | The bridge vocabulary. |
-
-Effects are returned as data by Tier 2 and executed by the kernel. The domain
-never calls `localStorage`.
+| `src/Chrona.Engine/KernelSlice.fs` | engine (pure) | `Phase`, `Command`, the label guard, `transition`. Effects as data. |
+| `src/Chrona.Engine/KernelSliceView.fs` | engine (pure) | `project : Model -> View`. |
+| `src/Chrona.Application/` | engine (application) | Limen protocol, handshake, Aegis boundary (`Wire.fs`, the old `transport.ts`). |
+| `src/Chrona.Wasm/` | kernel | The `[JSExport]` shim. |
+| `web-kernel/limen-wasm.js`, `web/` | kernel | `BrowserKernel` start-up; the page (Forma markup, Folio print surface). |
+| `tests/Chrona.Tests/KernelSliceTests.fs` | | The ported `domain.test.mjs`. |
+| `tests/browser/kernel-slice.spec.js` | | The ported `browser-verification.mjs`, on Playwright. |
 
 ## Running it
 
 ```sh
-npm run build:slice     # tsc
-npm run test:slice      # 27 pure domain/projection/transport tests, no browser
-npm run verify:slice    # 16 checks against real Chromium via Playwright
+npm ci
+npm run test:dotnet     # engine, protocol, Aegis boundary, conformance
+npm run test:browser    # publishes the WASM engine, then drives Chromium
 ```
-
-`verify:slice` serves the repository root on port 4173, drives the page, and
-writes `browser-verification.png`. Playwright is resolved from the global
-install; there is no Playwright project dependency. To use a Chromium that is
-already on disk instead of a Playwright download, set
-`PLAYWRIGHT_CHROMIUM_EXECUTABLE` to its path.
-
-## Protocol
-
-The slice depends on `@echelon-foundry/limen` at exactly `0.7.0` (protocol
-1.4). `transport.ts` handles every `BrowserToEngineMessage` kind and every
-`EffectResult` kind exhaustively:
-
-| Message | Handling |
-|---|---|
-| `Initialize` | checks the protocol version and that `Storage` is offered, and answers the handshake with `answerHandshake` (core contract, no capability packs) |
-| `Event` | domain command |
-| `EffectResult` / `StorageResult` | domain command (`RecordStorage`) |
-| `EffectResult` / `HttpResult`, `ClipboardResult`, `NavigationResult`, `CapabilityResult` | refused: the slice never requests these, so a result has no request behind it |
-| `LocationChanged` | re-projects unchanged; the slice has no URL-driven state |
-| `CapabilityFact` | refused: no capability was negotiated |
-
-`main.ts` starts the kernel with `requireHandshake: true`, so the slice is never
-silently run as a legacy (pre-1.1) engine.
 
 ## Two deliberate oddities, both load-bearing
 

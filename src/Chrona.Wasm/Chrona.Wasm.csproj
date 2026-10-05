@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
+
+  <!-- Limen kernel side - browser/WASM interop only.
+
+       A marshalling shim and nothing else: the [JSExport] method forwards a
+       JSON string into the F# engine and returns what comes back. It holds no
+       state and makes no decision, which keeps Limen's boundary honest (all
+       application meaning lives in the engine). -->
+
+  <PropertyGroup>
+    <RootNamespace>Chrona.Wasm</RootNamespace>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- CA1416 flags JSExportAttribute as browser-only. This project's only
+         build target is browser-wasm, so the platform guard has no other
+         caller to protect. -->
+    <NoWarn>$(NoWarn);CA1416</NoWarn>
+    <!-- The solution treats warnings as errors; the .NET WASM publish emits
+         trim warnings from FSharp.Core that this project cannot act on. -->
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <!-- Chrona formats with the invariant culture, so the ICU data and
+         satellite resources are not shipped to the browser. -->
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Chrona.Application/Chrona.Application.fsproj" />
+    <SupportedPlatform Include="browser" />
+  </ItemGroup>
+
+</Project>

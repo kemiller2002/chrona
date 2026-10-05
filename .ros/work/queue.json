@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "repository": "chrona",
-  "nextSeq": 7,
+  "nextSeq": 8,
   "items": [
     {
       "id": "WI-0001",
@@ -117,6 +117,20 @@
       "createdBy": "agent:chatgpt",
       "source": "github-issue",
       "sourceReference": "https://github.com/kemiller2002/chrona/issues/4"
+    },
+    {
+      "id": "WI-0007",
+      "title": "Upgrade the Limen installation to 0.7.0 (@echelon-foundry/limen) and declare the kernel slice as its boundary",
+      "description": null,
+      "tags": [],
+      "priority": "medium",
+      "status": "complete",
+      "attachments": [],
+      "createdAt": "2026-10-05T17:01:52.239Z",
+      "updatedAt": "2026-10-05T17:03:36.000Z",
+      "createdBy": "unknown",
+      "source": "manual",
+      "sourceReference": null
     }
   ]
 }

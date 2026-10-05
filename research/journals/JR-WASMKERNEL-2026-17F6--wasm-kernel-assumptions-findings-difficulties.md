@@ -426,3 +426,53 @@ stub endpoint that can be made to hang, so the slice would gain a small server.
 Then decide whether F11 warrants an upstream issue, which first requires
 resolving A7 — whether the behavior is considered a defect. A one-line
 reproduction already exists in this repository's git history.
+
+---
+
+## 2026-10-05 — Limen 0.7.0 tooling upgrade (WI-0007)
+
+Appended under the standing instruction. The package is now published as
+`@echelon-foundry/limen`; `@echelon-foundry/typescript-wasm-kernel` is
+deprecated with 0.6.2 as its last version.
+
+### F16 — 0.7.0 refuses an empty boundary; the slice is a real one
+
+*Verified by running* `npx --yes @echelon-foundry/limen@0.7.0 verify --strict`.
+With `{"engine":[],"kernel":[]}` it reported `LIMEN012` (not-configured, exit
+8) and `LIMEN011` (installation 0.6.1, CLI 0.7.0). The empty lists had been
+passing vacuously since the install. `verification/kernel-slice/` is genuine
+engine/kernel code (domain, projection and transport are engine; `main.ts` is
+the kernel wiring), so `limen.config.json` now names those four files (0.7
+accepts single-file paths). Strict verify then passed with 3 engine and 1
+kernel file checked. Appending `document.title` to `domain.ts` made it fail
+with `LIMEN009`, so the check is not vacuous; the injection was reverted.
+
+### F17 — The verify workflow was `preserved-existing`, so `upgrade` did not rewrite it
+
+*Verified from* `.echelon/limen.json` and the `upgrade` output. The manifest
+recorded the workflow as `preserved-existing` (it differed from the tool's
+copy only by blank lines). `upgrade` therefore rewrote only the manifest and
+left the unpinned `npx … typescript-wasm-kernel verify --strict` in place.
+Following Limen's migration note, the file was deleted and `upgrade` re-run;
+it created the tool-owned, pinned workflow
+(`npx --yes "@echelon-foundry/limen@<installedVersion>" verify --strict`) and
+recorded its hash. No content was lost: the diff against the old file is the
+pinning plus whitespace.
+
+### D11 — The slice's library dependency cannot move to 0.7.0 without code changes
+
+*Verified in a scratch worktree, not committed.* Switching the dependency
+from `@echelon-foundry/typescript-wasm-kernel@^0.4.1` to
+`@echelon-foundry/limen@0.7.0` and renaming the import specifiers made
+`npm run build:slice` fail: `transport.ts` narrows
+`BrowserToEngineMessage` assuming every non-`Event` message carries
+`result`, but 0.7.0 adds `LocationChanged` and other kinds (TS2339). The slice
+therefore stays on 0.4.1 under the deprecated name. Only the lifecycle
+tooling moved to 0.7.0. Migrating the slice is separate work, and it needs
+`verify:slice` (Playwright) to re-establish F13 at the new version.
+
+### A8 — That the lexical boundary check is meaningful at 0.4.1-era source
+
+The 0.7.0 rule set is applied to slice code written against 0.4.1. The check
+is lexical and independent of the library version, so this is believed
+harmless, but it has not been reasoned through for every rule.

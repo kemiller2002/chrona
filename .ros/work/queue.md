@@ -22,4 +22,4 @@
 | WI-0014 | Restore Folio to required in .echelon/foundations.json when the first time report, printable summary or PDF export is added (DF-CHRONA-FND-2026-0001 trigger 3): consume the pinned @echelon-foundry/print-components | complete |  | medium |
 | WI-0015 | Upgrade to Forma 0.4.1 and Limen 0.7.1 | complete | foundations, limen | high |
 | WI-0016 | Move Chrona to Praxis 3.7.1 (ROS -> Praxis rename) and Ordo 1.4.0 | complete | praxis, ordo, toolchain | medium |
-| WI-0017 | Move chrona to Ordo 1.4.1 | ready | ordo, toolchain | medium |
+| WI-0017 | Move chrona to Ordo 1.4.1 | complete | ordo, toolchain | medium |

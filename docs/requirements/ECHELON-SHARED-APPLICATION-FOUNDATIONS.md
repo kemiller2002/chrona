@@ -25,8 +25,8 @@ Dependencies MUST be pinned to an explicit released version or immutable artifac
 Current baselines:
 
 - `EchelonFoundry.Aegis.Core` **1.0.0**.
-- `@echelon-foundry/design-system` (Forma) **0.3.0** (the `echelon-current`
-  registry selection), consumed as the immutable `v0.3.0` release artifact.
+- `@echelon-foundry/design-system` (Forma) **0.4.1** (the `echelon-current`
+  registry selection), consumed as the immutable `v0.4.1` release artifact.
 - `@echelon-foundry/print-components` (Folio) **0.3.0** (the
   `echelon-current` registry selection), consumed as the immutable `v0.3.0`
   release artifact.

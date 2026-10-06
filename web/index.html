@@ -60,10 +60,10 @@
       <div class="ef-cluster"><button id="save" type="submit" data-bind-disabled="saveDisabled">Save</button></div>
     </form>
 
-    <!-- Load sits OUTSIDE the form deliberately. The kernel's flush list
-         registers every element inside a form whose trigger is not "submit"
-         -- buttons included. A data-event button inside this form would
-         therefore fire on every submit. -->
+    <!-- Load sits OUTSIDE the form: it is not part of what Save submits.
+         (Limen 0.7.0 also re-fired every data-event control of a form on
+         submit, buttons included; 0.7.1 re-sends only the controls a native
+         submission includes, limen#80/#81.) -->
     <div class="ef-cluster"><button id="load" type="button" data-event="load" data-bind-disabled="loadDisabled">Load</button></div>
 
     <p id="status" role="status" aria-live="polite" data-bind-data-phase="phaseKind" data-text="statusText"></p>

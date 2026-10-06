@@ -16,7 +16,7 @@ let private json (relative: string) = JsonNode.Parse(readRepoFile relative)
 let private str (node: JsonNode) = node.GetValue<string>()
 
 let private formaRelease =
-    "https://github.com/kemiller2002/forma/releases/download/v0.3.0/echelon-foundry-design-system-0.3.0.tgz"
+    "https://github.com/kemiller2002/forma/releases/download/v0.4.1/echelon-foundry-design-system-0.4.1.tgz"
 
 let private folioRelease =
     "https://github.com/kemiller2002/folio/releases/download/v0.3.0/echelon-foundry-print-components-0.3.0.tgz"
@@ -25,7 +25,7 @@ let private folioRelease =
 let ``foundations.json requires every foundation, at the echelon-current versions`` () =
     let capabilities = (json ".echelon/foundations.json").["capabilities"]
 
-    for name, version in [ "aegis", "1.0.0"; "forma", "0.3.0"; "folio", "0.3.0"; "limen", "0.7.0" ] do
+    for name, version in [ "aegis", "1.0.0"; "forma", "0.4.1"; "folio", "0.3.0"; "limen", "0.7.1" ] do
         Assert.True(capabilities.[name].["required"].GetValue<bool>(), $"{name} must be required")
         Assert.Equal(version, str capabilities.[name].["version"])
 
@@ -36,14 +36,14 @@ let ``the npm foundations are pinned to immutable releases and locked`` () =
     let dependencies = (json "package.json").["dependencies"]
     Assert.Equal(formaRelease, str dependencies.["@echelon-foundry/design-system"])
     Assert.Equal(folioRelease, str dependencies.["@echelon-foundry/print-components"])
-    Assert.Equal("0.7.0", str dependencies.["@echelon-foundry/limen"])
+    Assert.Equal("0.7.1", str dependencies.["@echelon-foundry/limen"])
 
     let packages = (json "package-lock.json").["packages"]
 
     for name, version in
-        [ "@echelon-foundry/design-system", "0.3.0"
+        [ "@echelon-foundry/design-system", "0.4.1"
           "@echelon-foundry/print-components", "0.3.0"
-          "@echelon-foundry/limen", "0.7.0" ] do
+          "@echelon-foundry/limen", "0.7.1" ] do
         let locked = packages.[$"node_modules/{name}"]
         Assert.Equal(version, str locked.["version"])
         Assert.StartsWith("sha512-", str locked.["integrity"])

@@ -9,7 +9,7 @@
     },
     "forma": {
       "required": true,
-      "version": "0.3.0"
+      "version": "0.4.1"
     },
     "folio": {
       "required": true,
@@ -17,7 +17,7 @@
     },
     "limen": {
       "required": true,
-      "version": "0.7.0"
+      "version": "0.7.1"
     },
     "ordo": {
       "required": true,

@@ -6,7 +6,7 @@ Newly initialized with Repository Operating System 2.0.1 (greenfield
 profile), State-Directed Engineering execution package 1.1.1 (`.sde/`), and
 `@echelon-foundry/typescript-wasm-kernel` 0.4.1 as the sole runtime
 dependency. That dependency is now `@echelon-foundry/limen`, pinned exactly at
-0.7.0 (WI-0010). No application code exists yet; `verification/kernel-slice/`
+0.7.1 (WI-0010, then WI-0015). No application code exists yet; `verification/kernel-slice/`
 is verification code, not a product feature.
 
 ## Observed facts

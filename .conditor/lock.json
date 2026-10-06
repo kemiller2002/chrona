@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 4,
+  "project": "chrona",
+  "manifestSha256": "534bb8e5a20e7218ce94ddcd8a27f9b5564b0d19ef09f9840438ce0638341b8d",
+  "manifest": {
+    "schemaVersion": 1,
+    "name": "chrona",
+    "registryAuthority": {
+      "kind": "resolved-release-set",
+      "path": ".conditor/authority/resolved-release-set.json",
+      "sha256": "cd8d8d0482c5c4750f4bb31d28bc79e9597d3be4f6264955691e3aebd86cb6d2"
+    },
+    "components": [
+      {
+        "id": "ordo",
+        "version": "1.4.2",
+        "required": true
+      },
+      {
+        "id": "praxis",
+        "version": "3.7.2",
+        "required": true
+      },
+      {
+        "id": "visual-engineering",
+        "version": "1.0.1",
+        "required": true
+      }
+    ],
+    "requirements": [],
+    "execution": {
+      "enabled": false
+    }
+  },
+  "components": [
+    {
+      "id": "ordo",
+      "version": "1.4.2",
+      "distribution": "host-tool",
+      "package": "ordo",
+      "descriptorSha256": "ee057aa4a0c4cd5180269fd262e5570ff6146035e52fd6d17a0baede0df21f5c",
+      "authority": "embedded-component-descriptor",
+      "sourceReference": "host:ordo@1.4.2"
+    },
+    {
+      "id": "praxis",
+      "version": "3.7.2",
+      "distribution": "host-tool",
+      "package": "praxis",
+      "descriptorSha256": "476164cdd93d38e8b7960f37253334f1636204b6950c82e9f993605b269f0d45",
+      "authority": "embedded-component-descriptor",
+      "sourceReference": "host:praxis@3.7.2"
+    },
+    {
+      "id": "visual-engineering",
+      "version": "1.0.1",
+      "distribution": "lifecycle-npm",
+      "package": "@echelon-foundry/visual-engineering",
+      "descriptorSha256": "c352c4457b3a0bf08894c6b667eaee83ec4e8f7c993537eddb6d4f175a3cffad",
+      "authority": "embedded-component-descriptor",
+      "sourceReference": "@echelon-foundry/visual-engineering@1.0.1"
+    }
+  ],
+  "requirements": []
+}

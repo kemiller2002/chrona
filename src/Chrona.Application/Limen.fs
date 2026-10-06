@@ -7,7 +7,7 @@
 /// storage results and location changes. Anything else is not a message this
 /// engine could have caused.
 ///
-/// See the `protocol` export of `@echelon-foundry/limen` (0.7.0).
+/// See the `protocol` export of `@echelon-foundry/limen` (0.7.1).
 module Chrona.Application.Limen
 
 open System.Text.Json

@@ -18,7 +18,9 @@ Bootstrap Chrona as a greenfield Repository Operating System pilot.
   by `@echelon-foundry/limen` pinned exactly at 0.7.0 (the same library under
   its new package name), and `verification/kernel-slice/` was adapted to the
   0.7.0 protocol. Limen 0.7.0 has no runtime dependencies; the transitive
-  `repository-operating-system` 1.2.1 that 0.4.1 pulled in is gone.
+  `repository-operating-system` 1.2.1 that 0.4.1 pulled in is gone. On
+  2026-10-06 (WI-0015) Limen moved to 0.7.1 and Forma to 0.4.1, the
+  `echelon-current` registry selections.
 - Project charter is a draft.
 - No first vertical slice, evidence record, hypothesis, or experiment has been
   accepted.

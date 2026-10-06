@@ -33,7 +33,7 @@ test("the bridge vocabulary, a Storage round trip and reload, end to end", async
   // the module graph loads and the engine projects an initial view
   await expect(status(page)).toHaveText("Type a label, then save it.");
 
-  // the 0.7.0 handshake negotiates protocol 1.4 on the core contract, with no capability packs
+  // the 0.7.x handshake negotiates protocol 1.4 on the core contract, with no capability packs
   await expect(page.locator("html")).toHaveAttribute("data-protocol", "1.4");
   await expect(page.locator("html")).toHaveAttribute("data-capabilities", "");
 

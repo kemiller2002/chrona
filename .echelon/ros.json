@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "tool": "ros",
   "package": "@echelon-foundry/repository-operating-system",
-  "installedVersion": "3.7.1",
+  "installedVersion": "3.7.2",
   "configurationVersion": 1,
   "profile": "greenfield",
   "managedArtifacts": [
     {
       "path": ".echelon/toolchain.json",
       "ownership": "shared",
-      "sha256": "139a49930a071facf704068180051078b8d65b6c84be3235a11fcd96bc3a63e6"
+      "sha256": "3f4b52f72fb4b263ff86e1678a5be2e6908eff1dc76581a376463ddb42592160"
     },
     {
       "path": ".editorconfig",
@@ -19,7 +19,7 @@
     {
       "path": ".gitattributes",
       "ownership": "user-owned",
-      "sha256": "489fb811f97deb0befb181e8eda6330bd155b6e1a3d7cc4b717391c31cf870f0"
+      "sha256": "faf43061bbb2a4f74fbaf596edfc350f44a09c205a801bda943ee20c09d6bc89"
     },
     {
       "path": ".github/copilot-instructions.md",
@@ -39,7 +39,7 @@
     {
       "path": "AGENTS.md",
       "ownership": "shared",
-      "sha256": "7c8c6fc37d632eb7bb1822dfb1cdc6121f4955c2941ba84033b1d4053ac8d708"
+      "sha256": "533038e8963c7bd0fd4ba269b52d05d07eb71a3d80bcafd4b73fa01e1530467b"
     },
     {
       "path": "BOOTSTRAP.md",
@@ -49,7 +49,7 @@
     {
       "path": "CLAUDE.md",
       "ownership": "user-owned",
-      "sha256": "82b3ad01b3c697e6ea3cb1a99dacc7a00dd884bdecff002cec30197c9811709a"
+      "sha256": "18f8a5b5065fe57e040220852ce21bde11a5b25b8fed6bfef26b5d1175f1fb61"
     },
     {
       "path": "GEMINI.md",
@@ -154,7 +154,7 @@
     {
       "path": "docs/fallback-reconciliation.md",
       "ownership": "tool-owned",
-      "sha256": "43c7b4f11c733f14c1db9d3135d53928e2c08224e36d34dd7ebfcec05834f47d"
+      "sha256": "d10d1a749ba2b868b382981ff3d90c349bbc45911d9c0698ab25db71dda45f31"
     },
     {
       "path": "docs/ordo-observation.md",
@@ -169,7 +169,7 @@
     {
       "path": "docs/remote-protocol.md",
       "ownership": "tool-owned",
-      "sha256": "115bcdcadf466b53812883f4a0a5276ac47a9d66daada9943d07a4299aae42f4"
+      "sha256": "91835e62fe1496e907308758bebae320aca5ad5f65471c305189d7ec8b09de89"
     },
     {
       "path": "docs/work-adapter-contract.md",

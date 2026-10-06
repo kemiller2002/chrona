@@ -21,11 +21,11 @@
     },
     "ordo": {
       "required": true,
-      "version": "1.4.1"
+      "version": "1.4.2"
     },
     "praxis": {
       "required": true,
-      "version": "3.7.1"
+      "version": "3.7.2"
     }
   }
 }

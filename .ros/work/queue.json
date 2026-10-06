@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "repository": "chrona",
-  "nextSeq": 16,
+  "nextSeq": 17,
   "items": [
     {
       "id": "WI-0001",
@@ -244,6 +244,31 @@
       "createdAt": "2026-10-06T10:09:42.000Z",
       "updatedAt": "2026-10-06T10:11:26.000Z",
       "createdBy": "unknown",
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0016",
+      "title": "Move Chrona to Praxis 3.7.1 (ROS -> Praxis rename) and Ordo 1.4.0",
+      "description": null,
+      "tags": [
+        "praxis",
+        "ordo",
+        "toolchain"
+      ],
+      "priority": "medium",
+      "status": "complete",
+      "attachments": [],
+      "createdAt": "2026-10-06T12:34:44.092Z",
+      "updatedAt": "2026-10-06T12:36:41.000Z",
+      "createdBy": "anthropic/claude-code",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "claude-opus-5-5",
+        "runtime": "claude-code"
+      },
       "source": "manual",
       "sourceReference": null
     }

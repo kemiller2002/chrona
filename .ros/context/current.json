@@ -2,9 +2,9 @@
   "schemaVersion": "1.0.0",
   "protocolVersion": "1.0.0",
   "repository": "chrona",
-  "actor": "agent:claude",
+  "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-06T10:11:26.000Z",
+  "updatedAt": "2026-10-06T12:36:41.000Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -513,6 +513,51 @@
         "EXE-20261006T100943299Z-2f419f68"
       ],
       "completedAt": "2026-10-06T10:11:26.000Z"
+    },
+    {
+      "id": "WI-0016",
+      "type": "mechanical",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "implementation",
+          "path": ".echelon/ros.json"
+        },
+        {
+          "type": "implementation",
+          "path": ".echelon/sde.json"
+        },
+        {
+          "type": "documentation",
+          "path": "AGENTS.md"
+        }
+      ],
+      "updatedAt": "2026-10-06T12:36:41.000Z",
+      "telemetryExecutionIds": [
+        "EXE-20261006T123445064Z-f17cb70f"
+      ],
+      "latestCheckpoint": {
+        "id": "a5e86eb89ff9cb414e7fd7a5",
+        "recordedAt": "2026-10-06T12:36:40.000Z",
+        "executionId": "EXE-20261006T123445064Z-f17cb70f",
+        "repository": "chrona",
+        "branch": "chore/praxis-3.7.1",
+        "commit": "d8833c1b3fb67c6051db3849a60849e813e2eeaf",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/chrona"
+        },
+        "remoteBranch": "chore/praxis-3.7.1",
+        "remoteCommit": "d8833c1b3fb67c6051db3849a60849e813e2eeaf",
+        "summary": "upgrade applied, verified, pushed",
+        "nextAction": "complete, PR",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      },
+      "completedAt": "2026-10-06T12:36:41.000Z"
     }
   ]
 }

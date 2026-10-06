@@ -2,9 +2,9 @@
   "schemaVersion": "1.0.0",
   "protocolVersion": "1.0.0",
   "repository": "chrona",
-  "actor": "agent:claude",
+  "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-06T10:11:26.000Z",
+  "updatedAt": "2026-10-06T12:34:44.000Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -513,6 +513,17 @@
         "EXE-20261006T100943299Z-2f419f68"
       ],
       "completedAt": "2026-10-06T10:11:26.000Z"
+    },
+    {
+      "id": "WI-0016",
+      "type": "mechanical",
+      "state": "active",
+      "semanticState": "active",
+      "evidence": [],
+      "updatedAt": "2026-10-06T12:34:44.000Z",
+      "telemetryExecutionIds": [
+        "EXE-20261006T123445064Z-f17cb70f"
+      ]
     }
   ]
 }

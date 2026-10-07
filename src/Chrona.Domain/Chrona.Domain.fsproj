@@ -15,6 +15,8 @@
     <Compile Include="ManualEntry.fs" />
     <Compile Include="Ledger.fs" />
     <Compile Include="Timer.fs" />
+    <Compile Include="Billing.fs" />
+    <Compile Include="Review.fs" />
   </ItemGroup>
 
 </Project>

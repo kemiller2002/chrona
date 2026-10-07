@@ -88,10 +88,10 @@ reporting and export remain open (see the rows marked `later`).
 | CHX-040 | missing | missing | **4 Reference data.** No clients/projects/activity types/tags. | WI-0020 |
 | CHX-050 | missing | partial | **5 Authoritative activity record.** No activity record. **WI-0020:** `Activity` record carries every listed field (ids, occurrence, timing, exact minutes, classification, entry method, the three state dimensions, revision, timestamps, reason, work-item/external refs, evidence, lineage). Persistence remains. | WI-0020 |
 | CHX-061 | missing | tested | **6.1 Record lifecycle.** No lifecycle. **WI-0020:** Recorded/Voided/Superseded as their own type; transitions arrive in WI-0021. **WI-0021:** void keeps the record, restore returns it to Recorded after an overlap recheck, split and merge supersede sources; nothing is deleted (`Ledger`, `LedgerTests` scenario 11). | WI-0020 |
-| CHX-062 | missing | missing | **6.2 Review lifecycle.** No review states. | WI-0023 |
-| CHX-063 | missing | missing | **6.3 Publication/billing lifecycle.** No publication states. | WI-0023 |
-| CHX-070 | missing | missing | **7 Exact versus billable time.** No billing projection. | WI-0023 |
-| CHX-080 | missing | missing | **8 Billability and rate references.** No billability. | WI-0023 |
+| CHX-062 | missing | tested | **6.2 Review lifecycle.** No review states. **WI-0023:** Unsubmitted/Submitted/Approved/Rejected/Reopened with legal transitions, organization-configurable approval, and changed reviewed time reopened (`Review`, `ReviewBillingTests` scenarios 18-22). | WI-0023 |
+| CHX-063 | missing | partial | **6.3 Publication/billing lifecycle.** No publication states. **WI-0023:** NotBillable/Unpublished/Published/AdjustmentRequired driven by billability, publication and later corrections. Summa's InvoicedExternally report and ReadyForPublication staging are not wired. | WI-0023 |
+| CHX-070 | missing | tested | **7 Exact versus billable time.** No billing projection. **WI-0023:** versioned, scoped, dated billing policies (legacy six-minute up default; up/down/nearest/exact); projections never change exact minutes and carry policy id and version (`Billing`, scenario 24). | WI-0023 |
+| CHX-080 | missing | partial | **8 Billability and rate references.** No billability. **WI-0023:** Billable/NonBillable/PendingClassification gate publication. Rate reference, billing class and contract identifiers are not yet fields. | WI-0023 |
 | CHX-090 | missing | tested | **9 Manual entry.** No manual entry. **WI-0020:** start/end, start+duration and duration-only entries with deterministic minutes; historical entries need a reason; future time refused; copies get a new identity; all problems reported together (`ManualEntry`, `TimeDomainTests`). | WI-0020 |
 | CHX-101 | missing | partial | **10.1 Timer persistence.** No timer. **WI-0022:** elapsed time is derived only from persisted segment timestamps, never a counter (`Timer.elapsedMinutes`). Browser persistence across refresh/restart is not wired yet. | WI-0022 |
 | CHX-102 | missing | partial | **10.2 Timer recovery.** No timer. **WI-0022:** `Timer.recover` returns a persisted timer explicitly with its elapsed minutes and never discards it (scenario 4). Startup wiring remains. | WI-0022 |
@@ -101,10 +101,10 @@ reporting and export remain open (see the rows marked `later`).
 | CHX-110 | missing | tested | **11 Time zone and calendar.** No time-zone model. **WI-0020:** UTC instants plus IANA zone, offset, local date and local start; DST days measured exactly; ambiguous and skipped local times refused unless disambiguated; a later zone change never rewrites history (`Time`, `TimeDomainTests` scenarios 6-7). | WI-0020 |
 | CHX-120 | missing | partial | **12 Overlap and conflict rules.** No overlap rules. **WI-0020:** overlap scoped by actor and organization, half-open intervals, voided/superseded excluded, submitted/approved included, DST-aware daily capacity (`Overlap`, scenario 8). Restore recheck, imports and divergent-edit conflicts remain (WI-0021). **WI-0021:** restore rechecks against current state; same-record divergence is a RevisionConflict, not last-write-wins (scenarios 10, 32). The import path (observations) does not exist yet. | WI-0020, WI-0021 |
 | CHX-130 | missing | tested | **13 Split and merge.** No split/merge. **WI-0021:** split children inherit classification, keep source lineage and exact total time, and take each evidence id at most once; merge keeps every source id, supersedes sources and refuses incompatible actors, dates or publication states (scenarios 12-14). | WI-0021 |
-| CHX-140 | missing | missing | **14 Submission and approval.** No approval. | WI-0023 |
+| CHX-140 | missing | tested | **14 Submission and approval.** No approval. **WI-0023:** submission records exact (id, revision) pairs; approval records approver, time, period, covered revisions and note; rejection records reason and reviewer; reopen is explicit; stale approvals are detected and refused (scenarios 18-22). | WI-0023 |
 | CHX-150 | missing | missing | **15 Timesheet periods.** No periods. | later |
-| CHX-160 | missing | missing | **16 Attestation.** No attestation. | WI-0023 |
-| CHX-170 | missing | missing | **17 Summa integration.** No publication. | WI-0023 |
+| CHX-160 | missing | tested | **16 Attestation.** No attestation. **WI-0023:** attestation snapshots ids and revisions for the actor's day, separate from approval; later changes and additions are reported (scenarios 16-17). | WI-0023 |
+| CHX-170 | missing | partial | **17 Summa integration.** No publication. **WI-0023:** publication gates (recorded, billable, approved where required, project present, not already published, policy resolved), idempotent retry per publication id, and correction obligations after publication or invoicing (scenarios 23, 35-38). The Summa transport and contract remain. | WI-0023 |
 | CHX-180 | missing | missing | **18 Receiver-owned integration assembly.** No `Chrona.Integration`. | later |
 | CHX-190 | missing | missing | **19 Observation processing.** No observations. | later |
 | CHX-200 | missing | missing | **20 Startup/reconciliation.** No reconciliation. | later |
@@ -112,7 +112,7 @@ reporting and export remain open (see the rows marked `later`).
 | CHX-220 | missing | missing | **22 Storage scale.** No storage. | later |
 | CHX-230 | missing | missing | **23 Offline behavior.** No offline model. | later |
 | CHX-240 | missing | partial | **24 External artifacts and evidence.** No evidence references. **WI-0021:** evidence references (id, URL, kind, label, captured time, optional hash) link and unlink with audit and survive split/merge. Source and notes fields remain. | WI-0021 |
-| CHX-250 | missing | partial | **25 Audit and provenance.** No audit trail. **WI-0021:** create, amend, void, restore, split, merge and evidence link/unlink append audit entries with performer, time, source, command, prior and resulting revisions, reason and correlation id; refusals change nothing. Review, publication and import audit remain. | WI-0021 |
+| CHX-250 | missing | partial | **25 Audit and provenance.** No audit trail. **WI-0021:** create, amend, void, restore, split, merge and evidence link/unlink append audit entries with performer, time, source, command, prior and resulting revisions, reason and correlation id; refusals change nothing. Review, publication and import audit remain. **WI-0023:** submit, approve, reject, reopen and publish are now audited too. | WI-0021 |
 | CHX-260 | missing | partial | **26 Stable diagnostics.** No product diagnostics. **WI-0020:** stable `CHRONA.<AREA>.<NAME>` codes for entry, time, overlap, concurrency, lifecycle, timer, review and publication diagnostics. Authorization, integration and storage diagnostics remain. | WI-0020 |
 | CHX-270 | missing | missing | **27 Search.** No search. | later |
 | CHX-280 | missing | missing | **28 Reporting.** No reports. | later |
@@ -130,12 +130,12 @@ reporting and export remain open (see the rows marked `later`).
 | CHX-400 | missing | missing | **40 Recovery.** No derived state. | later |
 | CHX-410 | missing | missing | **41 Manual repository edits.** No authoritative files. | later |
 | CHX-420 | partial | partial | **42 Telemetry/privacy.** Aegis faults carry no business content (slice tests); no product telemetry. | later |
-| CHX-430 | missing | partial | **43 Required scenario tests.** 0 of 44 scenarios tested. **WI-0020:** scenarios 1, 6, 7 and 8 tested. **WI-0020, WI-0021:** scenarios 1, 6, 7, 8, 10, 11, 12, 13, 14, 32, 37 and 38 tested. **WI-0022:** scenarios 2, 3, 4, 5 and 9 added (17 of 44 tested in total). | WI-0020..WI-0023 |
+| CHX-430 | missing | partial | **43 Required scenario tests.** 0 of 44 scenarios tested. **WI-0020:** scenarios 1, 6, 7 and 8 tested. **WI-0020, WI-0021:** scenarios 1, 6, 7, 8, 10, 11, 12, 13, 14, 32, 37 and 38 tested. **WI-0022:** scenarios 2, 3, 4, 5 and 9 added (17 of 44 tested in total). **WI-0023:** scenarios 16-24, 35 and 36 added (28 of 44 tested in total). | WI-0020..WI-0023 |
 | CHX-440 | missing | missing | **44 Production completion gate.** Gate not met. | later |
-| CHX-450 | missing | missing | **45 Architectural boundary.** No time authority or Summa boundary. | WI-0023 |
+| CHX-450 | missing | partial | **45 Architectural boundary.** No time authority or Summa boundary. **WI-0023:** Chrona decides authoritative time and publishes approved billable projections; money stays out of Chrona. | WI-0023 |
 
 ## Coverage after this programme
 
 | Corpus | Sections | Current tested | Current partial | Current missing |
 |---|---:|---:|---:|---:|
-| CHRONA-REQUIREMENTS-EXPANSION | 63 | 6 | 18 | 39 |
+| CHRONA-REQUIREMENTS-EXPANSION | 63 | 10 | 22 | 31 |

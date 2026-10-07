@@ -160,7 +160,7 @@ let ``diagnostic codes are stable and distinct`` () =
         [ DurationNotPositive; DurationNotWholeMinutes; EndBeforeStart; CrossesBusinessDay; FutureTime
           ReasonRequiredForHistoricalEntry; AmbiguousLocalTime; InvalidLocalTime; InvalidTimeZone "x"; MissingField "x"
           OrganizationMismatch; ActorMismatch; OverlapsActivity "x"; DailyCapacityExceeded("d", 1); RevisionConflict(1, 2)
-          IllegalTransition("a", "b"); UnknownActivity "x"; SplitDurationMismatch(1, 2); IncompatibleMergeSources "x"
+          IllegalTransition("a", "b"); UnknownActivity "x"; SplitDurationMismatch(1, 2); EvidenceAssignmentInvalid; IncompatibleMergeSources "x"
           PublicationStateConflict "x"; TimerAlreadyActive; NoActiveTimer; TimerNotPaused; TimerPaused
           LongRunningTimerNeedsReview 1; ApprovalNotEnabled; StaleApproval "x"; NotBillableActivity "x"; AlreadyPublished "x"
           NotApproved "x"; BillingPolicyNotFound ]

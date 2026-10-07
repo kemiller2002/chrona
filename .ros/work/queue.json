@@ -371,10 +371,10 @@
         "domain,lifecycle,audit"
       ],
       "priority": "high",
-      "status": "captured",
+      "status": "ready",
       "attachments": [],
       "createdAt": "2026-10-07T21:32:25.442Z",
-      "updatedAt": "2026-10-07T21:32:25.442Z",
+      "updatedAt": "2026-10-07T21:38:36.000Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

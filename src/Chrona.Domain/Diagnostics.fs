@@ -27,6 +27,7 @@ type Diagnostic =
     | IllegalTransition of from: string * command: string
     | UnknownActivity of activityId: string
     | SplitDurationMismatch of expected: int * actual: int
+    | EvidenceAssignmentInvalid
     | IncompatibleMergeSources of reason: string
     | PublicationStateConflict of reason: string
     // Timer (WI-0022).
@@ -64,6 +65,7 @@ let code =
     | IllegalTransition _ -> "CHRONA.LIFECYCLE.ILLEGAL_TRANSITION"
     | UnknownActivity _ -> "CHRONA.LIFECYCLE.UNKNOWN_ACTIVITY"
     | SplitDurationMismatch _ -> "CHRONA.SPLIT.DURATION_MISMATCH"
+    | EvidenceAssignmentInvalid -> "CHRONA.SPLIT.EVIDENCE_ASSIGNMENT"
     | IncompatibleMergeSources _ -> "CHRONA.MERGE.INCOMPATIBLE_SOURCES"
     | PublicationStateConflict _ -> "CHRONA.PUBLICATION.STATE_CONFLICT"
     | TimerAlreadyActive -> "CHRONA.TIMER.ALREADY_ACTIVE"

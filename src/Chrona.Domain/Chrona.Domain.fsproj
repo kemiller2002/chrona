@@ -14,6 +14,7 @@
     <Compile Include="Overlap.fs" />
     <Compile Include="ManualEntry.fs" />
     <Compile Include="Ledger.fs" />
+    <Compile Include="Timer.fs" />
   </ItemGroup>
 
 </Project>

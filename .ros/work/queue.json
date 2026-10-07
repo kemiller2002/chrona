@@ -394,10 +394,10 @@
         "domain,timer"
       ],
       "priority": "high",
-      "status": "captured",
+      "status": "complete",
       "attachments": [],
       "createdAt": "2026-10-07T21:32:25.749Z",
-      "updatedAt": "2026-10-07T21:32:25.749Z",
+      "updatedAt": "2026-10-07T21:43:26.000Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

@@ -16,6 +16,7 @@
     <Compile Include="FoundationsConformanceTests.fs" />
     <Compile Include="BindingAgreementTests.fs" />
     <Compile Include="GapAnalysisTests.fs" />
+    <Compile Include="TimeDomainTests.fs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -26,6 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../../src/Chrona.Domain/Chrona.Domain.fsproj" />
     <ProjectReference Include="../../src/Chrona.Engine/Chrona.Engine.fsproj" />
     <ProjectReference Include="../../src/Chrona.Application/Chrona.Application.fsproj" />
   </ItemGroup>

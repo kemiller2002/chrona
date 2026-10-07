@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Chrona's time domain (requirements expansion 0.4): the authoritative
+       activity record, its separate state dimensions, entry and overlap
+       rules, legal transitions and their diagnostics. Pure F#: no clock,
+       storage, network, browser or file-system access (the current instant
+       and time-zone rules arrive as arguments), and no package dependencies
+       beyond FSharp.Core. -->
+
+  <ItemGroup>
+    <Compile Include="Diagnostics.fs" />
+    <Compile Include="Time.fs" />
+    <Compile Include="Activity.fs" />
+    <Compile Include="Overlap.fs" />
+    <Compile Include="ManualEntry.fs" />
+  </ItemGroup>
+
+</Project>

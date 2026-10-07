@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-07T21:33:40.000Z",
+  "updatedAt": "2026-10-07T21:38:18.000Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -690,6 +690,47 @@
         }
       },
       "completedAt": "2026-10-07T21:33:40.000Z"
+    },
+    {
+      "id": "WI-0020",
+      "type": "task",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Domain/ManualEntry.fs"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/TimeDomainTests.fs"
+        }
+      ],
+      "updatedAt": "2026-10-07T21:38:18.000Z",
+      "telemetryExecutionIds": [
+        "EXE-20261007T213408708Z-5ac660d7"
+      ],
+      "latestCheckpoint": {
+        "id": "83968943441b4fc1011d3098",
+        "recordedAt": "2026-10-07T21:38:17.000Z",
+        "executionId": "EXE-20261007T213408708Z-5ac660d7",
+        "repository": "chrona",
+        "branch": "feat/time-domain",
+        "commit": "025917d0a578d1994f2f5550429888049383f1a4",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/chrona"
+        },
+        "remoteBranch": "feat/time-domain",
+        "remoteCommit": "025917d0a578d1994f2f5550429888049383f1a4",
+        "summary": "Chrona.Domain record, entry, time and overlap implemented",
+        "nextAction": "Complete WI-0020",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      },
+      "completedAt": "2026-10-07T21:38:18.000Z"
     }
   ]
 }

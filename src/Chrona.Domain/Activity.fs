@@ -1,0 +1,113 @@
+/// The authoritative activity record (requirements expansion 5) and its
+/// separate state dimensions (6): record lifecycle, review lifecycle and
+/// publication/billing lifecycle are three types, never one status enum.
+module Chrona.Domain.Activity
+
+open System
+open Chrona.Domain.Time
+
+/// 6.1 Record lifecycle.
+type RecordState =
+    | Recorded
+    | Voided of reason: string
+    /// Replaced by these activities (split children or a merge result).
+    | Superseded of by: string list
+
+/// 6.2 Review lifecycle.
+type ReviewState =
+    | Unsubmitted
+    | Submitted
+    | Approved
+    | Rejected of reason: string
+    | Reopened
+
+/// 6.3 Publication/billing lifecycle.
+type PublicationState =
+    | NotBillable
+    | Unpublished
+    | ReadyForPublication
+    | Published
+    | InvoicedExternally
+    | AdjustmentRequired
+
+/// 8 Billability.
+type Billability =
+    | Billable
+    | NonBillable
+    | PendingClassification
+
+type EntryMethod =
+    | Manual
+    | Timer
+    | Imported of sourceSystem: string
+
+/// 24 An evidence or artifact reference: a pointer, never the content.
+type Evidence =
+    { Id: string
+      Url: string
+      Kind: string
+      Label: string
+      CapturedAt: DateTimeOffset
+      Hash: string option }
+
+/// What the time was spent on (4 reference data by id).
+type Classification =
+    { ProjectId: string
+      ClientId: string option
+      EngagementId: string option
+      ActivityTypeId: string
+      Tags: string list
+      Description: string
+      BusinessPurpose: string }
+
+/// When: an exact interval, or a duration on a business date when the
+/// entry has no clock times.
+type Timing =
+    | Interval of start: DateTimeOffset * finish: DateTimeOffset
+    | DurationOnDate of minutes: int
+
+type Activity =
+    { ActivityId: string
+      OrganizationId: string
+      ActorId: string
+      /// Business date and local context, preserved as recorded.
+      Occurrence: Occurrence
+      Timing: Timing
+      /// Exact duration in whole minutes; billing never changes it.
+      Minutes: int
+      Classification: Classification
+      EntryMethod: EntryMethod
+      Billability: Billability
+      Record: RecordState
+      Review: ReviewState
+      Publication: PublicationState
+      /// Optimistic-concurrency revision, starting at 1.
+      Revision: int
+      CreatedAt: DateTimeOffset
+      LastChangedAt: DateTimeOffset
+      /// Explanation required for historical/reconstructed entries.
+      Reason: string option
+      WorkItemRef: string option
+      ExternalRef: string option
+      Evidence: Evidence list
+      /// Source activity ids this one was split from or merged from.
+      Lineage: string list }
+
+/// Whether the activity consumes the actor's time (12): voided and
+/// superseded records do not; submitted and approved records still do.
+let consumesTime (activity: Activity) =
+    match activity.Record with
+    | Recorded -> true
+    | Voided _
+    | Superseded _ -> false
+
+let interval (activity: Activity) =
+    match activity.Timing with
+    | Interval(start, finish) -> Some(start, finish)
+    | DurationOnDate _ -> None
+
+let recordStateName =
+    function
+    | Recorded -> "Recorded"
+    | Voided _ -> "Voided"
+    | Superseded _ -> "Superseded"

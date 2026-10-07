@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-07T21:38:36.000Z",
+  "updatedAt": "2026-10-07T21:41:06.000Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -735,13 +735,43 @@
     {
       "id": "WI-0021",
       "type": "task",
-      "state": "active",
-      "semanticState": "active",
-      "evidence": [],
-      "updatedAt": "2026-10-07T21:38:36.000Z",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Domain/Ledger.fs"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/LedgerTests.fs"
+        }
+      ],
+      "updatedAt": "2026-10-07T21:41:06.000Z",
       "telemetryExecutionIds": [
         "EXE-20261007T213836995Z-08bb2b67"
-      ]
+      ],
+      "latestCheckpoint": {
+        "id": "a0d55b9325f4f1a2f787f321",
+        "recordedAt": "2026-10-07T21:41:05.000Z",
+        "executionId": "EXE-20261007T213836995Z-08bb2b67",
+        "repository": "chrona",
+        "branch": "feat/lifecycle",
+        "commit": "2772a053f434ef41a652d0e00585538f578ab54a",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/chrona"
+        },
+        "remoteBranch": "feat/lifecycle",
+        "remoteCommit": "2772a053f434ef41a652d0e00585538f578ab54a",
+        "summary": "Ledger transitions implemented",
+        "nextAction": "Complete WI-0021",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      },
+      "completedAt": "2026-10-07T21:41:06.000Z"
     }
   ]
 }

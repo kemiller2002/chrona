@@ -26,6 +26,6 @@
 | WI-0018 | Move chrona to Praxis 3.7.2, Ordo 1.4.2, Visual Engineering 1.0.1 and adopt Conditor | complete |  | medium |
 | WI-0019 | Requirement gap analysis: compare every CHRONA-REQUIREMENTS-EXPANSION section against code and tests | complete | requirements,gap-analysis | high |
 | WI-0020 | Chrona.Domain: authoritative activity record, separate state dimensions, manual entry and overlap rules (sections 5, 6, 9, 11, 12, 26) | complete | domain,activity,overlap | high |
-| WI-0021 | Revision-safe lifecycle: amend, void, restore, split and merge with lineage and audit provenance (sections 12, 13, 21, 25) | ready | domain,lifecycle,audit | high |
+| WI-0021 | Revision-safe lifecycle: amend, void, restore, split and merge with lineage and audit provenance (sections 12, 13, 21, 25) | complete | domain,lifecycle,audit | high |
 | WI-0022 | Timer state machine: one active timer, pause/resume, persisted segments, cross-midnight split, long-running review (section 10) | captured | domain,timer | high |
 | WI-0023 | Billing projection, review lifecycle, attestation and Summa publication eligibility (sections 7, 8, 14, 16, 17) | captured | domain,billing,approval | high |

@@ -73,7 +73,7 @@ reporting and export remain open (see the rows marked `later`).
 | CHX-001 | partial | partial | **0.1 ROS.** Praxis work protocol, `praxis validate` and registry checks run in CI (`praxis-validation.yml`). No product work has yet been delivered under it. | all |
 | CHX-002 | partial | partial | **0.2 SDE / Ordo.** The kernel slice models explicit phases, legal transitions, effects as data and stale-result rejection (`KernelSlice.fs`, `KernelSliceTests`). No product domain states. | WI-0020 |
 | CHX-003 | partial | partial | **0.3 Limen.** F# engine behind Limen with real-browser verification of the slice (`verification/kernel-slice`, `TransportTests`). No product surface. | later |
-| CHX-004 | partial | partial | **0.4 F# architecture.** Engine/Application/Wasm tiers exist; no `Chrona.Domain` or `Chrona.Integration` assembly. | WI-0020 |
+| CHX-004 | partial | partial | **0.4 F# architecture.** Engine/Application/Wasm tiers exist; no `Chrona.Domain` or `Chrona.Integration` assembly. **WI-0020:** pure `Chrona.Domain` assembly added beneath the engine. `Chrona.Integration` remains. | WI-0020 |
 | CHX-005 | partial | partial | **0.5 Shared foundations.** Aegis at the dispatch boundary, Forma page and Folio declared (`FoundationsConformanceTests`); no product surface uses them yet. | later |
 | CHX-011 | missing | missing | **1.1 Purpose.** Charter still generic; no time-tracking product. | later |
 | CHX-012 | missing | missing | **1.2 Preserve existing capabilities.** None of the listed capabilities exists; the legacy `time-tracking-application` sources are not in this repository. | WI-0020..WI-0023 |
@@ -81,25 +81,25 @@ reporting and export remain open (see the rows marked `later`).
 | CHX-022 | missing | missing | **2.2 Login.** No GitHub token login. | later |
 | CHX-023 | missing | missing | **2.3 Token safety.** No token handling. | later |
 | CHX-024 | missing | missing | **2.4 Multi-application repositories.** No storage paths. | later |
-| CHX-025 | missing | missing | **2.5 Organization isolation.** No organization model. | WI-0020 |
+| CHX-025 | missing | partial | **2.5 Organization isolation.** No organization model. **WI-0020:** every activity carries an OrganizationId and overlap is scoped by it. Folders, manifests and per-organization repositories remain. | WI-0020 |
 | CHX-026 | missing | missing | **2.6 Organization manifest.** No manifest. | later |
 | CHX-027 | missing | missing | **2.7 Production repository safety.** No repository visibility check. | later |
 | CHX-030 | missing | missing | **3 Identity, membership, authorization.** No actors or capabilities. | later |
 | CHX-040 | missing | missing | **4 Reference data.** No clients/projects/activity types/tags. | WI-0020 |
-| CHX-050 | missing | missing | **5 Authoritative activity record.** No activity record. | WI-0020 |
-| CHX-061 | missing | missing | **6.1 Record lifecycle.** No lifecycle. | WI-0020 |
+| CHX-050 | missing | partial | **5 Authoritative activity record.** No activity record. **WI-0020:** `Activity` record carries every listed field (ids, occurrence, timing, exact minutes, classification, entry method, the three state dimensions, revision, timestamps, reason, work-item/external refs, evidence, lineage). Persistence remains. | WI-0020 |
+| CHX-061 | missing | partial | **6.1 Record lifecycle.** No lifecycle. **WI-0020:** Recorded/Voided/Superseded as their own type; transitions arrive in WI-0021. | WI-0020 |
 | CHX-062 | missing | missing | **6.2 Review lifecycle.** No review states. | WI-0023 |
 | CHX-063 | missing | missing | **6.3 Publication/billing lifecycle.** No publication states. | WI-0023 |
 | CHX-070 | missing | missing | **7 Exact versus billable time.** No billing projection. | WI-0023 |
 | CHX-080 | missing | missing | **8 Billability and rate references.** No billability. | WI-0023 |
-| CHX-090 | missing | missing | **9 Manual entry.** No manual entry. | WI-0020 |
+| CHX-090 | missing | tested | **9 Manual entry.** No manual entry. **WI-0020:** start/end, start+duration and duration-only entries with deterministic minutes; historical entries need a reason; future time refused; copies get a new identity; all problems reported together (`ManualEntry`, `TimeDomainTests`). | WI-0020 |
 | CHX-101 | missing | missing | **10.1 Timer persistence.** No timer. | WI-0022 |
 | CHX-102 | missing | missing | **10.2 Timer recovery.** No timer. | WI-0022 |
 | CHX-103 | missing | missing | **10.3 Cross-midnight.** No timer. | WI-0022 |
 | CHX-104 | missing | missing | **10.4 Long-running safety.** No timer. | WI-0022 |
 | CHX-105 | missing | missing | **10.5 Multiple devices.** No timer. | WI-0022 |
-| CHX-110 | missing | missing | **11 Time zone and calendar.** No time-zone model. | WI-0020 |
-| CHX-120 | missing | missing | **12 Overlap and conflict rules.** No overlap rules. | WI-0020, WI-0021 |
+| CHX-110 | missing | tested | **11 Time zone and calendar.** No time-zone model. **WI-0020:** UTC instants plus IANA zone, offset, local date and local start; DST days measured exactly; ambiguous and skipped local times refused unless disambiguated; a later zone change never rewrites history (`Time`, `TimeDomainTests` scenarios 6-7). | WI-0020 |
+| CHX-120 | missing | partial | **12 Overlap and conflict rules.** No overlap rules. **WI-0020:** overlap scoped by actor and organization, half-open intervals, voided/superseded excluded, submitted/approved included, DST-aware daily capacity (`Overlap`, scenario 8). Restore recheck, imports and divergent-edit conflicts remain (WI-0021). | WI-0020, WI-0021 |
 | CHX-130 | missing | missing | **13 Split and merge.** No split/merge. | WI-0021 |
 | CHX-140 | missing | missing | **14 Submission and approval.** No approval. | WI-0023 |
 | CHX-150 | missing | missing | **15 Timesheet periods.** No periods. | later |
@@ -113,7 +113,7 @@ reporting and export remain open (see the rows marked `later`).
 | CHX-230 | missing | missing | **23 Offline behavior.** No offline model. | later |
 | CHX-240 | missing | missing | **24 External artifacts and evidence.** No evidence references. | WI-0021 |
 | CHX-250 | missing | missing | **25 Audit and provenance.** No audit trail. | WI-0021 |
-| CHX-260 | missing | missing | **26 Stable diagnostics.** No product diagnostics. | WI-0020 |
+| CHX-260 | missing | partial | **26 Stable diagnostics.** No product diagnostics. **WI-0020:** stable `CHRONA.<AREA>.<NAME>` codes for entry, time, overlap, concurrency, lifecycle, timer, review and publication diagnostics. Authorization, integration and storage diagnostics remain. | WI-0020 |
 | CHX-270 | missing | missing | **27 Search.** No search. | later |
 | CHX-280 | missing | missing | **28 Reporting.** No reports. | later |
 | CHX-290 | missing | missing | **29 Export.** No export. | later |
@@ -130,7 +130,7 @@ reporting and export remain open (see the rows marked `later`).
 | CHX-400 | missing | missing | **40 Recovery.** No derived state. | later |
 | CHX-410 | missing | missing | **41 Manual repository edits.** No authoritative files. | later |
 | CHX-420 | partial | partial | **42 Telemetry/privacy.** Aegis faults carry no business content (slice tests); no product telemetry. | later |
-| CHX-430 | missing | missing | **43 Required scenario tests.** 0 of 44 scenarios tested. | WI-0020..WI-0023 |
+| CHX-430 | missing | partial | **43 Required scenario tests.** 0 of 44 scenarios tested. **WI-0020:** scenarios 1, 6, 7 and 8 tested. | WI-0020..WI-0023 |
 | CHX-440 | missing | missing | **44 Production completion gate.** Gate not met. | later |
 | CHX-450 | missing | missing | **45 Architectural boundary.** No time authority or Summa boundary. | WI-0023 |
 
@@ -138,4 +138,4 @@ reporting and export remain open (see the rows marked `later`).
 
 | Corpus | Sections | Current tested | Current partial | Current missing |
 |---|---:|---:|---:|---:|
-| CHRONA-REQUIREMENTS-EXPANSION | 63 | 0 | 7 | 56 |
+| CHRONA-REQUIREMENTS-EXPANSION | 63 | 2 | 13 | 48 |

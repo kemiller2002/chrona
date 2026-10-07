@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "repository": "chrona",
-  "nextSeq": 19,
+  "nextSeq": 24,
   "items": [
     {
       "id": "WI-0001",
@@ -306,6 +306,121 @@
       "attachments": [],
       "createdAt": "2026-10-06T16:26:30.022Z",
       "updatedAt": "2026-10-06T16:30:33Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0019",
+      "title": "Requirement gap analysis: compare every CHRONA-REQUIREMENTS-EXPANSION section against code and tests",
+      "description": null,
+      "tags": [
+        "requirements,gap-analysis"
+      ],
+      "priority": "high",
+      "status": "ready",
+      "attachments": [],
+      "createdAt": "2026-10-07T21:32:24.788Z",
+      "updatedAt": "2026-10-07T21:32:26.000Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0020",
+      "title": "Chrona.Domain: authoritative activity record, separate state dimensions, manual entry and overlap rules (sections 5, 6, 9, 11, 12, 26)",
+      "description": null,
+      "tags": [
+        "domain,activity,overlap"
+      ],
+      "priority": "high",
+      "status": "captured",
+      "attachments": [],
+      "createdAt": "2026-10-07T21:32:25.118Z",
+      "updatedAt": "2026-10-07T21:32:25.118Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0021",
+      "title": "Revision-safe lifecycle: amend, void, restore, split and merge with lineage and audit provenance (sections 12, 13, 21, 25)",
+      "description": null,
+      "tags": [
+        "domain,lifecycle,audit"
+      ],
+      "priority": "high",
+      "status": "captured",
+      "attachments": [],
+      "createdAt": "2026-10-07T21:32:25.442Z",
+      "updatedAt": "2026-10-07T21:32:25.442Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0022",
+      "title": "Timer state machine: one active timer, pause/resume, persisted segments, cross-midnight split, long-running review (section 10)",
+      "description": null,
+      "tags": [
+        "domain,timer"
+      ],
+      "priority": "high",
+      "status": "captured",
+      "attachments": [],
+      "createdAt": "2026-10-07T21:32:25.749Z",
+      "updatedAt": "2026-10-07T21:32:25.749Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0023",
+      "title": "Billing projection, review lifecycle, attestation and Summa publication eligibility (sections 7, 8, 14, 16, 17)",
+      "description": null,
+      "tags": [
+        "domain,billing,approval"
+      ],
+      "priority": "high",
+      "status": "captured",
+      "attachments": [],
+      "createdAt": "2026-10-07T21:32:26.059Z",
+      "updatedAt": "2026-10-07T21:32:26.059Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

@@ -15,6 +15,7 @@
     <Compile Include="BoundaryTests.fs" />
     <Compile Include="FoundationsConformanceTests.fs" />
     <Compile Include="BindingAgreementTests.fs" />
+    <Compile Include="GapAnalysisTests.fs" />
   </ItemGroup>
 
   <ItemGroup>

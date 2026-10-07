@@ -18,6 +18,7 @@
     <Compile Include="GapAnalysisTests.fs" />
     <Compile Include="TimeDomainTests.fs" />
     <Compile Include="LedgerTests.fs" />
+    <Compile Include="TimerTests.fs" />
   </ItemGroup>
 
   <ItemGroup>

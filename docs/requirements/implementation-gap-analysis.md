@@ -93,11 +93,11 @@ reporting and export remain open (see the rows marked `later`).
 | CHX-070 | missing | missing | **7 Exact versus billable time.** No billing projection. | WI-0023 |
 | CHX-080 | missing | missing | **8 Billability and rate references.** No billability. | WI-0023 |
 | CHX-090 | missing | tested | **9 Manual entry.** No manual entry. **WI-0020:** start/end, start+duration and duration-only entries with deterministic minutes; historical entries need a reason; future time refused; copies get a new identity; all problems reported together (`ManualEntry`, `TimeDomainTests`). | WI-0020 |
-| CHX-101 | missing | missing | **10.1 Timer persistence.** No timer. | WI-0022 |
-| CHX-102 | missing | missing | **10.2 Timer recovery.** No timer. | WI-0022 |
-| CHX-103 | missing | missing | **10.3 Cross-midnight.** No timer. | WI-0022 |
-| CHX-104 | missing | missing | **10.4 Long-running safety.** No timer. | WI-0022 |
-| CHX-105 | missing | missing | **10.5 Multiple devices.** No timer. | WI-0022 |
+| CHX-101 | missing | partial | **10.1 Timer persistence.** No timer. **WI-0022:** elapsed time is derived only from persisted segment timestamps, never a counter (`Timer.elapsedMinutes`). Browser persistence across refresh/restart is not wired yet. | WI-0022 |
+| CHX-102 | missing | partial | **10.2 Timer recovery.** No timer. **WI-0022:** `Timer.recover` returns a persisted timer explicitly with its elapsed minutes and never discards it (scenario 4). Startup wiring remains. | WI-0022 |
+| CHX-103 | missing | tested | **10.3 Cross-midnight.** No timer. **WI-0022:** stopping splits every segment at business-day boundaries in the timer's zone; each piece keeps the timer id as lineage and the total is exact, including across DST (scenario 5, `TimerTests`). | WI-0022 |
+| CHX-104 | missing | tested | **10.4 Long-running safety.** No timer. **WI-0022:** more than 720 minutes is held with `LongRunningTimerNeedsReview` and cannot become activities until reviewed (`TimerTests`). | WI-0022 |
+| CHX-105 | missing | partial | **10.5 Multiple devices.** No timer. **WI-0022:** one active timer per state; overlapping timers of the same actor from different devices are reported as reconciliation pairs (scenario 9). The obligation queue remains. | WI-0022 |
 | CHX-110 | missing | tested | **11 Time zone and calendar.** No time-zone model. **WI-0020:** UTC instants plus IANA zone, offset, local date and local start; DST days measured exactly; ambiguous and skipped local times refused unless disambiguated; a later zone change never rewrites history (`Time`, `TimeDomainTests` scenarios 6-7). | WI-0020 |
 | CHX-120 | missing | partial | **12 Overlap and conflict rules.** No overlap rules. **WI-0020:** overlap scoped by actor and organization, half-open intervals, voided/superseded excluded, submitted/approved included, DST-aware daily capacity (`Overlap`, scenario 8). Restore recheck, imports and divergent-edit conflicts remain (WI-0021). **WI-0021:** restore rechecks against current state; same-record divergence is a RevisionConflict, not last-write-wins (scenarios 10, 32). The import path (observations) does not exist yet. | WI-0020, WI-0021 |
 | CHX-130 | missing | tested | **13 Split and merge.** No split/merge. **WI-0021:** split children inherit classification, keep source lineage and exact total time, and take each evidence id at most once; merge keeps every source id, supersedes sources and refuses incompatible actors, dates or publication states (scenarios 12-14). | WI-0021 |
@@ -130,7 +130,7 @@ reporting and export remain open (see the rows marked `later`).
 | CHX-400 | missing | missing | **40 Recovery.** No derived state. | later |
 | CHX-410 | missing | missing | **41 Manual repository edits.** No authoritative files. | later |
 | CHX-420 | partial | partial | **42 Telemetry/privacy.** Aegis faults carry no business content (slice tests); no product telemetry. | later |
-| CHX-430 | missing | partial | **43 Required scenario tests.** 0 of 44 scenarios tested. **WI-0020:** scenarios 1, 6, 7 and 8 tested. **WI-0020, WI-0021:** scenarios 1, 6, 7, 8, 10, 11, 12, 13, 14, 32, 37 and 38 tested. | WI-0020..WI-0023 |
+| CHX-430 | missing | partial | **43 Required scenario tests.** 0 of 44 scenarios tested. **WI-0020:** scenarios 1, 6, 7 and 8 tested. **WI-0020, WI-0021:** scenarios 1, 6, 7, 8, 10, 11, 12, 13, 14, 32, 37 and 38 tested. **WI-0022:** scenarios 2, 3, 4, 5 and 9 added (17 of 44 tested in total). | WI-0020..WI-0023 |
 | CHX-440 | missing | missing | **44 Production completion gate.** Gate not met. | later |
 | CHX-450 | missing | missing | **45 Architectural boundary.** No time authority or Summa boundary. | WI-0023 |
 
@@ -138,4 +138,4 @@ reporting and export remain open (see the rows marked `later`).
 
 | Corpus | Sections | Current tested | Current partial | Current missing |
 |---|---:|---:|---:|---:|
-| CHRONA-REQUIREMENTS-EXPANSION | 63 | 4 | 15 | 44 |
+| CHRONA-REQUIREMENTS-EXPANSION | 63 | 6 | 18 | 39 |

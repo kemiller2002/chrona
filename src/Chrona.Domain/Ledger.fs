@@ -94,15 +94,22 @@ let private requireRecorded (command: string) (activity: Activity) =
     | Recorded -> Ok activity
     | other -> Error [ IllegalTransition(recordStateName other, command) ]
 
-/// Publication consequences of changing an activity (17, 26): unpublished
-/// time just changes; published time now needs a downstream adjustment;
-/// externally invoiced time cannot be changed here without a correction
-/// workflow.
-let private afterChange (activity: Activity) =
+/// Publication consequences of changing an activity (17): unpublished time
+/// just changes; time already published, or already invoiced by Summa, may
+/// still be corrected here, but becomes AdjustmentRequired, an explicit
+/// downstream correction obligation, never a silent rewrite.
+let private afterChange (activity: Activity) : Result<PublicationState, Diagnostic list> =
     match activity.Publication with
-    | InvoicedExternally -> Error [ PublicationStateConflict $"{activity.ActivityId} is already invoiced" ]
-    | Published -> Ok AdjustmentRequired
+    | Published
+    | InvoicedExternally -> Ok AdjustmentRequired
     | other -> Ok other
+
+/// Changing reviewed time never leaves the review silently valid (14).
+let private reopenIfReviewed =
+    function
+    | Submitted
+    | Approved -> Reopened
+    | other -> other
 
 let private bump (context: CommandContext) (activity: Activity) =
     { activity with
@@ -131,6 +138,7 @@ let private apply (context: CommandContext) (ledger: Ledger) (command: Command) 
             >>= fun publication ->
                 let changed =
                     { bump context activity with
+                        Review = reopenIfReviewed activity.Review
                         Classification = defaultArg amendment.Classification activity.Classification
                         Billability = defaultArg amendment.Billability activity.Billability
                         Publication =
@@ -151,7 +159,8 @@ let private apply (context: CommandContext) (ledger: Ledger) (command: Command) 
         >>= requireRecorded "void"
         >>= fun activity ->
             afterChange activity
-            >>= fun publication -> Ok [ { bump context activity with Record = Voided reason; Publication = publication } ]
+            >>= fun publication ->
+                Ok [ { bump context activity with Record = Voided reason; Publication = publication; Review = reopenIfReviewed activity.Review } ]
 
     | Restore(id, expected) ->
         find ledger id expected
@@ -177,10 +186,7 @@ let private apply (context: CommandContext) (ledger: Ledger) (command: Command) 
                   // Evidence is assigned, never silently duplicated (13).
                   if List.distinct assigned <> assigned || not (Set.isSubset (Set.ofList assigned) evidenceIds) then
                       EvidenceAssignmentInvalid
-                  match source.Publication with
-                  | Published
-                  | InvoicedExternally -> PublicationStateConflict $"{id} has already been published"
-                  | _ -> () ]
+                  () ]
 
             if not problems.IsEmpty then
                 Error problems
@@ -211,8 +217,20 @@ let private apply (context: CommandContext) (ledger: Ledger) (command: Command) 
                             LastChangedAt = context.At
                             Review = Unsubmitted })
 
+                // Children are new, unpublished time; a published source
+                // carries the downstream correction obligation.
+                let publication = afterChange source |> Result.defaultValue source.Publication
+
+                let children =
+                    children
+                    |> List.map (fun c ->
+                        { c with
+                            Publication = if c.Billability = NonBillable then NotBillable else Unpublished })
+
                 Ok(
-                    { bump context source with Record = Superseded(parts |> List.map _.ActivityId) }
+                    { bump context source with
+                        Record = Superseded(parts |> List.map _.ActivityId)
+                        Publication = publication }
                     :: children
                 )
 

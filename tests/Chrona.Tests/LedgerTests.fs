@@ -129,13 +129,25 @@ let ``merge refuses incompatible sources explicitly`` () =
     Assert.Equal<Diagnostic list>([ RevisionConflict(2, 1) ], execute context ledger (Merge([ "A1", 2; "A3", 1 ], "M1", None)) |> refused)
 
 [<Fact>]
-let ``scenarios 37 and 38: changing published time requires adjustment; invoiced time is refused`` () =
+let ``scenarios 37 and 38: changing published or invoiced time creates a correction obligation`` () =
     let ledger = run [ Record { activity "A1" (9, 0) 60 with Publication = Published }; Record { activity "A2" (11, 0) 60 with Publication = InvoicedExternally } ]
     let amendment = { Classification = None; Billability = None; Retime = None; Reason = "client asked" }
     Assert.Equal(AdjustmentRequired, (get "A1" (execute context ledger (Amend("A1", 1, amendment)) |> ok)).Publication)
     Assert.Equal(AdjustmentRequired, (get "A1" (execute context ledger (Void("A1", 1, "wrong")) |> ok)).Publication)
-    Assert.Equal<Diagnostic list>([ PublicationStateConflict "A2 is already invoiced" ], execute context ledger (Amend("A2", 1, amendment)) |> refused)
-    Assert.Equal<Diagnostic list>([ PublicationStateConflict "A1 has already been published" ], execute context ledger (Split("A1", 1, [ { ActivityId = "x"; Minutes = 30; Classification = None; EvidenceIds = [] }; { ActivityId = "y"; Minutes = 30; Classification = None; EvidenceIds = [] } ])) |> refused)
+    // Chrona may correct its own truth even after Summa invoiced the time,
+    // but never silently: the record now requires downstream reconciliation.
+    Assert.Equal(AdjustmentRequired, (get "A2" (execute context ledger (Amend("A2", 1, amendment)) |> ok)).Publication)
+    let parts = [ { ActivityId = "x"; Minutes = 30; Classification = None; EvidenceIds = [] }; { ActivityId = "y"; Minutes = 30; Classification = None; EvidenceIds = [] } ]
+    let split = execute context ledger (Split("A1", 1, parts)) |> ok
+    Assert.Equal(AdjustmentRequired, (get "A1" split).Publication)
+    Assert.Equal(Unpublished, (get "x" split).Publication)
+
+[<Fact>]
+let ``scenario 22: changing reviewed time reopens its review`` () =
+    let ledger = run [ Record { activity "A1" (9, 0) 60 with Review = Approved }; Record { activity "A2" (11, 0) 60 with Review = Submitted } ]
+    let amendment = { Classification = None; Billability = None; Retime = None; Reason = "late correction" }
+    Assert.Equal(Reopened, (get "A1" (execute context ledger (Amend("A1", 1, amendment)) |> ok)).Review)
+    Assert.Equal(Reopened, (get "A2" (execute context ledger (Void("A2", 1, "wrong")) |> ok)).Review)
 
 [<Fact>]
 let ``amending billability moves the publication state with it, and retiming rechecks overlap`` () =

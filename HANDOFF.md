@@ -47,6 +47,29 @@ change fixed it, and both branches have been green since
 `a117b1796ee31c890bbde0fd7b2fb00e7156e7e3`. See `.ros/work/items/WI-0003.md`
 for the diagnosis, the evidence, and one unexercised watch item.
 
+## Time domain (2026-10-07)
+
+- Requirement coverage per section is tracked in
+  [`docs/requirements/implementation-gap-analysis.md`](docs/requirements/implementation-gap-analysis.md)
+  (`CHX-NNM` ids, baseline and current columns; `GapAnalysisTests` holds the
+  counts). 10 tested, 22 partial, 31 missing of 63 (baseline 0 / 7 / 56).
+- `src/Chrona.Domain` is the pure time domain: `Diagnostics`, `Time`,
+  `Activity`, `Overlap`, `ManualEntry` (WI-0020), `Ledger` (WI-0021),
+  `Timer` (WI-0022), `Billing` and `Review` (WI-0023). 28 of the 44 section-43
+  scenarios are tested.
+- Not built: GitHub storage and login, organizations and authorization,
+  offline sync, observations and `Chrona.Integration`, the product UI on
+  Limen/Forma, reports and exports on Folio. The kernel slice is still the
+  only browser surface.
+- The legacy `time-tracking-application` sources were not available in this
+  repository; the domain follows the expansion's restatement of them.
+
+## Next action (time domain)
+
+Wire `Chrona.Domain` into a Limen/Forma timer-and-manual-entry page
+(sections 32, 33, 35), then GitHub storage with revision-based concurrency
+(2, 21, 22) and the receiver-owned integration contract for Summa (18).
+
 ## Unresolved questions
 
 1. What concrete communication problem and user should the first slice serve?

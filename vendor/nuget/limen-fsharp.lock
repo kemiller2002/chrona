@@ -1,0 +1,12 @@
+# conditor.nuget-feed-lock/v1. Written by Conditor; do not edit. The packages beside this
+# file are the unmodified release assets named here, each proven against the
+# Registry SHA-256. NuGet restores these ids only from this folder (NuGet.config).
+system limen-fsharp
+version 0.9.0
+repository kemiller2002/limen
+tag v0.9.0
+release-manifest sha256:d8aec120fdaff6bb2a9dcd6e4d79b8a92d69f8cc0227de1c6b7166c6c3b8ce3a
+package EchelonFoundry.Limen.Contract 0.9.0 EchelonFoundry.Limen.Contract.0.9.0.nupkg sha256:1db1ec2c19f45331b31fc0d13a876259e12efa4de7509f6ee4939567984c2817 https://github.com/kemiller2002/limen/releases/download/v0.9.0/EchelonFoundry.Limen.Contract.0.9.0.nupkg
+package EchelonFoundry.Limen.Guest 0.9.0 EchelonFoundry.Limen.Guest.0.9.0.nupkg sha256:8d626c5c63d4695b866bcddc7893c7661fc495f307519d597f0e7199196be388 https://github.com/kemiller2002/limen/releases/download/v0.9.0/EchelonFoundry.Limen.Guest.0.9.0.nupkg
+package EchelonFoundry.Limen.Routing 0.9.0 EchelonFoundry.Limen.Routing.0.9.0.nupkg sha256:278e3f221cd98aaec3bf0b3069bc222a1554eababaf66931e8baa6c2fb7561a0 https://github.com/kemiller2002/limen/releases/download/v0.9.0/EchelonFoundry.Limen.Routing.0.9.0.nupkg
+package EchelonFoundry.Limen.Store 0.9.0 EchelonFoundry.Limen.Store.0.9.0.nupkg sha256:ce71b5bbdc38704615c212b4a5955467598ed97c8d9982a9b8bac0b6b4b7bc8d https://github.com/kemiller2002/limen/releases/download/v0.9.0/EchelonFoundry.Limen.Store.0.9.0.nupkg

@@ -30,10 +30,11 @@
   },
   "dependencies": {
     "@echelon-foundry/design-system": "https://github.com/kemiller2002/forma/releases/download/v0.4.1/echelon-foundry-design-system-0.4.1.tgz",
-    "@echelon-foundry/limen": "0.7.1",
+    "@echelon-foundry/limen": "0.9.0",
     "@echelon-foundry/print-components": "https://github.com/kemiller2002/folio/releases/download/v0.3.0/echelon-foundry-print-components-0.3.0.tgz"
   },
   "devDependencies": {
-    "@playwright/test": "1.63.0"
+    "@playwright/test": "1.63.0",
+    "ajv": "8.17.1"
   }
 }

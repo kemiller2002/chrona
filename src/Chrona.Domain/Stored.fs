@@ -219,6 +219,139 @@ let changes (stored: Stored) (changed: Changed) : Result<Change list, Diagnostic
     | [] -> Ok(results |> List.collect (function Ok found -> found | Error _ -> []))
     | problems -> Error problems
 
+/// The records an operation's changes carry, as a command's change (for a
+/// change queued while offline and read back, WI-0033): what it creates or
+/// updates, decoded by record type, and the members it deletes as removals.
+/// An activity deleted to move it to another month is carried by its create.
+let changedOf (changes: Change list) : Result<Changed, Diagnostic list> =
+    let decoded (path: RelativePath) (content: string) =
+        let where = RelativePath.render path
+
+        match Layout.keyOf path, Record.decode Record.DefaultMaxBytes content with
+        | Some key, Ok record ->
+            let body = record.Body
+            let invalid detail = InvalidStoredRecord(where, detail)
+
+            if key.Type = ActivityRecord.recordType then
+                ActivityRecord.ofBody body |> Result.map (fun a -> { nothing with Activities = [ a ] }) |> Result.mapError invalid
+            elif key.Type = ReferenceRecord.recordType then
+                ReferenceRecord.ofBody body |> Result.map (fun item -> { nothing with References = [ item ] }) |> Result.mapError invalid
+            elif key.Type = AttestationRecord.recordType then
+                AttestationRecord.ofBody body |> Result.map (fun a -> { nothing with Attestations = [ a ] }) |> Result.mapError invalid
+            elif key.Type = MemberRecord.recordType then
+                MemberRecord.ofBody body |> Result.map (fun m -> { nothing with Members = [ m ] }) |> Result.mapError invalid
+            else
+                Error(invalid "not a record Chrona keeps here")
+        | _ -> Error(InvalidStoredRecord(where, "not a valid record"))
+
+    let removal (path: RelativePath) =
+        match Layout.keyOf path with
+        | Some key when key.Type = MemberRecord.recordType ->
+            match ActivityRecord.actorOfSegment (RecordId.value key.Id) with
+            | Some principalId -> Ok { nothing with Removed = [ principalId ] }
+            | None -> Error(InvalidStoredRecord(RelativePath.render path, "not a member's record id"))
+        | Some key when key.Type = ActivityRecord.recordType -> Ok nothing
+        | _ -> Error(InvalidStoredRecord(RelativePath.render path, "not a record Chrona removes"))
+
+    let parts =
+        changes
+        |> List.map (function
+            | Change.Create(path, content)
+            | Change.Update(path, content, _) -> decoded path content
+            | Change.Delete(path, _) -> removal path)
+
+    match parts |> List.choose (function Error d -> Some d | Ok _ -> None) with
+    | [] ->
+        let found = parts |> List.choose (function Ok c -> Some c | Error _ -> None)
+
+        Ok
+            { Activities = found |> List.collect _.Activities
+              References = found |> List.collect _.References
+              Attestations = found |> List.collect _.Attestations
+              Members = found |> List.collect _.Members
+              Removed = found |> List.collect _.Removed }
+    | problems -> Error problems
+
+/// What is stored with changes not yet stored laid over it, as the person
+/// sees it while those changes wait to be sent (WI-0033). Records keep the
+/// path and revision of what is stored where there is one; a record not
+/// stored yet has no revision (`Revision ""`). It is for deciding and
+/// showing, never for building a commit.
+let overlay (changed: Changed) (stored: Stored) =
+    let unsent = Revision ""
+
+    let activities =
+        changed.Activities
+        |> List.fold
+            (fun (snapshot: Persistence.Snapshot) (activity: Activity.Activity) ->
+                match ActivityRecord.path activity with
+                | Error _ -> snapshot
+                | Ok path ->
+                    let revision =
+                        snapshot.Activities.TryFind activity.ActivityId |> Option.map _.Revision |> Option.defaultValue unsent
+
+                    // An accepted outside edit waiting to be sent is no longer held.
+                    let held = snapshot.HeldForReview.TryFind activity.ActivityId
+
+                    { snapshot with
+                        Activities =
+                            Map.add
+                                activity.ActivityId
+                                { Activity = activity
+                                  Path = path
+                                  Revision = held |> Option.map _.Revision |> Option.defaultValue revision
+                                  ContentHash = "" }
+                                snapshot.Activities
+                        HeldForReview = snapshot.HeldForReview.Remove activity.ActivityId
+                        Problems =
+                            match held with
+                            | Some found ->
+                                snapshot.Problems
+                                |> List.filter (fun problem -> problem <> ExternalEdit(RelativePath.render found.Path))
+                            | None -> snapshot.Problems })
+            stored.Activities
+
+    let references =
+        changed.References
+        |> List.fold
+            (fun map (item: Reference.Item) ->
+                match ReferenceRecord.path item with
+                | Error _ -> map
+                | Ok path ->
+                    let revision =
+                        map |> Map.tryFind (referenceKey item) |> Option.map (fun (found: StoredReference) -> found.Revision) |> Option.defaultValue unsent
+
+                    Map.add (referenceKey item) ({ Item = item; Path = path; Revision = revision }: StoredReference) map)
+            stored.References
+
+    let members =
+        changed.Members
+        |> List.fold
+            (fun map (membership: Access.Membership) ->
+                match MemberRecord.path membership.Principal.PrincipalId with
+                | Error _ -> map
+                | Ok path ->
+                    let id = membership.Principal.PrincipalId
+                    let revision = map |> Map.tryFind id |> Option.map (fun (found: StoredMember) -> found.Revision) |> Option.defaultValue unsent
+                    Map.add id ({ Membership = membership; Path = path; Revision = revision }: StoredMember) map)
+            stored.Members
+        |> fun map -> changed.Removed |> List.fold (fun map id -> Map.remove id map) map
+
+    let attestations =
+        changed.Attestations
+        |> List.fold
+            (fun map (attestation: Review.Attestation) ->
+                match AttestationRecord.path attestation with
+                | Ok path -> Map.add (RelativePath.render path) attestation map
+                | Error _ -> map)
+            stored.Attestations
+
+    { stored with
+        Activities = activities
+        References = references
+        Members = members
+        Attestations = attestations }
+
 /// What was stored after a commit of these records landed with `receipt`.
 let committed (changed: Changed) (receipt: CommitReceipt) (stored: Stored) =
     let revisionOf path =

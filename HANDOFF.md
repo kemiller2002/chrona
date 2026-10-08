@@ -52,7 +52,7 @@ for the diagnosis, the evidence, and one unexercised watch item.
 - Requirement coverage per section is tracked in
   [`docs/requirements/implementation-gap-analysis.md`](docs/requirements/implementation-gap-analysis.md)
   (`CHX-NNM` ids, baseline and current columns; `GapAnalysisTests` holds the
-  counts). 29 tested, 29 partial, 5 missing of 63 (baseline 0 / 7 / 56).
+  counts). 29 tested, 31 partial, 3 missing of 63 (baseline 0 / 7 / 56).
 - `src/Chrona.Domain` is the pure time domain: `Diagnostics`, `Time`,
   `Activity`, `Overlap`, `ManualEntry` (WI-0020), `Ledger` (WI-0021),
   `Timer` (WI-0022), `Billing` and `Review` (WI-0023), `Compatibility`
@@ -107,6 +107,14 @@ for the diagnosis, the evidence, and one unexercised watch item.
   rules of a recorded activity, and stored as Chrona's next revision.
   Arca WI-0018 asks for namespace-scoped change tokens; until then a
   dedicated data repository avoids needless reloads.
+- Offline (WI-0033): every change goes through Arca's offline queue, kept
+  write-ahead in this browser's localStorage (Arca's LocalStorageQueue over
+  Limen Storage) and sent in order; a lost connection backs off and
+  retries, the queue survives refresh and restart and is sent after the
+  records open, and a change the repository moved under is decided again
+  and revised or becomes a conflict. The sync state is shown. Opening the
+  records still needs GitHub; the persisted timer and starting offline are
+  WI-0055.
 - Rosters, people and organizations (WI-0031): member records in each
   organization's folder; only the configuration's listed administrators
   set an organization up or administer it first (WI-0053); only members work;
@@ -114,7 +122,7 @@ for the diagnosis, the evidence, and one unexercised watch item.
   deployment lists its organizations and a person chooses one. Publication
   staging (ReadyForPublication) and Summa's invoice report
   (InvoicedExternally) are domain transitions; their transport is WI-0037.
-- Not built: offline sync and the persisted timer (WI-0033), derived
+- Not built: the persisted timer and starting offline (WI-0055), derived
   indexes (WI-0034), browser reliability, accessibility end to end, quick
   entry and visual regression (WI-0054),
   `Chrona.Integration` (Summa owns the contract), submission and approval screens (need actors and

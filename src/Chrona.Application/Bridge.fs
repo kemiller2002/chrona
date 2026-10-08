@@ -37,6 +37,8 @@ type KernelAnswer =
     | Answered of AppProtocol.HttpResult
     | Read of value: string option
     | Done
+    /// The browser refused a storage request: `unavailable` or `quota-exceeded`.
+    | Refused of reason: string
 
 /// One page's in-flight work.
 [<Sealed>]

@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-08T14:19:15Z",
+  "updatedAt": "2026-10-08T14:41:08Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -1800,6 +1800,55 @@
         }
       },
       "completedAt": "2026-10-08T14:19:15Z"
+    },
+    {
+      "id": "WI-0033",
+      "type": "feature",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Application/Store.fs"
+        },
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Domain/Stored.fs"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/StoreTests.fs"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/PersistenceTests.fs"
+        }
+      ],
+      "updatedAt": "2026-10-08T14:41:08Z",
+      "telemetryExecutionIds": [
+        "EXE-20261008T142708182Z-504eba9b"
+      ],
+      "latestCheckpoint": {
+        "id": "eb5a3526b8f76ffca4f95b86",
+        "recordedAt": "2026-10-08T14:41:08Z",
+        "executionId": "EXE-20261008T142708182Z-504eba9b",
+        "repository": "chrona",
+        "branch": "feature/offline-queue",
+        "commit": "cc3d27df340d08473efcd3e234d580316fbe054f",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/chrona"
+        },
+        "remoteBranch": "feature/offline-queue",
+        "remoteCommit": "cc3d27df340d08473efcd3e234d580316fbe054f",
+        "summary": "Offline change queue on Arca's OfflineQueue and LocalStorageQueue behind the store port; sync state; reconnect reconciliation; 280 .NET and 26 browser tests pass",
+        "nextAction": "Complete with evidence and open the PR",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      },
+      "completedAt": "2026-10-08T14:41:08Z"
     }
   ]
 }

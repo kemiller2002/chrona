@@ -118,7 +118,8 @@ let gitHub (bridge: Bridge) (tokens: unit -> TokenProvider option) (unauthorized
                                 if reason = "connection-lost" then UnknownReason.ConnectionLost else UnknownReason.TimeoutAfterDispatch
                             )
                     | Read _
-                    | Done -> return HttpOutcome.Failed HttpFailure.InvalidResponse
+                    | Done
+                    | Refused _ -> return HttpOutcome.Failed HttpFailure.InvalidResponse
                 }
           Wait = fun delay -> bridge.Call(Sleep(int delay.TotalMilliseconds)) |> Async.Ignore
           Tokens =
@@ -151,7 +152,13 @@ type private Opened =
       /// The months read so far.
       Months: Set<int * int>
       /// The organization as the deployment configures it.
-      Organization: Deployment.OrganizationConfig }
+      Organization: Deployment.OrganizationConfig
+      /// This page's unsent changes, in order: Arca's offline queue (WI-0033).
+      Queue: OfflineQueue
+      /// Where the queue is kept in this browser, when it can be.
+      Keeper: QueueStore option
+      /// Why the queue is not kept in this browser, for the person.
+      Note: string option }
 
 let private describeFailure =
     function
@@ -195,6 +202,64 @@ let private changeOf (request: StoreRequest) : Stored.Changed =
       Members = request.Members
       Removed = request.RemovedMembers }
 
+/// Browser localStorage through Limen's Storage requests, as Arca's
+/// LocalStorageQueue asks for it.
+let private localStorage (bridge: Bridge) (request: LocalStorageRequest) =
+    async {
+        let call =
+            match request with
+            | LocalStorageRequest.Get key -> DeviceGet key
+            | LocalStorageRequest.Set(key, value) -> DeviceSet(key, value)
+            | LocalStorageRequest.Remove key -> DeviceRemove key
+
+        match! bridge.Call call with
+        | Read value -> return LocalStorageOutcome.Success value
+        | Done -> return LocalStorageOutcome.Success None
+        | Refused "quota-exceeded" -> return LocalStorageOutcome.Failure LocalStorageFailure.QuotaExceeded
+        | Refused _
+        | Answered _ -> return LocalStorageOutcome.Failure LocalStorageFailure.Unavailable
+    }
+
+let private describeQueueStore =
+    function
+    | QueueStoreFailure.Unavailable -> "This browser does not let Chrona keep unsent changes."
+    | QueueStoreFailure.QuotaExceeded _ -> "This browser's storage for Chrona is full."
+    | QueueStoreFailure.Corrupt _ -> "The unsent changes this browser kept cannot be read; they were left as they are."
+
+/// Whether a queue entry still waits to reach GitHub.
+let private unsent (entry: QueueEntry) =
+    match entry.State with
+    | EntryState.Synchronized _
+    | EntryState.Abandoned _ -> false
+    | _ -> true
+
+/// The records a queued entry carries.
+let private recordsOf (folder: Namespace) (entry: QueueEntry) =
+    OfflineQueue.operationOf folder entry.Operation
+    |> Result.mapError (fun _ -> [])
+    |> Result.bind (fun operation -> Stored.changedOf operation.Changes)
+
+/// A queued entry as the engine's request: its id is the operation's
+/// idempotency key, which is the request's commit id.
+let private requestOf (folder: Namespace) (entry: QueueEntry) : StoreRequest option =
+    recordsOf folder entry
+    |> Result.toOption
+    |> Option.map (fun changed ->
+        { emptyRequest entry.Operation.IdempotencyKey with
+            Activities = changed.Activities
+            References = changed.References
+            Attestations = changed.Attestations
+            Members = changed.Members
+            RemovedMembers = changed.Removed })
+
+/// The longest wait between attempts to reach GitHub.
+[<Literal>]
+let MaxRetryMs = 60000
+
+/// The first wait after GitHub could not be reached.
+[<Literal>]
+let FirstRetryMs = 5000
+
 /// The Arca store over a backend. `now` is the clock; `newKey` mints the
 /// idempotency keys of the operations the store starts itself. It keeps
 /// commits in memory until the engine opens storage, which it does only for
@@ -203,24 +268,24 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
     let mutable opened: Opened option = None
     /// Records read but held until a listed administrator confirms.
     let mutable pending: Opened option = None
-    let queue = Queue<unit -> Async<Update.Msg list>>()
+    let jobs = Queue<unit -> Async<Update.Msg list>>()
     let mutable busy = false
 
     /// Runs the queued jobs one at a time; each job's messages go to the
     /// engine as it finishes.
     let rec run () =
         async {
-            if queue.Count = 0 then
+            if jobs.Count = 0 then
                 busy <- false
             else
-                let job = queue.Dequeue()
+                let job = jobs.Dequeue()
 
                 let! messages =
                     async {
                         try
                             return! job ()
                         with error ->
-                            queue.Clear()
+                            jobs.Clear()
                             busy <- false
                             return raise error
                     }
@@ -230,7 +295,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
         }
 
     let serial (job: unit -> Async<Update.Msg list>) =
-        queue.Enqueue job
+        jobs.Enqueue job
 
         if not busy then
             busy <- true
@@ -305,7 +370,16 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                             )
         }
 
+    /// What is stored with this page's unsent changes laid over it.
+    let shown (state: Opened) =
+        state.Queue.Entries
+        |> List.filter unsent
+        |> List.choose (recordsOf state.Folder >> Result.toOption)
+        |> List.fold (fun stored changed -> Stored.overlay changed stored) state.Stored
+
     let contents (state: Opened) : StoreContents =
+        let state = { state with Stored = shown state }
+
         { Name = state.Name
           Activities = state.Stored.Activities.Activities |> Map.toList |> List.map (fun (_, found) -> found.Activity)
           References = state.Stored.References |> Map.toList |> List.map (fun (_, found) -> found.Item)
@@ -330,6 +404,294 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
 
                 opened <- Some next
                 return Ok next
+        }
+
+    // ---- The queue of unsent changes (WI-0033) ----------------------------------
+
+    let isEmpty (changed: Stored.Changed) =
+        changed.Activities.IsEmpty
+        && changed.References.IsEmpty
+        && changed.Attestations.IsEmpty
+        && changed.Members.IsEmpty
+        && changed.Removed.IsEmpty
+
+    /// Others' independent changes are shown once nothing of this page's own
+    /// is waiting to be decided; unsent changes are shown over them.
+    let refreshed (state: Opened) =
+        if jobs.Count = 0 then [ Update.StoreOpened(contents state) ] else []
+
+    let sync (state: Opened) (offline: bool) =
+        Update.SyncChanged
+            { Offline = offline
+              KeptInBrowser = state.Keeper.IsSome
+              Note = state.Note }
+
+    /// Keeps the queue in this browser, write-ahead. When the browser
+    /// refuses, the queue goes on in this page only, and the person is told.
+    let persist (state: Opened) (queue: OfflineQueue) =
+        async {
+            match state.Keeper with
+            | None -> return { state with Queue = queue }
+            | Some keeper ->
+                match! keeper.Save queue with
+                | Ok() -> return { state with Queue = queue }
+                | Error failure ->
+                    let note =
+                        match failure with
+                        // Arca refuses to keep anything that looks like a credential.
+                        | QueueStoreFailure.Corrupt _ -> "A change holds text that looks like a credential, so this browser does not keep unsent changes."
+                        | other -> describeQueueStore other
+
+                    return
+                        { state with
+                            Queue = queue
+                            Keeper = None
+                            Note = Some note }
+        }
+
+    let mutable retryMs = FirstRetryMs
+    let mutable retrying = false
+    /// How many times each entry was decided again, by sequence.
+    let decided = Dictionary<int64, int>()
+
+    /// How many times a queued change is sent before a moving repository
+    /// becomes a conflict for the person.
+    let attempts = 3
+
+    /// GitHub could not be reached: try again after a back-off, once.
+    let rec scheduleRetry () =
+        if not retrying then
+            retrying <- true
+            let wait = retryMs
+            retryMs <- min MaxRetryMs (retryMs * 2)
+
+            bridge.Start(
+                async {
+                    do! bridge.Call(Sleep wait) |> Async.Ignore
+                    retrying <- false
+                    serial drain
+                    return []
+                }
+            )
+
+    /// Sends the unsent changes in order, one step at a time, each step kept
+    /// in this browser before and after it is taken (ARCA-OFF-004). It stops
+    /// when nothing is left, or when GitHub cannot be reached (and tries
+    /// again later).
+    and drain () : Async<Update.Msg list> =
+        let rec step (messages: Update.Msg list) =
+            async {
+                match opened with
+                | None -> return messages
+                | Some state ->
+                    let save queue =
+                        async {
+                            let! saved = persist state queue
+                            opened <- Some saved
+                            return saved
+                        }
+
+                    let offline (state: Opened) =
+                        scheduleRetry ()
+                        messages @ [ sync state true ]
+
+                    match OfflineQueue.next state.Queue with
+                    | None ->
+                        retryMs <- FirstRetryMs
+                        let! state = save (OfflineQueue.prune state.Queue)
+                        return messages @ [ sync state false ]
+                    | Some entry ->
+                        let id = entry.Operation.IdempotencyKey
+                        let answer outcome = Update.StoreAnswered(id, outcome)
+
+                        /// The entry is done with: the queue is kept, then what
+                        /// to tell the engine is decided on the state kept.
+                        let finish (state: Opened) (queue: Result<OfflineQueue, QueueError>) (more: Opened -> Update.Msg list) =
+                            async {
+                                decided.Remove entry.Sequence |> ignore
+
+                                match queue with
+                                | Ok queue ->
+                                    let! saved = persist state queue
+                                    opened <- Some saved
+                                    return! step (messages @ more saved)
+                                | Error _ -> return messages @ more state @ [ answer (Failed "The queue of unsent changes could not be updated.") ]
+                            }
+
+                        let landed (state: Opened) (receipt: CommitReceipt) (queue: OfflineQueue) =
+                            async {
+                                match recordsOf state.Folder entry with
+                                | Error _ -> return! finish state (Ok queue) (fun _ -> [ answer Committed ])
+                                | Ok changed ->
+                                    let next =
+                                        { state with
+                                            Token = receipt.ChangeToken
+                                            Stored = Stored.committed changed receipt (Stored.overlay changed state.Stored) }
+
+                                    let again = decided.ContainsKey entry.Sequence
+                                    return! finish next (Ok queue) (fun saved -> (if again then refreshed saved else []) @ [ answer Committed ])
+                            }
+
+                        match entry.State, OfflineQueue.operationOf state.Folder entry.Operation with
+                        | _, Error _ ->
+                            return!
+                                finish
+                                    state
+                                    (OfflineQueue.abandon entry.Sequence "it no longer validates" state.Queue)
+                                    (fun _ -> [ answer (Failed "A queued change no longer validates and was set aside.") ])
+                        | EntryState.Refused reason, _ ->
+                            return! finish state (OfflineQueue.abandon entry.Sequence reason state.Queue) (fun _ -> [ answer (Failed $"GitHub refused it: {reason}.") ])
+                        | (EntryState.InFlight _ | EntryState.OutcomeUnknown _), Ok _ ->
+                            // It may have landed: find out before anything else is sent.
+                            let queue = OfflineQueue.recover state.Queue
+                            let entry = queue.Entries |> List.find (fun e -> e.Sequence = entry.Sequence)
+
+                            match OfflineQueue.pendingOf entry with
+                            | None -> return offline state
+                            | Some obligation ->
+                                match! state.Provider.Reconcile state.Folder obligation with
+                                | Ok(ReconcileOutcome.Landed receipt) ->
+                                    match OfflineQueue.recordReconciliation entry.Sequence (ReconcileOutcome.Landed receipt) queue with
+                                    | Ok queue -> return! landed state receipt queue
+                                    | Error _ -> return offline state
+                                | Ok ReconcileOutcome.NotLanded ->
+                                    match OfflineQueue.recordReconciliation entry.Sequence ReconcileOutcome.NotLanded queue with
+                                    | Ok queue ->
+                                        let! _ = save queue
+                                        return! step messages
+                                    | Error _ -> return offline state
+                                | Ok(ReconcileOutcome.StillUnknown _)
+                                | Error _ ->
+                                    return
+                                        offline state
+                                        @ [ answer (
+                                                OutcomeUnknown
+                                                    "GitHub did not say whether the change was saved. It will be checked before anything is sent again."
+                                            ) ]
+                        | EntryState.Conflicted _, Ok operation ->
+                            // The repository moved under it: Chrona's rules
+                            // decide it again on what is stored now (21).
+                            let tries = (match decided.TryGetValue entry.Sequence with | true, n -> n | _ -> 0) + 1
+                            decided[entry.Sequence] <- tries
+
+                            match recordsOf state.Folder entry with
+                            | Error _ ->
+                                return!
+                                    finish
+                                        state
+                                        (OfflineQueue.abandon entry.Sequence "its records cannot be read back" state.Queue)
+                                        (fun _ -> [ answer (Failed "A queued change could not be read back and was set aside.") ])
+                            | Ok changed ->
+                                let dates = changed.Activities |> List.map (fun a -> a.Occurrence.LocalDate)
+
+                                match! refresh state dates with
+                                | Error _ -> return offline state
+                                | Ok fresh ->
+                                    match Reconcile.decide fresh.Stored changed with
+                                    | Error divergences ->
+                                        return!
+                                            finish
+                                                fresh
+                                                (OfflineQueue.abandon entry.Sequence "it no longer fits what is stored" fresh.Queue)
+                                                (fun saved -> refreshed saved @ [ answer (Conflict divergences) ])
+                                    | Ok again when isEmpty again ->
+                                        // An earlier attempt landed: nothing is left to send.
+                                        return!
+                                            finish
+                                                fresh
+                                                (OfflineQueue.abandon entry.Sequence "already stored" fresh.Queue)
+                                                (fun saved -> refreshed saved @ [ answer Committed ])
+                                    | Ok _ when tries >= attempts ->
+                                        return!
+                                            finish
+                                                fresh
+                                                (OfflineQueue.abandon entry.Sequence "the repository kept changing" fresh.Queue)
+                                                (fun saved -> refreshed saved @ [ answer (Conflict [ Reconcile.KeptChanging ]) ])
+                                    | Ok again ->
+                                        let revised =
+                                            Stored.changes fresh.Stored again
+                                            |> Result.bind (fun changes ->
+                                                Operation.create fresh.Folder operation.Metadata changes
+                                                |> Result.mapError (fun _ -> [ StorageOperationRefused "the revised change does not validate" ]))
+                                            |> Result.map (Operation.requireChangeToken fresh.Token)
+
+                                        match revised with
+                                        | Error diagnostics ->
+                                            return!
+                                                finish
+                                                    fresh
+                                                    (OfflineQueue.abandon entry.Sequence "it cannot be stored" fresh.Queue)
+                                                    (fun _ -> [ answer (Failed $"This change cannot be stored ({describeAll diagnostics}).") ])
+                                        | Ok operation ->
+                                            match OfflineQueue.revise entry.Sequence operation fresh.Queue with
+                                            | Error _ -> return messages @ [ answer (Failed "The queued change could not be revised.") ]
+                                            | Ok queue ->
+                                                let! saved = persist fresh queue
+                                                opened <- Some saved
+                                                return! step messages
+                        | _, Ok operation ->
+                            // Write-ahead: in flight is kept before it is sent.
+                            match OfflineQueue.markInFlight entry.Sequence state.Token state.Queue with
+                            | Error _ -> return messages @ [ answer (Failed "The queued change could not be sent.") ]
+                            | Ok inFlight ->
+                                let! state = save inFlight
+                                let! result = state.Provider.Commit operation
+
+                                match OfflineQueue.recordResult entry.Sequence result state.Queue with
+                                | Error _ -> return messages @ [ answer (Failed "The queued change's result could not be recorded.") ]
+                                | Ok next ->
+                                    match result with
+                                    | Ok receipt -> return! landed state receipt next
+                                    | Error failure ->
+                                        let! state = save next
+                                        let sent = next.Entries |> List.find (fun e -> e.Sequence = entry.Sequence)
+
+                                        match sent.State with
+                                        // Nothing was applied; GitHub could not be reached.
+                                        | EntryState.Pending -> return offline state
+                                        | EntryState.Refused _ ->
+                                            return!
+                                                finish
+                                                    state
+                                                    (OfflineQueue.abandon entry.Sequence (describeFailure failure) next)
+                                                    (fun _ -> [ answer (Failed(describeFailure failure)) ])
+                                        | _ -> return! step messages
+            }
+
+        step []
+
+    /// The records are open: unsent changes this browser kept for this
+    /// person are laid over them and sent, in order, after the first render
+    /// (20, 23). Another account's unsent changes are never sent with this
+    /// person's credential: they stay, untouched, for that account.
+    let ready (state: Opened) =
+        async {
+            let keeper = LocalStorageQueue.store (localStorage bridge) LocalStorageQueue.DefaultBudget state.Folder
+
+            let! state =
+                async {
+                    match! keeper.Load() with
+                    | Ok None -> return { state with Keeper = Some keeper }
+                    | Ok(Some kept) when
+                        kept.Entries |> List.exists (fun entry -> unsent entry && entry.Operation.ActorId <> state.Session.ActorId)
+                        ->
+                        return
+                            { state with
+                                Keeper = None
+                                Note = Some "Another account left changes in this browser that have not been sent; they are kept for that account." }
+                    | Ok(Some kept) -> return { state with Queue = OfflineQueue.recover kept; Keeper = Some keeper }
+                    | Error failure -> return { state with Keeper = None; Note = Some(describeQueueStore failure) }
+                }
+
+            opened <- Some state
+            retryMs <- FirstRetryMs
+            let resumed = state.Queue.Entries |> List.filter unsent |> List.choose (requestOf state.Folder)
+
+            if resumed.IsEmpty then
+                return [ Update.StoreOpened(contents state); sync state false ]
+            else
+                serial drain
+                return [ Update.StoreOpened(contents state); Update.StoreResumed resumed; sync state false ]
         }
 
     /// Opens a folder, initializing it first when it is new.
@@ -493,20 +855,19 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                                               Token = token
                                               Stored = stored
                                               Months = months
-                                              Organization = organization }
+                                              Organization = organization
+                                              Queue = OfflineQueue.create OfflinePolicy.QueueWrites
+                                              Keeper = None
+                                              Note = None }
 
                                         let roster = Stored.roster organization.Id stored
 
                                         match decideFor (not isExisting) roster with
-                                        | Governance.Proceed ->
-                                            opened <- Some state
-                                            return [ Update.StoreOpened(contents state) ]
+                                        | Governance.Proceed -> return! ready state
                                         | Governance.Found ->
                                             match! appoint state with
                                             | Error reason -> return [ Update.StoreUnavailable reason ]
-                                            | Ok state ->
-                                                opened <- Some state
-                                                return [ Update.StoreOpened(contents state) ]
+                                            | Ok state -> return! ready state
                                         | Governance.NeedsConfirmation canConfirm ->
                                             // Nothing is granted: the records stay closed
                                             // until a listed account confirms.
@@ -526,92 +887,14 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
 
                 match! appoint state with
                 | Error reason -> return [ Update.StoreUnavailable reason ]
-                | Ok state ->
-                    opened <- Some state
-                    return [ Update.StoreOpened(contents state) ]
+                | Ok state -> return! ready state
             | Some state -> return [ Update.StoreNeedsConfirmation(confirmationReason state.Organization false, false) ]
             | None -> return [ Update.StoreUnavailable "There is nothing to confirm." ]
         }
 
-    /// The most a commit is decided again after the repository moved.
-    let attempts = 3
-
     let commitJob (request: StoreRequest) () =
         async {
             let answer outcome = [ Update.StoreAnswered(request.CommitId, outcome) ]
-
-            let refreshed (state: Opened) =
-                // Others' independent changes are shown once nothing of this
-                // page's own is waiting to be stored.
-                if queue.Count = 0 then [ Update.StoreOpened(contents state) ] else []
-
-            let rec attempt (state: Opened) (tries: int) =
-                async {
-                    // Records the person accepted after review are trusted
-                    // again, if they are still stored as reviewed (41).
-                    let stored =
-                        { state.Stored with Activities = Persistence.release request.Accepted state.Stored.Activities }
-
-                    // Chrona's rules decide the change again on what is stored (21).
-                    match Reconcile.decide stored (changeOf request) with
-                    | Error divergences -> return refreshed state @ answer (Conflict divergences)
-                    | Ok changed when
-                        changed.Activities.IsEmpty
-                        && changed.References.IsEmpty
-                        && changed.Attestations.IsEmpty
-                        && changed.Members.IsEmpty
-                        && changed.Removed.IsEmpty
-                        ->
-                        return answer Committed
-                    | Ok changed ->
-                        match
-                            Stored.changes stored changed,
-                            operationContext state.Session request.CommitId (now ())
-                        with
-                        | Error diagnostics, _
-                        | _, Error diagnostics -> return answer (Failed $"This change cannot be stored ({describeAll diagnostics}).")
-                        | Ok [], _ -> return answer Committed
-                        | Ok changes, Ok context ->
-                            match Storage.operation state.Folder context "save changes" changes with
-                            | Error diagnostics -> return answer (Failed $"This change cannot be stored ({describeAll diagnostics}).")
-                            | Ok operation ->
-                                // Conditioned on the repository state the records were read at.
-                                let operation = Operation.requireChangeToken state.Token operation
-
-                                let landed (receipt: CommitReceipt) =
-                                    let next =
-                                        { state with
-                                            Token = receipt.ChangeToken
-                                            Stored = Stored.committed changed receipt stored }
-
-                                    opened <- Some next
-                                    (if tries > 1 then refreshed next else []) @ answer Committed
-
-                                let decideAgain () =
-                                    async {
-                                        match! refresh state [] with
-                                        | Error reason -> return answer (Failed reason)
-                                        | Ok fresh when tries < attempts -> return! attempt fresh (tries + 1)
-                                        | Ok fresh -> return refreshed fresh @ answer (Conflict [ Reconcile.KeptChanging ])
-                                    }
-
-                                match! state.Provider.Commit operation with
-                                | Ok receipt -> return landed receipt
-                                | Error(StorageFailure.StaleChangeToken _)
-                                | Error(StorageFailure.Conflicted _) -> return! decideAgain ()
-                                | Error(StorageFailure.OutcomeUnknown pending) ->
-                                    match! state.Provider.Reconcile state.Folder pending with
-                                    | Ok(ReconcileOutcome.Landed receipt) -> return landed receipt
-                                    // It did not land: safe to decide again on the current state.
-                                    | Ok ReconcileOutcome.NotLanded -> return! decideAgain ()
-                                    | Ok(ReconcileOutcome.StillUnknown _)
-                                    | Error _ ->
-                                        return
-                                            answer (
-                                                OutcomeUnknown "GitHub did not say whether the change was saved. It will be checked before anything is sent again."
-                                            )
-                                | Error failure -> return answer (Failed(describeFailure failure))
-                }
 
             match opened with
             | None -> return answer (Failed "The records are not open.")
@@ -623,14 +906,53 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                     |> List.map (fun activity -> activity.Occurrence.LocalDate)
                     |> List.filter (fun date -> not (state.Months.Contains(monthOf date)))
 
-                if unread.IsEmpty then
-                    return! attempt state 1
-                else
-                    match! refresh state unread with
-                    | Error reason -> return answer (Failed reason)
-                    | Ok wider -> return! attempt wider 1
+                let! current =
+                    if unread.IsEmpty then
+                        async.Return(Ok state)
+                    else
+                        async {
+                            match! refresh state unread with
+                            | Ok wider -> return Ok wider
+                            | Error _ ->
+                                return
+                                    Error
+                                        "This month's records have not been read yet, and GitHub cannot be reached to read them. Nothing was saved; try again when you are online."
+                        }
+
+                match current with
+                | Error reason -> return answer (Failed reason)
+                | Ok state ->
+                    // Decided on what is stored with this page's unsent changes
+                    // over it, and with the outside edits the person accepted
+                    // trusted again (41).
+                    let release (stored: Stored.Stored) =
+                        { stored with Activities = Persistence.release request.Accepted stored.Activities }
+
+                    let real = release state.Stored
+
+                    match Reconcile.decide (release (shown state)) (changeOf request) with
+                    | Error divergences -> return refreshed state @ answer (Conflict divergences)
+                    | Ok changed when isEmpty changed -> return answer Committed
+                    | Ok changed ->
+                        match Stored.changes real changed, operationContext state.Session request.CommitId (now ()) with
+                        | Error diagnostics, _
+                        | _, Error diagnostics -> return answer (Failed $"This change cannot be stored ({describeAll diagnostics}).")
+                        | Ok [], _ -> return answer Committed
+                        | Ok changes, Ok context ->
+                            match Storage.operation state.Folder context "save changes" changes with
+                            | Error diagnostics -> return answer (Failed $"This change cannot be stored ({describeAll diagnostics}).")
+                            | Ok operation ->
+                                // Conditioned on the repository state the records
+                                // were read at, and queued before it is sent.
+                                match OfflineQueue.enqueue (now ()) (Operation.requireChangeToken state.Token operation) state.Queue with
+                                | Error _ -> return answer (Failed "This change could not be queued.")
+                                | Ok(queued, _) ->
+                                    let! state = persist { state with Stored = real } queued
+                                    opened <- Some state
+                                    return! drain ()
         }
 
+    // Until the engine opens storage (a deployment that configures a
     // Until the engine opens storage (a deployment that configures a
     // location), commits are kept in memory and acknowledged at once.
     let memory = inMemory bridge

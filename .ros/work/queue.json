@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "repository": "chrona",
-  "nextSeq": 55,
+  "nextSeq": 56,
   "items": [
     {
       "id": "WI-0001",
@@ -661,8 +661,8 @@
     },
     {
       "id": "WI-0033",
-      "title": "Chrona 08: offline use, persisted timer and sync reconciliation (CHX-101, CHX-102, CHX-105, CHX-200, CHX-230)",
-      "description": "Depends on WI-0032 and arca slice 9 (offline queue, ARCA-OFF) (offline queue). The timer and manual entry work offline. The active timer survives refresh and restart, and recovery runs at startup. Sync state is visible. Reconnection reconciles idempotently. Conflicts become visible obligations. Startup reconciliation is non-blocking, resumable and paged. Scenarios 4, 33 and 34. Also the CHX-021 remainder: offline durability in browser storage (Arca's OfflineQueue with LocalStorageQueue behind the store port) that never becomes a competing authority. Also the CHX-260 remainder (the concurrent timer conflict's stable diagnostic) and the sync state in the application (CHX-320 remainder).",
+      "title": "Chrona 08: offline change queue - Arca's offline queue on browser storage behind the store port, sync state and reconnect reconciliation (CHX-021, CHX-230, CHX-200 remainders)",
+      "description": "Depends on WI-0032 and Arca's offline queue (ARCA-OFF, Arca 0.2.0). Every change is queued write-ahead in Arca's OfflineQueue, kept in this browser's localStorage through Arca's LocalStorageQueue over Limen Storage requests (IndexedDB waits on Limen), and sent in order. Network loss defers and retries with back-off; the queue survives refresh and restart and is synchronized when the records open, without blocking the first render. A queued change the repository moved under is decided again by Chrona's rules (Reconcile) and revised, or becomes a visible conflict; an unknown outcome is reconciled before anything else is sent. The queue holds operations, never record state, so it is never a competing authority: records are read from GitHub, and unsent changes are shown as unsent. Sync state is visible (CHX-230 sync state, CHX-320 sync state). Changes another account left in this browser are never sent with the current account's credential. Scenarios 31, 33 and 34. The persisted timer and concurrent timers are WI-0055. The CHX-260 remainder for the concurrent timer conflict is WI-0055.",
       "tags": [
         "chrona",
         "order:08",
@@ -670,10 +670,10 @@
         "depends:arca"
       ],
       "priority": "high",
-      "status": "captured",
+      "status": "complete",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:48.284Z",
-      "updatedAt": "2026-10-08T14:16:00Z",
+      "updatedAt": "2026-10-08T14:41:08Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",
@@ -793,7 +793,7 @@
     {
       "id": "WI-0038",
       "title": "Chrona 13: observation inboxes on Arca - reading producer inboxes, durable candidates and receipts, startup reconciliation (CHX-190 remainder, CHX-200, CHX-120 import path remainder, CHX-250 import audit remainder)",
-      "description": "Depends on WI-0032. Inbox processing with overlap checks on import and audited outcomes. Scenarios 25-30. The pure processing rules are WI-0050; this item stores candidates and receipts through Arca and reads producer inboxes. Also the CHX-390 remainder for receipts: a receipt without a durable processing result is detected.",
+      "description": "Depends on WI-0032. Inbox processing with overlap checks on import and audited outcomes. Scenarios 25-30. The pure processing rules are WI-0050; this item stores candidates and receipts through Arca and reads producer inboxes. Also the CHX-390 remainder for receipts: a receipt without a durable processing result is detected. The CHX-200 remainder: inbox reconciliation at startup that never blocks the first render, is resumable and paged, and where one failed item does not block the others (the queue of unsent changes already does this, WI-0033).",
       "tags": [
         "chrona",
         "order:13",
@@ -803,7 +803,7 @@
       "status": "captured",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:49.855Z",
-      "updatedAt": "2026-10-08T13:15:28Z",
+      "updatedAt": "2026-10-08T14:37:41Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",
@@ -1195,6 +1195,27 @@
       "attachments": [],
       "createdAt": "2026-10-08T14:03:05Z",
       "updatedAt": "2026-10-08T14:16:00Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0055",
+      "title": "Chrona 08b: the active timer persisted across refresh and restart, recovered at startup, and concurrent timers across devices as obligations (CHX-101, CHX-102, CHX-105, CHX-260 remainder)",
+      "description": "Split from WI-0033, which became the offline change queue. The active timer is kept in this browser's storage per organization and person (Limen Storage, never a competing authority: it holds the device's own unfinished timer, not records), restored and recovered explicitly at startup with its elapsed time derived from its segments (Timer.recover), never silently discarded. A running timer that overlaps time another device stored since is a reconciliation obligation with a stable diagnostic (the concurrent timer conflict, requirement 26). Scenarios 4 and 9. Also the CHX-230 remainder: starting while GitHub cannot be reached, the persisted timer and this browser's unsent changes are shown and the timer keeps working, without reading records from anywhere but GitHub.",
+      "tags": [],
+      "priority": "high",
+      "status": "captured",
+      "attachments": [],
+      "createdAt": "2026-10-08T14:27:00Z",
+      "updatedAt": "2026-10-08T14:37:41Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

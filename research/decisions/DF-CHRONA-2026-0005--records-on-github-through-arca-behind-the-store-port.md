@@ -2,7 +2,7 @@
 id: DF-CHRONA-2026-0005
 title: Records live on GitHub through Arca's provider behind the store port, every commit conditioned on the repository state and decided again when it moved
 status: accepted
-version: 1.1.0
+version: 1.2.0
 created: 2026-10-08
 updated: 2026-10-08
 owners:
@@ -48,13 +48,23 @@ provenance:
         model: unknown
         runtime: claude-code
       reason: "Conflict resolution and acceptance of outside edits (WI-0035)"
+    EXE-20261008T142708182Z-504eba9b:
+      operations: [modified]
+      at: 2026-10-08T14:37:57.174Z
+      actor:
+        kind: agent
+        id: anthropic/claude-code
+        provider: anthropic
+        model: unknown
+        runtime: claude-code
+      reason: "The queue of unsent changes (WI-0033)"
 ---
 
 # DF-CHRONA-2026-0005 — Records on GitHub through Arca
 
 - **Date:** 2026-10-08
 - **Status:** accepted
-- **Work items:** WI-0028, WI-0051, WI-0032, WI-0053, WI-0035
+- **Work items:** WI-0028, WI-0051, WI-0032, WI-0053, WI-0035, WI-0033
 
 ## Context
 
@@ -110,6 +120,27 @@ and semantic conflicts surfaced.
    records. It is written as Chrona's next revision, so its newest commit
    is Chrona's and later loads trust it. The store releases it only if it
    is still stored as reviewed.
+8. **The queue of unsent changes (WI-0033).** A decided change becomes an
+   Arca operation conditioned on the state it was decided on, and is put
+   in Arca's `OfflineQueue` before it is sent, kept in this browser's
+   localStorage by Arca's `LocalStorageQueue` over Limen Storage requests
+   (an IndexedDB store waits on Limen). Chrona drives the queue's pure
+   transitions itself rather than `OfflineSync`, because it needs each
+   commit's receipt to keep its revisions current. Entries go one at a
+   time, in order; each step is kept before and after it is taken. A lost
+   connection leaves the entry waiting and retries with back-off (5 s to
+   60 s). An unknown outcome is reconciled before anything else. An entry
+   the repository moved under (including every entry queued behind
+   another) is read back (`Stored.changedOf`), decided again on what is
+   stored now and revised, or abandoned as a conflict for the person. New
+   changes are decided on what is stored with the unsent ones laid over it
+   (`Stored.overlay`), which is also what the person sees. A change to a
+   month not read yet is refused while GitHub is out of reach, because it
+   could not be checked.
+9. **Whose queue.** The queue is kept per organization folder in this
+   browser. If it holds another account's unsent changes, they are left
+   untouched for that account and this session's queue is kept in the page
+   only, with a note. They are never sent with another person's credential.
 4. **Bounded reads.** A change to a month not yet read reads that month
    first, so it is never checked against less than what is stored.
 5. **The organization.** A storing deployment lists the organizations it
@@ -131,8 +162,13 @@ and semantic conflicts surfaced.
   repaired in the repository, not accepted in the application.
 - Manual-edit detection reads each loaded activity's history; derived
   indexes (WI-0034) can make that cheaper.
-- Offline durability (WI-0033) adds Arca's offline queue behind the same
-  port.
+- The queue holds operations, never record state, so it is not a
+  competing authority: records are read only from GitHub, and opening them
+  needs a connection. Starting offline is WI-0055.
+- Unsent changes include record content, kept in this browser's
+  localStorage until sent; signing out does not discard them, because
+  nothing is ever dropped silently. A shared computer keeps them for their
+  account.
 
 ## Revisit when
 

@@ -68,6 +68,23 @@ type StoreKind =
     | InMemory
     | Durable of name: string
 
+/// Where this page's unsent changes stand (23, WI-0033).
+type SyncState =
+    { /// The last attempt to reach GitHub failed; changes wait to be sent
+      /// and are retried with back-off.
+      Offline: bool
+      /// Unsent changes are kept in this browser's storage and survive a
+      /// refresh or restart. False when the browser offers no storage, or
+      /// its storage is full or holds another account's unsent changes.
+      KeptInBrowser: bool
+      /// Why they are not kept in this browser, for the person.
+      Note: string option }
+
+let initialSync =
+    { Offline = false
+      KeptInBrowser = true
+      Note = None }
+
 /// A change that was not stored because the stored records moved: kept,
 /// with what diverged, until the person resolves it (23, 34). Neither side
 /// is silently discarded.
@@ -94,6 +111,8 @@ type StoreState =
       Held: Activity list
       /// Changes not stored because the records moved, awaiting the person.
       Conflicts: ConflictCase list
+      /// Where the unsent changes stand.
+      Sync: SyncState
       /// The organization has no administrator the deployment lists: why,
       /// and whether this person, being listed, may confirm themselves.
       Confirmation: (string * bool) option }
@@ -373,6 +392,7 @@ let initial (session: Session) (store: StoreKind) (now: DateTimeOffset) =
           Integrity = []
           Held = []
           Conflicts = []
+          Sync = initialSync
           Confirmation = None }
       Zone = None
       Now = now

@@ -96,6 +96,7 @@ The repository's copy is a local deployment; a deployment replaces it.
 | `identity.provider` | yes | `github`. |
 | `identity.clientId` | yes | The GitHub App's public client id. |
 | `identity.redirectUri` | yes | The page GitHub returns to, exactly as registered (the Chrona page's address). |
+| `sharedDevicePolicy` | no | What signing out does with changes that have not reached GitHub: `ask` (the default) or `discardOnSignOut`. See Sign-in. |
 | `organizations` | with `location` | The organizations the deployment serves, the default first. Each has an `id` (immutable; it names the organization's folder), `displayName`, `slug` (lower case), `timeZone` (IANA), its bootstrap `administrators` (GitHub numeric account ids; see People) and, optionally, a `location` of its own, for example to give its data its own permissions (CHX-DATALOC-004). |
 
 A `location` needs `identity` (someone signed in must write the data) and at
@@ -115,6 +116,21 @@ They choose where their token is kept: in the page only (the default; a
 reload signs them out) or until the tab closes. Their identity is GitHub's
 (`github:<numeric id>`, shown by login); nothing is typed. Signing out
 clears the token from the tab and revokes it at GitHub (CHX-023).
+
+Changes wait in the browser until they reach GitHub (offline, for
+example). Signing out never leaves them behind without the person knowing,
+and never loses them silently. If some are unsent, the person chooses:
+
+- send them now (if GitHub cannot be reached, the choice comes back);
+- keep them on this device for this account, to be sent when the same
+  account opens the records here again (with `sharedDevicePolicy: "ask"`,
+  the default); or
+- discard them, after a confirmation that says how many.
+
+With `sharedDevicePolicy: "discardOnSignOut"`, keeping is not offered: on
+computers people share, nothing of one account stays behind for the next.
+Unsent changes are kept per account; another account signing in on the same
+browser never sees or sends them.
 
 ## Storage
 

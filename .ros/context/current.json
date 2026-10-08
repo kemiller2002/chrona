@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-08T15:03:41Z",
+  "updatedAt": "2026-10-08T15:18:27Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -1898,6 +1898,51 @@
         }
       },
       "completedAt": "2026-10-08T15:03:41Z"
+    },
+    {
+      "id": "WI-0058",
+      "type": "feature",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Engine/App/Update.fs"
+        },
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Application/Store.fs"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/StoreTests.fs"
+        }
+      ],
+      "updatedAt": "2026-10-08T15:18:27Z",
+      "telemetryExecutionIds": [
+        "EXE-20261008T150927995Z-a5f4f4f2"
+      ],
+      "latestCheckpoint": {
+        "id": "ddb56894bd3ee59063ff106e",
+        "recordedAt": "2026-10-08T15:18:27Z",
+        "executionId": "EXE-20261008T150927995Z-a5f4f4f2",
+        "repository": "chrona",
+        "branch": "feature/shared-device-sign-out",
+        "commit": "d93ac795ff7e118a6d3b697fb863f9d33f5e2c1d",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/chrona"
+        },
+        "remoteBranch": "feature/shared-device-sign-out",
+        "remoteCommit": "d93ac795ff7e118a6d3b697fb863f9d33f5e2c1d",
+        "summary": "Sign-out choice for unsent changes with sharedDevicePolicy; 293 .NET and 26 browser tests pass",
+        "nextAction": "Complete and open the PR",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      },
+      "completedAt": "2026-10-08T15:18:27Z"
     }
   ]
 }

@@ -58,7 +58,11 @@ type StorePort =
       /// Read the month folders these dates need.
       Read: DateOnly list -> unit
       /// Rebuild the activity index from the stored records.
-      Rebuild: unit -> unit }
+      Rebuild: unit -> unit
+      /// Send this account's unsent changes now.
+      SendNow: unit -> unit
+      /// Discard this account's unsent changes from this device.
+      Discard: unit -> unit }
 
 /// A store that keeps nothing: every commit is acknowledged at once. For a
 /// deployment that configures no location.
@@ -68,7 +72,9 @@ let inMemory (bridge: Bridge) : StorePort =
       Confirm = fun () -> ()
       Commit = fun request -> bridge.Start(async { return [ Update.StoreAnswered(request.CommitId, Committed) ] })
       Read = fun _ -> ()
-      Rebuild = fun () -> () }
+      Rebuild = fun () -> ()
+      SendNow = fun () -> ()
+      Discard = fun () -> bridge.Start(async { return [ Update.UnsentDiscarded 0 ] }) }
 
 // ---- GitHub, through the bridge ----------------------------------------------------
 
@@ -1179,6 +1185,22 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                         | Ok next -> return refreshed next @ [ Update.IndexRebuilt summary ]
         }
 
+    /// Signing out discards this account's unsent changes from this device,
+    /// as the person confirmed (WI-0058). Another account's are untouched.
+    let discardJob () =
+        async {
+            match opened with
+            | None -> return [ Update.UnsentDiscarded 0 ]
+            | Some state ->
+                let mine, others =
+                    state.Queue.Entries
+                    |> List.partition (fun entry -> unsent entry && entry.Operation.ActorId = state.Session.ActorId)
+
+                let! saved = persist state { state.Queue with Entries = others |> List.filter unsent }
+                opened <- Some saved
+                return [ Update.UnsentDiscarded mine.Length; sync saved false ]
+        }
+
     // Until the engine opens storage (a deployment that configures a
     // location), commits are kept in memory and acknowledged at once.
     let memory = inMemory bridge
@@ -1197,4 +1219,10 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
             else
                 memory.Commit request
       Read = fun dates -> if requested then serial (readJob dates)
-      Rebuild = fun () -> if requested then serial rebuildJob }
+      Rebuild = fun () -> if requested then serial rebuildJob
+      SendNow =
+        fun () ->
+            if requested then
+                retryMs <- FirstRetryMs
+                serial drain
+      Discard = fun () -> if requested then serial discardJob else memory.Discard() }

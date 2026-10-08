@@ -2,7 +2,7 @@
 id: DF-CHRONA-2026-0005
 title: Records live on GitHub through Arca's provider behind the store port, every commit conditioned on the repository state and decided again when it moved
 status: accepted
-version: 1.3.0
+version: 1.4.0
 created: 2026-10-08
 updated: 2026-10-08
 owners:
@@ -68,13 +68,23 @@ provenance:
         model: unknown
         runtime: claude-code
       reason: "Derived state: the activity index (WI-0034)"
+    EXE-20261008T150927995Z-a5f4f4f2:
+      operations: [modified]
+      at: 2026-10-08T15:15:09.824Z
+      actor:
+        kind: agent
+        id: anthropic/claude-code
+        provider: anthropic
+        model: unknown
+        runtime: claude-code
+      reason: "Shared-device sign-out (WI-0058) and the offline read cache plan (WI-0057)"
 ---
 
 # DF-CHRONA-2026-0005 — Records on GitHub through Arca
 
 - **Date:** 2026-10-08
 - **Status:** accepted
-- **Work items:** WI-0028, WI-0051, WI-0032, WI-0053, WI-0035, WI-0033, WI-0034
+- **Work items:** WI-0028, WI-0051, WI-0032, WI-0053, WI-0035, WI-0033, WI-0034, WI-0058
 
 ## Context
 
@@ -190,17 +200,22 @@ and semantic conflicts surfaced.
 - Manual-edit detection reads each loaded activity's history; derived
   indexes (WI-0034) can make that cheaper.
 - The queue holds operations, never record state, so it is not a
-  competing authority: records are read only from GitHub, and opening them
-  needs a connection. Starting offline is WI-0055.
+  competing authority: records are read only from GitHub.
 - The index is one file for the organization, read by every member with
   access to the repository (as the records already are); the page shows
   each person only their own months. Rebuilding reads every record, which
   is costly on a large organization; it is an explicit administrator
   action, never automatic.
 - Unsent changes include record content, kept in this browser's
-  localStorage until sent; signing out does not discard them, because
-  nothing is ever dropped silently. A shared computer keeps them for their
-  account.
+  localStorage until sent. Signing out with unsent changes asks the person
+  to send them now, keep them on this device for this account, or discard
+  them after a confirmation naming how many (WI-0058, decision of
+  2026-10-08); a deployment's `sharedDevicePolicy: "discardOnSignOut"`
+  withdraws the keep option for shared computers. Nothing is lost silently
+  and nothing is left behind unknowingly.
+- Opening the records needs GitHub. Starting offline will come from a
+  read-only, rebuildable cache in IndexedDB once Limen offers it (WI-0057);
+  never from localStorage.
 
 ## Revisit when
 

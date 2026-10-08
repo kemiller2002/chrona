@@ -50,7 +50,9 @@ let private envWith (answer: StoreRequest -> StoreOutcome) =
                     requests.Add request
                     bridge.Start(async { return [ Chrona.Engine.App.Update.StoreAnswered(request.CommitId, answer request) ] })
               Read = fun _ -> ()
-              Rebuild = fun () -> () } }
+              Rebuild = fun () -> ()
+              SendNow = fun () -> ()
+              Discard = fun () -> () } }
 
     env, requests
 

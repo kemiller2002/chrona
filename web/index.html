@@ -1257,6 +1257,39 @@
                 <div class="chrona-account" id="account">
                   <p class="chrona-intro">Signed in with <span data-text="accountProvider"></span> as <strong id="account-login" data-text="accountLogin"></strong>. <span data-text="accountRetention"></span></p>
                   <button type="button" class="chrona-action chrona-action--secondary" id="sign-out" data-event="signOut">Sign out and clear the token</button>
+                  <template data-if="signOutChoosing">
+                    <div class="ef-alert chrona-notice" role="alertdialog" aria-labelledby="sign-out-title" data-tone="attention" id="sign-out-choice">
+                      <div class="ef-alert__icon" aria-hidden="true">!</div>
+                      <div class="chrona-stack">
+                        <p class="ef-alert__title" id="sign-out-title" data-text="signOutSummary"></p>
+                        <p class="chrona-intro" data-text="signOutNote"></p>
+                        <div class="chrona-conflicts__actions">
+                          <button type="button" class="chrona-action chrona-action--primary" id="sign-out-send" data-event="signOutSend" data-bind-disabled="signOutCannotSend">Send them now, then sign out</button>
+                          <button type="button" class="chrona-action chrona-action--secondary" id="sign-out-keep" data-event="signOutKeep" data-bind-hidden="signOutCannotKeep">Keep them on this device for this account</button>
+                          <button type="button" class="chrona-action chrona-action--secondary" id="sign-out-discard" data-event="signOutDiscard">Discard them</button>
+                          <button type="button" class="chrona-link" data-event="signOutCancel">Stay signed in</button>
+                        </div>
+                      </div>
+                    </div>
+                  </template>
+                  <template data-if="signOutSending">
+                    <p class="chrona-intro" role="status" id="sign-out-sending">Sending your changes; you will be signed out once they are stored…</p>
+                  </template>
+                  <template data-if="signOutConfirming">
+                    <div class="ef-alert chrona-notice" role="alertdialog" aria-labelledby="sign-out-confirm-title" data-tone="attention" id="sign-out-confirm">
+                      <div class="ef-alert__icon" aria-hidden="true">!</div>
+                      <div class="chrona-stack">
+                        <p class="ef-alert__title" id="sign-out-confirm-title" data-text="signOutDiscardText"></p>
+                        <div class="chrona-conflicts__actions">
+                          <button type="button" class="chrona-action chrona-action--primary" id="sign-out-discard-confirm" data-event="signOutDiscardConfirmed">Discard and sign out</button>
+                          <button type="button" class="chrona-link" data-event="signOutCancel">Keep them and stay signed in</button>
+                        </div>
+                      </div>
+                    </div>
+                  </template>
+                  <template data-if="signOutDiscarding">
+                    <p class="chrona-intro" role="status">Discarding…</p>
+                  </template>
                 </div>
               </template>
               <template data-if="hasStoreProblems">

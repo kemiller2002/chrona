@@ -68,6 +68,17 @@ type OrganizationConfig =
       Administrators: string list }
 
 /// A deployment's configuration.
+/// What signing out does with this account's unsent changes on a device
+/// others may use (WI-0058). Either way nothing is lost silently and
+/// nothing is left behind unknowingly.
+type SharedDevicePolicy =
+    /// The person chooses: send them now, keep them on this device for this
+    /// account, or discard them after a confirmation. The default.
+    | Ask
+    /// Nothing is kept on the device: the person sends them now or discards
+    /// them after a confirmation.
+    | DiscardOnSignOut
+
 type DeploymentConfig =
     { Environment: EnvironmentKind
       /// A display name for the environment, for example "production".
@@ -77,7 +88,9 @@ type DeploymentConfig =
       /// How people sign in; None for a local session.
       Identity: IdentityConfig option
       /// The organizations the deployment serves, the default first.
-      Organizations: OrganizationConfig list }
+      Organizations: OrganizationConfig list
+      /// What signing out does with unsent changes (`sharedDevicePolicy`).
+      SharedDevice: SharedDevicePolicy }
 
 /// The organization a session starts in: the deployment's first, or
 /// `local` for a deployment that names none.
@@ -275,7 +288,7 @@ let parse (text': string) : Result<DeploymentConfig, Diagnostic> =
     match Json.parse text' with
     | Error error -> invalid (JsonError.describe error)
     | Ok value ->
-        closed [ "environment"; "environmentName"; "identity"; "location"; "organizations" ] value
+        closed [ "environment"; "environmentName"; "identity"; "location"; "organizations"; "sharedDevicePolicy" ] value
         |> Result.bind (fun _ ->
             match text "environment" value |> Result.bind environmentOf, text "environmentName" value with
             | Ok _, Ok name when String.IsNullOrWhiteSpace name -> Error(MissingField "environmentName")
@@ -285,8 +298,15 @@ let parse (text': string) : Result<DeploymentConfig, Diagnostic> =
                     | None -> Ok None
                     | Some found -> locationOf found |> Result.map Some
 
-                match location, organizationsOf value, identityOf value with
-                | Ok location, Ok organizations, Ok identity ->
+                let sharedDevice =
+                    match Json.field "sharedDevicePolicy" value with
+                    | None -> Ok Ask
+                    | Some(Json.String "ask") -> Ok Ask
+                    | Some(Json.String "discardOnSignOut") -> Ok DiscardOnSignOut
+                    | Some _ -> invalid "'sharedDevicePolicy' is 'ask' or 'discardOnSignOut'"
+
+                match location, organizationsOf value, identityOf value, sharedDevice with
+                | Ok location, Ok organizations, Ok identity, Ok sharedDevice ->
                     if location.IsNone && not organizations.IsEmpty then
                         invalid "'organizations' needs a 'location'"
                     elif location.IsSome && (identity.IsNone || organizations.IsEmpty) then
@@ -299,9 +319,11 @@ let parse (text': string) : Result<DeploymentConfig, Diagnostic> =
                               EnvironmentName = environmentName
                               Location = location
                               Identity = identity
-                              Organizations = organizations }
-                | Error e, _, _
-                | _, Error e, _
-                | _, _, Error e -> Error e
+                              Organizations = organizations
+                              SharedDevice = sharedDevice }
+                | Error e, _, _, _
+                | _, Error e, _, _
+                | _, _, Error e, _
+                | _, _, _, Error e -> Error e
             | Error e, _
             | _, Error e -> Error e)

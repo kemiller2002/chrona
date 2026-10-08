@@ -277,6 +277,20 @@
             "modified"
           ],
           "reason": "Derived state: the activity index (WI-0034)"
+        },
+        "EXE-20261008T150927995Z-a5f4f4f2": {
+          "actor": {
+            "id": "anthropic/claude-code",
+            "kind": "agent",
+            "model": "unknown",
+            "provider": "anthropic",
+            "runtime": "claude-code"
+          },
+          "at": "2026-10-08T15:15:09.824Z",
+          "operations": [
+            "modified"
+          ],
+          "reason": "Shared-device sign-out (WI-0058) and the offline read cache plan (WI-0057)"
         }
       }
     },
@@ -298,7 +312,7 @@
     ],
     "title": "Records live on GitHub through Arca's provider behind the store port, every commit conditioned on the repository state and decided again when it moved",
     "updated": "2026-10-08",
-    "version": "1.3.0"
+    "version": "1.4.0"
   },
   {
     "created": "2026-10-05",

@@ -48,6 +48,8 @@ type Msg =
     | IndexRebuilt of summary: string
     /// A month asked for could not be read, and why.
     | StoreReadFailed of reason: string
+    /// This account's unsent changes were discarded from this device: how many.
+    | UnsentDiscarded of count: int
     /// The activity index changed with a commit: each person's months, and
     /// what it covers.
     | IndexChanged of history: ActivityIndex.MonthTotal list * summary: string
@@ -87,6 +89,10 @@ type Effect =
     | ReadMonths of dates: DateOnly list
     /// Rebuild the activity index from the stored records (40).
     | RebuildIndex
+    /// Send this account's unsent changes now.
+    | SendUnsent
+    /// Discard this account's unsent changes from this device.
+    | DiscardUnsent
 
 /// The timer display refreshes once a second while running (the label is
 /// whole seconds); the engine computes it, never a client-side counter.
@@ -101,6 +107,7 @@ let ThisDevice = "this-browser"
 /// Every `data-event` name the page may send; anything else is a defect.
 let eventNames =
     [ "signIn"; "signInRetention"; "signOut"; "retryStore"; "chooseOrganization"; "confirmAdministrator"
+      "signOutSend"; "signOutKeep"; "signOutDiscard"; "signOutDiscardConfirmed"; "signOutCancel"
       "memberId"; "memberName"; "memberAccess"; "admitMember"; "changeMemberAccess"; "removeMember"
       "keepStored"; "retryChange"; "redoChange"; "acceptOutsideEdit"; "rebuildIndex"
       "navigate"; "goToday"; "goTrack"; "goMore"; "showDate"; "previousDay"; "nextDay"
@@ -1212,6 +1219,41 @@ let private identityChanged (change: IdentityChange) (model: Model) =
         | _ -> { model with Identity = signedOut }, []
     | ProviderUnavailable -> { model with Identity = { identity with Notice = Some "provider_unavailable" } }, []
 
+// ---- signing out with unsent changes (WI-0058) -----------------------------------
+
+/// This account's changes that have not reached GitHub: those waiting to be
+/// sent, and those not saved because the records moved (kept only in this
+/// page until resolved).
+let unsentCount (model: Model) =
+    model.Store.Pending.Length + model.Store.Conflicts.Length
+
+let private policy (model: Model) =
+    model.Deployment |> Option.map _.SharedDevice |> Option.defaultValue Deployment.Ask
+
+/// Keeping them on this device for this account: only where the deployment
+/// allows it, and only for changes the device can keep (a change not saved
+/// because the records moved lives only in this page).
+let canKeepUnsent (model: Model) =
+    policy model = Deployment.Ask && model.Store.Conflicts.IsEmpty && not model.Store.Pending.IsEmpty
+
+/// Sending them now: when there are some to send. Whether GitHub can be
+/// reached is found out by trying; if not, the choice comes back.
+let canSendUnsent (model: Model) = not model.Store.Pending.IsEmpty
+
+/// While signing out sends the unsent changes: signed out once every one is
+/// stored; back to the choice when some could not be sent.
+let private afterSending (model: Model) =
+    let identity = model.Identity
+    let choose note = { model with Identity = { identity with SignOut = Some ChoosingUnsent; SignOutNote = Some note } }, []
+
+    match identity.SignOut with
+    | Some SendingUnsent when model.Store.Pending.IsEmpty && model.Store.Conflicts.IsEmpty ->
+        { model with Identity = { identity with SignOut = None; SignOutNote = None } }, [ SignOut ]
+    | Some SendingUnsent when model.Store.Pending.IsEmpty ->
+        choose "Some changes were not saved because they changed elsewhere first. Resolve them under More, or discard them."
+    | Some SendingUnsent when model.Store.Sync.Offline -> choose "GitHub cannot be reached, so they could not be sent."
+    | _ -> model, []
+
 let private onIdentityEvent (name: string) (value: string) (model: Model) =
     let identity = model.Identity
 
@@ -1221,7 +1263,25 @@ let private onIdentityEvent (name: string) (value: string) (model: Model) =
         { model with Identity = { identity with Retention = retention } }, []
     | "signIn", SignInRequired false ->
         { model with Identity = { identity with Mode = SignInRequired true; Notice = None } }, [ SignIn identity.Retention ]
+    // Unsent changes are never left behind unknowingly (WI-0058).
+    | "signOut", SignedInMode when unsentCount model > 0 ->
+        { model with Identity = { identity with SignOut = Some ChoosingUnsent; SignOutNote = None } }, []
     | "signOut", SignedInMode -> model, [ SignOut ]
+    | "signOutSend", SignedInMode when identity.SignOut = Some ChoosingUnsent && canSendUnsent model ->
+        { model with Identity = { identity with SignOut = Some SendingUnsent; SignOutNote = None } }, [ SendUnsent ]
+    | "signOutKeep", SignedInMode when identity.SignOut = Some ChoosingUnsent && canKeepUnsent model ->
+        let kept = model.Store.Pending.Length
+
+        { model with
+            Identity = { identity with SignOut = None }
+            Announcement = $"{kept} unsent changes are kept on this device for {model.Session.DisplayName}." },
+        [ SignOut ]
+    | "signOutDiscard", SignedInMode when identity.SignOut = Some ChoosingUnsent ->
+        { model with Identity = { identity with SignOut = Some ConfirmingDiscard } }, []
+    | "signOutDiscardConfirmed", SignedInMode when identity.SignOut = Some ConfirmingDiscard ->
+        { model with Identity = { identity with SignOut = Some DiscardingUnsent } }, [ DiscardUnsent ]
+    | "signOutCancel", SignedInMode when identity.SignOut.IsSome && identity.SignOut <> Some DiscardingUnsent ->
+        { model with Identity = { identity with SignOut = None; SignOutNote = None } }, []
     | "retryStore", SignedInMode when model.Store.Failure.IsSome -> openStore model
     | "confirmAdministrator", SignedInMode when model.Store.Confirmation |> Option.exists snd ->
         { model with Store = { model.Store with Opening = true; Confirmation = None } }, [ ConfirmAdministrator ]
@@ -1235,7 +1295,7 @@ let private onIdentityEvent (name: string) (value: string) (model: Model) =
         | None -> model, []
     | _ -> model, []
 
-let update (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
+let private step (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
     // An announcement is spoken once: a person's next action replaces it;
     // wake-ups and store answers leave it alone.
     let model =
@@ -1305,6 +1365,12 @@ let update (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
         { model with Store = { model.Store with Pending = model.Store.Pending @ resumed } }, []
     | SyncChanged sync -> { model with Store = { model.Store with Sync = sync } }, []
     | IndexRebuilt summary -> { model with Store = { model.Store with Index = summary }; Announcement = summary }, []
+    | UnsentDiscarded count ->
+        { model with
+            Store = { model.Store with Pending = []; Conflicts = [] }
+            Identity = { model.Identity with SignOut = None; SignOutNote = None }
+            Announcement = (if count = 1 then "1 unsent change was discarded." else $"{count} unsent changes were discarded.") },
+        [ SignOut ]
     | IndexChanged(history, summary) -> { model with Store = { model.Store with History = history; Index = summary } }, []
     | StoreReadFailed reason ->
         { model with
@@ -1315,8 +1381,32 @@ let update (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
     | Copied false ->
         let text = "This browser did not allow copying. Select the text and copy it yourself."
         { model with CopyStatus = text; Announcement = text }, []
-    | Ui(("signIn" | "signInRetention" | "signOut" | "retryStore" | "chooseOrganization" | "confirmAdministrator") as name, _, value, _) ->
+    | Ui(("signIn"
+         | "signInRetention"
+         | "signOut"
+         | "signOutSend"
+         | "signOutKeep"
+         | "signOutDiscard"
+         | "signOutDiscardConfirmed"
+         | "signOutCancel"
+         | "retryStore"
+         | "chooseOrganization"
+         | "confirmAdministrator") as name,
+         _,
+         value,
+         _) ->
         onIdentityEvent name value model
     // Nothing is recorded or shown for anyone until they may work.
     | Ui _ when not (canWork model) -> model, []
     | Ui(name, key, value, isChecked) -> authorized name key model (fun () -> onEvent ctx name key value isChecked model)
+
+let update (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
+    let next, effects = step ctx msg model
+
+    match msg with
+    // Signing out waits for the unsent changes it is sending.
+    | StoreAnswered _
+    | SyncChanged _ ->
+        let after, more = afterSending next
+        after, effects @ more
+    | _ -> next, effects

@@ -169,6 +169,12 @@ let private requests (env: Env) (state: State) (effects: Update.Effect list) =
                 state, requests, immediate
             | Update.RebuildIndex ->
                 env.Store.Rebuild()
+                state, requests, immediate
+            | Update.SendUnsent ->
+                env.Store.SendNow()
+                state, requests, immediate
+            | Update.DiscardUnsent ->
+                env.Store.Discard()
                 state, requests, immediate)
         (state, [], [])
 

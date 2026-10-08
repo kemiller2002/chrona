@@ -1,0 +1,11 @@
+/* The GitHub Pages demo banner (WI-0066), on Forma's tokens. */
+.pages-demo-banner {
+  margin: 0;
+  max-inline-size: none;
+  padding: 0.5rem 1rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--ef-color-text-primary, #1f2328);
+  background: color-mix(in srgb, var(--ef-color-status-warning, #b7791f) 14%, Canvas);
+  border-bottom: 2px solid var(--ef-color-status-warning, #b7791f);
+}

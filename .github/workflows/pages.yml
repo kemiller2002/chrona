@@ -1,0 +1,118 @@
+name: Pages
+
+# Publishes Chrona to GitHub Pages in its local demo mode (WI-0066,
+# docs/deployment-configuration.md, "Deployment: GitHub Pages").
+#
+# Pull requests build and assemble the site, proving it still publishes, but
+# never deploy it. Only a push to main (or a manual dispatch on main) reaches
+# the deploy job, and only that job holds the Pages and OIDC permissions.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Least privilege by default: the build job needs nothing but the source.
+permissions:
+  contents: read
+
+# One run per pull request or branch; a newer pull request push replaces an
+# older one, while main's runs queue so no deployment is cut off half way.
+concurrency:
+  group: pages-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    name: Build the Pages site
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      # The page loads Limen, Forma and Folio from node_modules.
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Test the site assembly
+        run: node --test tools/pages/assemble-site.test.mjs
+
+      # The WebAssembly engine, published in Release by the repository's own
+      # script, so the site is the same build the browser suite proves.
+      - name: Publish the WASM engine
+        run: npm run build:wasm
+
+      # The repository's layout, relative addresses throughout, so the site
+      # works at any base path; the Pages deployment configuration, CSP and
+      # demo banner come from deploy/pages/.
+      - name: Assemble the site
+        run: node tools/pages/assemble-site.mjs dist-pages
+
+      - name: Verify the assembled site
+        run: |
+          set -euo pipefail
+          site=dist-pages
+          for f in .nojekyll index.html web/index.html web/app.js web/pages.css web/chrona.deployment.json \
+                   web-kernel/limen-wasm.js build/wasm/wwwroot/_framework/dotnet.js \
+                   node_modules/@echelon-foundry/limen/dist/kernel/browser-kernel.js \
+                   node_modules/@echelon-foundry/design-system/dist/all.css; do
+            test -e "$site/$f" || { echo "::error::the site is missing $f"; exit 1; }
+          done
+          ls "$site"/build/wasm/wwwroot/_framework/*.wasm > /dev/null
+          grep -q 'http-equiv="Content-Security-Policy"' "$site/web/index.html"
+          grep -q "'wasm-unsafe-eval'" "$site/web/index.html"
+          grep -q 'data-pages-banner' "$site/web/index.html"
+          # Pages is public: the demo deployment must not sign in or name a
+          # data location.
+          node -e 'const c=require("./dist-pages/web/chrona.deployment.json"); if (c.identity || c.location) { console.error("::error::the Pages deployment configures sign-in or storage"); process.exit(1) }'
+          echo "Site: $(find "$site" -type f | wc -l) files, $(du -sh "$site" | cut -f1)"
+
+      - name: Upload the Pages artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist-pages
+
+  deploy:
+    name: Deploy to GitHub Pages
+    # Both checks: neither a mis-triggered workflow nor a branch dispatch
+    # publishes.
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: pages-deploy
+      cancel-in-progress: false
+    steps:
+      # Enables Pages (source: GitHub Actions) when it is not enabled yet.
+      # The workflow token usually may not do that; a repository admin then
+      # sets it once (the next step says how).
+      - name: Configure Pages
+        id: configure
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Explain how to enable Pages
+        if: failure() && steps.configure.outcome == 'failure'
+        run: |
+          echo "::error::GitHub Pages is not enabled for ${{ github.repository }} and this workflow's token cannot enable it. A repository admin opens Settings -> Pages -> Build and deployment -> Source -> GitHub Actions once, then re-runs this workflow."
+          exit 1
+
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

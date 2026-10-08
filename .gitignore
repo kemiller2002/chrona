@@ -40,6 +40,7 @@ logs/*
 bin/
 obj/
 build/
+dist-pages/
 test-results/
 playwright-report/
 

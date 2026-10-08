@@ -1,0 +1,6 @@
+{
+  "title": "Chrona",
+  "deployment": "deploy/pages/chrona.deployment.json",
+  "banner": "Demo — data stays in this browser; GitHub sign-in not configured",
+  "contentSecurityPolicy": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'"
+}

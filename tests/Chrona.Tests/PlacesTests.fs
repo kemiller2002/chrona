@@ -13,7 +13,11 @@ open Limen.Routing
 open Chrona.Engine.App.Places
 open Chrona.Tests.Support
 
-let private parseAll = parse Router.allowAll
+/// A location's place (its organization aside), and a place's location in
+/// no organization in particular.
+let private parseAll location = parse Router.allowAll location |> Result.map _.Place
+let private formatAt place = format (at place)
+let private hrefAt place = href (at place)
 
 let private ok (result: Result<'a, 'e>) =
     match result with
@@ -71,33 +75,47 @@ let private generated (seed: int) =
 let ``every place has one canonical address, and that address opens the same place`` () =
     for seed in 1..2000 do
         let place = generated seed
-        let address = ok (format place)
-        Assert.Equal(place, ok (parseAll address))
-        // Formatting what was parsed gives the same address: one canonical form.
-        Assert.Equal(address, ok (format (ok (parseAll address))))
+
+        // In an organization, sometimes (sign-in is in none).
+        let address =
+            { Place = place
+              Organization =
+                match place with
+                | SignIn _ -> None
+                | _ when seed % 3 = 0 -> Some(if seed % 2 = 0 then "org_acme" else "org eu/2")
+                | _ -> None }
+
+        let location = ok (format address)
+        Assert.Equal(address, ok (parse Router.allowAll location))
+        // Formatting what was parsed gives the same location: one canonical form.
+        Assert.Equal(location, ok (format (ok (parse Router.allowAll location))))
 
 [<Fact>]
 let ``addresses are relative fragment links in Limen's canonical form`` () =
-    Assert.Equal("/", ok (format Today))
-    Assert.Equal("#/day/2026-10-08", ok (href (Day(on, None))))
+    Assert.Equal("/", ok (formatAt Today))
+    Assert.Equal("#/day/2026-10-08", ok (hrefAt (Day(on, None))))
     // %20 for a space, uppercase hex, everything but A-Z a-z 0-9 - . _ ~ encoded.
-    Assert.Equal("/day/2026-10-08?project=Helix%20Note", ok (format (Day(on, Some "Helix Note"))))
-    Assert.Equal("/day/2026-10-08?project=a%2Fb%3Fc%3Dd%26e%23f", ok (format (Day(on, Some "a/b?c=d&e#f"))))
-    Assert.Equal("/month/2026-10", ok (format (Month(2026, 10))))
-    Assert.Equal("/entries/ACT-1?on=2026-10-08", ok (format (Entry("ACT-1", Some on))))
-    Assert.Equal("/review/2026-10-08", ok (format (Review on)))
-    Assert.Equal("/more/people", ok (format (Settings(Some People))))
-    Assert.Equal("/week/2026-10-05?project=helix", ok (format (Week(DateOnly(2026, 10, 5), Some "helix"))))
-    Assert.Equal("/periods/2026-10-01", ok (format (Period(DateOnly(2026, 10, 1)))))
-    Assert.Equal("/projects/PRJ%201", ok (format (Project "PRJ 1")))
-    Assert.Equal("/projects", ok (format Projects))
+    Assert.Equal("/day/2026-10-08?project=Helix%20Note", ok (formatAt (Day(on, Some "Helix Note"))))
+    Assert.Equal("/day/2026-10-08?project=a%2Fb%3Fc%3Dd%26e%23f", ok (formatAt (Day(on, Some "a/b?c=d&e#f"))))
+    Assert.Equal("/month/2026-10", ok (formatAt (Month(2026, 10))))
+    Assert.Equal("/entries/ACT-1?on=2026-10-08", ok (formatAt (Entry("ACT-1", Some on))))
+    Assert.Equal("/review/2026-10-08", ok (formatAt (Review on)))
+    Assert.Equal("/more/people", ok (formatAt (Settings(Some People))))
+    Assert.Equal("/week/2026-10-05?project=helix", ok (formatAt (Week(DateOnly(2026, 10, 5), Some "helix"))))
+    Assert.Equal("/periods/2026-10-01", ok (formatAt (Period(DateOnly(2026, 10, 1)))))
+    Assert.Equal("/projects/PRJ%201", ok (formatAt (Project "PRJ 1")))
+    Assert.Equal("/projects", ok (formatAt Projects))
+    // The organization is named last, where a deployment serves several.
+    Assert.Equal("/day/2026-10-08?project=helix&org=org_eu", ok (format { Place = Day(on, Some "helix"); Organization = Some "org_eu" }))
+    Assert.Equal("/more/people?org=org_eu", ok (format { Place = Settings(Some People); Organization = Some "org_eu" }))
+    Assert.Equal("/sign-in?returnTo=%2Ftrack", ok (format { Place = SignIn(Some "/track"); Organization = Some "org_eu" }))
     // Defaults are omitted; declared parameters appear in declaration order.
-    Assert.Equal("/reports", ok (format (Reports allReports)))
+    Assert.Equal("/reports", ok (formatAt (Reports allReports)))
 
     Assert.Equal(
         "/reports?from=2026-10-01&to=2026-10-31&method=timer&q=pairing%20review&removed=true&group=type&format=json",
         ok (
-            format (
+            formatAt (
                 Reports
                     { allReports with
                         Format = "json"
@@ -117,7 +135,7 @@ let ``a non-canonical address opens its place and is told its canonical form`` (
     let given = "/reports?format=csv&q=a%2fb&utm_source=mail&from=2026-10-01"
     let place = ok (parseAll given)
     Assert.Equal(Reports { allReports with From = Some(DateOnly(2026, 10, 1)); Text = Some "a/b" }, place)
-    Assert.Equal("/reports?from=2026-10-01&q=a%2Fb", ok (format place))
+    Assert.Equal("/reports?from=2026-10-01&q=a%2Fb", ok (formatAt place))
 
     let routes = RouteTable.routes table
     let _, _, effect = Navigation.adopt routes Router.allowAll Navigation.initial given
@@ -160,10 +178,11 @@ let ``an address that names nothing, or names it wrongly, is a route error and n
 let ``guards decide what the interface shows: a refusal is not-permitted, a redirect is followed`` () =
     let deny name (_: Match) = if name = Guards.Administrator then GuardDecision.Deny else GuardDecision.Allow
     // The More screen's people and activity index are an administrator's; its other parts are anyone's.
-    Assert.Equal(Error(RouteError.NotPermitted Names.People), parse deny "/more/people")
-    Assert.Equal(Error(RouteError.NotPermitted Names.ActivityIndex), parse deny "/more/index")
-    Assert.Equal(Ok(Settings(Some References)), parse deny "/more/references")
-    Assert.Equal(Ok(Settings None), parse deny "/more")
+    let placeUnder guard location = parse guard location |> Result.map _.Place
+    Assert.Equal(Error(RouteError.NotPermitted Names.People), placeUnder deny "/more/people")
+    Assert.Equal(Error(RouteError.NotPermitted Names.ActivityIndex), placeUnder deny "/more/index")
+    Assert.Equal(Ok(Settings(Some References)), placeUnder deny "/more/references")
+    Assert.Equal(Ok(Settings None), placeUnder deny "/more")
     // Every place but sign-in is behind the signed-in guard, which may send to sign-in.
     let toSignIn name (candidate: Match) =
         if name = Guards.SignedIn then
@@ -172,8 +191,10 @@ let ``guards decide what the interface shows: a refusal is not-permitted, a redi
         else
             GuardDecision.Allow
 
-    Assert.Equal(Ok(SignIn(Some "/day/2026-10-08?project=helix")), parse toSignIn "/day/2026-10-08?project=helix")
-    Assert.Equal(Ok(SignIn None), parse toSignIn "/sign-in")
+    Assert.Equal(Ok(SignIn(Some "/day/2026-10-08?project=helix")), placeUnder toSignIn "/day/2026-10-08?project=helix")
+    Assert.Equal(Ok(SignIn None), placeUnder toSignIn "/sign-in")
+    // The organization goes through sign-in inside the return target.
+    Assert.Equal(Ok(SignIn(Some "/track?org=org_eu")), placeUnder toSignIn "/track?org=org_eu")
 
 [<Fact>]
 let ``a sign-in returns only to one of Chrona's own places, in its canonical form`` () =
@@ -192,7 +213,7 @@ let ``a sign-in returns only to one of Chrona's own places, in its canonical for
     Assert.Equal("/", resume Router.allowAll None)
     Assert.Equal("/", resume Router.allowAll (Some "//evil.example/"))
     Assert.Equal("/", resume (fun _ _ -> GuardDecision.Deny) (Some "/more/people"))
-    Assert.Equal("/sign-in?returnTo=%2Fday%2F2026-10-08", ok (format (SignIn(Some "/day/2026-10-08"))))
+    Assert.Equal("/sign-in?returnTo=%2Fday%2F2026-10-08", ok (formatAt (SignIn(Some "/day/2026-10-08"))))
 
 [<Fact>]
 let ``a shared link opens the same view another day and never carries the page's query`` () =

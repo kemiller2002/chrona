@@ -134,18 +134,46 @@ let private problemItems (model: Model) (form: Form) =
 
 // ---- shell -------------------------------------------------------------------------
 
-let private navigation (model: Model) =
-    // An activity's detail and a day's review belong to Today.
-    let section =
-        match model.Route.Screen with
-        | ActivityDetail _
-        | DayReview -> Today
-        | screen -> screen
+/// Whether the page shows a screen of these places: the address names one,
+/// and no problem with it is being shown instead.
+let private shows (model: Model) (screen: Places.Place -> bool) = model.RouteProblem.IsNone && screen model.Place
 
-    [ "today", "Today", "TD"; "track", "Track", "TR"; "month", "Month", "MO"; "more", "More", "MR" ]
-    |> List.map (fun (id, label, mark) ->
-        let current = Routes.ofScreenName id = Some section
-        [ t "id" id; t "label" label; t "mark" mark; t "current" (if current then "page" else "false") ])
+/// A place's relative link ("#/track"), for an `href`.
+let private hrefOf (place: Places.Place) =
+    match Places.href place with
+    | Ok href -> href
+    // Every place has an address (PlacesTests); one without is a defect.
+    | Error error -> invalidOp $"No address for {place}: %A{error}"
+
+/// The navigation section a place belongs to. A day, an activity and a
+/// review belong to Today; reports to Month.
+let private sectionOf (place: Places.Place) =
+    match place with
+    | Places.Today
+    | Places.Day _
+    | Places.Entry _
+    | Places.ReviewToday
+    | Places.Review _ -> "today"
+    | Places.Track -> "track"
+    | Places.ThisMonth
+    | Places.Month _
+    | Places.Reports _ -> "month"
+    | Places.Settings _ -> "more"
+    | Places.SignIn _ -> ""
+
+let private navigation (model: Model) =
+    let section = if model.RouteProblem.IsSome then "" else sectionOf model.Place
+
+    [ "today", "Today", "TD", Places.Today
+      "track", "Track", "TR", Places.Track
+      "month", "Month", "MO", Places.ThisMonth
+      "more", "More", "MR", Places.Settings None ]
+    |> List.map (fun (id, label, mark, place) ->
+        [ t "id" id
+          t "label" label
+          t "mark" mark
+          t "href" (hrefOf place)
+          t "current" (if id = section then "page" else "false") ])
 
 /// Where unsent changes are kept, for the person (23).
 let private unsentDetail (sync: SyncState) =
@@ -249,6 +277,8 @@ let private record (model: Model) (activity: Activity) =
         | _ -> false
 
     [ t "id" activity.ActivityId
+      // The activity's own address, with its day so only that month is read.
+      t "href" (hrefOf (Places.Entry(activity.ActivityId, Some activity.Occurrence.LocalDate)))
       t "start" (fst times)
       t "finish" (snd times)
       t "title" activity.Classification.Description
@@ -265,22 +295,41 @@ let private record (model: Model) (activity: Activity) =
 let private percent (part: int) (whole: int) =
     if whole = 0 then "—" else $"{int (Math.Round(100.0 * float part / float whole))}%%"
 
+/// The project the day's ledger is filtered to, from the address.
+let private dayProject (model: Model) =
+    match model.Place with
+    | Places.Day(_, project) -> project
+    | _ -> None
+
 let private today (model: Model) =
     let date = selectedDate model
-    let shown = dayActivities model date
+    let project = dayProject model
+
+    let shown =
+        dayActivities model date
+        |> List.filter (fun a -> project |> Option.forall ((=) a.Classification.ProjectId))
     let counted = shown |> List.filter consumesTime
     let total = counted |> List.sumBy _.Minutes
     let billed = counted |> List.sumBy (fun a -> Billing.billableMinutes (billing model) a.Minutes)
     let isToday = date = Model.today model
 
     [ text "dayEyebrow" (if isToday then "Today" else "Day")
+      // The ledger's project filter (CHX-460): every project, archived ones too.
+      items
+          "dayProjectOptions"
+          ([ t "id" ""; t "name" "All projects"; f "selected" project.IsNone ]
+           :: (Reference.all Reference.Project model.References
+               |> List.map (fun item -> [ t "id" item.Id; t "name" item.Name; f "selected" (Some item.Id = project) ])))
+      flag "dayFiltered" project.IsSome
+      text "dayFilterName" (project |> Option.map (referenceName model Reference.Project) |> Option.defaultValue "")
       text "dayTitle" (Format.longDate date)
       text "dayIso" (Format.isoDate date)
       text "dayTotal" (Format.minutes total)
       text "dayBilled" $"{Format.minutes billed} billed"
       text "dayDecimal" (Format.decimalHours total)
       text "dayEntryCount" (plural counted.Length "entry" "entries")
-      flag "dayEmpty" shown.IsEmpty
+      flag "dayEmpty" (shown.IsEmpty && project.IsNone)
+      flag "dayFilteredEmpty" (shown.IsEmpty && project.IsSome)
       flag "dayHasRecords" (not shown.IsEmpty)
       items "dayRecords" (shown |> List.map (record model))
       text "dayTimerTotal" (counted |> List.filter (fun a -> a.EntryMethod = EntryMethod.Timer) |> List.sumBy _.Minutes |> Format.minutes)
@@ -359,7 +408,7 @@ let private timer (model: Model) =
       flag "hasTimerProblems" (model.Problems.ContainsKey TimerForm)
       items "timerProblems" (problemItems model TimerForm)
       // The compact chip shown everywhere but Track.
-      flag "showTimerChip" (active.IsSome && model.Route.Screen <> Track)
+      flag "showTimerChip" (active.IsSome && model.Place <> Places.Track)
       text "timerChipTitle" (classification |> Option.map (fun c -> referenceName model Reference.ActivityType c.ActivityTypeId) |> Option.defaultValue "") ]
 
 let private completion (model: Model) =
@@ -717,7 +766,9 @@ let private detailView (model: Model) =
     match found with
     | None ->
         [ flag "detailFound" false
-          flag "detailMissing" (match model.Route.Screen with ActivityDetail _ -> true | _ -> false)
+          // Its record may still arrive (the records are opening, or its month is
+          // being read). A record that does not exist is the not-found page.
+          flag "detailLoading" (match model.Place with Places.Entry _ -> model.RouteProblem.IsNone | _ -> false)
           flag "detailRecorded" false
           flag "detailVoided" false
           flag "detailSuperseded" false
@@ -896,7 +947,7 @@ let private reviewView (model: Model) =
         |> List.map (fun (id, title, ok, good, bad) ->
             [ t "id" id; t "title" title; t "status" (if ok then good else bad); t "tone" (if ok then "ok" else "attention") ])
 
-    [ flag "screenReview" (model.Route.Screen = DayReview)
+    [ flag "screenReview" (shows model (function Places.ReviewToday | Places.Review _ -> true | _ -> false))
       text "reviewTitle" (Format.longDate date)
       text "reviewTotal" (Format.minutes (counted |> List.sumBy _.Minutes))
       text "reviewCount" (plural counted.Length "included entry" "included entries")
@@ -975,7 +1026,7 @@ let private monthView (model: Model) =
               t "approved" (if total.ApprovedMinutes = 0 then "" else $"{Format.minutes total.ApprovedMinutes} approved")
               t "current" (if month = first then "true" else "false") ])
 
-    [ flag "screenMonth" (model.Route.Screen = Month)
+    [ flag "screenMonth" (shows model (function Places.ThisMonth | Places.Month _ -> true | _ -> false))
       text "monthTitle" (first.ToString("MMMM yyyy", Globalization.CultureInfo.InvariantCulture))
       text "monthIso" $"{first.Year:D4}-{first.Month:D2}"
       text "monthTotal" (Format.minutes total)
@@ -1048,7 +1099,7 @@ let private reportView (model: Model) =
 
     let range = $"{Format.longDate filter.From} to {Format.longDate filter.To}"
 
-    [ flag "screenReports" (model.Route.Screen = ReportsScreen && canWork model)
+    [ flag "screenReports" (shows model (function Places.Reports _ -> true | _ -> false) && canWork model)
       text "reportFrom" (Format.isoDate filter.From)
       text "reportTo" (Format.isoDate filter.To)
       text "reportText" draft.Text
@@ -1078,6 +1129,53 @@ let private reportView (model: Model) =
       text "printTitle" "Time report"
       text "printSubtitle" $"{model.Session.DisplayName} · {range}"
       text "printGenerated" $"Generated {localStamp model model.Now} · {Reports.Schema}" ]
+
+// ---- addresses: not found, not permitted, copy link (CHX-460) -----------------------
+
+/// What Limen's expectation for a parameter means, for a person.
+let private expectedText (expected: string) =
+    match expected with
+    | "date" -> "a date such as 2026-10-08"
+    | "month" -> "a month such as 2026-10"
+    | "int" -> "a whole number"
+    | "bool" -> "true or false"
+    | "a single value" -> "given once"
+    | other when other.StartsWith "one of " -> "one of " + (other.Substring 7).Replace("|", ", ")
+    | other -> other
+
+let private problemView (model: Model) =
+    let kind, title, detail =
+        match model.RouteProblem with
+        | None -> "", "", ""
+        | Some(RecordMissing(what, id)) ->
+            "not-found", "Not found", $"Nothing in your records is the {what} with the id \"{id}\". It may have been removed, or the link may be wrong."
+        | Some(AddressProblem problem) ->
+            match problem with
+            | Limen.Routing.RouteError.NotPermitted route when route = Places.Names.Entry ->
+                "not-permitted", "Not permitted", "This activity is someone else's. Only your own time is shown to you."
+            | Limen.Routing.RouteError.NotPermitted _ ->
+                "not-permitted", "Not permitted", "This part of Chrona is for the organization's administrators. Ask one of them if you need it."
+            | Limen.Routing.RouteError.Invalid(_, parameter, value, expected) ->
+                "not-found", "Page not found", $"This address is not one of Chrona's pages: its {parameter} \"{value}\" should be {expectedText expected}."
+            | Limen.Routing.RouteError.Malformed _ ->
+                "not-found", "Page not found", "This address could not be read. It may have been cut short or changed when it was copied."
+            | Limen.Routing.RouteError.NotFound
+            | Limen.Routing.RouteError.RedirectLoop _
+            | Limen.Routing.RouteError.Unmapped _ -> "not-found", "Page not found", "Chrona has no page at this address."
+
+    [ flag "screenProblem" model.RouteProblem.IsSome
+      text "problemKind" kind
+      text "problemTitle" title
+      text "problemDetail" detail ]
+
+/// "Copy link" for the view shown: offered whenever the address names one.
+let private linkView (model: Model) =
+    [ flag "canCopyLink" model.RouteProblem.IsNone
+      flag "hasLinkStatus" (model.LinkStatus <> "")
+      text "linkStatus" model.LinkStatus
+      // The browser would not copy it: the link, to select by hand.
+      flag "linkRefused" (model.LinkStatus <> "" && model.LinkText <> "")
+      text "linkText" model.LinkText ]
 
 // ---- the whole view ---------------------------------------------------------------
 
@@ -1277,10 +1375,12 @@ let project (model: Model) : View =
         (Reference.selectable Reference.Project model.References).IsEmpty
         || (Reference.selectable Reference.ActivityType model.References).IsEmpty
 
-    [ flag "screenToday" (model.Route.Screen = Today)
-      flag "screenTrack" (model.Route.Screen = Track)
-      flag "screenMore" (model.Route.Screen = More)
-      flag "screenActivity" (match model.Route.Screen with ActivityDetail _ -> true | _ -> false)
+    [ flag "screenToday" (shows model (function Places.Today | Places.Day _ -> true | _ -> false))
+      flag "screenTrack" (shows model ((=) Places.Track))
+      flag "screenMore" (shows model (function Places.Settings _ -> true | _ -> false))
+      flag "screenActivity" (shows model (function Places.Entry _ -> true | _ -> false))
+      yield! problemView model
+      yield! linkView model
       items "navigation" (navigation model)
       text "announcement" model.Announcement
       yield! identityView model

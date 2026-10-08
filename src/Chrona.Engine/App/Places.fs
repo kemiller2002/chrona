@@ -371,6 +371,38 @@ let captureReturn (location: string) = ReturnTo.capture table location
 /// still a place they may see now, otherwise home.
 let resume guard (returnTo: string option) = ReturnTo.resume table guard returnTo
 
+/// What the guards need to know about the person, from the engine's state.
+type Standing =
+    { /// Sign-in is configured and no one is signed in (and none is under way).
+      SignedOut: bool
+      /// A return target already kept (from before a sign-in round trip): a
+      /// sign-in started again returns there rather than to where the
+      /// callback landed.
+      KeptReturn: string option
+      /// Whether the person administers the organization; None until their
+      /// access is known (the records are still opening), when nothing is
+      /// refused yet.
+      Administrator: bool option }
+
+/// The engine's guard decisions (LCP-099): a signed-out person is sent to
+/// sign-in with the address to return to, and a part of More only an
+/// administrator works in is refused to anyone else. Interface policy only:
+/// GitHub refuses what the person's token may not do, whatever is shown.
+let guard (standing: Standing) (name: string) (candidate: Match) : GuardDecision =
+    match name with
+    | Guards.SignedIn when standing.SignedOut ->
+        let target =
+            standing.KeptReturn
+            |> Option.orElse (Router.canonical (RouteTable.routes table) candidate |> Result.toOption |> Option.bind captureReturn)
+
+        GuardDecision.Redirect(
+            Names.SignIn,
+            Map.empty,
+            target |> Option.map (fun t -> Map [ ReturnTo.parameter, Value.Text t ]) |> Option.defaultValue Map.empty
+        )
+    | Guards.Administrator when standing.Administrator = Some false -> GuardDecision.Deny
+    | _ -> GuardDecision.Allow
+
 /// The absolute link that opens a place, for "Copy link". Only the page's
 /// origin and path are kept: the page's own query (where a sign-in callback
 /// once carried its code and state) never goes into a link.

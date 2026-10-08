@@ -112,9 +112,12 @@ body {
   margin-block-start: 2.75rem;
 }
 
-button.chrona-nav__link {
+/* Navigation items are links to their places (CHX-460): they look as the
+   buttons they replaced did. */
+.chrona-nav__link {
   display: flex;
   min-block-size: 48px;
+  text-decoration: none;
   align-items: center;
   gap: 0.8rem;
   border: 0;
@@ -127,12 +130,12 @@ button.chrona-nav__link {
   cursor: pointer;
 }
 
-button.chrona-nav__link:hover,
-button.chrona-nav__link[aria-current="page"] {
+.chrona-nav__link:hover,
+.chrona-nav__link[aria-current="page"] {
   background: color-mix(in srgb, var(--ef-color-text-inverse) 10%, transparent);
 }
 
-button.chrona-nav__link[aria-current="page"] {
+.chrona-nav__link[aria-current="page"] {
   box-shadow: inset 3px 0 var(--ef-color-text-inverse);
 }
 
@@ -195,6 +198,7 @@ button.chrona-nav__link[aria-current="page"] {
 
 .chrona-topbar {
   display: flex;
+  flex-wrap: wrap;
   min-block-size: 3rem;
   align-items: center;
   justify-content: space-between;
@@ -655,9 +659,11 @@ button.chrona-timer-chip {
 
 /* ---- actions (G6) ---------------------------------------------------------- */
 
-button.chrona-action {
+/* A link to a place (CHX-460) can be an action too; it looks like one. */
+:is(button, a).chrona-action {
   display: inline-flex;
   min-block-size: 48px;
+  text-decoration: none;
   align-items: center;
   justify-content: center;
   gap: 0.55rem;
@@ -671,35 +677,35 @@ button.chrona-action {
   cursor: pointer;
 }
 
-button.chrona-action--primary {
+:is(button, a).chrona-action--primary {
   border-color: var(--ef-color-accent-primary);
   background: var(--ef-color-accent-primary);
   color: var(--ef-color-surface-primary);
 }
 
-button.chrona-action--primary:hover {
+:is(button, a).chrona-action--primary:hover {
   border-color: var(--ef-color-accent-hover);
   background: var(--ef-color-accent-hover);
 }
 
-button.chrona-action--quiet {
+:is(button, a).chrona-action--quiet {
   min-inline-size: 48px;
   background: transparent;
 }
 
-button.chrona-action--light {
+:is(button, a).chrona-action--light {
   border-color: var(--ef-color-text-inverse);
   background: var(--ef-color-text-inverse);
   color: var(--ef-color-surface-inverse-secondary);
 }
 
-button.chrona-action--ghost-light {
+:is(button, a).chrona-action--ghost-light {
   border-color: var(--ef-color-text-inverse);
   background: transparent;
   color: var(--ef-color-text-inverse);
 }
 
-button.chrona-action--full {
+:is(button, a).chrona-action--full {
   inline-size: 100%;
   grid-column: 1 / -1;
 }
@@ -707,7 +713,7 @@ button.chrona-action--full {
 
 /* ---- lifecycle, review and month ---------------------------------------------- */
 
-button.chrona-link {
+.chrona-link {
   border: 0;
   padding: 0;
   background: transparent;
@@ -720,12 +726,12 @@ button.chrona-link {
   cursor: pointer;
 }
 
-.chrona-record__title button.chrona-link {
+.chrona-record__title .chrona-link {
   color: inherit;
   font-weight: inherit;
 }
 
-.chrona-heading button.chrona-link {
+.chrona-heading .chrona-link {
   margin-block-end: 1.5rem;
 }
 
@@ -923,9 +929,10 @@ textarea.chrona-export {
     background: var(--ef-color-surface-secondary);
   }
 
-  button.chrona-tabbar__link {
+  .chrona-tabbar__link {
     display: grid;
     min-block-size: 53px;
+    text-decoration: none;
     place-items: center;
     align-content: center;
     gap: 0.15rem;
@@ -943,7 +950,7 @@ textarea.chrona-export {
     font-weight: 900;
   }
 
-  button.chrona-tabbar__link[aria-current="page"] {
+  .chrona-tabbar__link[aria-current="page"] {
     background: color-mix(in srgb, var(--ef-color-accent-primary) 16%, var(--ef-color-surface-secondary));
     color: var(--ef-color-text-primary);
     text-decoration: underline;
@@ -956,7 +963,7 @@ textarea.chrona-export {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .chrona-form-actions > button.chrona-action {
+  .chrona-form-actions > :is(button, a).chrona-action {
     inline-size: 100%;
   }
 }
@@ -967,7 +974,7 @@ textarea.chrona-export {
   .chrona-sidebar,
   .chrona-tracker,
   button.chrona-timer-chip,
-  button.chrona-action {
+  :is(button, a).chrona-action {
     border: 1px solid CanvasText;
   }
 
@@ -1282,4 +1289,24 @@ textarea.chrona-export {
   border-color: var(--ef-color-text-inverse);
   background: transparent;
   color: var(--ef-color-text-inverse);
+}
+
+/* ---- addresses (CHX-460) ------------------------------------------------------ */
+
+.chrona-link-status {
+  display: grid;
+  gap: 0.5rem;
+  margin-block: -1.25rem 1.5rem;
+}
+
+.chrona-link-status p {
+  margin: 0;
+  color: var(--ef-color-text-secondary);
+}
+
+.chrona-day-filter {
+  display: grid;
+  gap: 0.35rem;
+  max-inline-size: 22rem;
+  margin-block-end: 1.5rem;
 }

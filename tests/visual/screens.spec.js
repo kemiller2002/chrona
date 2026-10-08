@@ -68,13 +68,16 @@ for (const [width, viewport] of [
       await go(page, "#/month", "#screen-month");
       await capture(page, "month", width);
       await go(page, "#/today", "#screen-today");
-      await page.click("#day-records .chrona-record__title button >> nth=0");
+      await page.click("#day-records .chrona-record__title a >> nth=0");
       await expect(page.locator("#screen-activity")).toBeVisible();
       await capture(page, "activity", width);
       await go(page, "#/more", "#screen-more");
       await capture(page, "more", width);
       await go(page, "#/reports", "#screen-reports");
       await capture(page, "reports", width);
+      // An address that names nothing (CHX-460).
+      await go(page, "#/nowhere", "#screen-problem");
+      await capture(page, "not-found", width);
       await go(page, "#/track", "#screen-track");
       await capture(page, "track", width);
 

@@ -106,9 +106,20 @@ const cors = {
   "cache-control": "no-store"
 };
 
+// The person GitHub resolves for the fake exchange: octocat, unless a test
+// signs in as someone else (signInAs).
+const OCTOCAT = { provider: "github", subject: "583231", login: "octocat", name: "The Octocat" };
+let identity = OCTOCAT;
+
+// Signs the next sign-ins in as this person (a GitHub numeric id and login).
+export const signInAs = (subject, login) => {
+  identity = { provider: "github", subject, login, name: login };
+};
+
 // The deployment (with this configuration), Fides' exchange and GitHub's
 // authorize page, as the page reaches them. Returns the exchange paths called.
 export async function fakeDeployment(page, configuration) {
+  identity = OCTOCAT;
   const exchanged = [];
   await page.route("**/web/chrona.deployment.json", (route) => route.fulfill({ json: configuration }));
   await page.route("https://fides.test/**", async (route) => {
@@ -128,7 +139,7 @@ export async function fakeDeployment(page, configuration) {
           accessTokenExpiresAt: at(8),
           refreshToken: REFRESH_TOKEN,
           refreshTokenExpiresAt: at(24 * 180),
-          identity: { provider: "github", subject: "583231", login: "octocat", name: "The Octocat" }
+          identity
         })
       });
     }

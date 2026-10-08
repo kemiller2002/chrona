@@ -97,7 +97,7 @@ let private octocat =
 
 let private opened (query: (string * string) list) =
     (Model.initial noOne InMemory start, [])
-    |> step (Started("#/today", query))
+    |> step (Started(Support.testPage, "#/today", query))
     |> step (EnvironmentDescribed "America/New_York")
     |> step (ConfigurationRead(Some signInConfiguration))
 
@@ -125,8 +125,12 @@ let ``a configured deployment asks for sign-in and does nothing for anyone befor
     Assert.True(flagOf "retentionPage" model)
     let model, _ = (model, []) |> step (Ui("signInRetention", None, "tab", None))
     Assert.True(flagOf "retentionTab" model)
+    // The page was opened at home: signing in sends the person to the
+    // sign-in address, and the address to return to is kept in this tab
+    // before leaving for GitHub (CHX-460).
+    Assert.Equal(Some "/sign-in?returnTo=%2F", model.Router.Current)
     let model, effects = (model, []) |> step (Ui("signIn", None, "", None))
-    Assert.Equal<Effect list>([ SignIn ThisTab ], effects)
+    Assert.Equal<Effect list>([ KeepReturn(Some "/"); SignIn ThisTab ], effects)
     Assert.True(flagOf "signInBusy" model)
     Assert.Equal("Signing in…", textOf "signInButton" model)
 
@@ -188,7 +192,7 @@ let ``sign-in outcomes are told by their stable codes`` () =
 let ``a deployment whose configuration cannot be used says so and runs nothing`` () =
     let model, effects =
         (Model.initial noOne InMemory start, [])
-        |> step (Started("", []))
+        |> step (Started(Support.testPage, "", []))
         |> step (ConfigurationRead(Some(configured (identitySection "http://fides.example.com" "https://x.example.com/"))))
 
     Assert.Empty(effects)
@@ -196,7 +200,7 @@ let ``a deployment whose configuration cannot be used says so and runs nothing``
     Assert.False(flagOf "shellVisible" model)
     Assert.Contains("CHRONA.STORAGE.INVALID_CONFIGURATION", textOf "misconfiguredDetail" model)
 
-    let model, _ = (Model.initial noOne InMemory start, []) |> step (Started("", [])) |> step (ConfigurationRead None)
+    let model, _ = (Model.initial noOne InMemory start, []) |> step (Started(Support.testPage, "", [])) |> step (ConfigurationRead None)
     Assert.True(flagOf "screenMisconfigured" model)
 
 // ---- The real Fides client through the Limen boundary ---------------------------------

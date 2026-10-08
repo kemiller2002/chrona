@@ -59,12 +59,22 @@ export const publishPage = (html, site) => {
     : withPolicy;
 };
 
+// The site root forwards to the application with the fragment intact: a
+// shared address such as /#/day/2026-10-08 holds the place there (CHX-460),
+// and a meta refresh would drop it. The script is a file (the policy allows
+// no inline script); without script, the refresh in <noscript> still
+// reaches the application, at its home.
+export const forwardScript = `// Chrona's site root: on to the application, keeping the place in the fragment.
+location.replace("web/" + location.hash);
+`;
+
 export const rootPage = (site) => `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
 ${cspMeta(site.contentSecurityPolicy)}
-<meta http-equiv="refresh" content="0; url=web/" />
+<script src="forward.js"></script>
+<noscript><meta http-equiv="refresh" content="0; url=web/" /></noscript>
 <link rel="icon" href="data:," />
 <title>${escapeHtml(site.title)}</title>
 </head>
@@ -98,6 +108,7 @@ const main = (root, out) => {
   cpSync(join(root, site.deployment), join(out, "web/chrona.deployment.json"));
   cpSync(join(root, "deploy/pages/pages.css"), join(out, "web/pages.css"));
   writeFileSync(join(out, "index.html"), rootPage(site));
+  writeFileSync(join(out, "forward.js"), forwardScript);
   writeFileSync(join(out, ".nojekyll"), "");
   const published = files(out);
   console.log(`assemble-site: ${published.length} files in ${out}`);

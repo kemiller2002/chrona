@@ -193,27 +193,34 @@ let ``the described time zone becomes the business zone`` () =
     Assert.Equal("America/New_York", viewText "zoneId" text)
 
 [<Fact>]
-let ``navigation is a same-origin push of the page path and fragment; the result moves the route`` () =
+let ``navigation is a same-origin push or replace of the page path and fragment; Back and Forward are adopted`` () =
     let _, aegis = collector ()
     let env, _ = envWith committed
     let state, _ = run aegis env [ initialize ]
-    let state, text = handle aegis env state (event "navigate" (Some "more") "")
+    let state, text = handle aegis env state (event "goMore" None "")
 
+    // The engine moves at once and asks the browser to follow.
     let push = (effects text).Head
     Assert.Equal("Navigation", push.["kind"].GetValue<string>())
     Assert.Equal("push", push.["operation"].GetValue<string>())
     Assert.Equal("/web/index.html#/more", push.["url"].GetValue<string>())
-    Assert.True(viewFlag "screenTrack" text)
-
-    let id = push.["correlationId"].GetValue<string>()
-    let moved = $"""{{"kind":"EffectResult","result":{{"kind":"NavigationResult","correlationId":"{id}","outcome":{{"kind":"Success","location":{{"origin":"http://127.0.0.1:4321","path":"/web/index.html","query":"","hash":"#/more"}}}}}}}}"""
-    let _, text = handle aegis env state moved
     Assert.True(viewFlag "screenMore" text)
 
-    // Back and Forward arrive as LocationChanged.
+    // The browser following is not news.
+    let id = push.["correlationId"].GetValue<string>()
+    let moved = $"""{{"kind":"EffectResult","result":{{"kind":"NavigationResult","correlationId":"{id}","outcome":{{"kind":"Success","location":{{"origin":"http://127.0.0.1:4321","path":"/web/index.html","query":"","hash":"#/more"}}}}}}}}"""
+    let state, text = handle aegis env state moved
+    Assert.True(viewFlag "screenMore" text)
+    Assert.Empty(effects text)
+
+    // Back and Forward arrive as LocationChanged, and are adopted: an old
+    // address is corrected with a replace, never a push.
     let back = """{"kind":"LocationChanged","location":{"origin":"http://127.0.0.1:4321","path":"/web/index.html","query":"","hash":"#/today"}}"""
     let _, text = handle aegis env state back
     Assert.True(viewFlag "screenToday" text)
+    let replace = (effects text).Head
+    Assert.Equal("replace", replace.["operation"].GetValue<string>())
+    Assert.Equal("/web/index.html#/", replace.["url"].GetValue<string>())
 
 [<Fact>]
 let ``a running timer asks the schedule pack for one-second wake-ups, and a fired wake-up re-arms`` () =
@@ -299,11 +306,11 @@ let ``a result nobody requested, or a result kind the app never asks for, is a c
     let sink, aegis = collector ()
     let env, _ = envWith committed
     let state, _ = run aegis env [ initialize ]
-    let before = state.Model.Value.Route
+    let before = state.Model.Value.Place
 
     let state, text = handle aegis env state (capabilityResult "app-999" "limen.schedule" """{"kind":"Fired","elapsedMs":1}""")
     Assert.True(viewFlag "hasOperationalFault" text)
-    Assert.Equal(before, state.Model.Value.Route)
+    Assert.Equal(before, state.Model.Value.Place)
 
     let storage = """{"kind":"EffectResult","result":{"kind":"StorageResult","correlationId":"x","outcome":{"kind":"Success"}}}"""
     let _, text = handle aegis env state storage
@@ -322,7 +329,7 @@ let ``a malformed message is a classified fault that changes nothing`` () =
     let after, text = handle aegis env state """{"kind":"Event","event":{"kind":"Event"}}"""
     Assert.True(viewFlag "hasOperationalFault" text)
     Assert.Equal<string list>([ Boundary.MessageInvalid ], recordedCodes sink)
-    Assert.Equal(state.Model.Value.Route, after.Model.Value.Route)
+    Assert.Equal(state.Model.Value.Place, after.Model.Value.Place)
 
 // ---- the page and the engine agree --------------------------------------------------
 

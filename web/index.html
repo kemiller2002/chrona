@@ -18,7 +18,9 @@
      components, and the Chrona brand's tokens: web/brand/); chrona.css lays
      out Chrona's own compositions on those tokens (the legacy look and feel,
      docs/legacy/). Nothing here decides anything. -->
-<a class="chrona-skip-link" href="#main">Skip to content</a>
+<!-- A button, not a "#main" link: the fragment holds the page's address
+     (CHX-460), so the skip link moves focus without changing it. -->
+<button type="button" class="chrona-skip-link" data-event="skipToContent">Skip to content</button>
 
 <!-- Transitions only (started, paused, saved): never the ticking timer. -->
 <p class="ef-visually-hidden" role="status" aria-live="polite" data-text="announcement"></p>
@@ -133,7 +135,7 @@
     <p class="chrona-brand"><span class="chrona-brand__mark" aria-hidden="true">C</span><span class="chrona-brand__name">Chrona</span></p>
     <nav class="chrona-nav" aria-label="Primary">
       <template data-each="navigation" data-key="id">
-        <button type="button" class="chrona-nav__link" data-event="navigate" data-bind-aria-current="current"><span class="chrona-nav__mark" aria-hidden="true" data-text="mark"></span><span data-text="label"></span></button>
+        <a class="chrona-nav__link" data-bind-href="href" data-bind-aria-current="current"><span class="chrona-nav__mark" aria-hidden="true" data-text="mark"></span><span data-text="label"></span></a>
       </template>
     </nav>
     <div class="chrona-sidebar__status" data-bind-data-state="storeTone">
@@ -197,9 +199,37 @@
             <span class="chrona-timer-chip__time" data-text="timerElapsed"></span>
           </button>
         </template>
+        <template data-if="canCopyLink">
+          <button type="button" class="chrona-action chrona-action--quiet" id="copy-link" data-event="copyLink">Copy link</button>
+        </template>
         <span class="chrona-identity" role="img" data-bind-aria-label="sessionName" data-text="sessionInitials"></span>
       </div>
     </header>
+
+    <!-- "Copy link" (CHX-460): what happened, and the link to select by hand
+         when the browser would not copy it. The live region says it once. -->
+    <template data-if="hasLinkStatus">
+      <div class="chrona-link-status" id="link-status">
+        <p data-text="linkStatus"></p>
+        <template data-if="linkRefused">
+          <label class="ef-field"><span class="ef-field__label">Link to this view</span>
+            <input class="ef-input" type="text" id="link-text" readonly data-bind-value="linkText" />
+          </label>
+        </template>
+      </div>
+    </template>
+
+    <!-- ======================= Not found, not permitted ======================= -->
+    <template data-if="screenProblem">
+      <section class="chrona-screen" id="screen-problem" aria-labelledby="problem-title" data-bind-data-kind="problemKind">
+        <div class="ef-empty-state chrona-empty">
+          <div class="ef-empty-state__symbol" aria-hidden="true">?</div>
+          <h1 class="chrona-title" id="problem-title" data-text="problemTitle"></h1>
+          <p id="problem-detail" data-text="problemDetail"></p>
+          <a class="chrona-action chrona-action--primary" id="problem-home" href="#/">Go to today</a>
+        </div>
+      </section>
+    </template>
 
     <!-- ======================= Today ======================= -->
     <template data-if="screenToday">
@@ -219,6 +249,17 @@
           <button type="button" class="chrona-action chrona-action--quiet" data-event="goToday">Today</button>
         </div>
 
+        <!-- The ledger's project filter lives in the address (CHX-460). -->
+        <label class="ef-select-field chrona-day-filter">
+          <span class="ef-field__label">Project</span>
+          <span class="ef-select">
+            <select class="ef-select__input" id="day-project" data-event="dayProject">
+              <template data-each="dayProjectOptions" data-key="id"><option data-bind-value="id" data-bind-selected="selected" data-text="name"></option></template>
+            </select>
+            <span class="ef-select__indicator" aria-hidden="true"></span>
+          </span>
+        </label>
+
         <div class="chrona-layout">
           <section class="ef-surface chrona-card" aria-labelledby="ledger-title">
             <div class="chrona-day-summary">
@@ -228,6 +269,14 @@
               </div>
               <p class="chrona-summary-count"><span data-text="dayEntryCount"></span> · <span data-text="dayBilled"></span> · <span data-text="dayDecimal"></span></p>
             </div>
+
+            <template data-if="dayFilteredEmpty">
+              <div class="ef-empty-state chrona-empty" id="day-filtered-empty">
+                <div class="ef-empty-state__symbol" aria-hidden="true">□</div>
+                <h2>No time for <span data-text="dayFilterName"></span> on this day.</h2>
+                <p>Choose "All projects" to see the whole day.</p>
+              </div>
+            </template>
 
             <template data-if="dayEmpty">
               <div class="ef-empty-state chrona-empty">
@@ -244,7 +293,7 @@
                   <p class="chrona-record__time"><span data-text="start"></span><span data-text="finish"></span></p>
                   <div class="chrona-record__body">
                     <div class="chrona-record__head">
-                      <h2 class="chrona-record__title"><button type="button" class="chrona-link" data-event="openActivity" data-text="title"></button></h2>
+                      <h2 class="chrona-record__title"><a class="chrona-link" data-bind-href="href" data-text="title"></a></h2>
                       <span class="chrona-record__duration" data-text="duration"></span>
                     </div>
                     <p class="chrona-record__classification" data-text="classification"></p>
@@ -829,12 +878,13 @@
             </div>
           </div>
         </template>
-        <template data-if="detailMissing">
-          <div class="ef-empty-state chrona-empty" id="activity-missing">
+        <!-- Its record may still be arriving; one that does not exist is the
+             not-found page. -->
+        <template data-if="detailLoading">
+          <div class="ef-empty-state chrona-empty" id="activity-loading" aria-busy="true">
             <div class="ef-empty-state__symbol" aria-hidden="true">□</div>
-            <h1 id="activity-title">That activity is not in this session.</h1>
-            <p>Records are kept in this tab only until storage exists.</p>
-            <button type="button" class="chrona-action chrona-action--primary" data-event="goToday">Back to today</button>
+            <h1 id="activity-title">Looking for this activity…</h1>
+            <p>Its records are being read.</p>
           </div>
         </template>
       </section>
@@ -1057,8 +1107,8 @@
                 </label>
                 <div class="ef-field">
                   <label class="ef-field__label" for="report-text">Search words</label>
-                  <span class="ef-field__description" id="report-text-help">Matched in the description, purpose and work item.</span>
-                  <input type="search" id="report-text" aria-describedby="report-text-help" data-event="reportText" data-on="input" data-bind-value="reportText" />
+                  <span class="ef-field__description" id="report-text-help">Matched in the description, purpose and work item. Press Enter to search.</span>
+                  <input type="search" id="report-text" aria-describedby="report-text-help" data-event="reportText" data-on="change" data-bind-value="reportText" />
                 </div>
               </div>
               <label class="ef-checkbox chrona-tags"><input class="ef-checkbox__input" type="checkbox" id="report-include-removed" data-event="reportIncludeRemoved" data-bind-checked="reportIncludeRemoved" /><span class="ef-checkbox__box" aria-hidden="true"></span><span class="ef-checkbox__text"><span class="ef-checkbox__label">Show records removed from totals</span><span class="ef-checkbox__description">Listed, never added to the totals.</span></span></label>
@@ -1501,7 +1551,7 @@
 
 <nav class="chrona-tabbar" aria-label="Primary">
   <template data-each="navigation" data-key="id">
-    <button type="button" class="chrona-tabbar__link" data-event="navigate" data-bind-aria-current="current"><span class="chrona-tabbar__mark" aria-hidden="true" data-text="mark"></span><span data-text="label"></span></button>
+    <a class="chrona-tabbar__link" data-bind-href="href" data-bind-aria-current="current"><span class="chrona-tabbar__mark" aria-hidden="true" data-text="mark"></span><span data-text="label"></span></a>
   </template>
 </nav>
 <script type="module" src="./app.js"></script>

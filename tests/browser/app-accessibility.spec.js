@@ -252,7 +252,7 @@ test.describe("at 320 CSS pixels wide (a 1280-pixel window at 400% zoom)", () =>
 
     // An activity, opened from Today.
     await page.click(".chrona-tabbar__link:has-text('Today')");
-    await page.click("#day-records .chrona-record__title button");
+    await page.click("#day-records .chrona-record__title a");
     await expect(page.locator("#screen-activity")).toBeVisible();
     expect(await sidewaysScroll(page), "Activity").toBe(0);
     expect(await pastTheEdge(page), "Activity").toEqual([]);

@@ -50,7 +50,7 @@ type Purpose =
     | Tick of generation: int
     | Environment
     | Navigation
-    | Copying
+    | Copying of Update.CopyPurpose
     | Printing
     /// Reading the deployment's configuration document.
     | Configuration
@@ -68,6 +68,10 @@ type Purpose =
     | Reloading
     /// Moving focus to the control that replaced the one the person used.
     | Focusing
+    /// Keeping or forgetting the return target in this tab (CHX-460).
+    | ReturnKeep
+    /// Reading the return target this tab kept across a sign-in.
+    | ReturnLoad
 
 [<NoComparison; NoEquality>]
 type State =
@@ -115,6 +119,12 @@ let buildUrl (state: State) (at: DateTimeOffset) =
     let parent = site.Substring(0, site.LastIndexOf '/' + 1)
     state.Origin + parent + $"build/wasm/wwwroot/chrona-build.json?at={at.ToUnixTimeMilliseconds()}"
 
+/// Where this tab keeps the address to return to after sign-in: session
+/// storage, which survives the round trip to GitHub in this tab and nothing
+/// longer. It holds a relative address, never a token (CHX-460).
+[<Literal>]
+let ReturnKey = "chrona.returnTo"
+
 /// How long the exchange and the configuration may take to answer.
 [<Literal>]
 let RequestTimeoutMs = 15000
@@ -157,15 +167,27 @@ let private requests (env: Env) (state: State) (effects: Update.Effect list) =
             let minted purpose = { state with Sequence = sequence; Pending = state.Pending.Add(id, purpose) }
 
             match effect with
-            | Update.Navigate hash -> minted Navigation, requests @ [ Push(id, state.Path + hash) ], immediate
+            // Relative to the page: its path, and the place in the fragment.
+            | Update.Navigate(Limen.Routing.NavigationEffect.Push location) ->
+                minted Navigation, requests @ [ Push(id, state.Path + Limen.Routing.Location.href Places.mode location) ], immediate
+            | Update.Navigate(Limen.Routing.NavigationEffect.Replace location) ->
+                minted Navigation, requests @ [ Replace(id, state.Path + Limen.Routing.Location.href Places.mode location) ], immediate
+            // The return target lives in this tab's session storage (chrona.host).
+            | Update.KeepReturn(Some target) when negotiated host state ->
+                minted ReturnKeep, requests @ [ Host(id, "tabSet", [ "key", ReturnKey; "value", target ]) ], immediate
+            | Update.KeepReturn None when negotiated host state ->
+                minted ReturnKeep, requests @ [ Host(id, "tabRemove", [ "key", ReturnKey ]) ], immediate
+            | Update.KeepReturn _ -> state, requests, immediate
+            | Update.ReadReturn when negotiated host state -> minted ReturnLoad, requests @ [ Host(id, "tabGet", [ "key", ReturnKey ]) ], immediate
+            | Update.ReadReturn -> state, requests, immediate @ [ Update.ReturnRead None ]
             | Update.Wake(generation, ms) when negotiated schedule state -> minted (Tick generation), requests @ [ Wake(id, ms) ], immediate
             // Without the schedule pack the display does not refresh between
             // events; timing itself is unaffected (it is timestamps).
             | Update.Wake _ -> state, requests, immediate
             | Update.DescribeEnvironment when negotiated environment state -> minted Environment, requests @ [ DescribeEnvironment id ], immediate
             | Update.DescribeEnvironment -> state, requests, immediate @ [ Update.EnvironmentUnavailable ]
-            | Update.CopyText text when List.contains "Clipboard" state.Effects -> minted Copying, requests @ [ Copy(id, text) ], immediate
-            | Update.CopyText _ -> state, requests, immediate @ [ Update.Copied false ]
+            | Update.CopyText(purpose, text) when List.contains "Clipboard" state.Effects -> minted (Copying purpose), requests @ [ Copy(id, text) ], immediate
+            | Update.CopyText(purpose, _) -> state, requests, immediate @ [ Update.Copied(purpose, false) ]
             | Update.Print when negotiated print state -> minted Printing, requests @ [ PrintPage id ], immediate
             // Without the print pack the browser's own Print still prints
             // the Folio document.
@@ -317,7 +339,7 @@ let step (env: Env) (state: State) (inbound: Inbound) =
                     Capabilities = capabilities
                     Effects = effects }
 
-            let next, sent = advance env started (Update.Started(hash, query)) []
+            let next, sent = advance env started (Update.Started({ Origin = origin; Path = path }, hash, query)) []
             let next, sent = advance env next (Update.BuildKnown env.Build) sent
 
             // The page's comings and goings, when the kernel offers them.
@@ -336,16 +358,14 @@ let step (env: Env) (state: State) (inbound: Inbound) =
             match other with
             | Event(name, key, value, isChecked) -> state, Some(Update.Ui(name, key, defaultArg value "", isChecked))
             | LocationChanged hash -> state, Some(Update.LocationMoved hash)
-            | NavigationResult(id, outcome) ->
+            // The engine moved already; the browser following is not news.
+            | NavigationResult(id, _) ->
                 let _, state = take id state
-
-                match outcome with
-                | Moved hash -> state, Some(Update.LocationMoved hash)
-                | Dispatched
-                | NavigationFailed _ -> state, None
+                state, None
             | ClipboardResult(id, succeeded) ->
-                let _, state = take id state
-                state, Some(Update.Copied succeeded)
+                match take id state with
+                | Copying purpose, state -> state, Some(Update.Copied(purpose, succeeded))
+                | _ -> raise (CapabilityFailed("Clipboard", $"A clipboard result for {id}, which was not a copy"))
             | CapabilityResult(id, capability, outcome) ->
                 match take id state, outcome with
                 | (Environment, state), Completed result -> state, Some(environmentZone result)
@@ -365,6 +385,12 @@ let step (env: Env) (state: State) (inbound: Inbound) =
                 | (Lifecycle, state), _ -> state, None
                 | (Reloading, state), _ -> state, None
                 | (Focusing, state), _ -> state, None
+                | (ReturnKeep, state), _ -> state, None
+                | (ReturnLoad, state), Completed result ->
+                    match tryField "value" result with
+                    | Some value -> state, Some(Update.ReturnRead(Some(asString "$.result.value" value)))
+                    | None -> state, Some(Update.ReturnRead None)
+                | (ReturnLoad, state), NotExecuted _ -> state, Some(Update.ReturnRead None)
                 | (BridgeCall, state), NotExecuted _ ->
                     answerBridge env id (Bridge.Read None)
                     state, None

@@ -35,7 +35,10 @@ All of these come from Forma tokens compiled from `brand/`:
 | `activity-*` | [activity](screenshots/activity-desktop.jpg), plus [correction](screenshots/correction-desktop.jpg), [evidence](screenshots/evidence-desktop.jpg), [split](screenshots/split-desktop.jpg), [remove](screenshots/remove-desktop.jpg), [restore](screenshots/restore-desktop.jpg) | The legacy separate pages are sections of one activity screen: amend, void and restore, split, evidence and history. |
 | `more-*` | [more](screenshots/more-desktop.jpg), [settings](screenshots/settings-desktop.jpg) | More holds the session, the people, the reference data, the period settings and the store's state, instead of a link list. |
 | `reports-*` | none | New (WI-0039): reports and export through Folio. |
-| `sign-in-*` | [sign-in](screenshots/sign-in-desktop.jpg) | Same split page; sign-in is GitHub through Fides. |
+| `sign-in-*` | [sign-in](screenshots/sign-in-desktop.jpg) | Same split page; sign-in is GitHub through Fides. At phone width the tab bar below it no longer marks Today as the current page (WI-0071): the page's address is now `#/sign-in`, which is none of the four sections, where before the sign-in gate was drawn over Today's address. |
+| `not-found-*` | none | New (WI-0071, CHX-460): an address that names nothing, Forma's empty state with the way home. The not-permitted page is the same composition. |
+
+Every screen's top bar also has "Copy link" (WI-0071), and the day's ledger a project filter (so `today-*` is taller: about 70 pixels at desktop width, 100 at phone width); the navigation items and record titles are links to their places, styled as the buttons they replaced.
 
 ## Remaining gaps
 

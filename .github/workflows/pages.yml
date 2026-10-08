@@ -94,6 +94,8 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
     concurrency:
       group: pages-deploy
       cancel-in-progress: false
@@ -116,3 +118,42 @@ jobs:
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
+
+  # The published site, as people reach it, opens every address cold
+  # (CHX-460): the same deep-link spec the Build workflow runs against the
+  # assembled site, now against the deployment itself.
+  verify:
+    name: Open deep links on the published site
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Install npm dependencies
+        run: npm ci
+
+      # Chromium for the pinned Playwright, as the Build workflow caches it.
+      - name: Resolve the pinned Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('./package-lock.json').packages['node_modules/playwright-core'].version")" >> "$GITHUB_OUTPUT"
+      - name: Restore the Chromium build for that version
+        id: chromium-cache
+        uses: actions/cache@v4
+        env:
+          SEGMENT_DOWNLOAD_TIMEOUT_MINS: "2"
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ runner.arch }}-${{ steps.playwright.outputs.version }}
+      - name: Download Chromium
+        if: steps.chromium-cache.outputs.cache-hit != 'true'
+        timeout-minutes: 5
+        run: npx playwright install chromium
+
+      - name: Open deep links on the published site
+        env:
+          CHRONA_SITE: ${{ needs.deploy.outputs.page_url }}
+        run: npx playwright test -c playwright.pages.config.js

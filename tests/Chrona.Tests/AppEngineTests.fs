@@ -38,6 +38,11 @@ let private play (steps: (DateTimeOffset * Msg) list) (model: Model) =
 
 let private ui name value = Ui(name, None, value, None)
 let private keyed name key value = Ui(name, Some key, value, None)
+
+/// The browser asked to add a history entry for an address, or to replace
+/// the current one (CHX-460).
+let private push location = Navigate(Limen.Routing.NavigationEffect.Push location)
+let private replace location = Navigate(Limen.Routing.NavigationEffect.Replace location)
 let private check name key on = Ui(name, Some key, "", Some on)
 
 /// A deployment that configures neither storage nor sign-in: a local session.
@@ -52,7 +57,7 @@ let private settle (model: Model) =
 /// Started in New York with a project, an activity type and a tag, all stored.
 let private ready =
     play
-        [ start, Started("#/track", [])
+        [ start, Started(Support.testPage, "#/track", [])
           start, ConfigurationRead(Some localConfiguration)
           start, EnvironmentDescribed "America/New_York"
           start, ui "newProjectName" "HelixNote"
@@ -104,8 +109,10 @@ let private chooseForTimer =
 
 [<Fact>]
 let ``startup routes from the fragment and asks the browser for its time zone`` () =
-    let model, effects = update (ctxAt start) (Started("#/more", [])) fresh
-    Assert.Equal(More, model.Route.Screen)
+    let model, effects = update (ctxAt start) (Started(Support.testPage, "#/more", [])) fresh
+    Assert.Equal(Places.Settings None, model.Place)
+    Assert.Equal(Some "/more", model.Router.Current)
+    // Opening an address adds no history entry: it is canonical, so nothing moves.
     Assert.Equal<Effect list>([ DescribeEnvironment; ReadConfiguration ], effects)
     let model, _ = update (ctxAt start) (ConfigurationRead(Some localConfiguration)) model
     let described, _ = update (ctxAt start) (EnvironmentDescribed "America/New_York") model
@@ -115,23 +122,77 @@ let ``startup routes from the fragment and asks the browser for its time zone`` 
     Assert.Equal("UTC", textOf "zoneId" unknown)
 
 [<Fact>]
-let ``navigation is a request; the route changes when the location does`` () =
-    let model, effects = update (ctxAt start) (keyed "navigate" "today" "") ready
-    Assert.Equal(Track, model.Route.Screen)
-    Assert.Equal<Effect list>([ Navigate "#/today" ], effects)
-    Assert.Equal<Effect list>([ Navigate "#/more" ], snd (update (ctxAt start) (ui "goMore" "") ready))
-    let moved, _ = update (ctxAt start) (LocationMoved "#/today/2026-10-01") ready
-    Assert.Equal({ Screen = Today; Date = Some(DateOnly(2026, 10, 1)) }, moved.Route)
-    Assert.Equal<Effect list>([ Navigate "#/today/2026-09-30" ], snd (update (ctxAt start) (ui "previousDay" "") moved))
-    Assert.Equal<Effect list>([ Navigate "#/today/2026-10-02" ], snd (update (ctxAt start) (ui "nextDay" "") moved))
+let ``going somewhere adds a history entry; refining a day replaces it; Back and Forward are adopted`` () =
+    let model, effects = update (ctxAt start) (ui "goToday" "") ready
+    // The engine moves at once and asks the browser to follow.
+    Assert.Equal(Places.Today, model.Place)
+    Assert.Equal<Effect list>([ push "/" ], effects)
+    Assert.Equal<Effect list>([ push "/more" ], snd (update (ctxAt start) (ui "goMore" "") ready))
+    // Going where the page already is adds nothing.
+    Assert.Equal<Effect list>([], snd (update (ctxAt start) (ui "goTrack" "") ready))
+    // Back and Forward (or a link) report a new address: adopted, never pushed.
+    let moved, effects = update (ctxAt start) (LocationMoved "#/day/2026-10-01") ready
+    Assert.Equal(Places.Day(DateOnly(2026, 10, 1), None), moved.Place)
+    Assert.Equal<Effect list>([], effects)
+    Assert.Equal<Effect list>([ replace "/day/2026-09-30" ], snd (update (ctxAt start) (ui "previousDay" "") moved))
+    Assert.Equal<Effect list>([ replace "/day/2026-10-02" ], snd (update (ctxAt start) (ui "nextDay" "") moved))
 
 [<Fact>]
-let ``routes round-trip and anything unknown lands on Today`` () =
-    for route in [ { Screen = Today; Date = None }; { Screen = Today; Date = Some(DateOnly(2026, 2, 3)) }; { Screen = Track; Date = None }; { Screen = More; Date = None } ] do
-        Assert.Equal(route, Routes.parse (Routes.hash route))
+let ``an old or non-canonical address opens its place and is corrected in place`` () =
+    let moved, effects = update (ctxAt start) (LocationMoved "#/today/2026-10-01") ready
+    Assert.Equal(Places.Day(DateOnly(2026, 10, 1), None), moved.Place)
+    Assert.Equal<Effect list>([ replace "/day/2026-10-01" ], effects)
+    let reports, effects = update (ctxAt start) (LocationMoved "#/reports?format=csv&q=pairing&utm=x") ready
+    Assert.Equal(Places.Reports { Places.allReports with Text = Some "pairing" }, reports.Place)
+    Assert.Equal<Effect list>([ replace "/reports?q=pairing" ], effects)
+    Assert.Equal("pairing", reports.Report.Text)
 
-    Assert.Equal({ Screen = Today; Date = None }, Routes.parse "#/nowhere")
-    Assert.Equal({ Screen = Today; Date = None }, Routes.parse "")
+[<Fact>]
+let ``an address that names nothing shows the not-found page, never another place`` () =
+    for address, title in
+        [ "#/nowhere", "Page not found"
+          "#/day/2026-02-30", "Page not found"
+          "#/reports?group=colour", "Page not found"
+          "#/entries/ACT-none?on=2026-10-08", "Not found"
+          "#/day/2026-10-08?project=PRJ-none", "Not found" ] do
+        let model, effects = update (ctxAt start) (LocationMoved address) ready
+        Assert.True(flagOf "screenProblem" model, address)
+        Assert.Equal(title, textOf "problemTitle" model)
+        Assert.Equal<Effect list>([], effects)
+
+        for screen in [ "screenToday"; "screenTrack"; "screenMonth"; "screenMore"; "screenActivity"; "screenReview"; "screenReports" ] do
+            Assert.False(flagOf screen model, $"{address} showed {screen}")
+
+        // Nothing to copy a link to.
+        Assert.False(flagOf "canCopyLink" model)
+
+    let invalid, _ = update (ctxAt start) (LocationMoved "#/day/2026-02-30") ready
+    Assert.Equal("This address is not one of Chrona's pages: its on \"2026-02-30\" should be a date such as 2026-10-08.", textOf "problemDetail" invalid)
+    // Moving on clears it.
+    let back, _ = update (ctxAt start) (LocationMoved "#/track") invalid
+    Assert.False(flagOf "screenProblem" back)
+    Assert.True(flagOf "screenTrack" back)
+
+[<Fact>]
+let ``copy link copies an absolute link that opens the same view on another day`` () =
+    let _, effects = update (ctxAt start) (ui "copyLink" "") ready
+    Assert.Equal<Effect list>([ CopyText(LinkCopy, "http://127.0.0.1:4321/web/index.html#/track") ], effects)
+    // Today, this month and today's review are made explicit.
+    let today, _ = update (ctxAt start) (LocationMoved "#/") ready
+    let copying, effects = update (ctxAt start) (ui "copyLink" "") today
+    Assert.Equal<Effect list>([ CopyText(LinkCopy, "http://127.0.0.1:4321/web/index.html#/day/2026-10-08") ], effects)
+    let month, _ = update (ctxAt start) (LocationMoved "#/month") ready
+    Assert.Equal<Effect list>([ CopyText(LinkCopy, "http://127.0.0.1:4321/web/index.html#/month/2026-10") ], snd (update (ctxAt start) (ui "copyLink" "") month))
+    let copied, _ = update (ctxAt start) (Copied(LinkCopy, true)) copying
+    Assert.Equal("Link copied.", textOf "linkStatus" copied)
+    Assert.False(flagOf "linkRefused" copied)
+    // A browser that will not copy: the link is shown to select by hand.
+    let refused, _ = update (ctxAt start) (Copied(LinkCopy, false)) copying
+    Assert.True(flagOf "linkRefused" refused)
+    Assert.Equal("http://127.0.0.1:4321/web/index.html#/day/2026-10-08", textOf "linkText" refused)
+    // Moving elsewhere forgets it.
+    let moved, _ = update (ctxAt start) (LocationMoved "#/more") refused
+    Assert.False(flagOf "hasLinkStatus" moved)
 
 [<Fact>]
 let ``an event name the engine does not define is a defect, never ignored`` () =
@@ -412,21 +473,19 @@ let private activityId (description: string) (model: Model) =
     model.Ledger.Activities |> Map.toList |> List.map snd |> List.find (fun a -> a.Classification.Description = description) |> _.ActivityId
 
 let private opened (description: string) (model: Model) =
-    fst (update (ctxAt start) (LocationMoved $"#/activity/{activityId description model}") model)
+    fst (update (ctxAt start) (LocationMoved $"#/entries/{activityId description model}?on=2026-10-08") model)
 
 [<Fact>]
-let ``new screens have addresses: month, review and an activity`` () =
-    for route in
-        [ { Screen = Month; Date = Some(DateOnly(2026, 10, 1)) }
-          { Screen = DayReview; Date = Some(DateOnly(2026, 10, 8)) }
-          { Screen = ActivityDetail "ACT-1"; Date = None } ] do
-        Assert.Equal(route, Routes.parse (Routes.hash route))
-
-    Assert.Equal<Effect list>([ Navigate "#/activity/ACT-7" ], snd (update (ctxAt start) (keyed "openActivity" "ACT-7" "") ready))
-    Assert.Equal<Effect list>([ Navigate "#/review/2026-10-08" ], snd (update (ctxAt start) (ui "openReview" "") ready))
+let ``month, review and an activity have addresses`` () =
+    let id = activityId "First" withThree
+    // An activity's link carries its day, so only that month is read.
+    let today, _ = update (ctxAt start) (LocationMoved "#/") withThree
+    let first = itemsOf "dayRecords" today |> List.find (fun row -> field "id" row = id)
+    Assert.Equal($"#/entries/{id}?on=2026-10-08", field "href" first)
+    Assert.Equal<Effect list>([ push "/review/2026-10-08" ], snd (update (ctxAt start) (ui "openReview" "") ready))
     let october, _ = update (ctxAt start) (LocationMoved "#/month/2026-10") ready
-    Assert.Equal<Effect list>([ Navigate "#/month/2026-09" ], snd (update (ctxAt start) (ui "previousMonth" "") october))
-    Assert.Equal<Effect list>([ Navigate "#/month/2027-01" ], snd (update (ctxAt start) (ui "showMonth" "2027-01") october))
+    Assert.Equal<Effect list>([ replace "/month/2026-09" ], snd (update (ctxAt start) (ui "previousMonth" "") october))
+    Assert.Equal<Effect list>([ replace "/month/2027-01" ], snd (update (ctxAt start) (ui "showMonth" "2027-01") october))
 
 [<Fact>]
 let ``an activity's detail opens at its revision and follows the route`` () =
@@ -435,10 +494,13 @@ let ``an activity's detail opens at its revision and follows the route`` () =
     Assert.Equal("First", textOf "detailTitle" model)
     Assert.Equal("9:00 AM – 10:00 AM", textOf "detailTimes" model)
     Assert.True(flagOf "detailCanSplit" model)
-    let left, _ = update (ctxAt start) (LocationMoved "#/today") model
+    let left, _ = update (ctxAt start) (LocationMoved "#/") model
     Assert.True(left.Detail.IsNone)
+    // An activity that is not in the records is the not-found page.
     let missing, _ = update (ctxAt start) (LocationMoved "#/activity/nope") model
-    Assert.True(flagOf "detailMissing" missing)
+    Assert.True(flagOf "screenProblem" missing)
+    Assert.False(flagOf "detailLoading" missing)
+    Assert.Equal("Nothing in your records is the activity with the id \"nope\". It may have been removed, or the link may be wrong.", textOf "problemDetail" missing)
 
 [<Fact>]
 let ``a correction keeps the original in the history and is revalidated`` () =
@@ -538,7 +600,7 @@ let ``attestation needs a statement, keeps every earlier one, and a later change
     let changed, _ = play [ start, LocationMoved $"#/activity/{second}"; start, ui "amendReason" "Late fix"; start, ui "amendDescription" "Second, fixed"; start, ui "saveAmend" "" ] attested
     let obligations = itemsOf "obligations" changed
     Assert.Equal<string list>([ "Thursday, October 8 changed after you attested it" ], obligations |> List.map (field "title"))
-    Assert.Equal<Effect list>([ Navigate "#/review/2026-10-08" ], snd (update (ctxAt start) (keyed "resolveObligation" (field "id" obligations.Head) "") changed))
+    Assert.Equal<Effect list>([ push "/review/2026-10-08" ], snd (update (ctxAt start) (keyed "resolveObligation" (field "id" obligations.Head) "") changed))
 
     let again, _ = play [ start, LocationMoved "#/review/2026-10-08"; start, ui "attestStatement" "Rechecked."; start, ui "attestDay" "" ] changed
     Assert.Equal<string list>([ "Rechecked."; "Complete." ], itemsOf "attestations" again |> List.map (field "statement"))
@@ -548,7 +610,10 @@ let ``attestation needs a statement, keeps every earlier one, and a later change
 let ``a held timer is an obligation until it is completed`` () =
     let held, _ = play (chooseForTimer @ [ start, ui "startTimer" ""; at 5.0, ui "stopTimer" "" ]) ready
     Assert.Equal<string list>([ "stopped-timer" ], itemsOf "obligations" held |> List.map (field "id"))
-    Assert.Equal<Effect list>([ Navigate "#/track" ], snd (update (ctxAt start) (keyed "resolveObligation" "stopped-timer" "") held))
+    // Resolved on Track: from elsewhere, a move there; on Track already, nothing.
+    let elsewhere, _ = update (ctxAt start) (LocationMoved "#/") held
+    Assert.Equal<Effect list>([ push "/track" ], snd (update (ctxAt start) (keyed "resolveObligation" "stopped-timer" "") elsewhere))
+    Assert.Equal<Effect list>([], snd (update (ctxAt start) (keyed "resolveObligation" "stopped-timer" "") held))
 
 [<Fact>]
 let ``the month sums effective records by type and by day`` () =
@@ -612,17 +677,30 @@ let ``the export is the domain's deterministic CSV or JSON, copied through the c
     Assert.StartsWith("{\n  \"schema\": \"chrona.time-report/1\"", textOf "exportText" json)
 
     let copying, effects = update (ctxAt start) (ui "copyExport" "") json
-    Assert.Equal<Effect list>([ CopyText(textOf "exportText" json) ], effects)
-    Assert.Equal("Copied to the clipboard.", textOf "copyStatus" (fst (update (ctxAt start) (Copied true) copying)))
-    Assert.StartsWith("This browser did not allow copying.", textOf "copyStatus" (fst (update (ctxAt start) (Copied false) copying)))
+    Assert.Equal<Effect list>([ CopyText(ExportCopy, textOf "exportText" json) ], effects)
+    Assert.Equal("Copied to the clipboard.", textOf "copyStatus" (fst (update (ctxAt start) (Copied(ExportCopy, true)) copying)))
+    Assert.StartsWith("This browser did not allow copying.", textOf "copyStatus" (fst (update (ctxAt start) (Copied(ExportCopy, false)) copying)))
     Assert.Equal<Effect list>([ Print ], snd (update (ctxAt start) (ui "printReport" "") json))
 
 [<Fact>]
 let ``the month reports on itself`` () =
     let month, _ = update (ctxAt start) (LocationMoved "#/month/2026-09") withThree
     let next, effects = update (ctxAt start) (ui "reportMonth" "") month
-    Assert.Equal<Effect list>([ Navigate "#/reports" ], effects)
+    Assert.Equal<Effect list>([ push "/reports?from=2026-09-01&to=2026-09-30" ], effects)
     Assert.Equal(("2026-09-01", "2026-09-30"), (next.Report.From, next.Report.To))
+
+[<Fact>]
+let ``a report's filters live in its address, and the address sets the form`` () =
+    let reports, _ = update (ctxAt start) (LocationMoved "#/reports") withThree
+    let narrowed, effects = update (ctxAt start) (ui "reportMethod" "manual") reports
+    Assert.Equal<Effect list>([ replace "/reports?method=manual" ], effects)
+    let grouped, effects = update (ctxAt start) (ui "reportGrouping" "activityType") narrowed
+    Assert.Equal<Effect list>([ replace "/reports?method=manual&group=type" ], effects)
+    // A cold open of that address sets the form the same way.
+    let cold, _ = update (ctxAt start) (LocationMoved "#/reports?method=manual&group=type") withThree
+    Assert.Equal(grouped.Report.Method, cold.Report.Method)
+    Assert.Equal(grouped.Report.Grouping, cold.Report.Grouping)
+    Assert.Equal(textOf "exportText" grouped, textOf "exportText" cold)
 
 [<Fact>]
 let ``the export copied is the export shown, whatever happens between`` () =
@@ -632,7 +710,7 @@ let ``the export copied is the export shown, whatever happens between`` () =
     let later = start.AddSeconds 1.0
     let ticked, _ = update (ctxAt later) (Ticked 99) reports
     let _, effects = update (ctxAt later) (ui "copyExport" "") ticked
-    Assert.Equal<Effect list>([ CopyText shown ], effects)
+    Assert.Equal<Effect list>([ CopyText(ExportCopy, shown) ], effects)
     // Changing the report generates it afresh.
     let changed, _ = update (ctxAt later) (ui "reportText" "first") reports
     Assert.Contains("# generatedAt: 2026-10-08T18:10:01Z", textOf "exportText" changed)
@@ -688,9 +766,9 @@ let ``a common duration sets a visible end from the start, and never crosses the
 let ``an earlier entry is copied as a new draft for today, its time left to the person`` () =
     let model, _ = play (entry "2026-10-07" "09:00" "10:00" "Pairing" @ [ start, ui "manualReason" "From notes"; start, ui "saveManual" "" ]) ready
     let id = model.Ledger.Activities |> Map.toList |> List.head |> fst
-    let opened, _ = update (ctxAt start) (LocationMoved $"#/activity/{id}") model
+    let opened, _ = update (ctxAt start) (LocationMoved $"#/entries/{id}") model
     let copied, effects = update (ctxAt start) (ui "copyActivity" "") opened
-    Assert.Equal<Effect list>([ Navigate "#/track" ], effects)
+    Assert.Equal<Effect list>([ push "/track" ], effects)
     Assert.Equal("Pairing", copied.Manual.Classification.Description)
     Assert.Equal(("2026-10-08", "", "2026-10-08", ""), (copied.Manual.StartDate, copied.Manual.StartTime, copied.Manual.EndDate, copied.Manual.EndTime))
 
@@ -748,3 +826,19 @@ let ``only a page built for a deployment compares builds, and a reload never los
     let conflicted = { newer with Store = { newer.Store with Conflicts = [ { Id = "COMMIT-x"; Request = request; Divergences = [ Reconcile.KeptChanging ] } ] } }
     Assert.True(flagOf "shellReloadBlocked" conflicted)
     Assert.Empty(snd (update (ctxAt start) (ui "reloadShell" "") conflicted))
+
+[<Fact>]
+let ``the day's ledger is filtered by project through its address`` () =
+    let filtered, effects = update (ctxAt start) (ui "dayProject" project) withThree
+    Assert.Equal<Effect list>([ replace $"/day/2026-10-08?project={project}" ], effects)
+    Assert.Equal<string list>([ "First"; "Second"; "Third" ], itemsOf "dayRecords" filtered |> List.map (field "title"))
+    Assert.Equal("HelixNote", textOf "dayFilterName" filtered)
+    let other, _ = update (ctxAt start) (ui "newProjectName" "Other") filtered
+    let other, _ = update (ctxAt start) (ui "addProject" "") other
+    let otherId = (Reference.all Reference.Project other.References |> List.find (fun item -> item.Name = "Other")).Id
+    let none, _ = update (ctxAt start) (ui "dayProject" otherId) (settle other)
+    Assert.True(flagOf "dayFilteredEmpty" none)
+    Assert.Empty(itemsOf "dayRecords" none)
+    // The filter survives moving between days, and "All projects" clears it.
+    Assert.Equal<Effect list>([ replace $"/day/2026-10-07?project={otherId}" ], snd (update (ctxAt start) (ui "previousDay" "") none))
+    Assert.Equal<Effect list>([ replace "/day/2026-10-08" ], snd (update (ctxAt start) (ui "dayProject" "") none))

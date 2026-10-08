@@ -176,7 +176,14 @@ for the diagnosis, the evidence, and one unexercised watch item.
   Limen's 165 conformance vectors in CI) until Limen 0.9.0 ships it; the
   route inventory `.echelon/routes.json` is rendered from the table
   (`CHRONA_WRITE_ROUTES=1 dotnet test --filter PlacesTests` rewrites it).
-  The application adopting it is the next slice of WI-0071.
+  The engine adopts every address (`Update.settle`, after every message):
+  opening one never pushes, going somewhere pushes, refining a view replaces;
+  not-found and not-permitted pages; "Copy link"; the return target kept in
+  the tab across the GitHub round trip (`chrona.returnTo`, read once). The
+  Pages site root keeps the fragment (`forward.js`), and CI opens deep links
+  cold against the assembled site and, after each deploy, the live one
+  (`playwright.pages.config.js`). The week, period and project views are the
+  next slice; candidate review comes with WI-0038.
 - Not built: the iPhone VoiceOver pass (WI-0068),
   the Summa transport (WI-0061), submission and approval screens (need actors and
   authorization, WI-0030 after Fides), and reports over stored data across

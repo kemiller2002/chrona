@@ -67,7 +67,7 @@ test("manual entry reports every problem, then records exact time on Today", asy
   await page.click(".chrona-nav__link:has-text('Today')");
   await expect(page.locator("#day-total")).toHaveText("0m");
   await page.fill("#day-picker", yesterday());
-  await expect(page).toHaveURL(new RegExp(`#/today/${yesterday()}$`));
+  await expect(page).toHaveURL(new RegExp(`#/day/${yesterday()}$`));
   await expect(page.locator("#day-total")).toHaveText("7m");
   await expect(page.locator(".chrona-summary-count")).toContainText("12m billed");
   const record = page.locator("#day-records .chrona-record");
@@ -182,7 +182,7 @@ test("routes survive Back, Forward and deep links", async ({ app: page }) => {
   await expect(page.locator("#screen-today")).toBeVisible();
 
   await page.click("[data-event=previousDay]");
-  await expect(page).toHaveURL(/#\/today\/\d{4}-\d{2}-\d{2}$/);
+  await expect(page).toHaveURL(/#\/day\/\d{4}-\d{2}-\d{2}$/);
   await expect(page.locator("#today-title")).not.toHaveText("");
 
   await page.goto("/web/index.html#/track");

@@ -16,6 +16,9 @@ let repoFile (relative: string) = Path.Combine(repositoryRoot, relative)
 
 let readRepoFile (relative: string) = File.ReadAllText(repoFile relative)
 
+/// The page the engine tests start on.
+let testPage: Chrona.Engine.App.Model.PageAddress = { Origin = "http://127.0.0.1:4321"; Path = "/web/index.html" }
+
 /// The reference data the domain tests classify against: every id they
 /// assign, active.
 let references =

@@ -19,10 +19,20 @@ type Ctx =
       /// A fresh, unique id with the given prefix, e.g. `NewId "ACT"`.
       NewId: string -> string }
 
+/// Why text goes to the clipboard.
+type CopyPurpose =
+    /// A report's export.
+    | ExportCopy
+    /// A link to the current view (CHX-460).
+    | LinkCopy
+
 type Msg =
-    /// The page started at this route, with the query it was opened with
-    /// (the provider's sign-in callback carries `code` and `state` there).
-    | Started of hash: string * query: (string * string) list
+    /// The page started: its own address, the fragment it was opened at, and
+    /// the query it was opened with (the provider's sign-in callback carries
+    /// `code` and `state` there).
+    | Started of page: PageAddress * fragment: string * query: (string * string) list
+    /// The return target this tab kept across a sign-in round trip, if any.
+    | ReturnRead of target: string option
     /// The deployment's configuration document, or None when it could not be read.
     | ConfigurationRead of text: string option
     | IdentityChanged of IdentityChange
@@ -35,7 +45,8 @@ type Msg =
     | StoreNeedsConfirmation of reason: string * canConfirm: bool
     | EnvironmentDescribed of timeZone: string
     | EnvironmentUnavailable
-    | LocationMoved of hash: string
+    /// The browser moved to another address (Back, Forward, a link).
+    | LocationMoved of fragment: string
     | Ticked of generation: int
     | StoreAnswered of commitId: string * StoreOutcome
     /// Changes queued in this browser before the page opened, still unsent,
@@ -68,20 +79,27 @@ type Msg =
     /// what it covers.
     | IndexChanged of history: ActivityIndex.MonthTotal list * summary: string
     /// Whether the browser took the text onto its clipboard.
-    | Copied of succeeded: bool
+    | Copied of purpose: CopyPurpose * succeeded: bool
     /// A page event: its name, the enclosing item's key, the control's value
     /// and, for a checkbox, whether it is checked.
     | Ui of name: string * key: string option * value: string * isChecked: bool option
 
 /// What the engine asks the edge to do.
 type Effect =
-    | Navigate of hash: string
+    /// Move the browser's address: a push for going somewhere, a replace for
+    /// refining the view or correcting an address to its canonical form.
+    | Navigate of Limen.Routing.NavigationEffect
+    /// Keep (or, None, forget) the address to return to after sign-in in this
+    /// tab's session storage: GitHub's callback carries no fragment.
+    | KeepReturn of target: string option
+    /// Read the return target this tab kept, after a sign-in callback.
+    | ReadReturn
     /// Wake the engine after `afterMs` milliseconds, for this timer run.
     | Wake of generation: int * afterMs: int
     | DescribeEnvironment
     | Store of StoreRequest
     /// Put text on the clipboard.
-    | CopyText of text: string
+    | CopyText of purpose: CopyPurpose * text: string
     /// Open the browser's print dialog for the page's printable document.
     | Print
     /// Read the deployment's configuration document.
@@ -138,13 +156,13 @@ let eventNames =
       "signOutSend"; "signOutKeep"; "signOutDiscard"; "signOutDiscardConfirmed"; "signOutCancel"; "takeOverQueue"
       "memberId"; "memberName"; "memberAccess"; "admitMember"; "changeMemberAccess"; "removeMember"
       "keepStored"; "retryChange"; "redoChange"; "acceptOutsideEdit"; "rebuildIndex"
-      "navigate"; "goToday"; "goTrack"; "goMore"; "showDate"; "previousDay"; "nextDay"
+      "goToday"; "goTrack"; "goMore"; "showDate"; "previousDay"; "nextDay"
       "timerActivityType"; "timerProject"; "timerDescription"; "startTimer"; "pauseTimer"; "resumeTimer"; "stopTimer"
       "completeActivityType"; "completeProject"; "completeDescription"; "completePurpose"; "completeTag"; "confirmLongTimer"; "saveCompletion"
       "manualActivityType"; "manualProject"; "manualStartDate"; "manualStartTime"; "manualEndDate"; "manualEndTime"
       "manualDescription"; "manualPurpose"; "manualReason"; "manualTag"; "saveManual"
       "newProjectName"; "newActivityTypeName"; "newTagName"; "addProject"; "addActivityType"; "addTag"; "referenceActive"
-      "openActivity"; "openReview"; "previousMonth"; "nextMonth"; "showMonth"
+      "openReview"; "previousMonth"; "nextMonth"; "showMonth"
       "timerUseRecent"; "manualUseRecent"; "manualDuration"; "copyActivity"
       "amendActivityType"; "amendProject"; "amendDescription"; "amendPurpose"; "amendReason"; "saveAmend"
       "voidReason"; "voidActivity"; "restoreActivity"
@@ -153,7 +171,8 @@ let eventNames =
       "mergeSelect"; "mergeActivityType"; "mergeProject"; "mergeDescription"; "mergePurpose"; "saveMerge"
       "attestStatement"; "attestDay"; "resolveObligation"; "periodCadence"; "periodWeekStart"
       "reportFrom"; "reportTo"; "reportProject"; "reportActivityType"; "reportTag"; "reportMethod"; "reportBillability"; "reportText"
-      "reportIncludeRemoved"; "reportGrouping"; "reportFormat"; "copyExport"; "printReport"; "reportMonth"; "goReports" ]
+      "reportIncludeRemoved"; "reportGrouping"; "reportFormat"; "copyExport"; "printReport"; "reportMonth"; "goReports"
+      "copyLink"; "skipToContent"; "dayProject" ]
 
 // ---- helpers ----------------------------------------------------------------
 
@@ -448,37 +467,107 @@ let openDetail (model: Model) (activityId: string) : Detail option =
           EvidenceSource = ""
           EvidenceNotes = "" })
 
-/// Keeps the detail drafts in step with the route: opened when an activity
-/// screen is entered, dropped when it is left.
+/// The report form for an address's filters: its dates as the form holds
+/// them, an absent filter as "any".
+let draftOf (query: Places.ReportQuery) (draft: ReportDraft) =
+    let iso = Option.map Format.isoDate >> Option.defaultValue ""
+    let text = Option.defaultValue ""
+
+    { draft with
+        From = iso query.From
+        To = iso query.To
+        ProjectId = text query.ProjectId
+        ActivityTypeId = text query.ActivityTypeId
+        Tag = text query.Tag
+        Method = text query.Method
+        Billability = text query.Billability
+        Text = text query.Text
+        IncludeRemoved = query.IncludeRemoved
+        Grouping = query.Grouping
+        Format = query.Format }
+
+/// The address's filters for a report form.
+let queryOf (draft: ReportDraft) : Places.ReportQuery =
+    let some (value: string) = if value = "" then None else Some value
+
+    { From = Format.parseIsoDate draft.From
+      To = Format.parseIsoDate draft.To
+      ProjectId = some draft.ProjectId
+      ActivityTypeId = some draft.ActivityTypeId
+      Tag = some draft.Tag
+      Method = some draft.Method
+      Billability = some draft.Billability
+      Text = some draft.Text
+      IncludeRemoved = draft.IncludeRemoved
+      Grouping = draft.Grouping
+      Format = draft.Format }
+
+/// Keeps the drafts in step with the place: the activity screen's drafts
+/// opened when it is entered and dropped when it is left, and the report
+/// form set from the address's filters (its export generated afresh).
 let private followRoute (model: Model) =
-    // Entering the reports screen generates its export afresh.
+    // A link copied for the place left behind is not this place's.
+    let model = { model with LinkStatus = ""; LinkText = "" }
+
     let model =
-        match model.Route.Screen with
-        | ReportsScreen -> { model with Report = { model.Report with GeneratedAt = Some model.Now } }
+        match model.Place with
+        | Places.Reports query -> { model with Report = { draftOf query model.Report with GeneratedAt = Some model.Now } }
         | _ -> model
 
-    match model.Route.Screen, model.Detail with
-    | ActivityDetail id, Some detail when detail.ActivityId = id -> model
-    | ActivityDetail id, _ -> { model with Detail = openDetail model id }
+    match model.Place, model.Detail with
+    | Places.Entry(id, _), Some detail when detail.ActivityId = id -> model
+    | Places.Entry(id, _), _ -> { model with Detail = openDetail model id }
     | _ -> { model with Detail = None }
 
-/// The month a screen shows, when it shows stored time.
-let private shownMonth (model: Model) =
-    match model.Route.Screen, model.Route.Date with
-    | (Today | DayReview | Month), Some date -> Some(date.Year, date.Month)
-    | _ -> None
+/// The months a place shows stored time from. An activity named without its
+/// day is looked for in every month that holds the person's time.
+let private monthsNeeded (model: Model) =
+    let monthOf (date: DateOnly) = date.Year, date.Month
+
+    match model.Place with
+    | Places.Day(on, _)
+    | Places.Review on -> [ monthOf on ]
+    | Places.Month(year, month) -> [ year, month ]
+    | Places.Entry(id, _) when model.Ledger.Activities.ContainsKey id -> []
+    | Places.Entry(_, Some on) -> [ monthOf on ]
+    | Places.Entry(_, None) ->
+        model.Store.History
+        |> List.filter (fun total -> total.ActorId = model.Session.ActorId)
+        |> List.map (fun total -> total.Year, total.Month)
+    | _ -> []
 
 /// A month the person goes to that was not read yet is read now: one month
 /// folder, on demand, never the whole history (38).
 let private readNeeded (model: Model) =
-    match shownMonth model, model.Store.Kind with
-    | Some month, Durable _ when
-        canWork model
-        && not (List.contains month model.Store.Months)
-        && not (List.contains month model.Store.Reading)
-        ->
-        { model with Store = { model.Store with Reading = model.Store.Reading @ [ month ] } }, [ ReadMonths [ DateOnly(fst month, snd month, 1) ] ]
+    match model.Store.Kind with
+    | Durable _ when canWork model ->
+        let unread =
+            monthsNeeded model
+            |> List.distinct
+            |> List.filter (fun month -> not (List.contains month model.Store.Months) && not (List.contains month model.Store.Reading))
+
+        if unread.IsEmpty then
+            model, []
+        else
+            { model with Store = { model.Store with Reading = model.Store.Reading @ unread } },
+            [ ReadMonths(unread |> List.map (fun (year, month) -> DateOnly(year, month, 1))) ]
     | _ -> model, []
+
+/// Moves to a place: the engine moves at once, and asks the browser to
+/// follow (CHX-460). The place itself is settled from the new address after
+/// every message (`settle`).
+let private move operation (place: Places.Place) (model: Model) =
+    match operation Places.codec model.Router place with
+    | Ok(router, effect) -> { model with Router = router }, effect |> Option.map Navigate |> Option.toList
+    // Every place has an address (PlacesTests); one without is a defect.
+    | Error error -> invalidOp $"No address for {place}: %A{error}"
+
+/// Going somewhere else: a new history entry, unless it is already current.
+let private navigate place model = move Limen.Routing.RouteCodec.navigate place model
+
+/// Refining the current view (a filter, a date, a month): the current entry
+/// is replaced, so Back steps to the previous place, not the previous filter.
+let private refine place model = move Limen.Routing.RouteCodec.refine place model
 
 let private detail (f: Detail -> Detail) (model: Model) =
     { model with Detail = model.Detail |> Option.map f }, []
@@ -624,13 +713,13 @@ let private attestDay (ctx: Ctx) (model: Model) =
 
 // ---- reports --------------------------------------------------------------------
 
-/// The report filter a draft names, over the session's own records. An
-/// unreadable date falls back to the month being viewed.
+/// The report filter a draft names, over the session's own records. A date
+/// the address does not name is this month's (`Places.defaultRange`).
 let reportFilter (model: Model) : Reports.Filter =
     let draft = model.Report
-    let first = selectedMonth model
+    let first, last = Places.defaultRange (Model.today model)
     let from = Format.parseIsoDate draft.From |> Option.defaultValue first
-    let ``to`` = Format.parseIsoDate draft.To |> Option.defaultValue (first.AddMonths(1).AddDays -1)
+    let ``to`` = Format.parseIsoDate draft.To |> Option.defaultValue last
     let one (value: string) = if value = "" then [] else [ value ]
 
     { Reports.between from ``to`` with
@@ -762,11 +851,9 @@ let private copyActivity (activityId: string) (model: Model) =
                     Classification = ofClassification activity.Classification
                     StartDate = today
                     EndDate = today }
-            Announcement = $"Copied {activity.Classification.Description} into a new entry. Set its time, then save it." },
-        [ Navigate(Routes.hash { Screen = Track; Date = None }) ]
+            Announcement = $"Copied {activity.Classification.Description} into a new entry. Set its time, then save it." }
+        |> navigate Places.Track
     | None -> model, []
-
-let private navigate (route: Route) (model: Model) = model, [ Navigate(Routes.hash route) ]
 
 let private mergeDraft f = draft f _.MergeDraft (fun m d -> { m with MergeDraft = d })
 
@@ -774,7 +861,8 @@ let private amendDraft (f: ClassificationDraft -> ClassificationDraft) =
     detail (fun d -> { d with Amend = f d.Amend })
 
 let private month (offset: int) (model: Model) =
-    navigate { Screen = Month; Date = Some((selectedMonth model).AddMonths offset) } model
+    let first = (selectedMonth model).AddMonths offset
+    refine (Places.Month(first.Year, first.Month)) model
 
 // ---- the organization's members (3) -------------------------------------------------
 
@@ -966,8 +1054,7 @@ let private redoChange (caseId: string) (activityId: string) (model: Model) =
             let next = clear ConflictForm (withoutCase caseId model)
 
             navigate
-                { Screen = ActivityDetail activityId
-                  Date = None }
+                (Places.Entry(activityId, Some mine.Occurrence.LocalDate))
                 { next with
                     Detail = Some { current with Amend = ofClassification mine.Classification }
                     Announcement = "Your version is in the correction form, on the current record. Save it to apply it." }
@@ -986,7 +1073,7 @@ let private redoChange (caseId: string) (activityId: string) (model: Model) =
                 date, "", date, ""
 
         navigate
-            { Screen = Track; Date = None }
+            Places.Track
             { next with
                 Manual =
                     { Classification = ofClassification mine.Classification
@@ -1099,14 +1186,34 @@ let private authorized (name: string) (key: string option) (model: Model) (run: 
 let private onEvent (ctx: Ctx) (name: string) (key: string option) (value: string) (isChecked: bool option) (model: Model) =
     let checkedOn = isChecked |> Option.defaultValue false
 
+    let dayProject =
+        match model.Place with
+        | Places.Day(_, project) -> project
+        | _ -> None
+
+    // The report form changed: the address follows, replacing the entry.
+    let report (change: ReportDraft -> ReportDraft) =
+        let next = { model with Report = { change model.Report with GeneratedAt = Some ctx.Now } }
+        refine (Places.Reports(queryOf next.Report)) next
+
     match name with
-    | "navigate" ->
-        match Routes.ofScreenName (defaultArg key value) with
-        | Some screen -> navigate { Screen = screen; Date = None } model
-        | None -> invalidArg (nameof value) $"Unknown screen: {value}"
-    | "goToday" -> navigate { Screen = Today; Date = None } model
-    | "goTrack" -> navigate { Screen = Track; Date = None } model
-    | "goMore" -> navigate { Screen = More; Date = None } model
+    | "goToday" -> navigate Places.Today model
+    | "goTrack" -> navigate Places.Track model
+    | "goMore" -> navigate (Places.Settings None) model
+    | "copyLink" ->
+        let place = Places.explicit (Model.today model) model.Place
+
+        match model.RouteProblem, Places.format place with
+        | None, Ok location ->
+            let link = Places.share model.Page.Origin model.Page.Path location
+            { model with LinkStatus = ""; LinkText = link }, [ CopyText(LinkCopy, link) ]
+        | _ -> model, []
+    | "dayProject" ->
+        let project = if value = "" then None else Some value
+
+        match model.Place with
+        | Places.Today when project.IsNone -> model, []
+        | _ -> refine (Places.Day(selectedDate model, project)) model
     | "keepStored" -> keepStored (defaultArg key value) model
     | "retryChange" -> retryChange ctx (defaultArg key value) model
     | "redoChange" -> redoChange (defaultArg key "") value model
@@ -1120,10 +1227,10 @@ let private onEvent (ctx: Ctx) (name: string) (key: string option) (value: strin
         | InMemory -> model, []
     | "showDate" ->
         match Format.parseIsoDate value with
-        | Some date -> navigate { Screen = Today; Date = Some date } model
+        | Some date -> refine (Places.Day(date, dayProject)) model
         | None -> model, []
-    | "previousDay" -> navigate { Screen = Today; Date = Some((selectedDate model).AddDays -1) } model
-    | "nextDay" -> navigate { Screen = Today; Date = Some((selectedDate model).AddDays 1) } model
+    | "previousDay" -> refine (Places.Day((selectedDate model).AddDays -1, dayProject)) model
+    | "nextDay" -> refine (Places.Day((selectedDate model).AddDays 1, dayProject)) model
 
     | "timerActivityType" -> timerDraft (fun d -> { d with ActivityTypeId = value }) model
     | "timerProject" -> timerDraft (fun d -> { d with ProjectId = value }) model
@@ -1165,8 +1272,10 @@ let private onEvent (ctx: Ctx) (name: string) (key: string option) (value: strin
     | "addTag" -> addReference ctx Reference.Tag model
     | "referenceActive" -> setActive ctx (defaultArg key "") checkedOn model
 
-    | "openActivity" -> navigate { Screen = ActivityDetail(defaultArg key value); Date = None } model
-    | "openReview" -> navigate { Screen = DayReview; Date = Some(selectedDate model) } model
+    | "openReview" ->
+        match model.Place with
+        | Places.Today -> navigate Places.ReviewToday model
+        | _ -> navigate (Places.Review(selectedDate model)) model
     | "previousMonth" -> month -1 model
     | "nextMonth" -> month 1 model
     | "showMonth" ->
@@ -1174,7 +1283,7 @@ let private onEvent (ctx: Ctx) (name: string) (key: string option) (value: strin
         let month = if String.IsNullOrEmpty value then defaultArg key "" else value
 
         match Format.parseIsoDate $"{month}-01" with
-        | Some first -> navigate { Screen = Month; Date = Some first } model
+        | Some first -> refine (Places.Month(first.Year, first.Month)) model
         | None -> model, []
 
     | "amendActivityType" -> amendDraft (fun d -> { d with ActivityTypeId = value }) model
@@ -1208,10 +1317,13 @@ let private onEvent (ctx: Ctx) (name: string) (key: string option) (value: strin
     | "resolveObligation" ->
         // The obligation's id says where it is resolved (Project.obligations).
         match (defaultArg key "").Split('-', 2) with
-        | [| "stopped"; _ |] -> navigate { Screen = Track; Date = None } model
-        | [| "attestation"; date |] -> navigate { Screen = DayReview; Date = Format.parseIsoDate date } model
-        | [| "store" |] -> navigate { Screen = More; Date = None } model
-        | [| "period"; _ |] -> navigate { Screen = Today; Date = None } model
+        | [| "stopped"; _ |] -> navigate Places.Track model
+        | [| "attestation"; date |] ->
+            match Format.parseIsoDate date with
+            | Some on -> navigate (Places.Review on) model
+            | None -> invalidArg (nameof key) $"Unknown obligation: {key}"
+        | [| "store" |] -> navigate (Places.Settings(Some Places.Changes)) model
+        | [| "period"; _ |] -> navigate Places.Today model
         | _ -> invalidArg (nameof key) $"Unknown obligation: {key}"
     | "periodCadence" ->
         let cadence =
@@ -1229,30 +1341,26 @@ let private onEvent (ctx: Ctx) (name: string) (key: string option) (value: strin
         match Enum.TryParse<DayOfWeek>(value) with
         | true, day -> { clear PeriodForm model with PeriodConfig = { model.PeriodConfig with WeekStart = day } }, []
         | _ -> invalidArg (nameof value) $"Unknown day: {value}"
-    | "reportFrom" -> { model with Report = { model.Report with From = value; GeneratedAt = Some ctx.Now } }, []
-    | "reportTo" -> { model with Report = { model.Report with To = value; GeneratedAt = Some ctx.Now } }, []
-    | "reportProject" -> { model with Report = { model.Report with ProjectId = value; GeneratedAt = Some ctx.Now } }, []
-    | "reportActivityType" -> { model with Report = { model.Report with ActivityTypeId = value; GeneratedAt = Some ctx.Now } }, []
-    | "reportTag" -> { model with Report = { model.Report with Tag = value; GeneratedAt = Some ctx.Now } }, []
-    | "reportMethod" -> { model with Report = { model.Report with Method = value; GeneratedAt = Some ctx.Now } }, []
-    | "reportBillability" -> { model with Report = { model.Report with Billability = value; GeneratedAt = Some ctx.Now } }, []
-    | "reportText" -> { model with Report = { model.Report with Text = value; GeneratedAt = Some ctx.Now } }, []
-    | "reportIncludeRemoved" -> { model with Report = { model.Report with IncludeRemoved = checkedOn; GeneratedAt = Some ctx.Now } }, []
-    | "reportGrouping" -> { model with Report = { model.Report with Grouping = value; GeneratedAt = Some ctx.Now } }, []
-    | "reportFormat" -> { model with Report = { model.Report with Format = value; GeneratedAt = Some ctx.Now }; CopyStatus = "" }, []
-    | "copyExport" -> { clear ExportForm model with CopyStatus = "" }, [ CopyText(exportText model) ]
+    | "reportFrom" -> report (fun r -> { r with From = value })
+    | "reportTo" -> report (fun r -> { r with To = value })
+    | "reportProject" -> report (fun r -> { r with ProjectId = value })
+    | "reportActivityType" -> report (fun r -> { r with ActivityTypeId = value })
+    | "reportTag" -> report (fun r -> { r with Tag = value })
+    | "reportMethod" -> report (fun r -> { r with Method = value })
+    | "reportBillability" -> report (fun r -> { r with Billability = value })
+    | "reportText" -> report (fun r -> { r with Text = value })
+    | "reportIncludeRemoved" -> report (fun r -> { r with IncludeRemoved = checkedOn })
+    | "reportGrouping" -> report (fun r -> { r with Grouping = value })
+    | "reportFormat" ->
+        let next, effects = report (fun r -> { r with Format = value })
+        { next with CopyStatus = "" }, effects
+    | "copyExport" -> { clear ExportForm model with CopyStatus = "" }, [ CopyText(ExportCopy, exportText model) ]
     | "printReport" -> clear ExportForm model, [ Print ]
-    | "goReports" -> navigate { Screen = ReportsScreen; Date = None } model
+    | "goReports" -> navigate (Places.Reports Places.allReports) model
     | "reportMonth" ->
+        // The month's report, its dates in the address.
         let first = selectedMonth model
-
-        { model with
-            Report =
-                { model.Report with
-                    From = Format.isoDate first
-                    To = Format.isoDate (first.AddMonths(1).AddDays -1)
-                    GeneratedAt = Some ctx.Now } },
-        [ Navigate(Routes.hash { Screen = ReportsScreen; Date = Some first }) ]
+        navigate (Places.Reports { Places.allReports with From = Some first; To = Some(first.AddMonths(1).AddDays -1) }) model
     | "memberId" -> { model with MemberDraft = { model.MemberDraft with Id = value } }, []
     | "memberName" -> { model with MemberDraft = { model.MemberDraft with Name = value } }, []
     | "memberAccess" -> { model with MemberDraft = { model.MemberDraft with Access = value } }, []
@@ -1382,7 +1490,10 @@ let private reloadShell (model: Model) =
 
 let private fresh (session: Session) (identity: IdentityState) (model: Model) =
     { Model.initial session model.Store.Kind model.Now with
-        Route = model.Route
+        Place = model.Place
+        RouteProblem = model.RouteProblem
+        Router = model.Router
+        Page = model.Page
         Zone = model.Zone
         PeriodConfig = model.PeriodConfig
         Deployment = model.Deployment
@@ -1539,7 +1650,15 @@ let private onIdentityEvent (name: string) (value: string) (model: Model) =
         let retention = if value = "tab" then ThisTab else ThisPage
         { model with Identity = { identity with Retention = retention } }, []
     | "signIn", SignInRequired false ->
-        { model with Identity = { identity with Mode = SignInRequired true; Notice = None } }, [ SignIn identity.Retention ]
+        // The address to come back to is kept in this tab first: GitHub's
+        // callback returns to the deployment's address, without it (CHX-460).
+        let target =
+            match model.Place with
+            | Places.SignIn returnTo -> returnTo
+            | _ -> None
+            |> Option.orElse identity.ReturnTo
+
+        { model with Identity = { identity with Mode = SignInRequired true; Notice = None } }, [ KeepReturn target; SignIn identity.Retention ]
     // Unsent changes are never left behind unknowingly (WI-0058).
     | "signOut", SignedInMode when unsentWork model > 0 ->
         { model with Identity = { identity with SignOut = Some ChoosingUnsent; SignOutNote = None } }, []
@@ -1570,6 +1689,103 @@ let private onIdentityEvent (name: string) (value: string) (model: Model) =
         | None -> model, []
     | _ -> model, []
 
+// ---- where the person is (CHX-460) -----------------------------------------------
+
+/// What the guards need to know about the person now.
+let private standing (model: Model) : Places.Standing =
+    { SignedOut = (model.Identity.Mode = SignInRequired false)
+      KeptReturn = model.Identity.ReturnTo
+      Administrator =
+        if canWork model then
+            Some(permits model Access.ManageOrganizationSettings)
+        else
+            None }
+
+let private guardOf (model: Model) = Places.guard (standing model)
+
+/// Someone may work now, and no kept return target is still being read.
+let private mayResume (model: Model) =
+    not model.Identity.ReadingReturn
+    && (match model.Identity.Mode with
+        | LocalOnly
+        | SignedInMode -> true
+        | _ -> false)
+
+/// Whether a record an address names may still arrive: the records are
+/// still opening, or a month is still being read.
+let private stillLooking (model: Model) =
+    not (canWork model) || model.Store.Opening || not model.Store.Reading.IsEmpty
+
+/// A record the place names that does not exist, or is not the person's.
+/// Decided again whenever records arrive.
+let private recordProblem (model: Model) =
+    let exists kind id =
+        Reference.all kind model.References |> List.exists (fun item -> item.Id = id)
+
+    let missingReference (kind: Reference.Kind, name: string) (id: string option) =
+        match id with
+        | Some id when canWork model && not (exists kind id) -> Some(RecordMissing(name, id))
+        | _ -> None
+
+    match model.Place with
+    | Places.Entry(id, _) ->
+        match model.Ledger.Activities.TryFind id with
+        | Some activity when activity.ActorId = model.Session.ActorId -> None
+        | Some _ -> Some(AddressProblem(Limen.Routing.RouteError.NotPermitted Places.Names.Entry))
+        | None when stillLooking model -> None
+        | None -> Some(RecordMissing("activity", id))
+    | Places.Day(_, project) -> missingReference (Reference.Project, "project") project
+    | Places.Reports query ->
+        [ missingReference (Reference.Project, "project") query.ProjectId
+          missingReference (Reference.ActivityType, "activity type") query.ActivityTypeId
+          missingReference (Reference.Tag, "tag") query.Tag ]
+        |> List.tryPick id
+    | _ -> None
+
+/// Shows a place: entering a different one opens what it needs and reads
+/// the months it shows that were not read yet.
+let private arrive (place: Places.Place) (model: Model) =
+    let model, effects =
+        if place = model.Place then
+            model, []
+        else
+            readNeeded (followRoute { model with Place = place })
+
+    // An activity's drafts open once its record has arrived.
+    match model.Place, model.Detail with
+    | Places.Entry(id, _), None -> { model with Detail = openDetail model id }, effects
+    | _ -> model, effects
+
+/// Settles where the person is from the current address, after every
+/// message: the address is adopted again under what the engine knows now
+/// (who is signed in, what they may do, which records arrived). Adopting
+/// never adds a history entry; at most it replaces the address with its
+/// canonical form, or with sign-in when someone must sign in first. Once
+/// someone may work, a sign-in page or a kept return target resumes to the
+/// target (re-checked), replacing the entry so Back never returns to it.
+let rec private settle (resumed: bool) (model: Model) : Model * Effect list =
+    match model.Router.Current with
+    | None -> model, []
+    | Some location ->
+        let router, result, correction = Limen.Routing.RouteCodec.adopt Places.codec (guardOf model) model.Router location
+        let model = { model with Router = router }
+        let corrected = correction |> Option.map Navigate |> Option.toList
+
+        match result with
+        | Ok(Places.SignIn returnTo) when mayResume model && not resumed ->
+            resumeAt (Places.resume (guardOf model) (returnTo |> Option.orElse model.Identity.ReturnTo)) model
+        | Ok _ when model.Identity.ReturnTo.IsSome && mayResume model && not resumed ->
+            resumeAt (Places.resume (guardOf model) model.Identity.ReturnTo) model
+        | Ok place ->
+            let arrived, effects = arrive place model
+            { arrived with RouteProblem = recordProblem arrived }, corrected @ effects
+        | Error problem -> { model with RouteProblem = Some(AddressProblem problem) }, corrected
+
+and private resumeAt (target: string) (model: Model) =
+    let router, moved = Limen.Routing.Navigation.replace model.Router target
+    let next, effects = settle true { model with Router = router; Identity = { model.Identity with ReturnTo = None } }
+    next, (moved |> Option.map Navigate |> Option.toList) @ effects
+
 let private step (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
     // An announcement is spoken once: a person's next action replaces it;
     // wake-ups and store answers leave it alone.
@@ -1579,12 +1795,24 @@ let private step (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
         | _ -> { model with Now = ctx.Now }
 
     match msg with
-    | Started(hash, query) ->
-        followRoute
-            { model with
-                Route = Routes.parse hash
-                Identity = { model.Identity with Callback = query } },
-        [ DescribeEnvironment; ReadConfiguration ]
+    | Started(page, fragment, query) ->
+        // A sign-in callback: the address to return to was kept in this tab.
+        let callback = query |> List.exists (fun (name, _) -> name = "state" || name = "code" || name = "error")
+
+        { model with
+            Page = page
+            Router = { model.Router with Current = Some(Places.ofFragment fragment) }
+            Identity = { model.Identity with Callback = query; ReadingReturn = callback } },
+        [ DescribeEnvironment; ReadConfiguration ] @ (if callback then [ ReadReturn ] else [])
+    | ReturnRead target ->
+        // Read once: it is forgotten from the tab at once, and kept only if it
+        // is still one of Chrona's places, in canonical form.
+        { model with
+            Identity =
+                { model.Identity with
+                    ReturnTo = target |> Option.bind Places.captureReturn
+                    ReadingReturn = false } },
+        [ KeepReturn None ]
     | ConfigurationRead text -> configurationRead text model
     | IdentityChanged change -> identityChanged change model
     | StoreOpened contents ->
@@ -1605,7 +1833,8 @@ let private step (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
             PeriodConfig = { model.PeriodConfig with ZoneId = zone |> Option.map _.Id |> Option.defaultValue "UTC" } },
         []
     | EnvironmentUnavailable -> { model with Zone = tryZone "UTC" |> Result.toOption }, []
-    | LocationMoved hash -> readNeeded (followRoute { model with Route = Routes.parse hash })
+    // Settled from the new address after this message, like every other.
+    | LocationMoved fragment -> { model with Router = { model.Router with Current = Some(Places.ofFragment fragment) } }, []
     | Ticked generation ->
         match model.Timer with
         | Timer.Running _ when generation = model.TickGeneration -> model, [ Wake(generation, TickMs) ]
@@ -1681,10 +1910,17 @@ let private step (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
             Store = { model.Store with Reading = [] }
             Announcement = $"That month could not be read. {reason}" },
         []
-    | Copied true -> { model with CopyStatus = "Copied to the clipboard."; Announcement = "Copied to the clipboard." }, []
-    | Copied false ->
+    | Copied(ExportCopy, true) -> { model with CopyStatus = "Copied to the clipboard."; Announcement = "Copied to the clipboard." }, []
+    | Copied(ExportCopy, false) ->
         let text = "This browser did not allow copying. Select the text and copy it yourself."
         { model with CopyStatus = text; Announcement = text }, []
+    // Copied: the link is on the clipboard, so it is not shown to select.
+    | Copied(LinkCopy, true) -> { model with LinkStatus = "Link copied."; LinkText = ""; Announcement = "Link to this view copied." }, []
+    | Copied(LinkCopy, false) ->
+        let text = "This browser did not allow copying. Select the link below and copy it yourself."
+        { model with LinkStatus = text; Announcement = text }, []
+    // The skip link moves focus to the page's content; it is not an address.
+    | Ui("skipToContent", _, _, _) -> model, [ FocusControl "main" ]
     | Ui("reloadShell", _, _, _) -> reloadShell model
     // Whoever is signed in may wait for the other tab's changes: they are
     // sent with the account that made them, never another's.
@@ -1738,6 +1974,8 @@ let private focusAfter (msg: Msg) (model: Model) (next: Model) =
 
 let update (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
     let next, effects = step ctx msg model
+    let next, routed = settle false next
+    let effects = effects @ routed
 
     // The device keeps the person's timer whenever it changes, under their
     // own key; a different person or organization is never written for.

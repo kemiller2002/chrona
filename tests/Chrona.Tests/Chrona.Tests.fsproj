@@ -36,6 +36,7 @@
     <Compile Include="PlacesTests.fs" />
     <Compile Include="AppEngineTests.fs" />
     <Compile Include="AppBoundaryTests.fs" />
+    <Compile Include="DeepLinkTests.fs" />
     <Compile Include="SummaBillingTests.fs" />
   </ItemGroup>
 

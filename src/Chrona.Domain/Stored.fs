@@ -253,8 +253,16 @@ let changedOf (changes: Change list) : Result<Changed, Diagnostic list> =
         | Some key when key.Type = ActivityRecord.recordType -> Ok nothing
         | _ -> Error(InvalidStoredRecord(RelativePath.render path, "not a record Chrona removes"))
 
+    // Derived state written with the records (the activity index) is not a record.
+    let derived (path: RelativePath) =
+        RelativePath.segments path |> List.tryHead |> Option.map Segment.value = Some "derived"
+
     let parts =
         changes
+        |> List.filter (function
+            | Change.Create(path, _)
+            | Change.Update(path, _, _)
+            | Change.Delete(path, _) -> not (derived path))
         |> List.map (function
             | Change.Create(path, content)
             | Change.Update(path, content, _) -> decoded path content

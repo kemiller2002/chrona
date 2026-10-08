@@ -888,6 +888,21 @@ let private monthView (model: Model) =
               t "total" (Format.minutes (list |> List.sumBy _.Minutes))
               t "count" (plural list.Length "entry" "entries") ])
 
+    let reading = List.contains (first.Year, first.Month) model.Store.Reading
+
+    let history =
+        model.Store.History
+        |> List.filter (fun total -> total.ActorId = model.Session.ActorId)
+        |> List.map (fun total ->
+            let month = DateOnly(total.Year, total.Month, 1)
+
+            [ t "id" $"{total.Year:D4}-{total.Month:D2}"
+              t "label" (month.ToString("MMMM yyyy", Globalization.CultureInfo.InvariantCulture))
+              t "total" (Format.minutes total.Minutes)
+              t "count" (plural total.Activities "entry" "entries")
+              t "approved" (if total.ApprovedMinutes = 0 then "" else $"{Format.minutes total.ApprovedMinutes} approved")
+              t "current" (if month = first then "true" else "false") ])
+
     [ flag "screenMonth" (model.Route.Screen = Month)
       text "monthTitle" (first.ToString("MMMM yyyy", Globalization.CultureInfo.InvariantCulture))
       text "monthIso" $"{first.Year:D4}-{first.Month:D2}"
@@ -899,9 +914,15 @@ let private monthView (model: Model) =
       text "monthCorrections" (counted |> List.filter (fun a -> a.Revision > 1) |> List.length |> string)
       text "monthVoided" (inMonth |> List.filter (fun a -> match a.Record with Voided _ -> true | _ -> false) |> List.length |> string)
       text "monthEvidence" (percent (counted |> List.filter (fun a -> not a.Evidence.IsEmpty) |> List.length) counted.Length)
-      flag "monthEmpty" counted.IsEmpty
+      flag "monthEmpty" (counted.IsEmpty && not reading)
+      flag "monthReading" reading
       items "monthByType" byType
-      items "monthDays" days ]
+      items "monthDays" days
+      // Every month that holds the person's time, from the activity index
+      // (derived, rebuildable): one read, not one per month (38, 40).
+      flag "hasMonthHistory" (not history.IsEmpty)
+      items "monthHistory" history
+      text "monthIndex" model.Store.Index ]
 
 // ---- reports ------------------------------------------------------------------------
 
@@ -1094,7 +1115,13 @@ let private membershipView (model: Model) =
       text "memberName" model.MemberDraft.Name
       text "memberAccess" model.MemberDraft.Access
       flag "hasMemberProblems" (model.Problems.ContainsKey MemberForm)
-      items "memberProblems" (problemItems model MemberForm) ]
+      items "memberProblems" (problemItems model MemberForm)
+      // The activity index: derived, kept with every change, rebuilt from
+      // the records on request (40).
+      flag "canRebuildIndex" (model.Identity.Mode = SignedInMode && permits model Access.ManageOrganizationSettings)
+      text "indexStatus" model.Store.Index
+      flag "hasIndexProblems" (model.Problems.ContainsKey IndexForm)
+      items "indexProblems" (problemItems model IndexForm) ]
 
 /// What the session's person may do in the organization (3).
 let private accessView (model: Model) =

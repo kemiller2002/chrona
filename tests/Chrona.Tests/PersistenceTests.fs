@@ -626,3 +626,52 @@ let ``unsent changes are laid over what is stored for deciding and showing, keep
     // A next change is decided on it: the amended record's next revision fits.
     let next = { amended with Revision = 3 }
     Assert.True(Reconcile.decide shown { Stored.nothing with Activities = [ next ] } |> Result.isOk)
+
+// ---- The activity index (WI-0034) -------------------------------------------------------
+
+module ActivityIndex = Chrona.Domain.ActivityIndex
+
+[<Fact>]
+let ``the activity index follows each change, and its source set is the one Arca computes from the records`` () =
+    let snapshot, state =
+        (Persistence.empty, InMemory.empty)
+        |> store (Record(activity "A-1" (10, 7) (9, 0) 60))
+        |> store (Record(activity "A-2" (9, 30) (9, 0) 30))
+
+    // Built by Arca from the stored records...
+    let records =
+        snapshot.Activities
+        |> Map.toList
+        |> List.map (fun (_, found) ->
+            let stored = storedContent found.Path state
+            let key = Layout.keyOf found.Path |> Option.get
+            found.Path, Integrity.validate key ActivityRecord.schema Record.DefaultMaxBytes stored |> ok)
+
+    let built = Derived.build ActivityIndex.definition records
+
+    // ...and kept by Chrona from the changes alone.
+    let changes =
+        snapshot.Activities |> Map.toList |> List.map (fun (_, found) -> Change.Create(found.Path, ActivityRecord.encode found.Activity |> ok))
+
+    let kept = ActivityIndex.apply changes ActivityIndex.empty
+    Assert.Equal(built, kept)
+
+    // Months and totals: a voided record does not count.
+    let voided = { snapshot.Activities["A-1"].Activity with Record = Voided "Duplicate"; Revision = 2 }
+    let path = snapshot.Activities["A-1"].Path
+    let after = ActivityIndex.apply [ Change.Update(path, ActivityRecord.encode voided |> ok, snapshot.Activities["A-1"].Revision) ] kept
+
+    Assert.Equal<(int * int * int * int) list>(
+        [ 2026, 10, 0, 0; 2026, 9, 1, 30 ],
+        ActivityIndex.totals after |> List.map (fun t -> t.Year, t.Month, t.Activities, t.Minutes)
+    )
+
+    // A deleted record leaves the index; the source set follows.
+    let removed = ActivityIndex.apply [ Change.Delete(path, Revision "x") ] after
+    Assert.Equal(1, removed.Source.Count)
+    Assert.Equal(1, removed.Entries.Length)
+
+    // Where the records read disagree with it, it says so.
+    let folder = ActivityRecord.monthFolder actor (DateOnly(2026, 10, 1)) |> ok |> RelativePath.render
+    Assert.Empty(ActivityIndex.disagreements kept folder [ RelativePath.render path, snapshot.Activities["A-1"].ContentHash ])
+    Assert.Equal<string list>([ RelativePath.render path ], ActivityIndex.disagreements kept folder [ RelativePath.render path, "sha256:other" ])

@@ -113,6 +113,14 @@ type StoreState =
       Conflicts: ConflictCase list
       /// Where the unsent changes stand.
       Sync: SyncState
+      /// The months whose folders were read, as (year, month).
+      Months: (int * int) list
+      /// Months asked for and not read yet.
+      Reading: (int * int) list
+      /// Each person's months that hold time, from the activity index.
+      History: ActivityIndex.MonthTotal list
+      /// What the activity index covers, or why it is not kept.
+      Index: string
       /// The organization has no administrator the deployment lists: why,
       /// and whether this person, being listed, may confirm themselves.
       Confirmation: (string * bool) option }
@@ -128,7 +136,14 @@ type StoreContents =
       Members: Access.Membership list
       /// Records edited outside Chrona, held for review (41).
       Held: Activity list
-      Problems: Diagnostic list }
+      Problems: Diagnostic list
+      /// The months whose folders were read, as (year, month).
+      Months: (int * int) list
+      /// Each person's months that hold time, from the activity index
+      /// (derived, WI-0034).
+      History: ActivityIndex.MonthTotal list
+      /// What the activity index covers, or why it is not kept, for the person.
+      Index: string }
 
 type Screen =
     | Today
@@ -311,6 +326,8 @@ type Form =
     | ConflictForm
     /// Accepting a record edited outside Chrona.
     | OutsideEditForm
+    /// Rebuilding the activity index.
+    | IndexForm
 
 [<NoComparison>]
 type Model =
@@ -393,6 +410,10 @@ let initial (session: Session) (store: StoreKind) (now: DateTimeOffset) =
           Held = []
           Conflicts = []
           Sync = initialSync
+          Months = []
+          Reading = []
+          History = []
+          Index = ""
           Confirmation = None }
       Zone = None
       Now = now

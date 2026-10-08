@@ -879,6 +879,9 @@
           <article class="ef-metric-card"><div class="ef-metric-card__label">Corrections</div><div class="ef-metric-card__value" data-text="monthCorrections"></div></article>
           <article class="ef-metric-card"><div class="ef-metric-card__label">Voided</div><div class="ef-metric-card__value" data-text="monthVoided"></div></article>
         </div>
+        <template data-if="monthReading">
+          <p class="chrona-intro" role="status" id="month-reading">Reading this month's records from GitHub…</p>
+        </template>
         <template data-if="monthEmpty">
           <div class="ef-empty-state chrona-empty">
             <div class="ef-empty-state__symbol" aria-hidden="true">□</div>
@@ -903,6 +906,22 @@
             </ul>
           </section>
         </div>
+        <template data-if="hasMonthHistory">
+          <section class="ef-surface chrona-card" aria-labelledby="month-history-title" id="month-history">
+            <h2 class="chrona-section-title" id="month-history-title">Months with recorded time</h2>
+            <p class="chrona-intro" data-text="monthIndex"></p>
+            <ul class="chrona-days">
+              <template data-each="monthHistory" data-key="id">
+                <li class="chrona-days__item" data-bind-data-current="current">
+                  <button type="button" class="chrona-link" data-event="showMonth" data-text="label"></button>
+                  <span data-text="count"></span>
+                  <span data-text="approved"></span>
+                  <strong data-text="total"></strong>
+                </li>
+              </template>
+            </ul>
+          </section>
+        </template>
         <div class="chrona-form-actions">
           <button type="button" class="chrona-action chrona-action--primary" id="report-month" data-event="reportMonth">Report on this month</button>
         </div>
@@ -1315,6 +1334,18 @@
                   </template>
                   <button type="submit" class="chrona-action chrona-action--secondary" id="admit">Add member</button>
                 </form>
+              </section>
+            </template>
+
+            <template data-if="canRebuildIndex">
+              <section class="ef-surface chrona-card" aria-labelledby="index-title" id="activity-index">
+                <h2 class="chrona-section-title" id="index-title">Activity index</h2>
+                <p class="chrona-intro">Derived from the records, never a record itself: it lists every month that holds time, so history needs one read. Rebuilding it reads every record in the organization.</p>
+                <p class="chrona-intro" id="index-status" data-text="indexStatus"></p>
+                <template data-if="hasIndexProblems">
+                  <ul class="chrona-problems" role="alert"><template data-each="indexProblems" data-key="id"><li data-bind-data-code="code" data-text="text"></li></template></ul>
+                </template>
+                <button type="button" class="chrona-action chrona-action--secondary" id="rebuild-index" data-event="rebuildIndex">Rebuild from the records</button>
               </section>
             </template>
           </aside>

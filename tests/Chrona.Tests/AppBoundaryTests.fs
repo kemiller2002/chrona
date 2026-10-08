@@ -48,7 +48,9 @@ let private envWith (answer: StoreRequest -> StoreOutcome) =
               Commit =
                 fun request ->
                     requests.Add request
-                    bridge.Start(async { return [ Chrona.Engine.App.Update.StoreAnswered(request.CommitId, answer request) ] }) } }
+                    bridge.Start(async { return [ Chrona.Engine.App.Update.StoreAnswered(request.CommitId, answer request) ] })
+              Read = fun _ -> ()
+              Rebuild = fun () -> () } }
 
     env, requests
 
@@ -425,10 +427,20 @@ let private richViews () =
                             model.Problems
                                 .Add(ConflictForm, [ Chrona.Domain.Diagnostics.UnauthorizedCapability "AmendOwnTime" ])
                                 .Add(OutsideEditForm, [ Chrona.Domain.Diagnostics.ExternalStateClaim(held.ActivityId, "Approved") ])
+                                .Add(IndexForm, [ Chrona.Domain.Diagnostics.UnauthorizedCapability "ManageOrganizationSettings" ])
                         Store =
                             { model.Store with
                                 Integrity = [ Chrona.Domain.Diagnostics.ExternalEdit "records/chrona.activity/a/2026/10/A-1.json" ]
                                 Held = [ held ]
+                                History =
+                                    [ { ActorId = model.Session.ActorId
+                                        Year = 2026
+                                        Month = 9
+                                        Activities = 3
+                                        Minutes = 180
+                                        ApprovedMinutes = 60
+                                        PublishedMinutes = 0 } ]
+                                Index = "Kept with every change: 3 records in 1 months of time."
                                 Conflicts =
                                     [ { Id = "COMMIT-refused"
                                         Request = request

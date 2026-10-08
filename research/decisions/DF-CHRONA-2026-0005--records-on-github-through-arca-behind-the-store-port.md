@@ -2,7 +2,7 @@
 id: DF-CHRONA-2026-0005
 title: Records live on GitHub through Arca's provider behind the store port, every commit conditioned on the repository state and decided again when it moved
 status: accepted
-version: 1.2.0
+version: 1.3.0
 created: 2026-10-08
 updated: 2026-10-08
 owners:
@@ -58,13 +58,23 @@ provenance:
         model: unknown
         runtime: claude-code
       reason: "The queue of unsent changes (WI-0033)"
+    EXE-20261008T144745237Z-69fb3f15:
+      operations: [modified]
+      at: 2026-10-08T14:59:43.591Z
+      actor:
+        kind: agent
+        id: anthropic/claude-code
+        provider: anthropic
+        model: unknown
+        runtime: claude-code
+      reason: "Derived state: the activity index (WI-0034)"
 ---
 
 # DF-CHRONA-2026-0005 — Records on GitHub through Arca
 
 - **Date:** 2026-10-08
 - **Status:** accepted
-- **Work items:** WI-0028, WI-0051, WI-0032, WI-0053, WI-0035, WI-0033
+- **Work items:** WI-0028, WI-0051, WI-0032, WI-0053, WI-0035, WI-0033, WI-0034
 
 ## Context
 
@@ -141,6 +151,23 @@ and semantic conflicts surfaced.
    browser. If it holds another account's unsent changes, they are left
    untouched for that account and this session's queue is kept in the page
    only, with a note. They are never sent with another person's credential.
+10. **Derived state (WI-0034).** The activity index is an Arca derived
+    index (`ActivityIndex.definition`, stored at
+    `derived/indexes/activity-months.json`) with one entry per activity
+    record: its path, content hash, actor, month, minutes and states.
+    Because each entry carries its record's path and hash, the index's
+    source set follows from the entries, so Chrona keeps it current by
+    applying each commit's changes (`ActivityIndex.apply`) and writing it in
+    the same commit; the result is exactly what `Derived.rebuild` makes.
+    The store reads it when the records open (one read), and checks it
+    against every month folder it reads: where they disagree (an outside
+    edit), the page says the index is out of date. An administrator
+    rebuilds it from every record under More (`Derived.rebuild`, which
+    reads the whole folder): the recovery path, and how an organization
+    from before the index gets one. Past 512,000 characters the index is no
+    longer written with each change and says so; rebuilding still works.
+    The page lists each month that holds the person's time from the index,
+    and reads a month folder only when the person goes to it.
 4. **Bounded reads.** A change to a month not yet read reads that month
    first, so it is never checked against less than what is stored.
 5. **The organization.** A storing deployment lists the organizations it
@@ -165,6 +192,11 @@ and semantic conflicts surfaced.
 - The queue holds operations, never record state, so it is not a
   competing authority: records are read only from GitHub, and opening them
   needs a connection. Starting offline is WI-0055.
+- The index is one file for the organization, read by every member with
+  access to the repository (as the records already are); the page shows
+  each person only their own months. Rebuilding reads every record, which
+  is costly on a large organization; it is an explicit administrator
+  action, never automatic.
 - Unsent changes include record content, kept in this browser's
   localStorage until sent; signing out does not discard them, because
   nothing is ever dropped silently. A shared computer keeps them for their

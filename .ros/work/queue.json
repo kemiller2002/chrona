@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "repository": "chrona",
-  "nextSeq": 48,
+  "nextSeq": 50,
   "items": [
     {
       "id": "WI-0001",
@@ -739,8 +739,8 @@
     },
     {
       "id": "WI-0036",
-      "title": "Chrona 11: timesheet periods (CHX-150)",
-      "description": "Depends on WI-0032. Period definitions, open/closed states and how they interact with submission, approval and attestation.",
+      "title": "Chrona 11: timesheet periods on Arca - persisted period configuration, closed periods and their effect on submission and approval (CHX-150 remainder)",
+      "description": "Depends on WI-0032. The pure cadences, configuration and summaries are WI-0048; this item stores the organization's period configuration and period state through Arca and enforces closed periods in submission, approval and attestation.",
       "tags": [
         "chrona",
         "order:11",
@@ -750,7 +750,7 @@
       "status": "captured",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:49.227Z",
-      "updatedAt": "2026-10-08T07:43:49.227Z",
+      "updatedAt": "2026-10-08T10:08:21.026Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",
@@ -817,8 +817,8 @@
     },
     {
       "id": "WI-0039",
-      "title": "Chrona 14: search, reporting and export with Folio (CHX-270, CHX-280, CHX-290)",
-      "description": "Depends on WI-0034 and WI-0035. Search, printable and PDF time reports through Folio (every app except Helix uses Folio for PDFs), and CSV/JSON export without tokens or sensitive text.",
+      "title": "Chrona 14: search, reporting and export on stored data - rebuildable search indexes and reports across people and organizations (CHX-270, CHX-280, CHX-290 remainders)",
+      "description": "Depends on WI-0034 and WI-0035. The in-memory search, reports, deterministic export and Folio print document are WI-0049; this item serves them from Arca-stored records through rebuildable derived indexes, across people and organizations, with PDF output through Folio.",
       "tags": [
         "chrona",
         "order:14",
@@ -829,7 +829,7 @@
       "status": "captured",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:50.164Z",
-      "updatedAt": "2026-10-08T07:43:50.164Z",
+      "updatedAt": "2026-10-08T10:08:21.312Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",
@@ -1036,6 +1036,56 @@
       "attachments": [],
       "createdAt": "2026-10-08T09:09:10.273Z",
       "updatedAt": "2026-10-08T10:03:49.207Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0048",
+      "title": "Chrona 11a: timesheet periods in the pure domain - cadences, organization period configuration and period summaries, shown in the app in memory (CHX-150)",
+      "description": "The storage-independent part of WI-0036: daily, weekly, biweekly, semi-monthly and monthly periods with a configurable week start, time zone, submission expectation and approval requirement; period summaries with exact, billable, non-billable and unclassified time, submission and approval state and outstanding obligations; a period panel on Today. Persisted period configuration and closed periods stay with WI-0036.",
+      "tags": [
+        "chrona",
+        "periods",
+        "domain"
+      ],
+      "priority": "medium",
+      "status": "complete",
+      "attachments": [],
+      "createdAt": "2026-10-08T10:08:15.124Z",
+      "updatedAt": "2026-10-08T10:16:39.299Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0049",
+      "title": "Chrona 14a: search, reports and deterministic export in memory, printable through Folio (CHX-270, CHX-280, CHX-290, CHX-005)",
+      "description": "The in-memory part of WI-0039: filters and text search over the session's records, reports by day, project, activity type and tag that keep exact and billable time apart, deterministic CSV and JSON exports that name the organization, generation time, range, schema version, filters and duration semantics, copied through Limen's clipboard effect, and a printable Folio document. Derived, rebuildable indexes on Arca stay with WI-0039 and WI-0034.",
+      "tags": [
+        "chrona",
+        "reporting",
+        "folio"
+      ],
+      "priority": "medium",
+      "status": "captured",
+      "attachments": [],
+      "createdAt": "2026-10-08T10:08:15.442Z",
+      "updatedAt": "2026-10-08T10:08:15.442Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

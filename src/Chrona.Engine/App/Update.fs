@@ -62,7 +62,7 @@ let eventNames =
       "splitFirst"; "splitSecond"; "splitEvidence"; "saveSplit"
       "evidenceKind"; "evidenceUrl"; "evidenceLabel"; "attachEvidence"; "unlinkEvidence"
       "mergeSelect"; "mergeActivityType"; "mergeProject"; "mergeDescription"; "mergePurpose"; "saveMerge"
-      "attestStatement"; "attestDay"; "resolveObligation" ]
+      "attestStatement"; "attestDay"; "resolveObligation"; "periodCadence"; "periodWeekStart" ]
 
 // ---- helpers ----------------------------------------------------------------
 
@@ -607,7 +607,24 @@ let private onEvent (ctx: Ctx) (name: string) (key: string option) (value: strin
         | [| "stopped"; _ |] -> navigate { Screen = Track; Date = None } model
         | [| "attestation"; date |] -> navigate { Screen = DayReview; Date = Format.parseIsoDate date } model
         | [| "store" |] -> navigate { Screen = More; Date = None } model
+        | [| "period"; _ |] -> navigate { Screen = Today; Date = None } model
         | _ -> invalidArg (nameof key) $"Unknown obligation: {key}"
+    | "periodCadence" ->
+        let cadence =
+            match value with
+            | "daily" -> Periods.Daily
+            | "weekly" -> Periods.Weekly
+            // A fortnight counted from the week that contains today.
+            | "biweekly" -> Periods.Biweekly((Periods.containing { model.PeriodConfig with Cadence = Periods.Weekly } (Model.today model)).Start)
+            | "semimonthly" -> Periods.SemiMonthly
+            | "monthly" -> Periods.Monthly
+            | other -> invalidArg (nameof value) $"Unknown cadence: {other}"
+
+        { model with PeriodConfig = { model.PeriodConfig with Cadence = cadence } }, []
+    | "periodWeekStart" ->
+        match Enum.TryParse<DayOfWeek>(value) with
+        | true, day -> { model with PeriodConfig = { model.PeriodConfig with WeekStart = day } }, []
+        | _ -> invalidArg (nameof value) $"Unknown day: {value}"
     | "attestStatement" -> { model with AttestStatement = value }, []
     | "attestDay" -> attestDay ctx model
 
@@ -628,7 +645,11 @@ let update (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
         // An unknown zone falls back to UTC, visibly: the More screen says
         // which zone is in use.
         let zone = tryZone timeZone |> Result.toOption |> Option.orElse (tryZone "UTC" |> Result.toOption)
-        { model with Zone = zone }, []
+
+        { model with
+            Zone = zone
+            PeriodConfig = { model.PeriodConfig with ZoneId = zone |> Option.map _.Id |> Option.defaultValue "UTC" } },
+        []
     | EnvironmentUnavailable -> { model with Zone = tryZone "UTC" |> Result.toOption }, []
     | LocationMoved hash -> followRoute { model with Route = Routes.parse hash }, []
     | Ticked generation ->

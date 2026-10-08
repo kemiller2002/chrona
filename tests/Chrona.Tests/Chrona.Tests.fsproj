@@ -24,6 +24,7 @@
     <Compile Include="CompatibilityTests.fs" />
     <Compile Include="LegacyRuleTests.fs" />
     <Compile Include="ReferenceTests.fs" />
+    <Compile Include="PeriodTests.fs" />
     <Compile Include="AppEngineTests.fs" />
     <Compile Include="AppBoundaryTests.fs" />
   </ItemGroup>

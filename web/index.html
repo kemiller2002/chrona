@@ -140,6 +140,18 @@
                 <div class="ef-facts__item"><dt>Evidence coverage</dt><dd data-text="dayEvidence"></dd></div>
               </dl>
             </section>
+            <section class="ef-surface chrona-card" aria-labelledby="period-title" id="period">
+              <h2 class="chrona-section-title" id="period-title">This period</h2>
+              <p class="chrona-intro" id="period-label" data-text="periodLabel"></p>
+              <dl class="ef-facts chrona-facts">
+                <div class="ef-facts__item"><dt>Exact</dt><dd id="period-exact" data-text="periodExact"></dd></div>
+                <div class="ef-facts__item"><dt>Billable, as billed</dt><dd data-text="periodBillable"></dd></div>
+                <div class="ef-facts__item"><dt>Non-billable</dt><dd data-text="periodNonBillable"></dd></div>
+                <div class="ef-facts__item"><dt>Unclassified</dt><dd data-text="periodUnclassified"></dd></div>
+                <div class="ef-facts__item"><dt>Submission</dt><dd data-text="periodSubmission"></dd></div>
+                <div class="ef-facts__item"><dt>Approval</dt><dd data-text="periodApproval"></dd></div>
+              </dl>
+            </section>
             <button type="button" class="chrona-action chrona-action--primary chrona-action--full" id="open-review" data-event="openReview">Review this day</button>
             <button type="button" class="chrona-action chrona-action--secondary chrona-action--full" data-event="goTrack">Add time</button>
 
@@ -857,6 +869,29 @@
           </section>
 
           <aside class="chrona-stack" aria-label="This session">
+            <section class="ef-surface chrona-card" aria-labelledby="period-settings-title">
+              <h2 class="chrona-section-title" id="period-settings-title">Timesheet period</h2>
+              <p class="chrona-intro">How the organization's time is grouped for review. Kept in this tab until storage exists.</p>
+              <label class="ef-select-field">
+                <span class="ef-field__label">Period</span>
+                <span class="ef-select">
+                  <select class="ef-select__input" id="period-cadence" data-event="periodCadence">
+                    <template data-each="periodCadenceOptions" data-key="id"><option data-bind-value="id" data-bind-selected="selected" data-text="name"></option></template>
+                  </select>
+                  <span class="ef-select__indicator" aria-hidden="true"></span>
+                </span>
+              </label>
+              <label class="ef-select-field">
+                <span class="ef-field__label">Weeks start on</span>
+                <span class="ef-select">
+                  <select class="ef-select__input" id="period-week-start" data-event="periodWeekStart">
+                    <template data-each="periodWeekStartOptions" data-key="id"><option data-bind-value="id" data-bind-selected="selected" data-text="name"></option></template>
+                  </select>
+                  <span class="ef-select__indicator" aria-hidden="true"></span>
+                </span>
+              </label>
+            </section>
+
             <section class="ef-surface chrona-card" aria-labelledby="session-title">
               <h2 class="chrona-section-title" id="session-title">This session</h2>
               <dl class="ef-facts chrona-facts">

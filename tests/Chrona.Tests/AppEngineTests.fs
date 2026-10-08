@@ -530,3 +530,24 @@ let ``the month sums effective records by type and by day`` () =
     Assert.Equal<string list>([ "Thursday, October 8" ], itemsOf "monthDays" model |> List.map (field "label"))
     let september, _ = update (ctxAt start) (LocationMoved "#/month/2026-09") withThree
     Assert.True(flagOf "monthEmpty" september)
+
+// ---- timesheet periods (WI-0048) -------------------------------------------------------
+
+[<Fact>]
+let ``Today shows the configured period around the selected day`` () =
+    Assert.Equal("Oct 5 – Oct 11", textOf "periodLabel" withThree)
+    Assert.Equal("2h", textOf "periodExact" withThree)
+    Assert.Equal("2h", textOf "periodBillable" withThree)
+    Assert.Equal("Not submitted", textOf "periodSubmission" withThree)
+    Assert.Equal("Not required", textOf "periodApproval" withThree)
+    Assert.Equal("America/New_York", withThree.PeriodConfig.ZoneId)
+
+    let sunday, _ = update (ctxAt start) (ui "periodWeekStart" "Sunday") withThree
+    Assert.Equal("Oct 4 – Oct 10", textOf "periodLabel" sunday)
+    let monthly, _ = update (ctxAt start) (ui "periodCadence" "monthly") withThree
+    Assert.Equal("Oct 1 – Oct 31", textOf "periodLabel" monthly)
+    let daily, _ = update (ctxAt start) (ui "periodCadence" "daily") withThree
+    Assert.Equal("Thursday, October 8", textOf "periodLabel" daily)
+    let fortnight, _ = update (ctxAt start) (ui "periodCadence" "biweekly") withThree
+    Assert.Equal("Oct 5 – Oct 18", textOf "periodLabel" fortnight)
+    Assert.Equal<string list>([ "biweekly" ], itemsOf "periodCadenceOptions" fortnight |> List.filter (fun r -> field "selected" r = "True") |> List.map (field "id"))

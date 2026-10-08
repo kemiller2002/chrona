@@ -1409,10 +1409,10 @@
       "description": "Split from WI-0054. Scenario 42 (mobile timer workflow), 43 (keyboard-only workflow) and 44 (screen-reader timer behaviour) end to end in a real browser; reflow at 320 CSS pixels and 400% zoom; reduced motion; weekly totals and basic sync problems reachable on a phone. iPhone VoiceOver needs a person with an iPhone: its checklist is recorded for them. Requirements 35 and 36.",
       "tags": [],
       "priority": "medium",
-      "status": "ready",
+      "status": "complete",
       "attachments": [],
       "createdAt": "2026-10-08T16:25:38Z",
-      "updatedAt": "2026-10-08T17:41:04Z",
+      "updatedAt": "2026-10-08T17:45:05Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

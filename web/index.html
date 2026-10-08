@@ -247,6 +247,7 @@
           </label>
           <button type="button" class="chrona-action chrona-action--quiet" data-event="nextDay" aria-label="Next day"><span aria-hidden="true">→</span></button>
           <button type="button" class="chrona-action chrona-action--quiet" data-event="goToday">Today</button>
+          <a class="chrona-action chrona-action--quiet" id="day-week" data-bind-href="weekHref">Week</a>
         </div>
 
         <!-- The ledger's project filter lives in the address (CHX-460). -->
@@ -324,6 +325,7 @@
             <section class="ef-surface chrona-card" aria-labelledby="period-title" id="period">
               <h2 class="chrona-section-title" id="period-title">This period</h2>
               <p class="chrona-intro" id="period-label" data-text="periodLabel"></p>
+              <a class="chrona-link" id="open-period" data-bind-href="periodHref">Open the period</a>
               <dl class="ef-facts chrona-facts">
                 <div class="ef-facts__item"><dt>Exact</dt><dd id="period-exact" data-text="periodExact"></dd></div>
                 <div class="ef-facts__item"><dt>Billable, as billed</dt><dd data-text="periodBillable"></dd></div>
@@ -1039,6 +1041,143 @@
       </section>
     </template>
 
+    <!-- ======================= Week (CHX-460) ======================= -->
+    <template data-if="screenWeek">
+      <section class="chrona-screen" id="screen-week" aria-labelledby="week-title">
+        <div class="chrona-heading">
+          <p class="chrona-eyebrow">Week</p>
+          <h1 class="chrona-title" id="week-title" data-text="weekTitle"></h1>
+          <p class="chrona-intro">Each day's recorded work. Voided and superseded records are excluded from totals.</p>
+        </div>
+        <div class="chrona-day-nav">
+          <button type="button" class="chrona-action chrona-action--quiet" data-event="previousWeek" aria-label="Previous week"><span aria-hidden="true">←</span></button>
+          <button type="button" class="chrona-action chrona-action--quiet" data-event="nextWeek" aria-label="Next week"><span aria-hidden="true">→</span></button>
+        </div>
+        <label class="ef-select-field chrona-day-filter">
+          <span class="ef-field__label">Project</span>
+          <span class="ef-select">
+            <select class="ef-select__input" id="week-project" data-event="weekProject">
+              <template data-each="weekProjectOptions" data-key="id"><option data-bind-value="id" data-bind-selected="selected" data-text="name"></option></template>
+            </select>
+            <span class="ef-select__indicator" aria-hidden="true"></span>
+          </span>
+        </label>
+        <div class="chrona-metrics">
+          <article class="ef-metric-card"><div class="ef-metric-card__label">Recorded</div><div class="ef-metric-card__value" id="week-total" data-text="weekTotal"></div></article>
+          <article class="ef-metric-card"><div class="ef-metric-card__label">Billed</div><div class="ef-metric-card__value" data-text="weekBilled"></div></article>
+          <article class="ef-metric-card"><div class="ef-metric-card__label">Decimal hours</div><div class="ef-metric-card__value" data-text="weekDecimal"></div></article>
+          <article class="ef-metric-card"><div class="ef-metric-card__label">Entries</div><div class="ef-metric-card__value" data-text="weekEntryCount"></div></article>
+        </div>
+        <section class="ef-surface chrona-card" aria-labelledby="week-days-title">
+          <h2 class="chrona-section-title" id="week-days-title">Days</h2>
+          <ul class="chrona-days" id="week-days">
+            <template data-each="weekDays" data-key="id">
+              <li class="chrona-days__item"><a class="chrona-link" data-bind-href="href" data-text="label"></a><span data-text="count"></span><strong data-text="total"></strong></li>
+            </template>
+          </ul>
+        </section>
+      </section>
+    </template>
+
+    <!-- ======================= Timesheet period (CHX-460) ======================= -->
+    <template data-if="screenPeriod">
+      <section class="chrona-screen" id="screen-period" aria-labelledby="period-page-title">
+        <div class="chrona-heading">
+          <p class="chrona-eyebrow" data-text="periodPageCadence"></p>
+          <h1 class="chrona-title" id="period-page-title" data-text="periodPageTitle"></h1>
+          <p class="chrona-intro">The organization's timesheet period: its totals, where submission and approval stand, and each day.</p>
+        </div>
+        <div class="chrona-day-nav">
+          <button type="button" class="chrona-action chrona-action--quiet" data-event="previousPeriod" aria-label="Previous period"><span aria-hidden="true">←</span></button>
+          <button type="button" class="chrona-action chrona-action--quiet" data-event="nextPeriod" aria-label="Next period"><span aria-hidden="true">→</span></button>
+        </div>
+        <div class="chrona-layout">
+          <section class="ef-surface chrona-card" aria-labelledby="period-page-days-title">
+            <h2 class="chrona-section-title" id="period-page-days-title">Days</h2>
+            <ul class="chrona-days" id="period-days">
+              <template data-each="periodDays" data-key="id">
+                <li class="chrona-days__item"><a class="chrona-link" data-bind-href="href" data-text="label"></a><span data-text="count"></span><strong data-text="total"></strong></li>
+              </template>
+            </ul>
+          </section>
+          <section class="ef-surface chrona-card" aria-labelledby="period-page-summary-title">
+            <h2 class="chrona-section-title" id="period-page-summary-title">Summary</h2>
+            <dl class="ef-facts chrona-facts">
+              <div class="ef-facts__item"><dt>Exact</dt><dd id="period-page-exact" data-text="periodPageExact"></dd></div>
+              <div class="ef-facts__item"><dt>Billable, as billed</dt><dd data-text="periodPageBillable"></dd></div>
+              <div class="ef-facts__item"><dt>Non-billable</dt><dd data-text="periodPageNonBillable"></dd></div>
+              <div class="ef-facts__item"><dt>Unclassified</dt><dd data-text="periodPageUnclassified"></dd></div>
+              <div class="ef-facts__item"><dt>Submission</dt><dd data-text="periodPageSubmission"></dd></div>
+              <div class="ef-facts__item"><dt>Approval</dt><dd data-text="periodPageApproval"></dd></div>
+            </dl>
+          </section>
+        </div>
+      </section>
+    </template>
+
+    <!-- ======================= Projects (CHX-460) ======================= -->
+    <template data-if="screenProjects">
+      <section class="chrona-screen" id="screen-projects" aria-labelledby="projects-title">
+        <div class="chrona-heading">
+          <p class="chrona-eyebrow">Reference data</p>
+          <h1 class="chrona-title" id="projects-title">Projects</h1>
+          <p class="chrona-intro">Every project of the organization, archived ones too. Add or archive projects under More.</p>
+        </div>
+        <template data-if="projectsEmpty">
+          <div class="ef-empty-state chrona-empty">
+            <div class="ef-empty-state__symbol" aria-hidden="true">□</div>
+            <h2>No projects yet.</h2>
+          </div>
+        </template>
+        <section class="ef-surface chrona-card" aria-labelledby="project-list-title">
+          <h2 class="chrona-section-title" id="project-list-title">All projects</h2>
+          <ul class="chrona-days" id="project-list">
+            <template data-each="projectList" data-key="id">
+              <li class="chrona-days__item"><a class="chrona-link" data-bind-href="href" data-text="name"></a><span data-text="state"></span></li>
+            </template>
+          </ul>
+        </section>
+      </section>
+    </template>
+
+    <template data-if="screenProject">
+      <section class="chrona-screen" id="screen-project" aria-labelledby="project-title">
+        <div class="chrona-heading">
+          <a class="chrona-link" href="#/projects">← All projects</a>
+          <p class="chrona-eyebrow" data-text="projectState"></p>
+          <h1 class="chrona-title" id="project-title" data-text="projectName"></h1>
+          <p class="chrona-intro">Your time on this project. Voided and superseded records are excluded from totals.</p>
+        </div>
+        <div class="chrona-metrics">
+          <article class="ef-metric-card"><div class="ef-metric-card__label">Recorded</div><div class="ef-metric-card__value" id="project-total" data-text="projectTotal"></div></article>
+          <article class="ef-metric-card"><div class="ef-metric-card__label">Billed</div><div class="ef-metric-card__value" data-text="projectBilled"></div></article>
+          <article class="ef-metric-card"><div class="ef-metric-card__label">Entries</div><div class="ef-metric-card__value" data-text="projectEntryCount"></div></article>
+        </div>
+        <template data-if="projectReading">
+          <p class="chrona-intro" role="status" id="project-reading">Reading your records from GitHub…</p>
+        </template>
+        <template data-if="projectEmpty">
+          <div class="ef-empty-state chrona-empty">
+            <div class="ef-empty-state__symbol" aria-hidden="true">□</div>
+            <h2>No time recorded on this project yet.</h2>
+          </div>
+        </template>
+        <section class="ef-surface chrona-card" aria-labelledby="project-entries-title">
+          <h2 class="chrona-section-title" id="project-entries-title">Entries, newest first</h2>
+          <ul class="chrona-days" id="project-entries">
+            <template data-each="projectEntries" data-key="id">
+              <li class="chrona-days__item chrona-days__item--entry"><a class="chrona-link" data-bind-href="href" data-text="title"></a><span data-text="detail"></span><strong data-text="duration"></strong></li>
+            </template>
+          </ul>
+        </section>
+        <div class="chrona-form-actions">
+          <a class="chrona-action chrona-action--secondary" id="project-today" data-bind-href="projectTodayHref">Today on this project</a>
+          <a class="chrona-action chrona-action--secondary" id="project-week" data-bind-href="projectWeekHref">This week</a>
+          <a class="chrona-action chrona-action--primary" id="project-report" data-bind-href="projectReportHref">Report on this project</a>
+        </div>
+      </section>
+    </template>
+
     <!-- ======================= Reports ======================= -->
     <template data-if="screenReports">
       <section class="chrona-screen" id="screen-reports" aria-labelledby="reports-title">
@@ -1214,7 +1353,7 @@
         <div class="chrona-layout">
           <section class="ef-surface chrona-card" aria-labelledby="references-title">
             <h2 class="chrona-section-title" id="references-title">Projects, activity types &amp; tags</h2>
-            <p class="chrona-intro">Uncheck an item to stop offering it for new work. It stays on past records either way.</p>
+            <p class="chrona-intro">Uncheck an item to stop offering it for new work. It stays on past records either way. <a class="chrona-link" id="all-projects" href="#/projects">See every project and your time on it</a>.</p>
 
             <fieldset class="chrona-reference" id="projects">
               <legend class="chrona-reference__legend">Projects</legend>

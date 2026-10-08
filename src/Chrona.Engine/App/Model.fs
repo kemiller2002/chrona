@@ -560,6 +560,8 @@ let today (model: Model) =
 let selectedDate (model: Model) =
     match model.Place with
     | Places.Day(on, _)
+    | Places.Week(on, _)
+    | Places.Period on
     | Places.Review on -> on
     | Places.Month(year, month) -> DateOnly(year, month, 1)
     | _ -> today model
@@ -568,3 +570,7 @@ let selectedDate (model: Model) =
 let selectedMonth (model: Model) =
     let date = selectedDate model
     DateOnly(date.Year, date.Month, 1)
+
+/// The week that contains a date, by the organization's first day of the week.
+let weekOf (model: Model) (date: DateOnly) =
+    Periods.containing { model.PeriodConfig with Cadence = Periods.Weekly } date

@@ -5,7 +5,7 @@
 // address that names nothing shows the not-found page, the skip link leaves
 // the address alone, and an address that needs sign-in survives the GitHub
 // round trip. The deployment is the repository's own: local, in memory.
-import { test, expect, fakeDeployment, PAGE, signInConfiguration } from "./support.js";
+import { test, expect, fakeDeployment, PAGE, signInConfiguration, setUp } from "./support.js";
 
 test.use({ timezoneId: "America/New_York" });
 
@@ -37,7 +37,10 @@ test("every place opens cold from its address", async ({ page }) => {
     ["#/review/2026-10-01", "#screen-review", null, null],
     ["#/more", "#screen-more", null, null],
     ["#/more/references", "#screen-more", null, null],
-    ["#/more/people", "#screen-more", null, null]
+    ["#/more/people", "#screen-more", null, null],
+    ["#/week/2026-09-28", "#screen-week", "#week-title", "Sep 28 – Oct 4"],
+    ["#/periods/2026-09-28", "#screen-period", "#period-page-title", "Sep 28 – Oct 4"],
+    ["#/projects", "#screen-projects", "#projects-title", "Projects"]
   ];
 
   for (const [fragment, screen, heading, text] of places) {
@@ -89,7 +92,9 @@ test("an address that names nothing shows the not-found page, and its way home",
     ["#/day/2026-02-30", "Page not found"],
     ["#/more/billing", "Page not found"],
     ["#/entries/ACT-none", "Not found"],
-    ["#/day/2026-10-01?project=PRJ-none", "Not found"]
+    ["#/day/2026-10-01?project=PRJ-none", "Not found"],
+    ["#/projects/PRJ-none", "Not found"],
+    ["#/week/2026-09-28?project=PRJ-none", "Not found"]
   ]) {
     await open(page, fragment);
     await expect(page.locator("#screen-problem"), fragment).toBeVisible();
@@ -188,4 +193,28 @@ test("an address that needs sign-in survives the GitHub round trip, and no addre
   expect(page.url()).not.toMatch(/code=|state=/);
   // Read once, then forgotten from the tab.
   expect(await page.evaluate(() => sessionStorage.getItem("chrona.returnTo"))).toBeNull();
+});
+
+test("a week or period named by another of its days is corrected to its first day", async ({ page }) => {
+  await open(page, "#/week/2026-10-01");
+  await expect(page).toHaveURL(`${PAGE}#/week/2026-09-28`);
+  await expect(page.locator("#week-title")).toHaveText("Sep 28 – Oct 4");
+  await noEntryAdded(page);
+  await open(page, "#/periods/2026-10-01");
+  await expect(page).toHaveURL(`${PAGE}#/periods/2026-09-28`);
+  await noEntryAdded(page);
+});
+
+test("a project's page is reached from More and links to its day, week and report", async ({ page }) => {
+  await open(page, "#/more");
+  await setUp(page);
+  await page.click("#all-projects");
+  await expect(page).toHaveURL(`${PAGE}#/projects`);
+  await page.click("#project-list a:has-text('HelixNote')");
+  await expect(page.locator("#project-title")).toHaveText("HelixNote");
+  const id = page.url().split("#/projects/")[1];
+  await expect(page.locator("#project-report")).toHaveAttribute("href", `#/reports?project=${id}`);
+  await page.click("#project-week");
+  await expect(page.locator("#screen-week")).toBeVisible();
+  await expect(page.locator("#week-project")).toHaveValue(id);
 });

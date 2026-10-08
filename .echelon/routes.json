@@ -68,6 +68,43 @@
       "guards": [
         "signedIn"
       ],
+      "name": "thisWeek",
+      "params": [],
+      "pattern": "/week",
+      "requires": [],
+      "returnTarget": true
+    },
+    {
+      "guards": [
+        "signedIn"
+      ],
+      "name": "week",
+      "params": [
+        {
+          "default": null,
+          "in": "path",
+          "name": "on",
+          "required": true,
+          "type": "date",
+          "values": null
+        },
+        {
+          "default": null,
+          "in": "query",
+          "name": "project",
+          "required": false,
+          "type": "string",
+          "values": null
+        }
+      ],
+      "pattern": "/week/{on:date}",
+      "requires": [],
+      "returnTarget": true
+    },
+    {
+      "guards": [
+        "signedIn"
+      ],
       "name": "thisMonth",
       "params": [],
       "pattern": "/month",
@@ -91,6 +128,66 @@
       ],
       "pattern": "/month/{period:month}",
       "requires": [],
+      "returnTarget": true
+    },
+    {
+      "guards": [
+        "signedIn"
+      ],
+      "name": "thisPeriod",
+      "params": [],
+      "pattern": "/periods",
+      "requires": [],
+      "returnTarget": true
+    },
+    {
+      "guards": [
+        "signedIn"
+      ],
+      "name": "period",
+      "params": [
+        {
+          "default": null,
+          "in": "path",
+          "name": "on",
+          "required": true,
+          "type": "date",
+          "values": null
+        }
+      ],
+      "pattern": "/periods/{on:date}",
+      "requires": [],
+      "returnTarget": true
+    },
+    {
+      "guards": [
+        "signedIn"
+      ],
+      "name": "projects",
+      "params": [],
+      "pattern": "/projects",
+      "requires": [],
+      "returnTarget": true
+    },
+    {
+      "guards": [
+        "signedIn"
+      ],
+      "name": "project",
+      "params": [
+        {
+          "default": null,
+          "in": "path",
+          "name": "id",
+          "required": true,
+          "type": "string",
+          "values": null
+        }
+      ],
+      "pattern": "/projects/{id:string}",
+      "requires": [
+        "project"
+      ],
       "returnTarget": true
     },
     {

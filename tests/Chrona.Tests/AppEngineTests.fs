@@ -842,3 +842,60 @@ let ``the day's ledger is filtered by project through its address`` () =
     // The filter survives moving between days, and "All projects" clears it.
     Assert.Equal<Effect list>([ replace $"/day/2026-10-07?project={otherId}" ], snd (update (ctxAt start) (ui "previousDay" "") none))
     Assert.Equal<Effect list>([ replace "/day/2026-10-08" ], snd (update (ctxAt start) (ui "dayProject" "") none))
+
+// ---- the week, a period and projects (CHX-460) -------------------------------------
+
+[<Fact>]
+let ``a week is named by its first day: another of its days is corrected in place`` () =
+    // The organization's week starts on Monday: Thursday 8 October is in the week of the 5th.
+    let week, effects = update (ctxAt start) (LocationMoved "#/week/2026-10-08") withThree
+    Assert.Equal<Effect list>([ replace "/week/2026-10-05" ], effects)
+    Assert.Equal(Places.Week(DateOnly(2026, 10, 5), None), week.Place)
+    Assert.True(flagOf "screenWeek" week)
+    Assert.Equal("Oct 5 – Oct 11", textOf "weekTitle" week)
+    Assert.Equal<string list>([ "0m"; "0m"; "0m"; "2h"; "0m"; "0m"; "0m" ], itemsOf "weekDays" week |> List.map (field "total"))
+    Assert.Equal("#/day/2026-10-08", field "href" (List.item 3 (itemsOf "weekDays" week)))
+    // Moving between weeks and filtering refine it.
+    Assert.Equal<Effect list>([ replace "/week/2026-09-28" ], snd (update (ctxAt start) (ui "previousWeek" "") week))
+    Assert.Equal<Effect list>([ replace "/week/2026-10-12" ], snd (update (ctxAt start) (ui "nextWeek" "") week))
+    let filtered, effects = update (ctxAt start) (ui "weekProject" project) week
+    Assert.Equal<Effect list>([ replace $"/week/2026-10-05?project={project}" ], effects)
+    Assert.Equal($"#/day/2026-10-08?project={project}", field "href" (List.item 3 (itemsOf "weekDays" filtered)))
+    // This week's link is explicit, by its first day.
+    let thisWeek, _ = update (ctxAt start) (LocationMoved "#/week") withThree
+    Assert.Equal<Effect list>([ CopyText(LinkCopy, "http://127.0.0.1:4321/web/index.html#/week/2026-10-05") ], snd (update (ctxAt start) (ui "copyLink" "") thisWeek))
+    // The day links to its week.
+    let today, _ = update (ctxAt start) (LocationMoved "#/") withThree
+    Assert.Equal("#/week/2026-10-05", textOf "weekHref" today)
+
+[<Fact>]
+let ``a timesheet period has its own page, named by its first day`` () =
+    let period, effects = update (ctxAt start) (LocationMoved "#/periods/2026-10-08") withThree
+    Assert.Equal<Effect list>([ replace "/periods/2026-10-05" ], effects)
+    Assert.True(flagOf "screenPeriod" period)
+    Assert.Equal("2h", textOf "periodPageExact" period)
+    Assert.Equal("Weekly timesheet period", textOf "periodPageCadence" period)
+    Assert.Equal(7, (itemsOf "periodDays" period).Length)
+    Assert.Equal<Effect list>([ replace "/periods/2026-09-28" ], snd (update (ctxAt start) (ui "previousPeriod" "") period))
+    let today, _ = update (ctxAt start) (LocationMoved "#/") withThree
+    Assert.Equal("#/periods/2026-10-05", textOf "periodHref" today)
+
+[<Fact>]
+let ``a project has its own page with the person's time on it; an unknown one is not found`` () =
+    let projects, _ = update (ctxAt start) (LocationMoved "#/projects") withThree
+    Assert.True(flagOf "screenProjects" projects)
+    let row = (itemsOf "projectList" projects).Head
+    Assert.Equal("HelixNote", field "name" row)
+    Assert.Equal($"#/projects/{project}", field "href" row)
+
+    let page, _ = update (ctxAt start) (LocationMoved $"#/projects/{project}") withThree
+    Assert.True(flagOf "screenProject" page)
+    Assert.Equal("HelixNote", textOf "projectName" page)
+    Assert.Equal("2h", textOf "projectTotal" page)
+    Assert.Equal<string list>([ "Third"; "Second"; "First" ], itemsOf "projectEntries" page |> List.map (field "title"))
+    Assert.Equal($"#/reports?project={project}", textOf "projectReportHref" page)
+    Assert.Equal($"#/day/2026-10-08?project={project}", textOf "projectTodayHref" page)
+
+    let missing, _ = update (ctxAt start) (LocationMoved "#/projects/PRJ-none") withThree
+    Assert.True(flagOf "screenProblem" missing)
+    Assert.Equal("Not found", textOf "problemTitle" missing)

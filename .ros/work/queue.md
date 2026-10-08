@@ -76,4 +76,4 @@
 | WI-0068 | Chrona 16e: iPhone VoiceOver pass by a person, recorded against docs/accessibility-voiceover-checklist.md (CHX-350) | captured |  | medium |
 | WI-0069 | Chrona 08g: a GitHub API fake for the browser suite, and the Chromium two-tab queue tests (CHX-021, CHX-230, CHX-370) | complete |  | high |
 | WI-0070 | Chrona 16f: re-render the visual baselines routinely - a workflow that renders them with CI's pinned Chromium and opens a pull request (CHX-005) | complete |  | high |
-| WI-0071 | Chrona 17: deep links - every navigable state in the URL on Limen's URL-state semantics (CHX-460) | ready | chrona, routing, limen | high |
+| WI-0071 | Chrona 17: deep links - every navigable state in the URL on Limen's URL-state semantics (CHX-460) | active | chrona, routing, limen | high |

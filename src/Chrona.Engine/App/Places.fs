@@ -62,9 +62,24 @@ type Place =
     | Today
     /// One day's ledger, optionally only one project's time.
     | Day of on: DateOnly * project: string option
+    /// The week that contains today.
+    | ThisWeek
+    /// The week that contains `on`, by the organization's first day of the
+    /// week, optionally only one project's time. Its canonical `on` is the
+    /// week's first day.
+    | Week of on: DateOnly * project: string option
     /// The month that contains today.
     | ThisMonth
     | Month of year: int * month: int
+    /// The timesheet period that contains today.
+    | ThisPeriod
+    /// The timesheet period that contains `on`, by the organization's
+    /// cadence. Its canonical `on` is the period's first day.
+    | Period of on: DateOnly
+    /// The organization's projects.
+    | Projects
+    /// One project, and the person's time on it.
+    | Project of id: string
     | Track
     /// One activity. `on` is the day it was recorded on: the record is read
     /// from that month alone. Without it, the person's months are read until
@@ -90,10 +105,28 @@ module Names =
     let Day = "day"
 
     [<Literal>]
+    let ThisWeek = "thisWeek"
+
+    [<Literal>]
+    let Week = "week"
+
+    [<Literal>]
     let ThisMonth = "thisMonth"
 
     [<Literal>]
     let Month = "month"
+
+    [<Literal>]
+    let ThisPeriod = "thisPeriod"
+
+    [<Literal>]
+    let Period = "period"
+
+    [<Literal>]
+    let Projects = "projects"
+
+    [<Literal>]
+    let Project = "project"
 
     [<Literal>]
     let Track = "track"
@@ -187,8 +220,14 @@ let private optional name kind = QueryParam.optional name kind
 let private routes: Route list =
     [ guarded (Route.create Names.Today "")
       guarded { Route.create Names.Day "day/{on:date}" with Query = [ optional "project" ParamType.String ] }
+      guarded (Route.create Names.ThisWeek "week")
+      guarded { Route.create Names.Week "week/{on:date}" with Query = [ optional "project" ParamType.String ] }
       guarded (Route.create Names.ThisMonth "month")
       guarded (Route.create Names.Month "month/{period:month}")
+      guarded (Route.create Names.ThisPeriod "periods")
+      guarded (Route.create Names.Period "periods/{on:date}")
+      guarded (Route.create Names.Projects "projects")
+      guarded { Route.create Names.Project "projects/{id}" with Requires = [ Requires.Project ] }
       guarded (Route.create Names.Track "track")
       guarded
           { Route.create Names.Entry "entries/{id}" with
@@ -259,8 +298,14 @@ let toTarget (place: Place) : Target =
     match place with
     | Today -> target Names.Today [] []
     | Day(on, project) -> target Names.Day [ "on", date on ] [ "project", text project ]
+    | ThisWeek -> target Names.ThisWeek [] []
+    | Week(on, project) -> target Names.Week [ "on", date on ] [ "project", text project ]
     | ThisMonth -> target Names.ThisMonth [] []
     | Month(year, month) -> target Names.Month [ "period", Value.Month(year, month) ] []
+    | ThisPeriod -> target Names.ThisPeriod [] []
+    | Period on -> target Names.Period [ "on", date on ] []
+    | Projects -> target Names.Projects [] []
+    | Project id -> target Names.Project [ "id", Value.Text id ] []
     | Track -> target Names.Track [] []
     | Entry(id, on) -> target Names.Entry [ "id", Value.Text id ] [ "on", on |> Option.map date ]
     | ReviewToday -> target Names.ReviewToday [] []
@@ -312,6 +357,12 @@ let ofMatch (matched: Match) : Result<Place, string> =
     match matched.Route with
     | Names.Today -> Ok Today
     | Names.Day -> dateOf path "on" |> required "on" |> Result.map (fun on -> Day(on, textOf query "project"))
+    | Names.ThisWeek -> Ok ThisWeek
+    | Names.Week -> dateOf path "on" |> required "on" |> Result.map (fun on -> Week(on, textOf query "project"))
+    | Names.ThisPeriod -> Ok ThisPeriod
+    | Names.Period -> dateOf path "on" |> required "on" |> Result.map Period
+    | Names.Projects -> Ok Projects
+    | Names.Project -> textOf path "id" |> required "id" |> Result.map Project
     | Names.ThisMonth -> Ok ThisMonth
     | Names.Month ->
         match path.TryFind "period" with
@@ -422,11 +473,14 @@ let defaultRange (today: DateOnly) =
 
 /// The place a relative place means today, made explicit for a link that
 /// must open the same view on another day: today's ledger is that day's
-/// ledger, this month that month, today's review that day's review, and a
-/// report over "this month" that month's dates.
+/// ledger, this week, month or period that one, today's review that day's
+/// review, and a report over "this month" that month's dates. A week or
+/// period is named by today here; the engine names it by its first day.
 let explicit (today: DateOnly) (place: Place) =
     match place with
     | Today -> Day(today, None)
+    | ThisWeek -> Week(today, None)
+    | ThisPeriod -> Period today
     | ThisMonth -> Month(today.Year, today.Month)
     | ReviewToday -> Review today
     | Reports query ->

@@ -245,7 +245,7 @@ let ``a running timer asks the schedule pack for one-second wake-ups, and a fire
 [<Fact>]
 let ``every commit goes through the store port, and its answer is shown`` () =
     let _, aegis = collector ()
-    let env, requests = envWith (fun _ -> Conflict "changed on another device")
+    let env, requests = envWith (fun _ -> Conflict [ Chrona.Domain.Reconcile.KeptChanging ])
     let _, text = run aegis env [ initialize; event "newProjectName" None "HelixNote"; event "addProject" None "" ]
     let request = Seq.exactlyOne requests
     Assert.Equal<string list>([ "HelixNote" ], request.References |> List.map _.Name)
@@ -409,9 +409,30 @@ let private richViews () =
         [ event "periodCadence" None "monthly"; event "copyExport" None "" ] |> List.fold send limitedState
 
     // Records read from storage that need attention.
+    // Records read from storage that need attention: one edited outside
+    // Chrona, held for review, and a change not stored because the records
+    // moved, each with a refusal shown where it was resolved.
     let troubled =
         let model = state.Model.Value
-        { state with Model = Some { model with Store = { model.Store with Integrity = [ Chrona.Domain.Diagnostics.ExternalEdit "records/chrona.activity/a/2026/10/A-1.json" ] } } }
+        let held = model.Ledger.Activities[first]
+        let request = { emptyRequest "COMMIT-refused" with Activities = [ held ] }
+
+        { state with
+            Model =
+                Some
+                    { model with
+                        Problems =
+                            model.Problems
+                                .Add(ConflictForm, [ Chrona.Domain.Diagnostics.UnauthorizedCapability "AmendOwnTime" ])
+                                .Add(OutsideEditForm, [ Chrona.Domain.Diagnostics.ExternalStateClaim(held.ActivityId, "Approved") ])
+                        Store =
+                            { model.Store with
+                                Integrity = [ Chrona.Domain.Diagnostics.ExternalEdit "records/chrona.activity/a/2026/10/A-1.json" ]
+                                Held = [ held ]
+                                Conflicts =
+                                    [ { Id = "COMMIT-refused"
+                                        Request = request
+                                        Divergences = [ Chrona.Domain.Reconcile.ActivityChanged(held, Some held) ] } ] } } }
 
     // Signed in to a deployment of two organizations, as their administrator,
     // with a refused attempt to add a member.

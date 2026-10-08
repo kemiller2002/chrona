@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "repository": "chrona",
-  "nextSeq": 54,
+  "nextSeq": 55,
   "items": [
     {
       "id": "WI-0001",
@@ -662,7 +662,7 @@
     {
       "id": "WI-0033",
       "title": "Chrona 08: offline use, persisted timer and sync reconciliation (CHX-101, CHX-102, CHX-105, CHX-200, CHX-230)",
-      "description": "Depends on WI-0032 and arca slice 9 (offline queue, ARCA-OFF) (offline queue). The timer and manual entry work offline. The active timer survives refresh and restart, and recovery runs at startup. Sync state is visible. Reconnection reconciles idempotently. Conflicts become visible obligations. Startup reconciliation is non-blocking, resumable and paged. Scenarios 4, 33 and 34. Also the CHX-021 remainder: offline durability in browser storage (Arca's OfflineQueue with LocalStorageQueue behind the store port) that never becomes a competing authority.",
+      "description": "Depends on WI-0032 and arca slice 9 (offline queue, ARCA-OFF) (offline queue). The timer and manual entry work offline. The active timer survives refresh and restart, and recovery runs at startup. Sync state is visible. Reconnection reconciles idempotently. Conflicts become visible obligations. Startup reconciliation is non-blocking, resumable and paged. Scenarios 4, 33 and 34. Also the CHX-021 remainder: offline durability in browser storage (Arca's OfflineQueue with LocalStorageQueue behind the store port) that never becomes a competing authority. Also the CHX-260 remainder (the concurrent timer conflict's stable diagnostic) and the sync state in the application (CHX-320 remainder).",
       "tags": [
         "chrona",
         "order:08",
@@ -673,7 +673,7 @@
       "status": "captured",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:48.284Z",
-      "updatedAt": "2026-10-08T13:15:27Z",
+      "updatedAt": "2026-10-08T14:16:00Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",
@@ -712,8 +712,8 @@
     },
     {
       "id": "WI-0035",
-      "title": "Chrona 10: product UI remainder on Arca and Fides - sign-in, sync state and conflict resolution, persisted timer, offline and browser reliability, visual regression (CHX-003, CHX-005, CHX-320, CHX-330, CHX-340, CHX-350, CHX-360, CHX-370)",
-      "description": "Depends on WI-0032, WI-0033 and WI-0029. The in-memory screens are WI-0046 and WI-0047; this item completes the UI once storage and sign-in exist: sign-in through Fides, view sync state and resolve conflicts, the timer persisted across refresh and restart, browser reliability (refresh, back/forward, suspension, service-worker update, stale shell, cellular), mobile and screen-reader scenarios 42-44 end to end, and visual regression against the legacy screens. Also the CHX-410 remainder (reviewing and accepting a record edited outside Chrona, Persistence.acceptExternalEdit, from the application) and the CHX-260 remainder (a stable diagnostic code for an unresolved semantic conflict, with its resolution screen).",
+      "title": "Chrona 10: conflict resolution and review of outside edits in the application (CHX-260, CHX-410, CHX-320 remainders)",
+      "description": "Depends on WI-0032 and WI-0029. Completes the write path in the application. (1) Conflict resolution: a change that could not be stored because the stored records moved is kept as a visible reconciliation obligation that names what diverged, and gets a stable diagnostic (CHX-260 remainder: unresolved semantic merge conflict). Neither side is silently discarded (23, 34). The person keeps the stored version, redoes their change on the current version, or tries again when the repository only kept moving. (2) Outside edits: the person reviews a record edited outside Chrona and accepts it from the application (CHX-410 remainder, Persistence.acceptExternalEdit). Accepting runs the same rules as a recorded activity and never grants a state the person could not reach themselves. Sign-in is done (WI-0029). The persisted timer and sync state are WI-0033. Browser reliability, accessibility end to end, quick entry and visual regression are WI-0054.",
       "tags": [
         "chrona",
         "order:10",
@@ -722,10 +722,10 @@
         "forma"
       ],
       "priority": "high",
-      "status": "captured",
+      "status": "ready",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:48.917Z",
-      "updatedAt": "2026-10-08T13:15:27Z",
+      "updatedAt": "2026-10-08T14:03:18Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",
@@ -740,7 +740,7 @@
     {
       "id": "WI-0036",
       "title": "Chrona 11: timesheet periods on Arca - persisted period configuration, closed periods and their effect on submission and approval (CHX-150 remainder)",
-      "description": "Depends on WI-0032. The pure cadences, configuration and summaries are WI-0048; this item stores the organization's period configuration and period state through Arca and enforces closed periods in submission, approval and attestation.",
+      "description": "Depends on WI-0032. The pure cadences, configuration and summaries are WI-0048; this item stores the organization's period configuration and period state through Arca and enforces closed periods in submission, approval and attestation. Also the CHX-260 remainder (the submitted-period restriction's stable diagnostic), the CHX-320 remainder (the week view and submitting, approving and rejecting a period in the application) and the CHX-340 remainder (submissions, approvals and rejections in the obligations queue).",
       "tags": [
         "chrona",
         "order:11",
@@ -750,7 +750,7 @@
       "status": "captured",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:49.227Z",
-      "updatedAt": "2026-10-08T10:08:21.026Z",
+      "updatedAt": "2026-10-08T14:16:00Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",
@@ -1174,6 +1174,27 @@
       "attachments": [],
       "createdAt": "2026-10-08T13:45:21Z",
       "updatedAt": "2026-10-08T13:53:39Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0054",
+      "title": "Chrona 16: browser reliability, accessibility end to end, quick-entry conveniences and visual regression (CHX-330, CHX-350, CHX-360, CHX-370)",
+      "description": "Split from WI-0035, which became the write path's conflict resolution and outside-edit review. Depends on WI-0033 (offline and the persisted timer). Browser reliability (refresh, back/forward, suspension, service-worker update, stale shell, cellular), mobile and screen-reader scenarios 42-44 end to end, the quick-entry conveniences (recent combinations, common durations, copy an entry as a draft), and visual regression against the legacy screens.",
+      "tags": [],
+      "priority": "medium",
+      "status": "captured",
+      "attachments": [],
+      "createdAt": "2026-10-08T14:03:05Z",
+      "updatedAt": "2026-10-08T14:16:00Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

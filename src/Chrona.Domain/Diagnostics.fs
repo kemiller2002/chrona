@@ -77,6 +77,14 @@ type Diagnostic =
     | InvalidLineage of id: string * other: string
     | IncompleteRead of folder: string
     | ExternalEdit of path: string
+    /// An outside edit claims a state only Chrona's own transitions give.
+    | ExternalStateClaim of activityId: string * state: string
+    // Concurrency (WI-0035, expansion 21 and 26).
+    /// The same record was changed elsewhere after this change was decided:
+    /// an unresolved semantic conflict, for the person to resolve.
+    | SemanticConflict of kind: string * id: string
+    /// The repository moved on every attempt; nothing was found wrong.
+    | StoreKeptChanging
     // Membership and authorization (WI-0030).
     | UnauthorizedCapability of capability: string
     | NotAMember of principalId: string * organizationId: string
@@ -148,6 +156,9 @@ let code =
     | InvalidLineage _ -> "CHRONA.INTEGRITY.INVALID_LINEAGE"
     | IncompleteRead _ -> "CHRONA.INTEGRITY.INCOMPLETE_READ"
     | ExternalEdit _ -> "CHRONA.INTEGRITY.EXTERNAL_EDIT"
+    | ExternalStateClaim _ -> "CHRONA.INTEGRITY.EXTERNAL_STATE_CLAIM"
+    | SemanticConflict _ -> "CHRONA.CONCURRENCY.SEMANTIC_CONFLICT"
+    | StoreKeptChanging -> "CHRONA.CONCURRENCY.KEPT_CHANGING"
     | UnauthorizedCapability _ -> "CHRONA.AUTH.UNAUTHORIZED_CAPABILITY"
     | NotAMember _ -> "CHRONA.AUTH.NOT_A_MEMBER"
     | AlreadyAMember _ -> "CHRONA.AUTH.ALREADY_A_MEMBER"

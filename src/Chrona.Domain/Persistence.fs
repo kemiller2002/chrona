@@ -221,31 +221,104 @@ let holdExternalEdits (histories: Map<string, HistoryEntry list>) (snapshot: Sna
             snapshot.Problems
             @ (edited |> Map.toList |> List.map (fun (_, found) -> ExternalEdit(RelativePath.render found.Path))) }
 
+/// A state an outside edit claims that only Chrona's own transitions give:
+/// a review or publication state comes with its submission, approval or
+/// publication records, and a superseded record with its split or merge.
+/// An outside edit is never a way to reach one (41).
+let private claimedState (activity: Activity) =
+    [ match activity.Record with
+      | Superseded _ -> recordStateName activity.Record
+      | Recorded
+      | Voided _ -> ()
+      match activity.Review with
+      | Unsubmitted -> ()
+      | Submitted -> "Submitted"
+      | Approved -> "Approved"
+      | Rejected _ -> "Rejected"
+      | Reopened -> "Reopened"
+      match activity.Publication with
+      | NotBillable
+      | Unpublished -> ()
+      | ReadyForPublication -> "ReadyForPublication"
+      | Published -> "Published"
+      | InvoicedExternally -> "InvoicedExternally"
+      | AdjustmentRequired -> "AdjustmentRequired" ]
+    |> List.map (fun state -> ExternalStateClaim(activity.ActivityId, state))
+
+/// What keeps an outside edit out of the ledger: a state only Chrona gives,
+/// and, for time it consumes, the rules every recorded activity must pass:
+/// a complete classification, known references, and no overlap with the
+/// trusted activities.
+let private reviewProblems (context: Ledger.CommandContext) (trusted: Activity list) (activity: Activity) =
+    claimedState activity
+    @ (if consumesTime activity then
+           classificationProblems activity.Classification
+           @ Reference.assignmentProblems context.References [] activity.Classification
+           @ Overlap.check context.Zone trusted activity
+       else
+           [])
+
 /// Accepts an externally edited activity into the ledger after it passes the
-/// rules every recorded activity must: a complete classification, known
-/// references, and no overlap with the trusted activities.
+/// rules every recorded activity must (`reviewProblems`).
 let acceptExternalEdit (context: Ledger.CommandContext) (activityId: string) (snapshot: Snapshot) : Result<Snapshot, Diagnostic list> =
     match snapshot.HeldForReview.TryFind activityId with
     | None -> Error [ UnknownActivity activityId ]
     | Some found ->
-        let activity = found.Activity
         let trusted = snapshot.Activities |> Map.toList |> List.map (fun (_, other) -> other.Activity)
 
-        let problems =
-            if consumesTime activity then
-                classificationProblems activity.Classification
-                @ Reference.assignmentProblems context.References [] activity.Classification
-                @ Overlap.check context.Zone trusted activity
-            else
-                []
-
-        match problems with
+        match reviewProblems context trusted found.Activity with
         | [] ->
             Ok
                 { snapshot with
                     Activities = Map.add activityId found snapshot.Activities
                     HeldForReview = Map.remove activityId snapshot.HeldForReview }
-        | _ -> Error problems
+        | problems -> Error problems
+
+/// A person accepting, in the application, a record of theirs edited outside
+/// Chrona (41, WI-0035). Only the record's own person, holding
+/// `AmendOwnTime`, accepts it, and only after it passes `reviewProblems`
+/// against their trusted activities. The result is the record as Chrona
+/// stores it from then on: its next revision, changed now, so its newest
+/// commit is Chrona's and it is no longer held.
+let acceptance
+    (context: Ledger.CommandContext)
+    (roster: Access.Roster)
+    (trusted: Activity list)
+    (held: Activity)
+    : Result<Activity, Diagnostic list> =
+    let ownership =
+        [ if held.OrganizationId <> roster.OrganizationId then OrganizationMismatch
+          if held.ActorId <> context.Performer then ActorMismatch
+          if not (Access.permits roster context.Performer Access.AmendOwnTime) then
+              UnauthorizedCapability(Access.capabilityName Access.AmendOwnTime) ]
+
+    match ownership @ reviewProblems context (trusted |> List.filter (fun a -> a.ActivityId <> held.ActivityId)) held with
+    | [] ->
+        Ok
+            { held with
+                Revision = held.Revision + 1
+                LastChangedAt = max context.At held.LastChangedAt }
+    | problems -> Error problems
+
+/// The snapshot once the person accepted these held records, as they
+/// reviewed them (`acceptance` decided they may be): they are trusted
+/// again, and the external-edit problems that held them are gone. A held
+/// record that changed again since it was reviewed stays held.
+let release (reviewed: Activity list) (snapshot: Snapshot) =
+    let released =
+        snapshot.HeldForReview
+        |> Map.filter (fun id found -> reviewed |> List.exists (fun activity -> activity.ActivityId = id && activity = found.Activity))
+
+    let paths = released |> Map.toList |> List.map (fun (_, found) -> RelativePath.render found.Path) |> Set.ofList
+
+    { snapshot with
+        Activities = Map.fold (fun activities id found -> Map.add id found activities) snapshot.Activities released
+        HeldForReview = snapshot.HeldForReview |> Map.filter (fun id _ -> not (released.ContainsKey id))
+        Problems =
+            snapshot.Problems
+            |> List.filter (function
+                | ExternalEdit path -> not (paths.Contains path)
+                | _ -> true) }
 
 // ---- Changing ---------------------------------------------------------------------
 

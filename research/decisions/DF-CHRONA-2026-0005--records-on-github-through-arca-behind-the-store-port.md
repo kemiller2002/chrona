@@ -2,7 +2,7 @@
 id: DF-CHRONA-2026-0005
 title: Records live on GitHub through Arca's provider behind the store port, every commit conditioned on the repository state and decided again when it moved
 status: accepted
-version: 1.0.0
+version: 1.1.0
 created: 2026-10-08
 updated: 2026-10-08
 owners:
@@ -38,13 +38,23 @@ provenance:
         model: unknown
         runtime: claude-code
       reason: "Bootstrap administrators and the dedicated-repository recommendation (WI-0053)"
+    EXE-20261008T140312075Z-5d2f78ca:
+      operations: [modified]
+      at: 2026-10-08T14:15:53.200Z
+      actor:
+        kind: agent
+        id: anthropic/claude-code
+        provider: anthropic
+        model: unknown
+        runtime: claude-code
+      reason: "Conflict resolution and acceptance of outside edits (WI-0035)"
 ---
 
 # DF-CHRONA-2026-0005 — Records on GitHub through Arca
 
 - **Date:** 2026-10-08
 - **Status:** accepted
-- **Work items:** WI-0028, WI-0051, WI-0032
+- **Work items:** WI-0028, WI-0051, WI-0032, WI-0053, WI-0035
 
 ## Context
 
@@ -83,6 +93,23 @@ and semantic conflicts surfaced.
    independent changes survive and are then shown); otherwise it is
    refused as a conflict and the stored records are shown. An unknown
    outcome is reconciled before anything is sent again.
+6. **Resolving a conflict (WI-0035).** Deciding again is the domain's
+   (`Reconcile.decide`); what no longer fits comes back as divergences,
+   each with the person's version, what is stored now and a stable code.
+   The engine keeps the change as a conflict under More and as an
+   obligation until the person decides: keep what is stored (their change
+   is set aside, knowingly), redo theirs on the current version through
+   the usual form and its rules (a correction on the current revision, or
+   new time back in the manual form), or try again when the repository
+   only kept moving. Nothing is resolved by last-write-wins and neither
+   side is dropped silently.
+7. **Accepting an outside edit (WI-0035).** A person reviews a held record
+   of theirs under More and accepts it. It must pass the rules of a
+   recorded activity and may not claim a review, publication or superseded
+   state, because those come only from Chrona's own transitions and their
+   records. It is written as Chrona's next revision, so its newest commit
+   is Chrona's and later loads trust it. The store releases it only if it
+   is still stored as reviewed.
 4. **Bounded reads.** A change to a month not yet read reads that month
    first, so it is never checked against less than what is stored.
 5. **The organization.** A storing deployment lists the organizations it
@@ -98,7 +125,10 @@ and semantic conflicts surfaced.
   requirement's choice: correctness over fewer reloads, kept by decision
   on 2026-10-08. A repository of Chrona's own is the recommended setup and
   avoids the extra reloads; the check is not narrowed to Chrona's own
-  paths unless Arca supports that safely.
+  paths unless Arca supports that safely. Arca's backlog has WI-0018 for
+  namespace-scoped change tokens.
+- An outside edit that claims a state only Chrona gives stays held: it is
+  repaired in the repository, not accepted in the application.
 - Manual-edit detection reads each loaded activity's history; derived
   indexes (WI-0034) can make that cheaper.
 - Offline durability (WI-0033) adds Arca's offline queue behind the same

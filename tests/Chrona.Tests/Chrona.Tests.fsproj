@@ -22,6 +22,7 @@
     <Compile Include="ReviewBillingTests.fs" />
     <Compile Include="BrandTokenTests.fs" />
     <Compile Include="CompatibilityTests.fs" />
+    <Compile Include="LegacyRuleTests.fs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -844,7 +844,7 @@
     {
       "id": "WI-0040",
       "title": "Chrona 15: telemetry privacy, remaining scenario tests and the production completion gate (CHX-420, CHX-430, CHX-440, CHX-001, CHX-002, CHX-004 remainders)",
-      "description": "Depends on WI-0035, WI-0037, WI-0038 and WI-0039. Telemetry carries ids and measures only. Close the remaining scenarios of the 44 (28 are tested today). Demonstrate every item of the section 44 production completion gate.",
+      "description": "Depends on WI-0035, WI-0037, WI-0038 and WI-0039. Telemetry carries ids and measures only. Close the remaining scenarios of the 44 (28 are tested today). Demonstrate every item of the section 44 production completion gate. Confirm CHX-012 (preserve the legacy capabilities) once reference data, sync, offline use, observations and receipts land; the domain rules were reconciled in WI-0027 and WI-0043.",
       "tags": [
         "chrona",
         "order:15",
@@ -855,7 +855,7 @@
       "status": "captured",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:50.498Z",
-      "updatedAt": "2026-10-08T07:43:50.498Z",
+      "updatedAt": "2026-10-08T08:58:35.113Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",
@@ -928,10 +928,10 @@
         "order:02b"
       ],
       "priority": "high",
-      "status": "captured",
+      "status": "complete",
       "attachments": [],
       "createdAt": "2026-10-08T08:48:15.458Z",
-      "updatedAt": "2026-10-08T08:48:15.458Z",
+      "updatedAt": "2026-10-08T08:59:36.236Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

@@ -122,8 +122,9 @@ let ``scenarios 13 and 14: merge keeps every source id and supersedes, never del
 
 [<Fact>]
 let ``merge refuses incompatible sources explicitly`` () =
-    let other = { activity "B1" (11, 0) 30 with ActorId = "ACTOR-2" }
-    let ledger = run [ Record(activity "A1" (9, 0) 30); Record other; Record { activity "A3" (12, 0) 30 with Publication = ReadyForPublication } ]
+    // Each candidate is contiguous with A1, so each refusal has one reason.
+    let other = { activity "B1" (9, 30) 30 with ActorId = "ACTOR-2" }
+    let ledger = run [ Record(activity "A1" (9, 0) 30); Record other; Record { activity "A3" (9, 30) 30 with Publication = ReadyForPublication } ]
     Assert.Equal<Diagnostic list>([ ActorMismatch ], execute context ledger (Merge([ "A1", 1; "B1", 1 ], "M1", None)) |> refused)
     Assert.Equal<Diagnostic list>([ PublicationStateConflict "sources have different publication states" ], execute context ledger (Merge([ "A1", 1; "A3", 1 ], "M1", None)) |> refused)
     Assert.Equal<Diagnostic list>([ RevisionConflict(2, 1) ], execute context ledger (Merge([ "A1", 2; "A3", 1 ], "M1", None)) |> refused)

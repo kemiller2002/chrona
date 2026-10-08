@@ -136,6 +136,15 @@ jobs:
       - name: Verify the composed browser path
         run: npx playwright test
 
+      # Every address opens cold on the published site too (CHX-460): the
+      # Pages build, assembled as pages.yml assembles it, served as a static
+      # host serves it, under the site's Content Security Policy.
+      - name: Assemble the Pages site
+        run: node tools/pages/assemble-site.mjs dist-pages
+
+      - name: Open deep links on the Pages build
+        run: npx playwright test -c playwright.pages.config.js
+
       # Each screen, light and dark, at desktop and phone width, against its
       # baseline (WI-0054). The baselines are this runner's renders with the
       # pinned Chromium; docs/legacy/visual-comparison.md says how to change one.

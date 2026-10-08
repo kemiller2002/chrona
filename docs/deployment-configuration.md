@@ -63,6 +63,16 @@ provenance:
         model: claude-opus-5-5
         runtime: claude-code
       reason: "Deployment: GitHub Pages in local demo mode (WI-0066)"
+    EXE-20261008T194553879Z-750991d9:
+      operations: [modified]
+      at: 2026-10-08T20:50:41.576Z
+      actor:
+        kind: agent
+        id: anthropic/claude-code
+        provider: anthropic
+        model: unknown
+        runtime: claude-code
+      reason: "Deep links on the Pages site and the sign-in return target (WI-0071)"
 ---
 
 # Configuring a Chrona deployment
@@ -105,7 +115,7 @@ The repository's copy is a local deployment; a deployment replaces it.
 | `identity.application` | yes | The application id registered with the exchange. |
 | `identity.provider` | yes | `github`. |
 | `identity.clientId` | yes | The GitHub App's public client id. |
-| `identity.redirectUri` | yes | The page GitHub returns to, exactly as registered (the Chrona page's address). |
+| `identity.redirectUri` | yes | The page GitHub returns to, exactly as registered (the Chrona page's address). It carries no fragment: the place a person signed in from is kept in their tab across the round trip and restored after it (CHX-460). |
 | `quickDurations` | no | The common durations, in whole minutes (1 to 720), that the manual entry form offers to set the end from the start. Default `[15, 30, 45, 60, 90, 120]`. |
 | `sharedDevicePolicy` | no | What signing out does with changes that have not reached GitHub: `ask` (the default) or `discardOnSignOut`. See Sign-in. |
 | `organizations` | with `location` | The organizations the deployment serves, the default first. Each has an `id` (immutable; it names the organization's folder), `displayName`, `slug` (lower case), `timeZone` (IANA), its bootstrap `administrators` (GitHub numeric account ids; see People) and, optionally, a `location` of its own, for example to give its data its own permissions (CHX-DATALOC-004). |
@@ -202,7 +212,16 @@ every push to `main` (and on demand, with *Run workflow*):
 - **Address:** <https://chrona.echelonfoundry.com/> (the custom domain set
   in the repository's Pages settings;
   `https://kemiller2002.github.io/chrona/` redirects there). The site root
-  sends the browser to the page at `web/`.
+  sends the browser to the page at `web/`, keeping the place in the
+  fragment (`forward.js`; without script, a refresh in `<noscript>`), so
+  `https://chrona.echelonfoundry.com/#/day/2026-10-08` opens that day.
+- **Deep links (CHX-460).** Every place has an address in the fragment
+  (`web/#/reports?from=2026-09-01&to=2026-09-30&group=tag`), listed in
+  `.echelon/routes.json`; "Copy link" copies the current view's. The Build
+  workflow opens addresses cold against the assembled site
+  (`playwright.pages.config.js`), and the Pages workflow opens them against
+  the live site after each deploy (`CHRONA_SITE=… npx playwright test -c
+  playwright.pages.config.js`).
 - **What is published:** the repository's layout (`web/`, `web-kernel/`,
   `build/wasm/wwwroot/` from `npm run build:wasm` in Release, and the
   `dist`/`src` folders of the Limen, Forma and Folio packages), assembled by

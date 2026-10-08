@@ -9,7 +9,7 @@
 // as they would without a network and the browser logs each one; this suite
 // therefore keeps its own guard, which allows only those.
 import { test as base, expect } from "@playwright/test";
-import { fakeDeployment, PAGE } from "./support.js";
+import { fakeDeployment, PAGE, signInAs } from "./support.js";
 import { serveGitHub, repository, headFiles, history } from "./github-fake.js";
 
 const configuration = {
@@ -186,4 +186,62 @@ test("when the holding tab closes, the tab waiting to take over sends both tabs'
   expect(await kept(second)).toEqual([]);
   await second.click(".chrona-nav__link:has-text('Today')");
   await expect(second.locator("#day-records .chrona-record__title")).toHaveText(["Pairing", "Review"]);
+});
+
+// ---- deep links to stored records (CHX-460, WI-0071) -------------------------
+
+test("an activity's link opens it cold in a new tab, through sign-in, with its month read from GitHub", async ({ context, github }) => {
+  const page = await signedIn(context);
+  await references(page);
+  await record(page, "08:10", "09:02", "Visual engineering research");
+  await expect(headline(page)).toHaveText("All changes saved");
+  await page.click(".chrona-nav__link:has-text('Today')");
+  const href = await page.locator("#day-records .chrona-record__title a").getAttribute("href");
+  expect(href).toMatch(/^#\/entries\/[^?]+\?on=\d{4}-\d{2}-\d{2}$/);
+  expect(stored(github, "Visual engineering research")).toHaveLength(1);
+
+  // A new tab: no session yet, so sign-in first, keeping the target.
+  const other = await context.newPage();
+  await other.goto(`/web/index.html${href}`);
+  await expect(other.locator("#sign-in")).toBeVisible();
+  await expect(other).toHaveURL(/#\/sign-in\?returnTo=%2Fentries%2F/);
+  await other.click("#sign-in-button");
+  await expect(other.locator(".chrona-shell")).toBeVisible({ timeout: 20_000 });
+  await expect(other).toHaveURL(`${PAGE}${href}`);
+  await expect(other.locator("#activity-title")).toHaveText("Visual engineering research");
+
+  // An activity the records do not hold is the not-found page, once they are read.
+  const missing = await context.newPage();
+  await missing.goto(`/web/index.html#/entries/ACT-none?on=${href.slice(-10)}`);
+  await missing.click("#sign-in-button");
+  await expect(missing.locator(".chrona-shell")).toBeVisible({ timeout: 20_000 });
+  await expect(missing.locator("#problem-title")).toHaveText("Not found");
+});
+
+test("someone who is not an administrator is refused the administrators' parts of More", async ({ context, github }) => {
+  // The administrator adds a member who records only their own time.
+  const page = await signedIn(context);
+  await page.click(".chrona-nav__link:has-text('More')");
+  await page.fill("#member-id", "42");
+  await page.fill("#member-name", "Hubot");
+  await page.selectOption("#member-access", "ownTime");
+  await page.click("#admit");
+  await expect(page.locator("#people")).toContainText("Hubot");
+  await expect(headline(page)).toHaveText("All changes saved");
+
+  // That member opens the people page from a link.
+  signInAs("42", "hubot");
+  const member = await context.newPage();
+  await member.goto("/web/index.html#/more/people");
+  await member.click("#sign-in-button");
+  await expect(member.locator(".chrona-shell")).toBeVisible({ timeout: 20_000 });
+  await expect(member).toHaveURL(`${PAGE}#/more/people`);
+  await expect(member.locator("#problem-title")).toHaveText("Not permitted");
+  await expect(member.locator("#problem-detail")).toContainText("administrators");
+  await expect(member.locator("#screen-more")).toHaveCount(0);
+
+  // The parts of More every member works in open.
+  await member.goto("/web/index.html#/more/references");
+  await expect(member.locator("#screen-more")).toBeVisible();
+  await expect(member.locator("#screen-problem")).toHaveCount(0);
 });

@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { publishPage, rootPage } from "./assemble-site.mjs";
+import { publishPage, rootPage, forwardScript } from "./assemble-site.mjs";
 
 const site = JSON.parse(readFileSync(new URL("../../deploy/pages/site.json", import.meta.url), "utf8"));
 const page = readFileSync(new URL("../../web/index.html", import.meta.url), "utf8");
@@ -45,10 +45,16 @@ test("a page that already carries a policy keeps its own", () => {
   assert.match(published, /default-src 'none'/);
 });
 
-test("the root page sends the browser to web/ by a relative address, without script", () => {
+test("the root page sends the browser to web/ by a relative address, keeping the fragment", () => {
   const root = rootPage(site);
-  assert.match(root, /<meta http-equiv="refresh" content="0; url=web\/" \/>/);
-  assert.doesNotMatch(root, /<script/);
+  // A file, never inline script: the policy allows only 'self'.
+  const scripts = [...root.matchAll(/<script\b[^>]*>/g)].map((m) => m[0]);
+  assert.deepEqual(scripts, ['<script src="forward.js">']);
+  assert.match(forwardScript, /location\.replace\("web\/" \+ location\.hash\)/);
+  // Without script, a refresh still reaches the application.
+  assert.match(root, /<noscript><meta http-equiv="refresh" content="0; url=web\/" \/><\/noscript>/);
+  // The script comes after the policy that governs it.
+  assert.ok(root.indexOf("Content-Security-Policy") < root.indexOf("<script"));
 });
 
 test("the Pages deployment is a local session: no sign-in, no data location", () => {

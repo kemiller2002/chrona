@@ -274,6 +274,8 @@ let answer (offer: JsonNode option) : Handshake =
 /// An effect, as Limen requests it.
 type Request =
     | Push of correlationId: string * url: string
+    /// Replace the current history entry (a refined view, a canonical address).
+    | Replace of correlationId: string * url: string
     | Wake of correlationId: string * delayMs: int
     | DescribeEnvironment of correlationId: string
     | Copy of correlationId: string * text: string
@@ -344,6 +346,11 @@ let private writeRequest (writer: Utf8JsonWriter) (request: Request) =
     | Push(correlationId, url) ->
         writer.WriteString("kind", "Navigation")
         writer.WriteString("operation", "push")
+        writer.WriteString("correlationId", correlationId)
+        writer.WriteString("url", url)
+    | Replace(correlationId, url) ->
+        writer.WriteString("kind", "Navigation")
+        writer.WriteString("operation", "replace")
         writer.WriteString("correlationId", correlationId)
         writer.WriteString("url", url)
     | Wake(correlationId, delayMs) ->

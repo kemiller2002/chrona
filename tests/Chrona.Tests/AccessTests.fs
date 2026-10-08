@@ -130,7 +130,7 @@ let private session =
 /// Working, with a project and an activity type, as the organization's founder.
 let private working () =
     (Model.initial session InMemory start, [])
-    |> send (Started("", []))
+    |> send (Started(Support.testPage, "", []))
     |> send (EnvironmentDescribed "America/New_York")
     |> send (ConfigurationRead(Some """{"environment":"local","environmentName":"local"}"""))
     |> send (ui "newProjectName" "HelixNote")

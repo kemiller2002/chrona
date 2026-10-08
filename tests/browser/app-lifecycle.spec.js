@@ -20,12 +20,12 @@ async function day(page) {
   await expect(page.locator("#day-total")).toHaveText("2h");
 }
 
-const record = (page, title) => page.locator("#day-records .chrona-record", { has: page.locator(`button:text-is("${title}")`) });
+const record = (page, title) => page.locator("#day-records .chrona-record", { has: page.locator(`a:text-is("${title}")`) });
 
 test("an activity is corrected, removed from totals and restored, with its history kept", async ({ app: page }) => {
   await day(page);
-  await record(page, "First").locator("button.chrona-link").click();
-  await expect(page).toHaveURL(/#\/activity\//);
+  await record(page, "First").locator("a.chrona-link").click();
+  await expect(page).toHaveURL(/#\/entries\//);
   await expect(page.locator("#activity-title")).toHaveText("First");
   await expect(page.locator("#detail-revision")).toHaveText("1");
 
@@ -53,7 +53,7 @@ test("an activity is corrected, removed from totals and restored, with its histo
 
 test("evidence is linked and checked, and a split assigns it to one part", async ({ app: page }) => {
   await day(page);
-  await record(page, "First").locator("button.chrona-link").click();
+  await record(page, "First").locator("a.chrona-link").click();
 
   await page.fill("#evidence-url", "not a link");
   await page.click("#attach");
@@ -119,7 +119,7 @@ test("a day is reviewed and attested; a later change is an obligation until revi
 
   await page.click("button.chrona-link:has-text('Back to today')");
   await page.fill("#day-picker", yesterday());
-  await record(page, "Second").locator("button.chrona-link").click();
+  await record(page, "Second").locator("a.chrona-link").click();
   await page.fill("#amend-description", "Second, fixed");
   await page.click("#save-amend");
   await page.click("button.chrona-link:has-text('Back to today')");
@@ -143,10 +143,14 @@ test("the month sums the effective records, by type and by day", async ({ app: p
   await expect(page.locator("#month-days li")).toHaveCount(1);
 });
 
-test("a link to an activity this session does not hold says so", async ({ app: page }) => {
+test("a link to an activity that is not in the records shows the not-found page", async ({ app: page }) => {
+  // WI-0046's address, corrected to the current one in place (CHX-460).
   await page.goto("/web/index.html#/activity/ACT-unknown");
   await expect(page.locator("html")).toHaveAttribute("data-kernel", "running");
-  await expect(page.locator("#activity-missing")).toContainText("That activity is not in this session.");
+  await expect(page).toHaveURL(/#\/entries\/ACT-unknown$/);
+  await expect(page.locator("#problem-title")).toHaveText("Not found");
+  await expect(page.locator("#problem-detail")).toContainText('the activity with the id "ACT-unknown"');
+  await expect(page.locator("#screen-activity")).toHaveCount(0);
 });
 
 test("the timesheet period follows the organization's configuration", async ({ app: page }) => {

@@ -33,8 +33,8 @@ test("recent work fills the forms, a common duration sets a visible end, and an 
   // An entry is copied as a new draft for today, its time left blank.
   await page.click(".chrona-nav__link:has-text('Today')");
   await page.fill("#day-picker", yesterday());
-  await page.locator("#day-records .chrona-record button.chrona-link").first().click();
-  await expect(page).toHaveURL(/#\/activity\//);
+  await page.locator("#day-records .chrona-record a.chrona-link").first().click();
+  await expect(page).toHaveURL(/#\/entries\//);
   await page.click("#copy-activity");
   await expect(page).toHaveURL(/#\/track$/);
   await expect(page.locator("#manual-description")).toHaveValue("Pairing");

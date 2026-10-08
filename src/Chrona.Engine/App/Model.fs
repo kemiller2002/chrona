@@ -185,19 +185,19 @@ type StoreContents =
       /// What the activity index covers, or why it is not kept, for the person.
       Index: string }
 
-type Screen =
-    | Today
-    | Track
-    | Month
-    | More
-    /// One activity's detail: amend, void, restore, split, evidence, history.
-    | ActivityDetail of activityId: string
-    /// One day's review and attestation.
-    | DayReview
-    /// Search, reports and export.
-    | ReportsScreen
+/// The page's own address (its origin and path), for a link that opens a
+/// place from anywhere. Never its query: a sign-in callback's code and state
+/// were there.
+type PageAddress = { Origin: string; Path: string }
 
-type Route = { Screen: Screen; Date: DateOnly option }
+/// Why the address shows no place (CHX-460): a clear page, never a blank one
+/// or another place.
+type RouteProblem =
+    /// The address names nothing in Chrona, names it wrongly, or names a
+    /// place this person may not see (Limen's route outcome).
+    | AddressProblem of Limen.Routing.RouteError
+    /// The address names a record that does not exist, by its kind and id.
+    | RecordMissing of kind: string * id: string
 
 /// What a form says about classification, as typed (strings, unvalidated).
 type ClassificationDraft =
@@ -333,7 +333,14 @@ type IdentityState =
       Notice: string option
       /// The provider's callback parameters this page was opened with, until
       /// the configuration is read and the sign-in can be completed.
-      Callback: (string * string) list }
+      Callback: (string * string) list
+      /// The address to return to after sign-in, kept in this tab across the
+      /// round trip to GitHub (its callback carries no fragment), until it
+      /// is resumed (CHX-460).
+      ReturnTo: string option
+      /// A callback page is reading the kept return target; nothing is
+      /// resumed until it is read.
+      ReadingReturn: bool }
 
 /// What the edge reports about sign-in.
 type IdentityChange =
@@ -352,7 +359,9 @@ let initialIdentity =
       SignOutNote = None
       Retention = ThisPage
       Notice = None
-      Callback = [] }
+      Callback = []
+      ReturnTo = None
+      ReadingReturn = false }
 
 /// A new member, as typed: their GitHub account's numeric id (shown to them
 /// when they are not yet a member), a name, and what they may do.
@@ -391,7 +400,19 @@ type Form =
 
 [<NoComparison>]
 type Model =
-    { Route: Route
+    { /// Where the person is (CHX-460): the place the address names. While
+      /// `RouteProblem` is set the page says why the address shows nothing.
+      Place: Places.Place
+      RouteProblem: RouteProblem option
+      /// The canonical address the engine adopted or moved to last.
+      Router: Limen.Routing.RouterState
+      /// The page's own address, for "Copy link".
+      Page: PageAddress
+      /// What happened to the last "Copy link", in words.
+      LinkStatus: string
+      /// The link being copied, until the browser took it: shown to select by
+      /// hand when the browser would not copy it.
+      LinkText: string
       Session: Session
       /// Sign-in (CHX-022): whether it is configured and who is signed in.
       Identity: IdentityState
@@ -458,7 +479,12 @@ let permits (model: Model) (capability: Access.Capability) =
     Access.permits model.Roster model.Session.ActorId capability
 
 let initial (session: Session) (store: StoreKind) (now: DateTimeOffset) =
-    { Route = { Screen = Today; Date = None }
+    { Place = Places.Today
+      RouteProblem = None
+      Router = Limen.Routing.Navigation.initial
+      Page = { Origin = ""; Path = "/" }
+      LinkStatus = ""
+      LinkText = ""
       Session = session
       Identity = initialIdentity
       Deployment = None
@@ -529,8 +555,14 @@ let today (model: Model) =
     | Some zone -> (occurrence zone model.Now).LocalDate
     | None -> DateOnly.FromDateTime model.Now.UtcDateTime
 
-/// The date the Today and review screens show.
-let selectedDate (model: Model) = model.Route.Date |> Option.defaultWith (fun () -> today model)
+/// The date the day, review and month screens show: the one the address
+/// names, or today.
+let selectedDate (model: Model) =
+    match model.Place with
+    | Places.Day(on, _)
+    | Places.Review on -> on
+    | Places.Month(year, month) -> DateOnly(year, month, 1)
+    | _ -> today model
 
 /// The first day of the month the Month screen shows.
 let selectedMonth (model: Model) =

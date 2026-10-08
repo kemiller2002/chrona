@@ -27,9 +27,12 @@ test("filters and search narrow the report; exact and billable time stay apart",
   await expect(page.locator("#report-table tbody tr")).toHaveCount(2);
 
   await page.fill("#report-text", "TRIAGE");
+  // The search is committed with Enter: the address then holds it (CHX-460).
+  await page.press("#report-text", "Enter");
   await expect(page.locator("#report-count")).toHaveText("1 activity");
   await expect(page.locator("#report-table tbody tr strong")).toHaveText(["Inbox, triage"]);
   await page.fill("#report-text", "nothing like this");
+  await page.press("#report-text", "Enter");
   await expect(page.locator("#report-empty")).toBeVisible();
 });
 

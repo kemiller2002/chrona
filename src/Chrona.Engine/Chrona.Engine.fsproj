@@ -13,7 +13,6 @@
     <Compile Include="App/Format.fs" />
     <Compile Include="App/Places.fs" />
     <Compile Include="App/Model.fs" />
-    <Compile Include="App/Routes.fs" />
     <Compile Include="App/Update.fs" />
     <Compile Include="App/Project.fs" />
   </ItemGroup>

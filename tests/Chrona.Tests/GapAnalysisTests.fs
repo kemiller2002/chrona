@@ -36,7 +36,7 @@ let private rows =
 [<Fact>]
 let ``every requirement section has exactly one status row`` () =
     let ids = rows |> List.map (fun (id, _, _) -> id)
-    Assert.Equal(63, expectedIds.Count)
+    Assert.Equal(64, expectedIds.Count)
     Assert.Equal<string list>(List.distinct ids, ids)
     Assert.Equal<Set<string>>(expectedIds, Set.ofList ids)
 

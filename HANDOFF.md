@@ -52,7 +52,7 @@ for the diagnosis, the evidence, and one unexercised watch item.
 - Requirement coverage per section is tracked in
   [`docs/requirements/implementation-gap-analysis.md`](docs/requirements/implementation-gap-analysis.md)
   (`CHX-NNM` ids, baseline and current columns; `GapAnalysisTests` holds the
-  counts). 36 tested, 25 partial, 2 missing of 63 (baseline 0 / 7 / 56).
+  counts). 36 tested, 26 partial, 2 missing of 64 (baseline 0 / 7 / 57).
 - `src/Chrona.Domain` is the pure time domain: `Diagnostics`, `Time`,
   `Activity`, `Overlap`, `ManualEntry` (WI-0020), `Ledger` (WI-0021),
   `Timer` (WI-0022), `Billing` and `Review` (WI-0023), `Compatibility`
@@ -169,6 +169,14 @@ for the diagnosis, the evidence, and one unexercised watch item.
   phone, against baselines rendered by the pinned Chromium on CI
   (`playwright.visual.config.js`, `tests/visual/`); each screen reviewed
   against the legacy captures in `docs/legacy/visual-comparison.md`.
+- Deep links (WI-0071, DF-CHRONA-2026-0007, requirement section 46):
+  Chrona's places and their canonical fragment addresses are a typed codec
+  (`src/Chrona.Engine/App/Places.fs`) over Limen's URL-state semantics, on an
+  interim verbatim copy of Limen.Routing (`vendor/limen-routing/`, proven by
+  Limen's 165 conformance vectors in CI) until Limen 0.9.0 ships it; the
+  route inventory `.echelon/routes.json` is rendered from the table
+  (`CHRONA_WRITE_ROUTES=1 dotnet test --filter PlacesTests` rewrites it).
+  The application adopting it is the next slice of WI-0071.
 - Not built: the iPhone VoiceOver pass (WI-0068),
   the Summa transport (WI-0061), submission and approval screens (need actors and
   authorization, WI-0030 after Fides), and reports over stored data across

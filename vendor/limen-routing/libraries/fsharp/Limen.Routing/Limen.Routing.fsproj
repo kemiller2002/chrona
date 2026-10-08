@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The F# reference implementation of Limen's language-neutral routing
+       semantics (conformance/routing/). An engine library: pure, no browser,
+       interop, network or I/O (architecture/layers.json engineLibraries). It
+       depends on nothing but FSharp.Core and the BCL's text encoding. -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningLevel>5</WarningLevel>
+    <OtherFlags>$(OtherFlags) --warnon:1182 --warnaserror:25</OtherFlags>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Routing.fs" />
+  </ItemGroup>
+</Project>

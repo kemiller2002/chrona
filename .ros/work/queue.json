@@ -1554,6 +1554,31 @@
       },
       "source": "manual",
       "sourceReference": null
+    },
+    {
+      "id": "WI-0071",
+      "title": "Chrona 17: deep links - every navigable state in the URL on Limen's URL-state semantics (CHX-460)",
+      "description": "Portfolio requirement (owner, 2026-10-08): a copied link opens the same view. Hash routing (#/day/2026-10-08?project=...), relative links, #/sign-in?returnTo=..., canonical form (declared params only, declaration order, defaults omitted, sets sorted and de-duplicated, %20 with uppercase hex), param types string/int/bool/date/month/enum/set, credential-like param names refused. Route model and typed codec as pure functions behind a thin edge adapter, matching Limen 0.9.0's Limen.Routing API (RouteTable.define, RouteCodec.create/parse/format, Navigation.adopt/navigate/refine, ReturnTo.capture/resume, Link.share) through an interim verbatim copy until 0.9.0 ships. Route inventory .echelon/routes.json (echelon.routes/v1). Covers day, week, month, entries, projects, reports and periods, filters, administration screens; candidate review joins with its screen (WI-0038). The target survives the GitHub sign-in round trip; unknown or unauthorized ids show not-found or not-permitted; no tokens or sensitive data in URLs; Copy link; browser tests open deep links cold, including against the Pages build.",
+      "tags": [
+        "chrona",
+        "routing",
+        "limen"
+      ],
+      "priority": "high",
+      "status": "ready",
+      "attachments": [],
+      "createdAt": "2026-10-08T19:45:50.000Z",
+      "updatedAt": "2026-10-08T19:45:52.000Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
     }
   ]
 }

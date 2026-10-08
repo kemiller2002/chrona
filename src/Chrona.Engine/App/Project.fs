@@ -346,6 +346,59 @@ let private referenceRows (model: Model) (kind: Reference.Kind) =
           f "active" active
           t "state" (if active then "Offered for new work" else "Archived: kept on past records") ])
 
+/// The period containing the selected day, summarized (15).
+let private currentPeriod (model: Model) =
+    let mine = model.Ledger.Activities |> Map.toList |> List.map snd |> List.filter (fun a -> a.ActorId = model.Session.ActorId)
+    let period = Periods.containing model.PeriodConfig (selectedDate model)
+    Periods.summarize model.PeriodConfig [ billing model ] (Model.today model) mine period
+
+let private periodLabel (period: Periods.Period) =
+    let short (d: DateOnly) = d.ToString("MMM d", Globalization.CultureInfo.InvariantCulture)
+    if period.Start = period.Finish then Format.longDate period.Start else $"{short period.Start} – {short period.Finish}"
+
+let private cadenceName =
+    function
+    | Periods.Daily -> "daily"
+    | Periods.Weekly -> "weekly"
+    | Periods.Biweekly _ -> "biweekly"
+    | Periods.SemiMonthly -> "semimonthly"
+    | Periods.Monthly -> "monthly"
+
+let private periodView (model: Model) =
+    let summary = currentPeriod model
+
+    let submission =
+        match summary.Submission with
+        | Periods.NothingToSubmit -> "Nothing to submit"
+        | Periods.NotSubmitted -> "Not submitted"
+        | Periods.PartlySubmitted -> "Partly submitted"
+        | Periods.FullySubmitted -> "Submitted"
+
+    let approval =
+        match summary.Approval with
+        | Periods.ApprovalNotRequired -> "Not required"
+        | Periods.NothingApproved -> "Not approved"
+        | Periods.PartlyApproved -> "Partly approved"
+        | Periods.FullyApproved -> "Approved"
+
+    let cadences =
+        [ "daily", "Daily"; "weekly", "Weekly"; "biweekly", "Every two weeks"; "semimonthly", "Twice a month"; "monthly", "Monthly" ]
+        |> List.map (fun (id, name) -> [ t "id" id; t "name" name; f "selected" (id = cadenceName model.PeriodConfig.Cadence) ])
+
+    let days =
+        [ DayOfWeek.Monday; DayOfWeek.Tuesday; DayOfWeek.Wednesday; DayOfWeek.Thursday; DayOfWeek.Friday; DayOfWeek.Saturday; DayOfWeek.Sunday ]
+        |> List.map (fun d -> [ t "id" (string d); t "name" (string d); f "selected" (d = model.PeriodConfig.WeekStart) ])
+
+    [ text "periodLabel" (periodLabel summary.Period)
+      text "periodExact" (Format.minutes summary.ExactMinutes)
+      text "periodBillable" (Format.minutes summary.BillableMinutes)
+      text "periodNonBillable" (Format.minutes summary.NonBillableMinutes)
+      text "periodUnclassified" (Format.minutes summary.UnclassifiedMinutes)
+      text "periodSubmission" submission
+      text "periodApproval" approval
+      items "periodCadenceOptions" cadences
+      items "periodWeekStartOptions" days ]
+
 let private more (model: Model) =
     [ text "zoneId" (model.Zone |> Option.map _.Id |> Option.defaultValue "Not yet known")
       items "projects" (referenceRows model Reference.Project)
@@ -376,6 +429,7 @@ let private actionLabel =
     function
     | "goTrack" -> "Complete it"
     | "openReview" -> "Review the day"
+    | "goToday" -> "See the period"
     | _ -> "See details"
 
 /// Unresolved work, as one projection rather than scattered warnings.
@@ -394,6 +448,20 @@ let private obligations (model: Model) =
               $"{Format.longDate date} changed after you attested it",
               $"{activities changed.Length} changed since. Review the day again.",
               "openReview"
+      let period = currentPeriod model
+      let label = periodLabel period.Period
+
+      for obligation in period.Obligations do
+          match obligation with
+          | Periods.UnclassifiedTime minutes ->
+              yield "period-unclassified", $"{Format.minutes minutes} is not yet classified as billable or not", $"In the period {label}.", "goToday"
+          | Periods.AwaitingSubmission minutes ->
+              yield "period-submission", $"{Format.minutes minutes} awaits submission", $"The period {label} has ended.", "goToday"
+          | Periods.AwaitingApproval minutes ->
+              yield "period-approval", $"{Format.minutes minutes} awaits approval", $"In the period {label}.", "goToday"
+          | Periods.RejectedTime minutes ->
+              yield "period-rejected", $"{Format.minutes minutes} was rejected and needs correcting", $"In the period {label}.", "goToday"
+
       match model.Store.Problem with
       | Some(Conflict detail) -> yield "store", "A change was not saved: it changed elsewhere", detail, "goMore"
       | Some(Failed detail) -> yield "store", "A change was not saved", detail, "goMore"
@@ -714,4 +782,5 @@ let project (model: Model) : View =
       items "obligations" (obligations model)
       yield! detailView model
       yield! reviewView model
-      yield! monthView model ]
+      yield! monthView model
+      yield! periodView model ]

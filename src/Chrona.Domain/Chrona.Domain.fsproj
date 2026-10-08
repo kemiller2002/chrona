@@ -18,6 +18,7 @@
     <Compile Include="Timer.fs" />
     <Compile Include="Billing.fs" />
     <Compile Include="Review.fs" />
+    <Compile Include="Periods.fs" />
     <Compile Include="Compatibility.fs" />
   </ItemGroup>
 

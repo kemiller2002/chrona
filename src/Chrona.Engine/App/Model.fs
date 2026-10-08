@@ -156,6 +156,8 @@ type Model =
       /// Daily attestations, newest last; earlier ones are never replaced (16).
       Attestations: Review.Attestation list
       AttestStatement: string
+      /// The organization's timesheet periods (15).
+      PeriodConfig: Periods.PeriodConfig
       NewNames: Map<Reference.Kind, string>
       Problems: Map<Form, Diagnostic list>
       /// Polite, one-off status text for screen readers: transitions only,
@@ -189,6 +191,7 @@ let initial (session: Session) (store: StoreKind) (now: DateTimeOffset) =
       MergeDraft = emptyClassification
       Attestations = []
       AttestStatement = ""
+      PeriodConfig = Periods.defaultConfig "UTC"
       NewNames = Map.empty
       Problems = Map.empty
       Announcement = ""

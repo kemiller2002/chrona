@@ -144,3 +144,12 @@ test("a link to an activity this session does not hold says so", async ({ app: p
   await expect(page.locator("html")).toHaveAttribute("data-kernel", "running");
   await expect(page.locator("#activity-missing")).toContainText("That activity is not in this session.");
 });
+
+test("the timesheet period follows the organization's configuration", async ({ app: page }) => {
+  await day(page);
+  await expect(page.locator("#period-exact")).toHaveText("2h");
+  await page.click(".chrona-nav__link:has-text('More')");
+  await page.selectOption("#period-cadence", { label: "Monthly" });
+  await page.click(".chrona-nav__link:has-text('Today')");
+  await expect(page.locator("#period-label")).toHaveText(/^[A-Z][a-z]{2} 1 – [A-Z][a-z]{2} (28|29|30|31)$/);
+});

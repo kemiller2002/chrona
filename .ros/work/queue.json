@@ -1388,10 +1388,10 @@
       "description": "Split from WI-0054. A page suspended or hidden catches up when it returns (records refreshed, unsent changes sent, the timer display recomputed); a newer Chrona shell is detected and the person is offered a reload that cannot lose pending time; a stale cached shell never runs against a newer deployment silently; intermittent cellular connectivity backs off and recovers. Requirement 37.",
       "tags": [],
       "priority": "medium",
-      "status": "ready",
+      "status": "complete",
       "attachments": [],
       "createdAt": "2026-10-08T16:25:38Z",
-      "updatedAt": "2026-10-08T16:41:04Z",
+      "updatedAt": "2026-10-08T16:59:32Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

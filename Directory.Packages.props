@@ -11,6 +11,10 @@
          reference is disabled in Directory.Build.props. -->
     <PackageVersion Include="FSharp.Core" Version="10.1.400" />
     <PackageVersion Include="EchelonFoundry.Aegis.Core" Version="1.0.0" />
+    <!-- Arca 0.2.0: attested GitHub release assets in vendor/nuget, installed
+         and proven by Conditor (conditor.json, vendor/nuget/arca.lock). -->
+    <PackageVersion Include="EchelonFoundry.Arca.Core" Version="0.2.0" />
+    <PackageVersion Include="EchelonFoundry.Arca.GitHub" Version="0.2.0" />
   </ItemGroup>
 
   <ItemGroup Label="Test">

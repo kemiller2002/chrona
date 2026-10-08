@@ -61,14 +61,23 @@ let lifecycle =
       Fingerprint = "sha256:cadd4037cac232869a486237ec523e667af9490cdcf3e4fb1ba729cbc5c87978" }
 
 /// `limen.coordination` v1: Web Locks, so one tab holds this browser's
-/// unsent changes (Arca's LocalStorageQueue.own; WI-0067).
+/// unsent changes (Arca's LimenQueue.own; WI-0067, WI-0059). Its identity is
+/// the installed contract's.
 let coordination =
-    { Id = "limen.coordination"
-      Version = 1
-      Fingerprint = "sha256:510dfbcd2f3f7966b842d518d209a511ada3ffb30132853f291e9d5fa8342684" }
+    { Id = Limen.Contract.Coordination.Contract.Unit
+      Version = int Limen.Contract.Coordination.Contract.Version
+      Fingerprint = Limen.Contract.Coordination.Contract.Fingerprint }
+
+/// `limen.store` v2: IndexedDB in Chrona's namespace, where Arca keeps this
+/// browser's unsent changes (WI-0059). Its identity is the installed
+/// contract's.
+let store =
+    { Id = Limen.Contract.Store.Contract.Unit
+      Version = int Limen.Contract.Store.Contract.Version
+      Fingerprint = Limen.Contract.Store.Contract.Fingerprint }
 
 /// The optional packs the application selects when the kernel offers them.
-let wanted = [ schedule; environment; print; host; lifecycle; coordination ]
+let wanted = [ schedule; environment; print; host; lifecycle; coordination; store ]
 
 /// What came back for an Http request (Limen's EffectOutcome).
 type HttpResult =
@@ -296,8 +305,9 @@ type Request =
     | Host of correlationId: string * operation: string * arguments: (string * string) list
     /// A `limen.lifecycle` subscription to these topics.
     | Subscribe of correlationId: string * topics: string list
-    /// A `limen.coordination` exclusive lock, never stolen.
-    | Acquire of correlationId: string * name: string * wait: bool
+    /// A request to a contract pack (`limen.coordination`, `limen.store`), as
+    /// the installed contract serializes it.
+    | Contracted of correlationId: string * pack: CapabilityOffer * request: string
 
 let private writeScalar (writer: Utf8JsonWriter) =
     function
@@ -357,13 +367,13 @@ let private writeRequest (writer: Utf8JsonWriter) (request: Request) =
         writeCapability writer correlationId schedule (fun w ->
             w.WriteString("operation", "timeout")
             w.WriteNumber("delayMs", delayMs))
-    | Acquire(correlationId, name, wait) ->
-        writeCapability writer correlationId coordination (fun w ->
-            w.WriteString("operation", "acquire")
-            w.WriteString("name", name)
-            w.WriteString("mode", "exclusive")
-            w.WriteBoolean("wait", wait)
-            w.WriteBoolean("steal", false))
+    | Contracted(correlationId, pack, request) ->
+        writer.WriteString("kind", "Capability")
+        writer.WriteString("correlationId", correlationId)
+        writer.WriteString("capability", pack.Id)
+        writer.WriteNumber("version", pack.Version)
+        writer.WritePropertyName "request"
+        writer.WriteRawValue request
     | Subscribe(correlationId, topics) ->
         writeCapability writer correlationId lifecycle (fun w ->
             w.WriteString("operation", "subscribe")

@@ -190,13 +190,22 @@ let private unsentDetail (sync: SyncState) =
     | _, false, Some note -> $"{note} Keep this page open until they are sent."
     | _, false, None -> "This browser cannot keep them. Keep this page open until they are sent."
 
-/// Where this browser's unsent changes are kept, as a mode (WI-0067).
-let private queueMode (sync: SyncState) =
-    match sync.Holder, sync.KeptInBrowser with
-    | HeldElsewhere _, _ -> "Held by another Chrona tab"
-    | HeldHere, true -> "Kept in this browser by this tab"
-    | Unlocked, true -> "Kept in this browser; each tab keeps its own, as this browser cannot tell tabs apart"
-    | _, false -> "In this page only"
+/// Where this browser's unsent changes are kept, as a mode (WI-0067,
+/// WI-0059: Limen LCP-065).
+let private queueMode (kind: StoreKind) (sync: SyncState) =
+    match kind, sync.Holder, sync.KeptInBrowser, sync.Durability with
+    // A deployment that stores nothing acknowledges every change at once.
+    | InMemory, _, _, _ -> "None"
+    | _, HeldElsewhere _, _, _ -> "Held by another Chrona tab"
+    | _, HeldHere, true, InLocalStorage -> "Kept in this browser (localStorage) by this tab"
+    | _, HeldHere, true, _ -> "Kept in this browser (IndexedDB) by this tab"
+    | _, _, false, _ -> "In this page only"
+
+/// Changes made now would live only in this page: GitHub cannot be reached
+/// and this browser keeps nothing for this tab (LCP-065: said before a change
+/// is made, not after).
+let private offlineInPage (sync: SyncState) =
+    sync.Offline && sync.Holder = HeldHere && not sync.KeptInBrowser
 
 let private storeLines (model: Model) =
     let store = model.Store
@@ -1542,7 +1551,10 @@ let project (model: Model) : View =
       text "storeDetail" detail
       flag "queueElsewhere" (match model.Store.Sync.Holder with HeldElsewhere _ -> true | _ -> false)
       flag "queueWaiting" (model.Store.Sync.Holder = HeldElsewhere true)
-      text "queueMode" (queueMode model.Store.Sync)
+      flag "offlineInPage" (offlineInPage model.Store.Sync)
+      flag "hasQueueNotice" model.Store.Sync.Notice.IsSome
+      text "queueNotice" (model.Store.Sync.Notice |> Option.defaultValue "")
+      text "queueMode" (queueMode model.Store.Kind model.Store.Sync)
       text "todayLong" (Format.longDate (Model.today model))
       flag "needsReferences" needsReferences
       yield! today model

@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-08T22:21:43.000Z",
+  "updatedAt": "2026-10-08T23:52:13.000Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -2564,6 +2564,60 @@
         }
       },
       "completedAt": "2026-10-08T21:58:11.000Z"
+    },
+    {
+      "id": "WI-0059",
+      "type": "task",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Application/Store.fs"
+        },
+        {
+          "type": "implementation",
+          "path": "web-kernel/limen-wasm.js"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/StoreTests.fs"
+        },
+        {
+          "type": "tests",
+          "path": "tests/browser/app-github.spec.js"
+        },
+        {
+          "type": "documentation",
+          "path": "research/decisions/DF-CHRONA-2026-0005--records-on-github-through-arca-behind-the-store-port.md"
+        }
+      ],
+      "updatedAt": "2026-10-08T23:52:13.000Z",
+      "telemetryExecutionIds": [
+        "EXE-20261008T222827697Z-bac96650"
+      ],
+      "latestCheckpoint": {
+        "id": "33729d159689bd6d43db085e",
+        "recordedAt": "2026-10-08T23:30:31.000Z",
+        "executionId": "EXE-20261008T222827697Z-bac96650",
+        "repository": "chrona",
+        "branch": "feature/indexeddb-queue",
+        "commit": "a468f77a9a07c641f5af314718914c3610309bc1",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/chrona"
+        },
+        "remoteBranch": "feature/indexeddb-queue",
+        "remoteCommit": "a468f77a9a07c641f5af314718914c3610309bc1",
+        "summary": "Queue on Arca.Limen LimenQueue (IndexedDB via limen.store v2, take-over, hand-over, migration notices); 367 .NET, 62 Chromium, 4 Pages green locally",
+        "nextAction": "Re-render the More baselines via the routine workflow, open the PR, gate every PR check, merge with sha",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      },
+      "completedAt": "2026-10-08T23:52:13.000Z",
+      "conclusion": "The offline queue lives in IndexedDB through Arca 0.3.0's LimenQueue on Limen 0.9.0's store pack, with take-over, hand-over, claim on return and the localStorage migration; covered in .NET and Chromium (PR #74)"
     }
   ]
 }

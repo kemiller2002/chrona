@@ -50,40 +50,110 @@ let private snapshot (visibility: RepositoryVisibility) : CapabilitySnapshot =
 
 let private keys = ref 0
 
-/// One browser's localStorage and Web Locks, shared by the pages opened in it.
+/// One browser's localStorage, IndexedDB (Limen's store pack, through its
+/// fake) and Web Locks, shared by the pages opened in it.
 type private Browser() =
+    let origin = Limen.Store.FakeStore.origin None
+    let mutable tabs = 0
+    let mutable handles = 0
+
     member val Storage = Collections.Generic.Dictionary<string, string>()
-    /// The browser refuses storage requests with this reason, when set.
+    /// The browser refuses localStorage requests with this reason, when set.
     member val Refusing: string option = None with get, set
     /// The browser has Web Locks (every current browser does).
     member val WebLocks = true with get, set
-    /// Who holds each lock: a page.
-    member val Held = Collections.Generic.Dictionary<string, obj>()
+    /// The page negotiated Limen's store pack (IndexedDB).
+    member val IndexedDb = true with get, set
+    /// Who holds each lock: its handle, the page, and how that page hears
+    /// that another took it.
+    member val Held = Collections.Generic.Dictionary<string, string * obj * (unit -> unit)>()
     /// Pages waiting for a lock, oldest first, and how each is told.
-    member val Waiting = Collections.Generic.List<string * obj * (unit -> unit)>()
+    member val Waiting = Collections.Generic.List<string * obj * (string -> unit)>()
+    /// LockLost facts not delivered yet: the page, and how it hears it.
+    member val Lost = Collections.Generic.List<obj * (unit -> unit)>()
+
+    /// A new tab's IndexedDB, in this browser's origin.
+    member _.Tab() =
+        tabs <- tabs + 1
+        origin $"tab-{tabs}" (Limen.Store.FakeTabConfig.create "chrona")
+
+    /// Answers a coordination request from a page (Web Locks).
+    member this.Coordinate (page: obj) (lost: unit -> unit) (answer: Limen.Contract.Coordination.Types.CoordinationResult -> unit) (request: Limen.Contract.Coordination.Types.CoordinationRequest) =
+        let fresh () =
+            handles <- handles + 1
+            $"lock-{handles}"
+
+        match request with
+        | _ when not this.WebLocks -> answer Limen.Contract.Coordination.Types.CoordinationResult.Unsupported
+        | Limen.Contract.Coordination.Types.CoordinationRequest.Acquire(name, _, wait, steal) ->
+            match this.Held.TryGetValue name with
+            | true, (_, holder, told) when steal ->
+                // The holder hears LockLost; the lock is this page's.
+                this.Lost.Add((holder, told))
+                let handle = fresh ()
+                this.Held[name] <- (handle, page, lost)
+                answer (Limen.Contract.Coordination.Types.CoordinationResult.Acquired(Limen.Contract.Coordination.Types.LockHandle handle))
+            | true, _ when wait ->
+                this.Waiting.Add(
+                    (name,
+                     page,
+                     fun handle ->
+                         answer (Limen.Contract.Coordination.Types.CoordinationResult.Acquired(Limen.Contract.Coordination.Types.LockHandle handle)))
+                )
+            // Web Locks are not re-entrant: a page asking again for a lock
+            // it holds is told it is busy.
+            | true, _ -> answer Limen.Contract.Coordination.Types.CoordinationResult.Busy
+            | _ ->
+                let handle = fresh ()
+                this.Held[name] <- (handle, page, lost)
+                answer (Limen.Contract.Coordination.Types.CoordinationResult.Acquired(Limen.Contract.Coordination.Types.LockHandle handle))
+        | Limen.Contract.Coordination.Types.CoordinationRequest.Release(Limen.Contract.Coordination.Types.LockHandle handle) ->
+            match this.Held |> Seq.tryFind (fun pair -> let held, _, _ = pair.Value in held = handle) with
+            | Some pair ->
+                this.Pass pair.Key
+                answer Limen.Contract.Coordination.Types.CoordinationResult.Released
+            | None -> answer Limen.Contract.Coordination.Types.CoordinationResult.UnknownLock
+        | _ -> answer Limen.Contract.Coordination.Types.CoordinationResult.Unsupported
+
+    /// A lock was let go: it passes to the first page waiting for it.
+    member this.Pass(name: string) =
+        this.Held.Remove name |> ignore
+
+        match this.Waiting |> Seq.tryFind (fun (wanted, _, _) -> wanted = name) with
+        | Some((_, waiter, told) as next) ->
+            this.Waiting.Remove next |> ignore
+            handles <- handles + 1
+            let handle = $"lock-{handles}"
+            this.Held[name] <- (handle, waiter, ignore)
+            told handle
+        | None -> ()
 
     /// A page closed: its locks pass to the pages waiting for them.
     member this.Release(page: obj) =
         this.Waiting.RemoveAll(fun (_, waiter, _) -> obj.ReferenceEquals(waiter, page)) |> ignore
+        this.Lost.RemoveAll(fun (lost, _) -> obj.ReferenceEquals(lost, page)) |> ignore
 
         let released =
-            this.Held |> Seq.filter (fun pair -> obj.ReferenceEquals(pair.Value, page)) |> Seq.map _.Key |> List.ofSeq
+            this.Held |> Seq.filter (fun pair -> let _, holder, _ = pair.Value in obj.ReferenceEquals(holder, page)) |> Seq.map _.Key |> List.ofSeq
 
         for name in released do
-            this.Held.Remove name |> ignore
+            this.Pass name
 
-            match this.Waiting |> Seq.tryFind (fun (wanted, _, _) -> wanted = name) with
-            | Some((_, waiter, told) as next) ->
-                this.Waiting.Remove next |> ignore
-                this.Held[name] <- waiter
-                told ()
-            | None -> ()
+    /// The pages whose locks were taken hear LockLost.
+    member this.DeliverLockLost() =
+        let due = List.ofSeq this.Lost
+        this.Lost.Clear()
+
+        for _, told in due do
+            told ()
 
 /// One device: a page's bridge and store over the shared in-memory GitHub,
 /// in a browser whose localStorage it shares with the browser's other pages.
 type private Device(github: InMemoryStore, visibility: RepositoryVisibility, environment: string, person: Session, config: Deployment.DeploymentConfig, browser: Browser) =
 
     let bridge = Bridge.Bridge()
+    /// This page's IndexedDB connection, through Limen's fake store pack.
+    let indexedDb = browser.Tab()
 
     /// Commits that someone else's commit to the repository beats first.
     let mutable beaten = 0
@@ -180,6 +250,7 @@ type private Device(github: InMemoryStore, visibility: RepositoryVisibility, env
             | RebuildIndex -> store.Rebuild()
             | SendUnsent -> store.SendNow()
             | TakeOverQueue -> store.TakeOver()
+            | ClaimQueue -> store.Claim()
             | DiscardUnsent -> store.Discard()
             // Fides signs the person out; the page hears it.
             | SignOut -> signingOut <- true
@@ -222,27 +293,28 @@ type private Device(github: InMemoryStore, visibility: RepositoryVisibility, env
                     | Bridge.Sleep _, _ ->
                         sleeping.Add id
                         None
-                    | Bridge.LockAcquire _, _ when not browser.WebLocks -> Some(Bridge.LockOutcome "Unsupported")
-                    | Bridge.LockAcquire(name, wait), _ ->
-                        // Web Locks are not re-entrant: a page asking again for
-                        // a lock it holds is told it is busy.
-                        match browser.Held.TryGetValue name with
-                        | true, _ ->
-                            if wait then
-                                browser.Waiting.Add(
-                                    (name,
-                                     box this,
-                                     fun () ->
-                                         bridge.Answer id (Bridge.LockOutcome "Acquired") |> ignore
-                                         this.Settle())
-                                )
+                    | Bridge.Coordinate request, _ ->
+                        let mutable now = true
+                        let mutable immediate = None
 
-                                None
+                        let answer result =
+                            let raw = Bridge.Raw(Limen.Contract.Coordination.Codec.serializeCoordinationResult result)
+
+                            if now then
+                                immediate <- Some raw
                             else
-                                Some(Bridge.LockOutcome "Busy")
-                        | _ ->
-                            browser.Held[name] <- box this
-                            Some(Bridge.LockOutcome "Acquired")
+                                bridge.Answer id raw |> ignore
+                                this.Settle()
+
+                        browser.Coordinate (box this) (fun () -> this.LoseLock()) answer (Limen.Contract.Coordination.Codec.parseCoordinationRequest request |> ok)
+                        now <- false
+                        immediate
+                    | Bridge.StoreOperation _, _ when not browser.IndexedDb -> Some Bridge.Missing
+                    | Bridge.StoreOperation request, _ ->
+                        let result =
+                            indexedDb.Execute(Limen.Contract.Store.Codec.parseStoreRequest request |> ok) |> Async.RunSynchronously
+
+                        Some(Bridge.Raw(Limen.Contract.Store.Codec.serializeStoreResult result))
                     | other, _ -> failwith $"unexpected browser call %A{other}"
 
                 answer |> Option.iter (fun answer -> bridge.Answer id answer |> ignore)
@@ -270,6 +342,16 @@ type private Device(github: InMemoryStore, visibility: RepositoryVisibility, env
     member this.LoseLock() =
         store.Lost()
         this.Settle()
+
+    /// The browser clears this page's IndexedDB under it (cleared site data,
+    /// eviction); the store pack reports ConnectionLost.
+    member this.ClearIndexedDb() =
+        indexedDb.Inject Limen.Store.FakeFault.StorageCleared
+        store.Reconnect()
+        this.Settle()
+
+    /// The person returns to this page (visibility, back-forward cache).
+    member this.Return() = this.Send PageReturned
 
     /// The back-off waits are over: the store tries again.
     member this.Wake() =
@@ -984,10 +1066,41 @@ let private headline (device: Device) =
 
 let private queueKey = "arca.queue.chrona.org_acme"
 
-let private queued (browser: Browser) =
-    match browser.Storage.TryGetValue queueKey with
-    | true, text -> (OfflineQueue.decode text |> ok).Entries |> List.filter (fun entry -> match entry.State with EntryState.Synchronized _ | EntryState.Abandoned _ -> false | _ -> true)
+let private outstanding (text: string) =
+    (OfflineQueue.decode text |> ok).Entries
+    |> List.filter (fun entry -> match entry.State with EntryState.Synchronized _ | EntryState.Abandoned _ -> false | _ -> true)
+
+/// The queue folder's IndexedDB record, as another tab of the browser reads it.
+let private queueRecord (browser: Browser) =
+    let tab = browser.Tab()
+    let config = configuration "production"
+    let folder = Storage.organizationNamespace config (Storage.binding config |> ok) "org_acme" |> ok
+
+    async {
+        match! Arca.Limen.IndexedDbQueue.openDatabase tab.Execute with
+        | Error _ -> return None
+        | Ok opened ->
+            match! Arca.Limen.IndexedDbQueue.read tab.Execute (Limen.Store.Connection.Open opened) (Arca.Limen.IndexedDbQueue.recordKey folder) with
+            | Ok found -> return found
+            | Error failure -> return failwith $"%A{failure}"
+    }
+    |> Async.RunSynchronously
+
+/// The unsent changes this browser keeps in IndexedDB (WI-0059).
+let private inIndexedDb (browser: Browser) =
+    match queueRecord browser with
+    | Some { Queue = Some text } -> outstanding text
     | _ -> []
+
+/// The unsent changes this browser keeps in localStorage: where IndexedDB
+/// cannot be used, or where an older Chrona kept them.
+let private inLocalStorage (browser: Browser) =
+    match browser.Storage.TryGetValue queueKey with
+    | true, text -> outstanding text
+    | _ -> []
+
+/// The unsent changes this browser keeps, wherever it keeps them.
+let private queued (browser: Browser) = inIndexedDb browser @ inLocalStorage browser
 
 [<Fact>]
 let ``time recorded offline waits in this browser, is shown as unsent, and is sent in order on reconnect`` () =
@@ -1133,7 +1246,7 @@ let ``another account's unsent changes in this browser are never sent with this 
 [<Fact>]
 let ``without browser storage, changes are still sent, and the page says they would not survive closing it`` () =
     let github = InMemoryStore()
-    let browser = Browser(Refusing = Some "unavailable")
+    let browser = Browser(Refusing = Some "unavailable", IndexedDb = false)
     let device = Device(github, RepositoryVisibility.Private, "production", browser)
     device.Open()
     Assert.False(device.Model.Store.Sync.KeptInBrowser)
@@ -1644,6 +1757,7 @@ let ``starting offline, the timer keeps working and the unsent changes are count
     record device "09:00" "10:00" "Pairing"
 
     // The page starts again while GitHub cannot be reached.
+    device.Close()
     let offline = Device(github, RepositoryVisibility.Private, "production", browser)
     offline.Offline <- true
     offline.Now <- start.AddMinutes 30.0
@@ -1708,12 +1822,11 @@ let ``signing out with a timer on the device asks first, like unsent changes`` (
     Assert.True(signedOut device)
     Assert.False(browser.Storage.ContainsKey timerKeyOf)
 
-/// Two tabs of one browser share its localStorage and so the one queue
-/// snapshot (Arca 0.2.1, arca WI-0024, DF-ARCA-2026-0009). Before 0.2.1 the
-/// second tab's save overwrote the first tab's unsent change: the last save
-/// won, and the first tab's change was gone from the browser.
+/// Without Web Locks no tab can be told apart from another, so no durable
+/// store is ever written by several tabs at once (LCP-059): each tab keeps
+/// its own changes in its page, says so, and sends them itself.
 [<Fact>]
-let ``without Web Locks, two tabs offline in one browser: a stale save is refused, never overwriting the other tab's unsent change`` () =
+let ``without Web Locks, two tabs offline in one browser each keep their own changes in the page, and nothing is overwritten or lost`` () =
     let github = InMemoryStore()
     let browser = Browser(WebLocks = false)
     let first = Device(github, RepositoryVisibility.Private, "production", browser)
@@ -1722,43 +1835,35 @@ let ``without Web Locks, two tabs offline in one browser: a stale save is refuse
     record first "08:00" "08:30" "Setup"
     second.Open()
     let commits = github.State.History.Length
-    Assert.Empty(queued browser)
 
     first.Offline <- true
     second.Offline <- true
     record first "09:00" "10:00" "Pairing"
     record second "11:00" "12:00" "Review"
 
-    // The first tab's change is still kept in the browser. The second tab's
-    // keep was refused, so it says so and holds its change in the page.
-    Assert.Equal(1, (queued browser).Length)
-    Assert.True(first.Model.Store.Sync.KeptInBrowser)
-    Assert.False(second.Model.Store.Sync.KeptInBrowser)
-    // It says what happened: another tab saved, not that this browser keeps nothing.
-    Assert.Equal(Some "Another Chrona tab saved its unsent changes in this browser, so this tab keeps its own in this page instead of overwriting them.", second.Model.Store.Sync.Note)
-    Assert.Equal(Unlocked, second.Model.Store.Sync.Holder)
-    Assert.Contains("each tab keeps its own", viewText "queueMode" first.Model)
-    Assert.Equal("In this page only", viewText "queueMode" second.Model)
-    Assert.Equal(1, second.Model.Store.Pending.Length)
-
-    // The first tab is closed while offline: its change exists only in the
-    // browser now. The second tab comes back online and sends its own.
-    second.Offline <- false
-    second.Wake()
-    Assert.Equal(commits + 1, github.State.History.Length)
-
-    // A tab opened later finds the first tab's change in the browser and
-    // sends it: nothing was lost.
-    let reopened = Device(github, RepositoryVisibility.Private, "production", browser)
-    reopened.Open()
-    Assert.Equal(commits + 2, github.State.History.Length)
     Assert.Empty(queued browser)
-    Assert.Equal<string list>([ "Pairing"; "Review"; "Setup" ], descriptions reopened)
 
-// ---- One tab holds this browser's unsent changes (WI-0067) -------------------
+    for tab in [ first; second ] do
+        Assert.False(tab.Model.Store.Sync.KeptInBrowser)
+        Assert.Equal(HeldHere, tab.Model.Store.Sync.Holder)
+        Assert.Equal("In this page only", viewText "queueMode" tab.Model)
+        Assert.True(viewFlag "offlineInPage" tab.Model)
+        Assert.Equal(1, tab.Model.Store.Pending.Length)
+
+    first.Offline <- false
+    second.Offline <- false
+    first.Wake()
+    second.Wake()
+    Assert.Equal(commits + 2, github.State.History.Length)
+
+    let reader = Device(github, RepositoryVisibility.Private, "production")
+    reader.Open()
+    Assert.Equal<string list>([ "Pairing"; "Review"; "Setup" ], descriptions reader)
+
+// ---- One tab holds this browser's unsent changes (WI-0067, WI-0059) ---------
 
 [<Fact>]
-let ``two tabs in one browser: only the tab holding the unsent changes keeps them; the other says so and sends its own from the page`` () =
+let ``two tabs in one browser: only the tab holding the unsent changes keeps them in IndexedDB; the other says so and sends its own from the page`` () =
     let github = InMemoryStore()
     let browser = Browser()
     let first = Device(github, RepositoryVisibility.Private, "production", browser)
@@ -1769,13 +1874,14 @@ let ``two tabs in one browser: only the tab holding the unsent changes keeps the
     let commits = github.State.History.Length
 
     Assert.Equal(HeldHere, first.Model.Store.Sync.Holder)
+    Assert.Equal(InIndexedDb, first.Model.Store.Sync.Durability)
     Assert.Equal(HeldElsewhere false, second.Model.Store.Sync.Holder)
     Assert.False(viewFlag "queueElsewhere" first.Model)
     Assert.True(viewFlag "queueElsewhere" second.Model)
     Assert.Equal("Held by another Chrona tab", viewText "queueMode" second.Model)
-    Assert.Equal("Kept in this browser by this tab", viewText "queueMode" first.Model)
+    Assert.Equal("Kept in this browser (IndexedDB) by this tab", viewText "queueMode" first.Model)
 
-    // Online, the second tab still writes directly (OQ-001).
+    // Online, the second tab still writes directly (OQ-LIMEN-IDB-001).
     record second "07:00" "07:30" "Standup"
     Assert.Equal(commits + 1, github.State.History.Length)
     Assert.Empty(queued browser)
@@ -1786,10 +1892,10 @@ let ``two tabs in one browser: only the tab holding the unsent changes keeps the
     second.Offline <- true
     record first "09:00" "10:00" "Pairing"
     record second "11:00" "12:00" "Review"
-    Assert.Equal(1, (queued browser).Length)
+    Assert.Equal(1, (inIndexedDb browser).Length)
+    Assert.Empty(inLocalStorage browser)
     Assert.Equal(1, second.Model.Store.Pending.Length)
     Assert.StartsWith("Another tab is holding your unsent changes", viewText "storeDetail" second.Model)
-    Assert.DoesNotContain("does not let Chrona keep", viewText "storeDetail" second.Model)
 
     // Back online, each change is sent once, by the tab that holds it.
     first.Offline <- false
@@ -1806,7 +1912,7 @@ let ``two tabs in one browser: only the tab holding the unsent changes keeps the
     Assert.Equal<string list>([ "Pairing"; "Review"; "Setup"; "Standup" ], descriptions reader)
 
 [<Fact>]
-let ``when the holding tab closes, a tab waiting to take over holds its unsent changes and sends each of them once`` () =
+let ``"use this tab instead" takes the unsent changes over at once; the other tab's next save is fenced, and each change is sent once`` () =
     let github = InMemoryStore()
     let browser = Browser()
     let first = Device(github, RepositoryVisibility.Private, "production", browser)
@@ -1821,37 +1927,43 @@ let ``when the holding tab closes, a tab waiting to take over holds its unsent c
     record first "09:00" "10:00" "Pairing"
     record second "11:00" "12:00" "Review"
 
+    // The second tab takes them over: it reads the first tab's change back,
+    // keeps its own after it, and shows both as unsent.
     second.Ui("takeOverQueue", "")
-    Assert.Equal(HeldElsewhere true, second.Model.Store.Sync.Holder)
-    Assert.True(viewFlag "queueWaiting" second.Model)
-    // Asking again waits once.
-    second.Ui("takeOverQueue", "")
-    Assert.Equal(1, browser.Waiting.Count)
-
-    // The first tab closes with its change unsent: the lock passes to the
-    // second, which reads that change back, keeps its own after it, and
-    // shows both as unsent.
-    first.Close()
     Assert.Equal(HeldHere, second.Model.Store.Sync.Holder)
     Assert.True(second.Model.Store.Sync.KeptInBrowser)
-    Assert.Equal(2, (queued browser).Length)
+    Assert.Equal(2, (inIndexedDb browser).Length)
     Assert.Equal(2, second.Model.Store.Pending.Length)
-    Assert.StartsWith("The other tab closed", second.Model.Announcement)
+    Assert.Equal("This tab now holds your unsent changes and sends them.", second.Model.Announcement)
     Assert.Equal<string list>([ "Pairing"; "Review"; "Setup" ], descriptions second)
 
-    // Back online, both are sent, in order, each once.
+    // Before the first tab hears that it lost them, it saves once more: the
+    // save is fenced and writes nothing. What it kept is the second tab's
+    // now; the change it just made stays in its page.
+    record first "13:00" "14:00" "Planning"
+    Assert.Equal(HeldElsewhere false, first.Model.Store.Sync.Holder)
+    Assert.Equal(2, (inIndexedDb browser).Length)
+    Assert.Equal<string list>([ "Planning" ], first.Model.Store.Pending |> List.collect (fun request -> request.Activities |> List.map _.Classification.Description))
+    Assert.Equal("Your unsent changes moved to the other Chrona tab, which now sends them.", first.Model.Announcement)
+    browser.DeliverLockLost()
+    Assert.Equal(HeldElsewhere false, first.Model.Store.Sync.Holder)
+
+    // Back online, every change is sent once.
+    first.Offline <- false
     second.Offline <- false
     second.Wake()
-    Assert.Equal(commits + 2, github.State.History.Length)
+    first.Wake()
+    Assert.Equal(commits + 3, github.State.History.Length)
     Assert.Empty(queued browser)
+    Assert.Empty(first.Model.Store.Pending)
     Assert.Empty(second.Model.Store.Pending)
 
     let reader = Device(github, RepositoryVisibility.Private, "production")
     reader.Open()
-    Assert.Equal<string list>([ "Pairing"; "Review"; "Setup" ], descriptions reader)
+    Assert.Equal<string list>([ "Pairing"; "Planning"; "Review"; "Setup" ], descriptions reader)
 
 [<Fact>]
-let ``a change the closed tab was sending when the connection dropped is reconciled by the tab that takes over, not sent again`` () =
+let ``a tab that hears its unsent changes were taken over hands them to the other tab, and sends none of them itself`` () =
     let github = InMemoryStore()
     let browser = Browser()
     let first = Device(github, RepositoryVisibility.Private, "production", browser)
@@ -1859,16 +1971,73 @@ let ``a change the closed tab was sending when the connection dropped is reconci
     first.Open()
     record first "08:00" "08:30" "Setup"
     second.Open()
+    let commits = github.State.History.Length
+
+    first.Offline <- true
+    second.Offline <- true
+    record first "09:00" "10:00" "Pairing"
     second.Ui("takeOverQueue", "")
+    browser.DeliverLockLost()
+    Assert.Equal(HeldElsewhere false, first.Model.Store.Sync.Holder)
+    Assert.Empty(first.Model.Store.Pending)
+    Assert.Equal(1, second.Model.Store.Pending.Length)
+
+    first.Offline <- false
+    second.Offline <- false
+    first.Wake()
+    Assert.Equal(commits, github.State.History.Length)
+    second.Wake()
+    Assert.Equal(commits + 1, github.State.History.Length)
+    Assert.Empty(queued browser)
+
+[<Fact>]
+let ``when the holding tab closes, the other tab holds the unsent changes once the person returns to it, and sends each once`` () =
+    let github = InMemoryStore()
+    let browser = Browser()
+    let first = Device(github, RepositoryVisibility.Private, "production", browser)
+    let second = Device(github, RepositoryVisibility.Private, "production", browser)
+    first.Open()
+    record first "08:00" "08:30" "Setup"
+    second.Open()
+    let commits = github.State.History.Length
+
+    first.Offline <- true
+    second.Offline <- true
+    record first "09:00" "10:00" "Pairing"
+    record second "11:00" "12:00" "Review"
+
+    first.Close()
+    second.Return()
+    Assert.Equal(HeldHere, second.Model.Store.Sync.Holder)
+    Assert.True(second.Model.Store.Sync.KeptInBrowser)
+    Assert.Equal(2, (inIndexedDb browser).Length)
+    Assert.Equal(2, second.Model.Store.Pending.Length)
+
+    second.Offline <- false
+    second.Wake()
+    Assert.Equal(commits + 2, github.State.History.Length)
+    Assert.Empty(queued browser)
+    Assert.Empty(second.Model.Store.Pending)
+
+[<Fact>]
+let ``a change the holding tab was sending when the connection dropped is reconciled by the tab that takes over, not sent again`` () =
+    let github = InMemoryStore()
+    let browser = Browser()
+    let first = Device(github, RepositoryVisibility.Private, "production", browser)
+    let second = Device(github, RepositoryVisibility.Private, "production", browser)
+    first.Open()
+    record first "08:00" "08:30" "Setup"
+    second.Open()
     let commits = github.State.History.Length
 
     // It lands, but its answer is lost and GitHub is then out of reach.
     first.DisconnectDuringNextCommit()
     record first "09:00" "10:00" "Pairing"
     Assert.Equal(commits + 1, github.State.History.Length)
-    Assert.Equal(1, (queued browser).Length)
+    Assert.Equal(1, (inIndexedDb browser).Length)
 
-    first.Close()
+    second.Ui("takeOverQueue", "")
+    browser.DeliverLockLost()
     second.Wake()
     Assert.Equal(commits + 1, github.State.History.Length)
     Assert.Empty(queued browser)
@@ -1907,3 +2076,155 @@ let ``a tab that opens the records again goes on holding the unsent changes it h
     record device "09:00" "10:00" "Pairing"
     Assert.Equal(1, (queued browser).Length)
 
+
+// ---- Moving the queue into IndexedDB (WI-0059, Limen LCP-065) ---------------
+
+/// The organization's project and activity type, made online, so that a
+/// change recorded offline is one entry.
+let private prepare (device: Device) =
+    device.Ui("newProjectName", "HelixNote")
+    device.Ui("addProject", "")
+    device.Ui("newActivityTypeName", "Research")
+    device.Ui("addActivityType", "")
+
+/// A browser where an older Chrona kept unsent changes in localStorage: one
+/// offline change, made by a page without the store pack, then closed.
+let private olderChrona (github: InMemoryStore) (browser: Browser) (description: string) =
+    browser.IndexedDb <- false
+    let older = Device(github, RepositoryVisibility.Private, "production", browser)
+    older.Open()
+    if (Reference.selectable Reference.Project older.Model.References).IsEmpty then prepare older
+    Assert.Equal(InLocalStorage, older.Model.Store.Sync.Durability)
+    Assert.Equal("Kept in this browser (localStorage) by this tab", viewText "queueMode" older.Model)
+    older.Offline <- true
+    record older "09:00" "10:00" description
+    older.Close()
+    browser.IndexedDb <- true
+    Assert.Equal(1, (inLocalStorage browser).Length)
+    older
+
+[<Fact>]
+let ``unsent changes an older Chrona kept in localStorage move to IndexedDB on first load, unchanged, and are sent once`` () =
+    let github = InMemoryStore()
+    let browser = Browser()
+    let older = olderChrona github browser "Pairing"
+    let commits = github.State.History.Length
+    // The localStorage queue as it was, byte for byte.
+    let before = browser.Storage[queueKey]
+
+    // Opened while GitHub cannot be reached: the records do not open, but
+    // the queue is read, moved, counted and the move is said.
+    let device = Device(github, RepositoryVisibility.Private, "production", browser)
+    device.Offline <- true
+    device.Open()
+    Assert.Equal(1, device.Model.Store.Waiting)
+    Assert.Equal(Some "1 unsent change kept in this browser's older storage moved to IndexedDB, unchanged.", device.Model.Store.Sync.Notice)
+    Assert.True(viewFlag "hasQueueNotice" device.Model)
+    Assert.Empty(inLocalStorage browser)
+    Assert.Equal<string list>((outstanding before) |> List.map _.Operation.IdempotencyKey, (inIndexedDb browser) |> List.map _.Operation.IdempotencyKey)
+    ignore older
+
+    // Online, the records open and the moved change is sent once.
+    device.Offline <- false
+    device.Open()
+    Assert.True(device.Model.Store.Sync.KeptInBrowser)
+    Assert.Equal(InIndexedDb, device.Model.Store.Sync.Durability)
+    Assert.Equal(commits + 1, github.State.History.Length)
+    Assert.Empty(queued browser)
+    Assert.Empty(device.Model.Store.Pending)
+
+[<Fact>]
+let ``a move to IndexedDB interrupted after the copy, before localStorage was cleared, finishes on the next load without sending anything twice`` () =
+    let github = InMemoryStore()
+    let browser = Browser()
+    olderChrona github browser "Pairing" |> ignore
+    let commits = github.State.History.Length
+    let legacy = browser.Storage[queueKey]
+
+    // The copy is made and verified; the page then closes before the old
+    // queue is removed.
+    let interrupted = Device(github, RepositoryVisibility.Private, "production", browser)
+    interrupted.Offline <- true
+    interrupted.Open()
+    interrupted.Close()
+    browser.Storage[queueKey] <- legacy
+    Assert.Equal(1, (inIndexedDb browser).Length)
+    Assert.Equal(1, (inLocalStorage browser).Length)
+
+    let device = Device(github, RepositoryVisibility.Private, "production", browser)
+    device.Open()
+    Assert.Empty(inLocalStorage browser)
+    Assert.Equal(commits + 1, github.State.History.Length)
+    Assert.Empty(queued browser)
+    Assert.Empty(device.Model.Store.Pending)
+
+    let reader = Device(github, RepositoryVisibility.Private, "production")
+    reader.Open()
+    Assert.Equal<string list>([ "Pairing" ], descriptions reader |> List.filter ((=) "Pairing"))
+
+[<Fact>]
+let ``an older localStorage queue waits, said so, while IndexedDB holds unsent changes, and moves once they are sent; none is merged or dropped`` () =
+    let github = InMemoryStore()
+    let browser = Browser()
+    // IndexedDB already holds an unsent change.
+    let current = Device(github, RepositoryVisibility.Private, "production", browser)
+    current.Open()
+    prepare current
+    current.Offline <- true
+    record current "08:00" "08:30" "Setup"
+    current.Close()
+    Assert.Equal(1, (inIndexedDb browser).Length)
+    // An older Chrona then left one in localStorage.
+    olderChrona github browser "Pairing" |> ignore
+    let commits = github.State.History.Length
+
+    let device = Device(github, RepositoryVisibility.Private, "production", browser)
+    device.Offline <- true
+    device.Open()
+    Assert.Equal(Some "1 earlier unsent change waits in this browser's older storage. They move here once the changes now kept are sent; none is merged or dropped.", device.Model.Store.Sync.Notice)
+    Assert.Equal(1, (inLocalStorage browser).Length)
+    Assert.Equal(1, (inIndexedDb browser).Length)
+
+    // Sent; the older queue moves on the next load, and is sent too.
+    device.Offline <- false
+    device.Open()
+    Assert.Equal(commits + 1, github.State.History.Length)
+    device.Close()
+
+    let next = Device(github, RepositoryVisibility.Private, "production", browser)
+    next.Open()
+    Assert.Equal(commits + 2, github.State.History.Length)
+    Assert.Empty(queued browser)
+
+    let reader = Device(github, RepositoryVisibility.Private, "production")
+    reader.Open()
+    Assert.Equal<string list>([ "Pairing"; "Setup" ], descriptions reader)
+
+[<Fact>]
+let ``an older localStorage queue that cannot be read is left exactly as it is, and the person is told`` () =
+    let github = InMemoryStore()
+    let browser = Browser()
+    browser.Storage[queueKey] <- "{not a queue"
+
+    let device = Device(github, RepositoryVisibility.Private, "production", browser)
+    device.Open()
+    Assert.True(canWork device.Model)
+    Assert.Equal(Some "Unsent changes kept in this browser's older storage cannot be read. They were left exactly as they are.", device.Model.Store.Sync.Notice)
+    Assert.Equal("{not a queue", browser.Storage[queueKey])
+
+[<Fact>]
+let ``when the browser clears IndexedDB under the page, the queue is opened again and what this tab holds is kept there again`` () =
+    let github = InMemoryStore()
+    let browser = Browser()
+    let device = Device(github, RepositoryVisibility.Private, "production", browser)
+    device.Open()
+    prepare device
+    device.Offline <- true
+    record device "09:00" "10:00" "Pairing"
+    Assert.Equal(1, (inIndexedDb browser).Length)
+
+    device.ClearIndexedDb()
+    Assert.Equal(HeldHere, device.Model.Store.Sync.Holder)
+    Assert.True(device.Model.Store.Sync.KeptInBrowser)
+    Assert.Equal(1, (inIndexedDb browser).Length)
+    Assert.Equal(1, device.Model.Store.Pending.Length)

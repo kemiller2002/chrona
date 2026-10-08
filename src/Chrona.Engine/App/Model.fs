@@ -80,11 +80,20 @@ type QueueHolder =
     | HeldHere
     /// Another tab holds them. This tab keeps its own changes in the page
     /// and sends them while GitHub can be reached. `waiting`: the person
-    /// asked this tab to take them over when that tab closes.
+    /// asked this tab to take them over, and it is doing so.
     | HeldElsewhere of waiting: bool
-    /// This browser cannot tell its tabs apart (no Web Locks): each tab keeps
-    /// its own, and a save that would overwrite another tab's is refused.
-    | Unlocked
+
+/// Where this browser keeps the unsent changes this tab holds (WI-0059,
+/// Limen LCP-065): shown wherever the sync state is.
+type Durability =
+    /// IndexedDB: they survive closing the tab and restarting the browser.
+    | InIndexedDb
+    /// localStorage, where IndexedDB cannot be used: they survive too,
+    /// within a smaller budget.
+    | InLocalStorage
+    /// This page only: closing it loses them. Said before a change is made
+    /// offline.
+    | InPage
 
 /// Where this page's unsent changes stand (23, WI-0033).
 type SyncState =
@@ -98,13 +107,20 @@ type SyncState =
       /// Why they are not kept in this browser, for the person.
       Note: string option
       /// Which tab holds this browser's unsent changes.
-      Holder: QueueHolder }
+      Holder: QueueHolder
+      /// Where the changes this tab holds are kept.
+      Durability: Durability
+      /// Something about the kept changes the person must be told (moved
+      /// from localStorage, waiting to be moved, lost by the browser).
+      Notice: string option }
 
 let initialSync =
     { Offline = false
       KeptInBrowser = true
       Note = None
-      Holder = HeldHere }
+      Holder = HeldHere
+      Durability = InIndexedDb
+      Notice = None }
 
 /// The build of a page that was not built for a deployment: it is never
 /// compared with what is deployed.

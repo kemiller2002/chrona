@@ -31,9 +31,11 @@ type KernelCall =
     | Announce of message: string
     /// Wait this long (a back-off).
     | Sleep of milliseconds: int
-    /// Take an exclusive Web Lock (Limen's coordination pack), at once or
-    /// once whoever holds it lets go (`wait`). Held until the page goes.
-    | LockAcquire of name: string * wait: bool
+    /// A `limen.coordination` request (a Web Lock), as the contract
+    /// serializes it.
+    | Coordinate of request: string
+    /// A `limen.store` request (IndexedDB), as the contract serializes it.
+    | StoreOperation of request: string
 
 /// What the kernel answered.
 type KernelAnswer =
@@ -42,8 +44,10 @@ type KernelAnswer =
     | Done
     /// The browser refused a storage request: `unavailable` or `quota-exceeded`.
     | Refused of reason: string
-    /// A lock request's answer: `Acquired`, `Busy`, `Unsupported` or `Cancelled`.
-    | LockOutcome of kind: string
+    /// A contract pack's result, as the kernel sent it (JSON).
+    | Raw of result: string
+    /// The kernel offers no such pack, or did not run the request.
+    | Missing
 
 /// One page's in-flight work.
 [<Sealed>]

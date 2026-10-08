@@ -61,11 +61,15 @@ type Msg =
     | StoreReadFailed of reason: string
     /// This account's unsent changes were discarded from this device: how many.
     | UnsentDiscarded of count: int
+    /// Another tab took this browser's unsent changes over ("use this tab
+    /// instead" there): these, kept before it did, are now that tab's to
+    /// send (WI-0059, LCP-060).
+    | UnsentHandedOver of commitIds: string list
     /// The device's kept timer under this key, if any (WI-0055).
     | TimerLoaded of key: string * value: string option
     /// The records could not be opened; this many of this account's changes
     /// wait in this browser to be sent.
-    | UnsentWaiting of count: int
+    | UnsentWaiting of count: int * notice: string option
     /// The build this page runs (WI-0063).
     | BuildKnown of build: string
     /// The page is back after being hidden, frozen or restored from the
@@ -126,9 +130,12 @@ type Effect =
     /// Move focus to the control with this id: the control the person used
     /// is gone from the page, and focus must not fall to the document (35).
     | FocusControl of id: string
-    /// Take over this browser's unsent changes once the tab holding them
-    /// closes (WI-0067).
+    /// Take this browser's unsent changes over from the tab holding them
+    /// ("use this tab instead"; WI-0067, WI-0059).
     | TakeOverQueue
+    /// Ask again to hold this browser's unsent changes: the tab holding them
+    /// may have closed (WI-0059).
+    | ClaimQueue
     /// Discard this account's unsent changes from this device.
     | DiscardUnsent
     /// Read the device's kept timer for this person (WI-0055).
@@ -1504,7 +1511,10 @@ let private pageReturned (model: Model) =
 
     let unsent = if model.Store.Pending.IsEmpty then [] else [ SendUnsent ]
     let shell = if model.Shell.Build = Development then [] else [ CheckShell ]
-    { model with TickGeneration = generation }, ticking @ unsent @ records @ shell
+    // The tab holding this browser's unsent changes may have closed meanwhile:
+    // asked first, so what is sent next includes what it kept.
+    let claim = if model.Store.Sync.Holder = HeldElsewhere false then [ ClaimQueue ] else []
+    { model with TickGeneration = generation }, ticking @ claim @ unsent @ records @ shell
 
 /// Reloads for the newer Chrona, unless something the page cannot keep would
 /// be lost: changes not saved because they changed elsewhere live only in
@@ -1968,10 +1978,21 @@ let private step (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
     | SyncChanged sync ->
         let announcement =
             match model.Store.Sync.Holder, sync.Holder with
-            | HeldElsewhere _, HeldHere -> "The other tab closed; this tab now holds your unsent changes and sends them."
+            | HeldElsewhere _, HeldHere -> "This tab now holds your unsent changes and sends them."
             | _ -> model.Announcement
 
         { model with Store = { model.Store with Sync = sync }; Announcement = announcement }, []
+    | UnsentHandedOver commitIds ->
+        let handed = Set.ofList commitIds
+        let pending, moved = model.Store.Pending |> List.partition (fun request -> not (handed.Contains request.CommitId))
+
+        let announcement =
+            if moved.IsEmpty then
+                model.Announcement
+            else
+                "Your unsent changes moved to the other Chrona tab, which now sends them."
+
+        { model with Store = { model.Store with Pending = pending }; Announcement = announcement }, []
     | IndexRebuilt summary -> { model with Store = { model.Store with Index = summary }; Announcement = summary }, []
     | UnsentDiscarded count ->
         // The device's timer goes with them (WI-0055).
@@ -1984,7 +2005,10 @@ let private step (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
             Identity = { model.Identity with SignOut = None; SignOutNote = None }
             Announcement = (if count = 1 then "1 unsent change was discarded." else $"{count} unsent changes were discarded.") },
         timer @ [ SignOut ]
-    | UnsentWaiting count -> { model with Store = { model.Store with Waiting = count } }, []
+    | UnsentWaiting(count, notice) ->
+        // Reading them may have moved them from localStorage (WI-0059).
+        let sync = { model.Store.Sync with Notice = notice |> Option.orElse model.Store.Sync.Notice }
+        { model with Store = { model.Store with Waiting = count; Sync = sync } }, []
     | BuildKnown build ->
         let model = { model with Shell = { model.Shell with Build = build } }
         model, (if build = Development then [] else [ CheckShell ])
@@ -2025,7 +2049,7 @@ let private step (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
     | Ui("takeOverQueue", _, _, _) when model.Store.Sync.Holder = HeldElsewhere false ->
         { model with
             Store = { model.Store with Sync = { model.Store.Sync with Holder = HeldElsewhere true } }
-            Announcement = "This tab will take over the unsent changes when the other tab closes." },
+            Announcement = "Taking over the unsent changes from the other tab." },
         [ TakeOverQueue ]
     | Ui("takeOverQueue", _, _, _) -> model, []
     | Ui(("signIn"
@@ -2091,7 +2115,8 @@ let update (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
     match msg with
     // Signing out waits for the unsent changes it is sending.
     | StoreAnswered _
-    | SyncChanged _ ->
+    | SyncChanged _
+    | UnsentHandedOver _ ->
         let after, more = afterSending next
         after, effects @ more
     | _ -> next, effects

@@ -2,7 +2,7 @@
 id: DF-CHRONA-2026-0005
 title: Records live on GitHub through Arca's provider behind the store port, every commit conditioned on the repository state and decided again when it moved
 status: accepted
-version: 1.7.0
+version: 1.8.0
 created: 2026-10-08
 updated: 2026-10-08
 owners:
@@ -108,13 +108,23 @@ provenance:
         model: unknown
         runtime: claude-code
       reason: "One tab holds the queue (WI-0067)"
+    EXE-20261008T222827697Z-bac96650:
+      operations: [modified]
+      at: 2026-10-08T23:30:00.000Z
+      actor:
+        kind: agent
+        id: anthropic/claude-code
+        provider: anthropic
+        model: unknown
+        runtime: claude-code
+      reason: "The queue in IndexedDB through Arca.Limen (WI-0059)"
 ---
 
 # DF-CHRONA-2026-0005 — Records on GitHub through Arca
 
 - **Date:** 2026-10-08
 - **Status:** accepted
-- **Work items:** WI-0028, WI-0051, WI-0032, WI-0053, WI-0035, WI-0033, WI-0034, WI-0058, WI-0056, WI-0055
+- **Work items:** WI-0028, WI-0051, WI-0032, WI-0053, WI-0035, WI-0033, WI-0034, WI-0058, WI-0056, WI-0055, WI-0067, WI-0059
 
 ## Context
 
@@ -241,7 +251,39 @@ and semantic conflicts surfaced.
     fenced store, and the page shows that mode. A save refused because
     another tab saved first is described as exactly that. A lost lock (only
     another context's steal) leaves the tab working from the page. The
-    IndexedDB queue's owner replaces this lock in WI-0059.
+    IndexedDB queue's owner replaced this lock in WI-0059 (14).
+14. **The queue in IndexedDB (WI-0059, Arca 0.3.0, Limen 0.9.0).** The
+    queue is opened through Arca's `LimenQueue.own` over a `LimenHost`
+    whose Store is Limen's store pack (version 2, registered by the page as
+    `storeCapability({ namespace: "chrona" })`), whose Lock is the
+    coordination pack, whose LocalStorage is the Storage effect, and whose
+    clock is the page's. Both packs' requests and results cross the
+    boundary as Limen's own serialized contract values. Arca tries
+    IndexedDB, then localStorage, then the page's memory
+    (`QueueOptions.standard`), and Chrona shows where the changes are kept
+    ("Kept in this browser (IndexedDB) by this tab"); kept only in the
+    page, it says so before a change is made offline. One tab holds the
+    queue; another answers `OwnedElsewhere`, keeps its own changes in the
+    page and sends them while GitHub can be reached, and offers "Use this
+    tab instead" (`LimenQueue.takeOver`), which takes the queue at once.
+    The tab that lost it hears `LockLost`, or finds its next save fenced
+    (it wrote nothing): what it kept is the new holder's to send or
+    reconcile, never sent from both (`UnsentHandedOver`), and only what it
+    added since stays in its page. When the holder closes, the other tab
+    asks again when the person returns to it. Without Web Locks no durable
+    store is written by several tabs: each keeps its changes in its page.
+    The first load moves a queue an older Chrona kept in localStorage into
+    IndexedDB (copied, verified, then removed); a move interrupted after
+    the copy finishes on the next load without sending anything twice; a
+    localStorage queue found while IndexedDB holds unsent changes waits
+    and is said; one that cannot be read is left exactly as it is and is
+    said. These notices are shown with the sync state, and on the screen
+    where the records could not be opened. When the browser closes the
+    database under the page (`ConnectionLost`), the queue is opened again
+    and this tab's queue is kept there again. Sign-out discards only the
+    account's pending, conflicted or refused entries, by Chrona's actor id
+    (never a display name), and never one that may have landed (Arca's
+    LCP-070 rule).
 4. **Bounded reads.** A change to a month not yet read reads that month
    first, so it is never checked against less than what is stored.
 5. **The organization.** A storing deployment lists the organizations it

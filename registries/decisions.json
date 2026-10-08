@@ -333,6 +333,20 @@
             "modified"
           ],
           "reason": "One tab holds the queue (WI-0067)"
+        },
+        "EXE-20261008T222827697Z-bac96650": {
+          "actor": {
+            "id": "anthropic/claude-code",
+            "kind": "agent",
+            "model": "unknown",
+            "provider": "anthropic",
+            "runtime": "claude-code"
+          },
+          "at": "2026-10-08T23:30:00.000Z",
+          "operations": [
+            "modified"
+          ],
+          "reason": "The queue in IndexedDB through Arca.Limen (WI-0059)"
         }
       }
     },
@@ -354,7 +368,7 @@
     ],
     "title": "Records live on GitHub through Arca's provider behind the store port, every commit conditioned on the repository state and decided again when it moved",
     "updated": "2026-10-08",
-    "version": "1.7.0"
+    "version": "1.8.0"
   },
   {
     "created": "2026-10-08",

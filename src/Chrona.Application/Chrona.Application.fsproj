@@ -40,6 +40,7 @@
     <PackageReference Include="EchelonFoundry.Fides.Client" />
     <PackageReference Include="EchelonFoundry.Fides.Arca" />
     <PackageReference Include="EchelonFoundry.Arca.GitHub" />
+    <PackageReference Include="EchelonFoundry.Arca.Limen" />
   </ItemGroup>
 
   <ItemGroup>

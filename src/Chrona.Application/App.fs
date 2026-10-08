@@ -129,32 +129,34 @@ let ReturnKey = "chrona.returnTo"
 [<Literal>]
 let RequestTimeoutMs = 15000
 
-/// A browser service the bridge's clients asked for, as a Limen request;
-/// None for a wait the kernel cannot time (no schedule pack), which is
-/// answered at once.
+/// A browser service the bridge's clients asked for, as a Limen request, or
+/// the answer it gets at once: a wait the kernel cannot time (no schedule
+/// pack) is over, and a pack the kernel does not offer is missing.
 let private kernelRequest (state: State) (id: string) (call: Bridge.KernelCall) =
     let hostCall operation arguments =
         if negotiated host state then
-            Some(Host(id, operation, arguments))
+            Ok(Host(id, operation, arguments))
         else
             raise (CapabilityFailed("chrona.host", "Sign-in needs the chrona.host pack, which the kernel did not offer"))
 
     match call with
-    | Bridge.Http(method, url, headers, body, timeoutMs, responseHeaders) -> Some(Http(id, method, url, headers, body, timeoutMs, responseHeaders))
-    | Bridge.DeviceGet key -> Some(StorageGet(id, key))
-    | Bridge.DeviceSet(key, value) -> Some(StorageSet(id, key, value))
-    | Bridge.DeviceRemove key -> Some(StorageRemove(id, key))
+    | Bridge.Http(method, url, headers, body, timeoutMs, responseHeaders) -> Ok(Http(id, method, url, headers, body, timeoutMs, responseHeaders))
+    | Bridge.DeviceGet key -> Ok(StorageGet(id, key))
+    | Bridge.DeviceSet(key, value) -> Ok(StorageSet(id, key, value))
+    | Bridge.DeviceRemove key -> Ok(StorageRemove(id, key))
     | Bridge.TabGet key -> hostCall "tabGet" [ "key", key ]
     | Bridge.TabSet(key, value) -> hostCall "tabSet" [ "key", key; "value", value ]
     | Bridge.TabRemove key -> hostCall "tabRemove" [ "key", key ]
     | Bridge.Leave url -> hostCall "leave" [ "url", url ]
     | Bridge.ReplaceAddress url -> hostCall "replaceAddress" [ "url", url ]
     | Bridge.Announce message -> hostCall "broadcast" [ "message", message ]
-    | Bridge.LockAcquire(name, wait) when negotiated coordination state -> Some(Acquire(id, name, wait))
-    // Without the coordination pack, no lock: answered at once, as unsupported.
-    | Bridge.LockAcquire _ -> None
-    | Bridge.Sleep milliseconds when negotiated schedule state -> Some(Wake(id, milliseconds))
-    | Bridge.Sleep _ -> None
+    | Bridge.Coordinate request when negotiated coordination state -> Ok(Contracted(id, coordination, request))
+    | Bridge.StoreOperation request when negotiated store state -> Ok(Contracted(id, store, request))
+    // Without the pack: answered at once, as missing.
+    | Bridge.Coordinate _
+    | Bridge.StoreOperation _ -> Error Bridge.Missing
+    | Bridge.Sleep milliseconds when negotiated schedule state -> Ok(Wake(id, milliseconds))
+    | Bridge.Sleep _ -> Error Bridge.Done
 
 /// Engine effects to Limen requests, minting the correlation ids. Sign-in and
 /// storage effects start work in their ports; their requests follow on `settle`.
@@ -234,6 +236,9 @@ let private requests (env: Env) (state: State) (effects: Update.Effect list) =
             | Update.TakeOverQueue ->
                 env.Store.TakeOver()
                 state, requests, immediate
+            | Update.ClaimQueue ->
+                env.Store.Claim()
+                state, requests, immediate
             | Update.SendUnsent ->
                 env.Store.SendNow()
                 state, requests, immediate
@@ -272,11 +277,11 @@ and private settle (env: Env) (state: State) (sent: Request list) =
             |> List.fold
                 (fun (state: State, made, untimed) (id, call) ->
                     match kernelRequest state id call with
-                    | Some request -> { state with Pending = state.Pending.Add(id, BridgeCall) }, made @ [ request ], untimed
-                    | None -> state, made, untimed @ [ id ])
+                    | Ok request -> { state with Pending = state.Pending.Add(id, BridgeCall) }, made @ [ request ], untimed
+                    | Error answer -> state, made, untimed @ [ id, answer ])
                 (state, [], [])
 
-        untimed |> List.iter (fun id -> env.Bridge.Answer id Bridge.Done |> ignore)
+        untimed |> List.iter (fun (id, answer) -> env.Bridge.Answer id answer |> ignore)
         let state, sent = if untimed.IsEmpty then state, sent @ made else settle env state (sent @ made)
 
         finished |> List.fold (fun (state, sent) msg -> advance env state msg sent) (state, sent)
@@ -371,8 +376,12 @@ let step (env: Env) (state: State) (inbound: Inbound) =
                 | (Environment, state), Completed result -> state, Some(environmentZone result)
                 | (Environment, state), NotExecuted _ -> state, Some Update.EnvironmentUnavailable
                 | (Tick generation, state), Completed result -> state, scheduled generation result
-                | (BridgeCall, state), Completed result when capability = coordination.Id ->
-                    answerBridge env id (Bridge.LockOutcome(tryField "kind" result |> Option.map (asString "$.result.kind") |> Option.defaultValue "Unsupported"))
+                // A contract pack's result, decoded by the contract's codec.
+                | (BridgeCall, state), Completed result when capability = coordination.Id || capability = store.Id ->
+                    answerBridge env id (Bridge.Raw(result.ToJsonString()))
+                    state, None
+                | (BridgeCall, state), NotExecuted _ when capability = coordination.Id || capability = store.Id ->
+                    answerBridge env id Bridge.Missing
                     state, None
                 | (BridgeCall, state), Completed result ->
                     // A wait the bridge asked for has passed, or a chrona.host answer.
@@ -445,17 +454,28 @@ let step (env: Env) (state: State) (inbound: Inbound) =
                 | _ -> raise (MalformedInput("$.fact.kind", "a known limen.lifecycle fact"))
             | CapabilityFact(capability, fact) when capability = coordination.Id ->
                 match tryField "kind" fact |> Option.map (asString "$.fact.kind") with
-                // Chrona never steals a lock, so losing one means another
-                // context did: this tab no longer holds the unsent changes.
+                // Another tab took the unsent changes over ("use this tab
+                // instead" there): this tab no longer holds them.
                 | Some "LockLost" ->
                     env.Store.Lost()
                     state, None
                 | _ -> raise (MalformedInput("$.fact.kind", "a limen.coordination fact Chrona asked for"))
+            | CapabilityFact(capability, fact) when capability = store.Id ->
+                match tryField "kind" fact |> Option.map (asString "$.fact.kind") with
+                // The browser closed the database under the page (cleared
+                // site data, eviction): the queue is opened again.
+                | Some "ConnectionLost" ->
+                    env.Store.Reconnect()
+                    state, None
+                // Another context upgraded the database; Arca's next request
+                // reports whatever it changed.
+                | Some "VersionChanged" -> state, None
+                | _ -> raise (MalformedInput("$.fact.kind", "a limen.store fact"))
             | CapabilityFact(capability, _) ->
                 raise (
                     CapabilityFailed(
                         capability,
-                        $"Unexpected CapabilityFact from {capability}: this engine watches only chrona.host, limen.lifecycle and limen.coordination"
+                        $"Unexpected CapabilityFact from {capability}: this engine watches only chrona.host, limen.lifecycle, limen.coordination and limen.store"
                     )
                 )
             | Initialize _ -> invalidOp "handled above"

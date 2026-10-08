@@ -16,6 +16,7 @@ import { scheduleCapability } from "../node_modules/@echelon-foundry/limen/dist/
 import { environmentCapability } from "../node_modules/@echelon-foundry/limen/dist/capabilities/environment/index.js";
 import { lifecycleCapability } from "../node_modules/@echelon-foundry/limen/dist/capabilities/lifecycle/index.js";
 import { coordinationCapability } from "../node_modules/@echelon-foundry/limen/dist/capabilities/coordination/index.js";
+import { storeCapability } from "../node_modules/@echelon-foundry/limen/dist/capabilities/store/index.js";
 import { printCapability } from "./print.js";
 import { hostCapability } from "./host.js";
 
@@ -110,5 +111,5 @@ export async function startPage(exportName, capabilities = []) {
 // sign-in client needs from the browser beyond Limen's core effects, and
 // reloading for a newer Chrona).
 export async function startApp() {
-  await startPage("DispatchApp", [scheduleCapability(), environmentCapability(), printCapability(), hostCapability(), lifecycleCapability(), coordinationCapability()]);
+  await startPage("DispatchApp", [scheduleCapability(), environmentCapability(), printCapability(), hostCapability(), lifecycleCapability(), coordinationCapability(), storeCapability({ namespace: "chrona" })]);
 }

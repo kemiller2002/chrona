@@ -62,7 +62,7 @@ test("printing opens the browser's dialog for Folio's document of the report", a
   });
   await page.goto("/web/index.html#/more");
   await expect(page.locator("html")).toHaveAttribute("data-kernel", "running");
-  await expect(page.locator("html")).toHaveAttribute("data-capabilities", "limen.schedule limen.environment chrona.print chrona.host limen.lifecycle limen.coordination");
+  await expect(page.locator("html")).toHaveAttribute("data-capabilities", "limen.schedule limen.environment chrona.print chrona.host limen.lifecycle limen.coordination limen.store");
   await expect(page.locator("#zone")).not.toHaveText("Not yet known");
   await reportOnYesterday(page);
 

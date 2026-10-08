@@ -1308,4 +1308,5 @@ textarea.chrona-export {
   display: grid;
   gap: 0.35rem;
   max-inline-size: 22rem;
+  margin-block-end: 1.5rem;
 }

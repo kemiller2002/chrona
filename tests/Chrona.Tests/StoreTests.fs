@@ -21,7 +21,7 @@ let private ok =
     | Error error -> failwith $"%A{error}"
 
 let private configuration (environment: string) =
-    """{"environment":"ENV","environmentName":"ENV","location":{"owner":"acme","repository":"chrona-data","branch":"main","basePath":"deployments"},"identity":{"exchange":"https://fides.test","application":"chrona-test","provider":"github","clientId":"Iv23liTEST","redirectUri":"https://chrona.test/"},"organizations":[{"id":"org_acme","displayName":"Acme Consulting","slug":"acme","timeZone":"America/New_York"}]}"""
+    """{"environment":"ENV","environmentName":"ENV","location":{"owner":"acme","repository":"chrona-data","branch":"main","basePath":"deployments"},"identity":{"exchange":"https://fides.test","application":"chrona-test","provider":"github","clientId":"Iv23liTEST","redirectUri":"https://chrona.test/"},"organizations":[{"id":"org_acme","displayName":"Acme Consulting","slug":"acme","timeZone":"America/New_York","administrators":["583231"]}]}"""
         .Replace("ENV", environment)
     |> Deployment.parse
     |> ok
@@ -82,6 +82,7 @@ type private Device(github: InMemoryStore, visibility: RepositoryVisibility, env
             match effect with
             | OpenStore(config, session, dates) -> store.Open config session dates
             | Store request -> store.Commit request
+            | ConfirmAdministrator -> store.Confirm()
             | _ -> ()
 
         match bridge.Drain() with
@@ -448,7 +449,7 @@ let ``a person works in one of the deployment's organizations at a time, each in
     let github = InMemoryStore()
 
     let config =
-        """{"environment":"production","environmentName":"production","location":{"owner":"acme","repository":"chrona-data","branch":"main","basePath":"deployments"},"identity":{"exchange":"https://fides.test","application":"chrona-test","provider":"github","clientId":"Iv23liTEST","redirectUri":"https://chrona.test/"},"organizations":[{"id":"org_acme","displayName":"Acme Consulting","slug":"acme","timeZone":"America/New_York"},{"id":"org_eu","displayName":"Acme Europe","slug":"acme-eu","timeZone":"Europe/Berlin"}]}"""
+        """{"environment":"production","environmentName":"production","location":{"owner":"acme","repository":"chrona-data","branch":"main","basePath":"deployments"},"identity":{"exchange":"https://fides.test","application":"chrona-test","provider":"github","clientId":"Iv23liTEST","redirectUri":"https://chrona.test/"},"organizations":[{"id":"org_acme","displayName":"Acme Consulting","slug":"acme","timeZone":"America/New_York","administrators":["583231"]},{"id":"org_eu","displayName":"Acme Europe","slug":"acme-eu","timeZone":"Europe/Berlin","administrators":["583231"]}]}"""
         |> Deployment.parse
         |> ok
 
@@ -469,3 +470,96 @@ let ``a person works in one of the deployment's organizations at a time, each in
 
     device.Ui("chooseOrganization", "org_acme")
     Assert.Equal<string list>([ "Acme work" ], device.Model.Ledger.Activities |> Map.toList |> List.map (snd >> _.Classification.Description))
+
+// ---- Bootstrap administrators (WI-0053) ----------------------------------------------
+
+let private configured (environment: string) (administrators: string) =
+    """{"environment":"ENV","environmentName":"ENV","location":{"owner":"acme","repository":"chrona-data","branch":"main","basePath":"deployments"},"identity":{"exchange":"https://fides.test","application":"chrona-test","provider":"github","clientId":"Iv23liTEST","redirectUri":"https://chrona.test/"},"organizations":[{"id":"org_acme","displayName":"Acme Consulting","slug":"acme","timeZone":"America/New_York","administrators":ADMINS}]}"""
+        .Replace("ENV", environment)
+        .Replace("ADMINS", administrators)
+    |> Deployment.parse
+    |> ok
+
+let private viewFlag (key: string) (model: Model) =
+    match (Project.project model |> Map.ofList)[key] with
+    | Chrona.Engine.View.Value(Chrona.Engine.View.Flag f) -> f
+    | other -> failwith $"%A{other}"
+
+[<Fact>]
+let ``an account the configuration does not list cannot set an organization up, and nothing is written`` () =
+    let github = InMemoryStore()
+    let stranger = Device(github, RepositoryVisibility.Private, "production", hubot, configured "production" """["583231"]""")
+    stranger.Open()
+    Assert.False(canWork stranger.Model)
+    Assert.Contains("listed administrators can set it up", stranger.Model.Store.Failure |> Option.defaultValue "")
+    Assert.DoesNotContain(storedPaths github, fun path -> path.Contains "datasets/org_acme")
+
+[<Fact>]
+let ``with no administrators listed, production refuses to set up; a local environment keeps first-opener founding`` () =
+    let github = InMemoryStore()
+    let production = Device(github, RepositoryVisibility.Private, "production", octocat, configured "production" "[]")
+    production.Open()
+    Assert.Contains("has no administrators in this deployment's configuration", production.Model.Store.Failure |> Option.defaultValue "")
+    Assert.DoesNotContain(storedPaths github, fun path -> path.Contains "datasets/org_acme")
+
+    let local = Device(InMemoryStore(), RepositoryVisibility.Private, "local", octocat, configured "local" "[]")
+    local.Open()
+    Assert.True(canWork local.Model)
+    Assert.True(Access.permits local.Model.Roster "github:583231" Access.ManageOrganizationSettings)
+
+[<Fact>]
+let ``an organization from before the rule, administered by an unlisted account, waits for a listed account to confirm`` () =
+    let github = InMemoryStore()
+
+    // Set up earlier, locally, by hubot, who is not listed now.
+    let earlier = Device(github, RepositoryVisibility.Private, "local", hubot, configured "local" "[]")
+    earlier.Open()
+    record earlier "09:00" "10:00" "Earlier work"
+
+    let rules = configured "production" """["583231"]"""
+
+    // hubot, the stored administrator, is not granted anything and cannot confirm.
+    let unlisted = Device(github, RepositoryVisibility.Private, "production", hubot, rules)
+    unlisted.Open()
+    Assert.False(canWork unlisted.Model)
+    Assert.True(viewFlag "screenConfirmAdministrator" unlisted.Model)
+    Assert.False(viewFlag "canConfirmAdministrator" unlisted.Model)
+    Assert.True(unlisted.Model.Ledger.Activities.IsEmpty)
+    unlisted.Ui("confirmAdministrator", "")
+    Assert.False(canWork unlisted.Model)
+
+    // octocat, listed, is not granted silently either: they confirm.
+    let listed = Device(github, RepositoryVisibility.Private, "production", octocat, rules)
+    listed.Open()
+    Assert.False(canWork listed.Model)
+    Assert.True(viewFlag "canConfirmAdministrator" listed.Model)
+    Assert.DoesNotContain(storedPaths github, fun path -> path.EndsWith "chrona.member/github_3a583231.json")
+    listed.Ui("confirmAdministrator", "")
+    Assert.True(canWork listed.Model)
+    Assert.True(Access.permits listed.Model.Roster "github:583231" Access.ManageOrganizationSettings)
+
+    // Now that a listed administrator exists, hubot works as the roster says.
+    let again = Device(github, RepositoryVisibility.Private, "production", hubot, rules)
+    again.Open()
+    Assert.True(canWork again.Model)
+    // Nothing stored was lost while it waited.
+    Assert.Equal<string list>([ "Earlier work" ], again.Model.Ledger.Activities |> Map.toList |> List.map (snd >> _.Classification.Description))
+
+[<Fact>]
+let ``an organization with no members at all is not founded by whoever opens it`` () =
+    let github = InMemoryStore()
+    let earlier = Device(github, RepositoryVisibility.Private, "local", hubot, configured "local" "[]")
+    earlier.Open()
+
+    // Its roster is removed outside Chrona.
+    let folder =
+        let config = configured "production" """["583231"]"""
+        Storage.organizationNamespace config (Storage.binding config |> ok) "org_acme" |> ok
+
+    github.WriteExternally(folder.Location, "deployments/chrona/datasets/org_acme/records/chrona.member/github_3a1001.json", None)
+
+    let opener = Device(github, RepositoryVisibility.Private, "production", hubot, configured "production" """["583231"]""")
+    opener.Open()
+    Assert.False(canWork opener.Model)
+    Assert.True(viewFlag "screenConfirmAdministrator" opener.Model)
+    Assert.DoesNotContain(storedPaths github, fun path -> path.Contains "chrona.member/")

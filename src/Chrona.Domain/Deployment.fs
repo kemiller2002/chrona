@@ -61,7 +61,11 @@ type OrganizationConfig =
       Slug: string
       TimeZone: string
       /// Where this organization's data lives when not at the deployment's location.
-      Location: LocationConfig option }
+      Location: LocationConfig option
+      /// The GitHub numeric account ids who may set the organization up and
+      /// be its first administrators. No one else ever becomes one by
+      /// opening it.
+      Administrators: string list }
 
 /// A deployment's configuration.
 type DeploymentConfig =
@@ -198,8 +202,37 @@ let private identityOf value =
             | _, _, _, Error e, _
             | _, _, _, _, Error e -> Error e)
 
+/// GitHub numeric account ids: digits only, each once.
+let private administratorsOf (value: Json) =
+    match Json.field "administrators" value with
+    | None -> Ok []
+    | Some(Json.Array items) ->
+        let ids =
+            items
+            |> List.map (function
+                | Json.String id when id <> "" && id.Length <= 20 && id |> Seq.forall Char.IsAsciiDigit -> Ok id
+                | _ -> invalid "'administrators' holds something other than a GitHub account number")
+
+        match ids |> List.tryPick (function Error e -> Some e | Ok _ -> None) with
+        | Some error -> Error error
+        | None ->
+            let found = ids |> List.choose Result.toOption
+
+            if (List.distinct found).Length <> found.Length then
+                invalid "'administrators' names an account twice"
+            else
+                Ok found
+    | Some _ -> invalid "'administrators' is not a list"
+
+/// Whether a session's actor (`github:<id>`) is one of the organization's
+/// bootstrap administrators.
+let isBootstrapAdministrator (organization: OrganizationConfig) (actorId: string) =
+    match actorId.Split(':', 2) with
+    | [| "github"; id |] -> List.contains id organization.Administrators
+    | _ -> false
+
 let private organizationOf (value: Json) =
-    closed [ "displayName"; "id"; "location"; "slug"; "timeZone" ] value
+    closed [ "administrators"; "displayName"; "id"; "location"; "slug"; "timeZone" ] value
     |> Result.bind (fun _ ->
         match text "id" value, text "displayName" value, text "slug" value, text "timeZone" value with
         | Ok id, Ok displayName, Ok slug, Ok zone ->
@@ -211,12 +244,15 @@ let private organizationOf (value: Json) =
                 match Json.field "location" value with
                 | None -> Ok None
                 | Some found -> locationOf found |> Result.map Some
-                |> Result.map (fun location ->
-                    { Id = id
-                      DisplayName = displayName
-                      Slug = slug
-                      TimeZone = zone
-                      Location = location })
+                |> Result.bind (fun location ->
+                    administratorsOf value
+                    |> Result.map (fun administrators ->
+                        { Id = id
+                          DisplayName = displayName
+                          Slug = slug
+                          TimeZone = zone
+                          Location = location
+                          Administrators = administrators }))
         | Error e, _, _, _
         | _, Error e, _, _
         | _, _, Error e, _

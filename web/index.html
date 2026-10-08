@@ -93,6 +93,18 @@
   </main>
 </template>
 
+<template data-if="screenConfirmAdministrator">
+  <main class="chrona-gate" id="confirm-administrator">
+    <p class="chrona-brand"><span class="chrona-brand__mark" aria-hidden="true">C</span><span class="chrona-brand__name">Chrona</span></p>
+    <h1 class="chrona-title">This organization needs its administrator.</h1>
+    <p class="chrona-intro" id="confirmation-detail" data-text="confirmationDetail"></p>
+    <template data-if="canConfirmAdministrator">
+      <button type="button" class="chrona-action chrona-action--primary" id="confirm-administrator-button" data-event="confirmAdministrator">Confirm me as administrator</button>
+    </template>
+    <button type="button" class="chrona-action chrona-action--secondary" data-event="signOut">Sign out</button>
+  </main>
+</template>
+
 <template data-if="screenNotMember">
   <main class="chrona-gate" id="not-member">
     <p class="chrona-brand"><span class="chrona-brand__mark" aria-hidden="true">C</span><span class="chrona-brand__name">Chrona</span></p>

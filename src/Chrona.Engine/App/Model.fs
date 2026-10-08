@@ -63,7 +63,10 @@ type StoreState =
       /// Why the records could not be read, until a retry succeeds.
       Failure: string option
       /// What was found wrong in the records read (39, 41).
-      Integrity: Diagnostic list }
+      Integrity: Diagnostic list
+      /// The organization has no administrator the deployment lists: why,
+      /// and whether this person, being listed, may confirm themselves.
+      Confirmation: (string * bool) option }
 
 /// What the store read from the organization's folder.
 type StoreContents =
@@ -331,7 +334,8 @@ let initial (session: Session) (store: StoreKind) (now: DateTimeOffset) =
           Problem = None
           Opening = false
           Failure = None
-          Integrity = [] }
+          Integrity = []
+          Confirmation = None }
       Zone = None
       Now = now
       Ledger = Ledger.empty
@@ -364,6 +368,7 @@ let canWork (model: Model) =
     | SignedInMode ->
         not model.Store.Opening
         && model.Store.Failure.IsNone
+        && model.Store.Confirmation.IsNone
         // Only the organization's members work in it.
         && model.Roster.Members.ContainsKey model.Session.ActorId
     | Configuring

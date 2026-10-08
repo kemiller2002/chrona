@@ -26,6 +26,7 @@
     <Compile Include="Codec.fs" />
     <Compile Include="Organization.fs" />
     <Compile Include="Deployment.fs" />
+    <Compile Include="Governance.fs" />
     <Compile Include="Storage.fs" />
     <Compile Include="ActivityRecord.fs" />
     <Compile Include="ReferenceRecord.fs" />

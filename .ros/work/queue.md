@@ -58,3 +58,4 @@
 | WI-0050 | Chrona 13a: observation processing in the pure domain - candidates, dispositions (pending, accepted, accepted with changes, rejected, duplicate, needs attention), source auto-accept policy, deduplication and receipts (CHX-190, CHX-120 import path, CHX-250 import audit; scenarios 25-30) | complete | chrona, observations, domain | high |
 | WI-0051 | Chrona 07a: activity records on Arca - record codec, partitioned layout, change sets and integrity on load (CHX-220, CHX-390, CHX-410, CHX-050 persistence) | complete |  | medium |
 | WI-0052 | Chrona 04b: real end-to-end sign-in against a deployed Fides exchange and GitHub App (CHX-022 remainder) | captured |  | medium |
+| WI-0053 | Chrona 05b: bootstrap administrators from the deployment configuration; no first-opener takeover (CHX-030, CHX-027) | ready |  | high |

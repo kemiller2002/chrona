@@ -1170,10 +1170,10 @@
       "description": "Security fix to WI-0031's founding rule (coordinator decision 2026-10-08): whoever first opened an organization became its administrator. Now each configured organization lists its bootstrap administrators as GitHub numeric account ids. Only a listed account can initialize an organization or become its first administrator; an empty list refuses initialization (production says so plainly); first-opener founding remains only in an explicitly local environment. An organization that already exists (WI-0032 era) whose stored roster has no administrator who is also listed is held in a 'needs administrator confirmation' state, never silently granted, that only a listed account can clear by confirming. Also documents that a dedicated Chrona data repository is the recommended setup, since any commit in a shared repository makes Chrona reload and decide again (CHX-210).",
       "tags": [],
       "priority": "high",
-      "status": "ready",
+      "status": "complete",
       "attachments": [],
       "createdAt": "2026-10-08T13:45:21Z",
-      "updatedAt": "2026-10-08T13:45:32Z",
+      "updatedAt": "2026-10-08T13:53:39Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

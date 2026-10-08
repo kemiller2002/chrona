@@ -50,10 +50,18 @@ let print =
 let host =
     { Id = "chrona.host"
       Version = 1
-      Fingerprint = "chrona.host/1: tab storage, leave, replace address, broadcast" }
+      Fingerprint = "chrona.host/1: tab storage, leave, replace address, broadcast, reload" }
+
+/// `limen.lifecycle` v1 (sha256 from the installed package's generated
+/// contract): the page's visibility, freezing, back/forward-cache restores
+/// and connectivity, as facts (WI-0063).
+let lifecycle =
+    { Id = "limen.lifecycle"
+      Version = 1
+      Fingerprint = "sha256:cadd4037cac232869a486237ec523e667af9490cdcf3e4fb1ba729cbc5c87978" }
 
 /// The optional packs the application selects when the kernel offers them.
-let wanted = [ schedule; environment; print; host ]
+let wanted = [ schedule; environment; print; host; lifecycle ]
 
 /// What came back for an Http request (Limen's EffectOutcome).
 type HttpResult =
@@ -277,6 +285,8 @@ type Request =
     | StorageRemove of correlationId: string * key: string
     /// A `chrona.host` request: its operation and string arguments.
     | Host of correlationId: string * operation: string * arguments: (string * string) list
+    /// A `limen.lifecycle` subscription to these topics.
+    | Subscribe of correlationId: string * topics: string list
 
 let private writeScalar (writer: Utf8JsonWriter) =
     function
@@ -331,6 +341,16 @@ let private writeRequest (writer: Utf8JsonWriter) (request: Request) =
         writeCapability writer correlationId schedule (fun w ->
             w.WriteString("operation", "timeout")
             w.WriteNumber("delayMs", delayMs))
+    | Subscribe(correlationId, topics) ->
+        writeCapability writer correlationId lifecycle (fun w ->
+            w.WriteString("operation", "subscribe")
+            w.WritePropertyName "topics"
+            w.WriteStartArray()
+
+            for topic in topics do
+                w.WriteStringValue topic
+
+            w.WriteEndArray())
     | DescribeEnvironment correlationId ->
         writeCapability writer correlationId environment (fun w ->
             w.WriteString("operation", "describe")

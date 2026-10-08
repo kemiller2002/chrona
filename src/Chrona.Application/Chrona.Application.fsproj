@@ -19,6 +19,21 @@
     <Compile Include="Runtime.fs" />
   </ItemGroup>
 
+  <!-- The Chrona build a page runs (WI-0063): the publish of the WebAssembly
+       build passes ChronaBuildId and writes the same id beside it
+       (chrona-build.json), so a page can tell when the deployment serves a
+       newer Chrona. Unset, it is `development` and never compared. -->
+  <PropertyGroup>
+    <ChronaBuildId Condition="'$(ChronaBuildId)' == ''">development</ChronaBuildId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>ChronaBuildId</_Parameter1>
+      <_Parameter2>$(ChronaBuildId)</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="EchelonFoundry.Aegis.Core" />
     <PackageReference Include="EchelonFoundry.Fides" />

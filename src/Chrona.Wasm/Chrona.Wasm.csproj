@@ -24,6 +24,16 @@
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <ChronaBuildId Condition="'$(ChronaBuildId)' == ''">development</ChronaBuildId>
+  </PropertyGroup>
+
+  <!-- Which Chrona this build is, beside it, for a page to compare with its
+       own (WI-0063). -->
+  <Target Name="WriteChronaBuild" AfterTargets="Publish">
+    <WriteLinesToFile File="$(PublishDir)wwwroot/chrona-build.json" Lines="{&quot;build&quot;:&quot;$(ChronaBuildId)&quot;}" Overwrite="true" />
+  </Target>
+
   <ItemGroup>
     <ProjectReference Include="../Chrona.Application/Chrona.Application.fsproj" />
     <SupportedPlatform Include="browser" />

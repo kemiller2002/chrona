@@ -5,7 +5,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build:wasm": "dotnet publish src/Chrona.Wasm/Chrona.Wasm.csproj -c Release -o build/wasm",
+    "build:wasm": "dotnet publish src/Chrona.Wasm/Chrona.Wasm.csproj -c Release -o build/wasm -p:ChronaBuildId=$(git rev-parse --short=12 HEAD 2>/dev/null || echo development)",
     "build": "dotnet build Chrona.sln -c Release && npm run build:wasm",
     "check:limen": "limen verify --strict",
     "test:dotnet": "dotnet test Chrona.sln -c Release",

@@ -1143,6 +1143,15 @@ let private identityView (model: Model) =
       text "accountRetention" (retentionText identity.Retention)
       flag "screenOpening" (identity.Mode = SignedInMode && model.Store.Opening)
       flag "screenStoreFailed" (identity.Mode = SignedInMode && model.Store.Failure.IsSome)
+      // A newer Chrona deployed since this page started (WI-0063).
+      flag "shellUpdate" model.Shell.Newer.IsSome
+      flag "shellReloadBlocked" (not model.Store.Conflicts.IsEmpty)
+      text
+          "shellUpdateText"
+          (if model.Store.Conflicts.IsEmpty then
+               "Reload when you are ready. Your unsent changes and your timer are kept; text typed into a form and not saved is not."
+           else
+               "Resolve the changes not saved under More first: they live only in this page.")
       text "storeFailure" (model.Store.Failure |> Option.defaultValue "")
       // Starting offline: the device's own timer and unsent changes (WI-0055).
       flag "offlineTimer" (identity.Mode = SignedInMode && model.Store.Failure.IsSome && Update.hasKeptTimer model)

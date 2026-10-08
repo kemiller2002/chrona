@@ -49,7 +49,7 @@
     <ProjectReference Include="../../src/Chrona.Domain/Chrona.Domain.fsproj" />
     <ProjectReference Include="../../src/Chrona.Engine/Chrona.Engine.fsproj" />
     <ProjectReference Include="../../src/Chrona.Application/Chrona.Application.fsproj" />
-    <ProjectReference Include="../../src/Chrona.Integration/Chrona.Integration.fsproj" />
+    <ProjectReference Include="../../src/Chrona.Summa/Chrona.Summa.fsproj" />
   </ItemGroup>
 
 </Project>

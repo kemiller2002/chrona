@@ -14,7 +14,7 @@ open Chrona.Domain.Time
 open Chrona.Domain.Ledger
 open Chrona.Domain.Billing
 open Chrona.Domain.Review
-open Chrona.Integration
+open Chrona.Summa
 
 module A = Chrona.Domain.Activity
 
@@ -128,7 +128,7 @@ let private billable (message: Publication) =
 
 [<Fact>]
 let ``time ready for publication is published as the contract's billable time, exactly as Chrona recorded it`` () =
-    let workflow, message = staged [ activity "A1" (9, 0) 37 ] |> SummaBilling.publish config policies approver "A1" |> ok
+    let workflow, message = staged [ activity "A1" (9, 0) 37 ] |> Billing.publish config policies approver "A1" |> ok
     let time = billable message
 
     Assert.Equal(A.Published, workflow.Ledger.Activities["A1"].Publication)
@@ -143,7 +143,7 @@ let ``time ready for publication is published as the contract's billable time, e
     Assert.Equal(None, time.Supersedes)
 
     // It is a valid message of the contract, and reads back as itself.
-    let text = SummaBilling.encode message |> ok
+    let text = Billing.encode message |> ok
     Assert.Equal(Ok message, Codec.decodePublication text)
 
 [<Fact>]
@@ -153,16 +153,16 @@ let ``only time staged for publication is published; publishing the same revisio
         |> List.fold (fun ledger a -> execute actor ledger (Record a) |> ok) empty
         |> start
 
-    Assert.True(SummaBilling.publish config policies approver "A1" unstaged |> Result.isError)
+    Assert.True(Billing.publish config policies approver "A1" unstaged |> Result.isError)
 
-    let workflow, first = staged [ activity "A1" (9, 0) 37 ] |> SummaBilling.publish config policies approver "A1" |> ok
-    let retry = SummaBilling.billableTime config workflow (Some workflow.Publications["A1"]) workflow.Publications["A1"] |> ok
+    let workflow, first = staged [ activity "A1" (9, 0) 37 ] |> Billing.publish config policies approver "A1" |> ok
+    let retry = Billing.billableTime config workflow (Some workflow.Publications["A1"]) workflow.Publications["A1"] |> ok
     Assert.Equal((billable first).PublicationId, (billable retry).PublicationId)
     Assert.Equal(None, (billable retry).Supersedes)
 
 [<Fact>]
 let ``corrected published time is republished as a new publication that supersedes the first`` () =
-    let workflow, first = staged [ activity "A1" (9, 0) 37 ] |> SummaBilling.publish config policies approver "A1" |> ok
+    let workflow, first = staged [ activity "A1" (9, 0) 37 ] |> Billing.publish config policies approver "A1" |> ok
 
     let corrected =
         execute actor workflow.Ledger (Amend("A1", 1, { Classification = Some { workflow.Ledger.Activities["A1"].Classification with Description = "Work, corrected" }; Billability = None; BillingReference = None; Retime = None; Reason = "typo" })) |> ok
@@ -179,25 +179,25 @@ let ``corrected published time is republished as a new publication that supersed
         |> stage config policies approver [ "A1" ]
         |> ok
 
-    let _, second = SummaBilling.publish config policies approver "A1" again |> ok
+    let _, second = Billing.publish config policies approver "A1" again |> ok
     Assert.Equal("pub-org_acme-A1-r2", (billable second).PublicationId)
     Assert.Equal(Some (billable first).PublicationId, (billable second).Supersedes)
-    Assert.True(SummaBilling.encode second |> Result.isOk)
+    Assert.True(Billing.encode second |> Result.isOk)
 
 [<Fact>]
 let ``published time voided afterwards is withdrawn, never silently rewritten`` () =
-    let workflow, first = staged [ activity "A1" (9, 0) 37 ] |> SummaBilling.publish config policies approver "A1" |> ok
-    Assert.Equal(None, SummaBilling.withdrawal workflow approver.At "A1")
+    let workflow, first = staged [ activity "A1" (9, 0) 37 ] |> Billing.publish config policies approver "A1" |> ok
+    Assert.Equal(None, Billing.withdrawal workflow approver.At "A1")
 
     let voided = execute actor workflow.Ledger (Void("A1", 1, "Duplicate")) |> ok
     let workflow = { workflow with Ledger = voided }
 
-    match SummaBilling.withdrawal workflow approver.At "A1" with
+    match Billing.withdrawal workflow approver.At "A1" with
     | Some(PublicationWithdrawn withdrawal as message) ->
         Assert.Equal((billable first).PublicationId, withdrawal.PublicationId)
         Assert.Equal(Voided, withdrawal.Reason)
         Assert.Equal(2, withdrawal.Source.Revision)
-        Assert.True(SummaBilling.encode message |> Result.isOk)
+        Assert.True(Billing.encode message |> Result.isOk)
     | other -> failwith $"%A{other}"
 
 // ---- The contract onto Chrona ----------------------------------------------------------
@@ -206,7 +206,7 @@ let private feedback (message: Feedback) = Codec.encodeFeedback message
 
 [<Fact>]
 let ``Summa's invoice report and adjustment request apply to the publication Chrona recorded, and nothing else`` () =
-    let workflow, _ = staged [ activity "A1" (9, 0) 37 ] |> SummaBilling.publish config policies approver "A1" |> ok
+    let workflow, _ = staged [ activity "A1" (9, 0) 37 ] |> Billing.publish config policies approver "A1" |> ok
     let summa = ctx "summa"
 
     let invoiced organization revision =
@@ -220,22 +220,22 @@ let ``Summa's invoice report and adjustment request apply to the publication Chr
                   At = summa.At }
         )
 
-    let after = SummaBilling.receive summa "org_acme" (invoiced "org_acme" 1) workflow |> ok
+    let after = Billing.receive summa "org_acme" (invoiced "org_acme" 1) workflow |> ok
     Assert.Equal(A.InvoicedExternally, after.Ledger.Activities["A1"].Publication)
     Assert.Equal("INV-2026-0042", after.Invoices["A1"].InvoiceReference)
 
     // The same report again changes nothing.
-    Assert.Equal(Ok after, SummaBilling.receive summa "org_acme" (invoiced "org_acme" 1) after)
+    Assert.Equal(Ok after, Billing.receive summa "org_acme" (invoiced "org_acme" 1) after)
 
     // Another organization's, another revision's, or not a message at all: refused.
-    Assert.Equal(Error(SummaBilling.OtherOrganization "org_other"), SummaBilling.receive summa "org_acme" (invoiced "org_other" 1) workflow)
+    Assert.Equal(Error(Billing.OtherOrganization "org_other"), Billing.receive summa "org_acme" (invoiced "org_other" 1) workflow)
 
-    match SummaBilling.receive summa "org_acme" (invoiced "org_acme" 2) workflow with
-    | Error(SummaBilling.Refused [ PublicationStateConflict _ ]) -> ()
+    match Billing.receive summa "org_acme" (invoiced "org_acme" 2) workflow with
+    | Error(Billing.Refused [ PublicationStateConflict _ ]) -> ()
     | other -> failwith $"%A{other}"
 
-    match SummaBilling.receive summa "org_acme" "{}" workflow with
-    | Error(SummaBilling.NotAMessage _) -> ()
+    match Billing.receive summa "org_acme" "{}" workflow with
+    | Error(Billing.NotAMessage _) -> ()
     | other -> failwith $"%A{other}"
 
     // Summa asks for the invoiced time to be adjusted: an explicit obligation.
@@ -250,10 +250,10 @@ let ``Summa's invoice report and adjustment request apply to the publication Chr
                   At = summa.At }
         )
 
-    let adjusted = SummaBilling.receive summa "org_acme" adjustment after |> ok
+    let adjusted = Billing.receive summa "org_acme" adjustment after |> ok
     Assert.Equal(A.AdjustmentRequired, adjusted.Ledger.Activities["A1"].Publication)
     Assert.Equal(Some "The invoice was voided.", (List.last adjusted.Ledger.Audit).Reason)
-    Assert.Equal(Ok adjusted, SummaBilling.receive summa "org_acme" adjustment adjusted)
+    Assert.Equal(Ok adjusted, Billing.receive summa "org_acme" adjustment adjusted)
 
 [<Fact>]
 let ``the contract's own invoiced vector reads as Chrona's invoice report, field for field`` () =

@@ -18,8 +18,10 @@
 ///   names the publication and revision Chrona recorded.
 ///
 /// Pure: no transport, clock or I/O. The wire text is the contract's own
-/// codec (`Codec.tryEncodePublication`, `Codec.decodeFeedback`).
-module Chrona.Integration.SummaBilling
+/// codec (`Codec.tryEncodePublication`, `Codec.decodeFeedback`). This is
+/// not `Chrona.Integration`, the contract Chrona owns as the receiver of
+/// observations (requirement 18).
+module Chrona.Summa.Billing
 
 open System
 open Summa.Contracts

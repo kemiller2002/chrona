@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "repository": "chrona",
-  "nextSeq": 61,
+  "nextSeq": 62,
   "items": [
     {
       "id": "WI-0001",
@@ -764,8 +764,8 @@
     },
     {
       "id": "WI-0037",
-      "title": "Chrona 12: consume Summa's Chrona-to-Summa contracts package through conditor.json; Chrona.Integration and publication transport (CHX-170 remainder, CHX-180, CHX-063 remainder, CHX-450 remainder)",
-      "description": "Depends on summa item \"Summa 01: Chrona-to-Summa contracts package\" (the contracts package; the receiving application owns the contract, so Summa owns it, user decision 2026-10-08) and WI-0032. Declare the pinned contracts package in conditor.json, build the receiver-owned Chrona.Integration assembly, publish approved billable projections with idempotent publication ids, and handle InvoicedExternally and AdjustmentRequired feedback. Scenarios 35-38. Completes the CHX-450 architectural boundary: Chrona decides authoritative time, Summa owns the financial consequence. Also the CHX-390 remainder for publications: a publication without its source activity revision is detected.",
+      "title": "Chrona 12: consume Summa's Chrona-to-Summa billing contract through Conditor and map Chrona onto it (CHX-170, CHX-450 remainders)",
+      "description": "Summa owns the contract (user decision 2026-10-08): summa-contracts 0.1.0 (EchelonFoundry.Summa.Contracts, wire contract summa.chrona-billing 1.0) is declared in conditor.json and installed by Conditor 0.6.0 from echelon-current 1.8.0. Chrona.Summa maps Chrona onto it: time ready for publication becomes BillableTimePublished when published (exact revision, policy, covering approval, provenance, supersedes), corrected published time that is no longer billable becomes PublicationWithdrawn, and Summa's InvoicedExternally and AdjustmentNeeded apply as Chrona's InvoiceReport and the new AdjustmentReport, only for the publication and revision Chrona recorded. Every golden vector of the package round-trips in Chrona's tests. Stored publication records, the transport and the screens are WI-0061.",
       "tags": [
         "chrona",
         "order:12",
@@ -778,7 +778,7 @@
       "status": "ready",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:49.540Z",
-      "updatedAt": "2026-10-08T15:40:07Z",
+      "updatedAt": "2026-10-08T15:47:27Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",
@@ -793,7 +793,7 @@
     {
       "id": "WI-0038",
       "title": "Chrona 13: observation inboxes on Arca - reading producer inboxes, durable candidates and receipts, startup reconciliation (CHX-190 remainder, CHX-200, CHX-120 import path remainder, CHX-250 import audit remainder)",
-      "description": "Depends on WI-0032. Inbox processing with overlap checks on import and audited outcomes. Scenarios 25-30. The pure processing rules are WI-0050; this item stores candidates and receipts through Arca and reads producer inboxes. Also the CHX-390 remainder for receipts: a receipt without a durable processing result is detected. The CHX-200 remainder: inbox reconciliation at startup that never blocks the first render, is resumable and paged, and where one failed item does not block the others (the queue of unsent changes already does this, WI-0033).",
+      "description": "Depends on WI-0032. Inbox processing with overlap checks on import and audited outcomes. Scenarios 25-30. The pure processing rules are WI-0050; this item stores candidates and receipts through Arca and reads producer inboxes. Also the CHX-390 remainder for receipts: a receipt without a durable processing result is detected. The CHX-200 remainder: inbox reconciliation at startup that never blocks the first render, is resumable and paged, and where one failed item does not block the others (the queue of unsent changes already does this, WI-0033). Also CHX-180: Chrona.Integration, the contract Chrona owns as the receiver of observations (requirement 18: receiver-owned, transport-independent, versioned side by side, compatibility fixtures); it is not the Summa billing contract, which Summa owns (Chrona.Summa, WI-0037).",
       "tags": [
         "chrona",
         "order:13",
@@ -803,7 +803,7 @@
       "status": "captured",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:49.855Z",
-      "updatedAt": "2026-10-08T14:37:41Z",
+      "updatedAt": "2026-10-08T15:47:27Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",
@@ -1329,6 +1329,27 @@
       "attachments": [],
       "createdAt": "2026-10-08T15:27:11Z",
       "updatedAt": "2026-10-08T15:27:50Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0061",
+      "title": "Chrona 12b: publication transport and stored publication records - send BillableTimePublished and PublicationWithdrawn to Summa and apply its feedback, durably (CHX-170, CHX-390, CHX-450 remainders)",
+      "description": "Split from WI-0037, which installed Summa's contract (summa-contracts 0.1.0) and mapped Chrona onto it (Chrona.Integration.SummaBilling, golden vectors). Remaining: the review workflow's records (submissions, approvals, publication records, Summa's invoice and adjustment reports) are kept only in the page's memory and must be stored as Arca records like the activities (so a publication's source revision is checked on load, CHX-390); the transport that delivers Chrona's messages to Summa and Summa's feedback to Chrona (where Summa receives them, for example an inbox in the data repository or Summa's own endpoint, is Summa's decision); retries by publication id; and the screens to stage and publish time and to see invoiced and adjustment obligations. Scenarios 35-38. Requirements 17 (CHX-170 remainder), 45 (CHX-450 remainder) and 39 (CHX-390 remainder). Depends on the transport Summa chooses and on WI-0036 (stored submissions and approvals).",
+      "tags": [],
+      "priority": "high",
+      "status": "captured",
+      "attachments": [],
+      "createdAt": "2026-10-08T15:45:49Z",
+      "updatedAt": "2026-10-08T15:47:27Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

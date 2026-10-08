@@ -2,7 +2,7 @@
 id: DF-CHRONA-2026-0007
 title: Deep links on Limen's URL-state semantics, through an interim copy of Limen.Routing until Limen 0.9.0 ships
 status: accepted
-version: 1.1.0
+version: 1.2.0
 created: 2026-10-08
 updated: 2026-10-08
 owners:

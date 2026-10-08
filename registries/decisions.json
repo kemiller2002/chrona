@@ -319,6 +319,20 @@
             "modified"
           ],
           "reason": "The device's timer (WI-0055)"
+        },
+        "EXE-20261008T172418702Z-f7fee975": {
+          "actor": {
+            "id": "anthropic/claude-code",
+            "kind": "agent",
+            "model": "unknown",
+            "provider": "anthropic",
+            "runtime": "claude-code"
+          },
+          "at": "2026-10-08T17:24:25.926Z",
+          "operations": [
+            "modified"
+          ],
+          "reason": "One tab holds the queue (WI-0067)"
         }
       }
     },
@@ -340,7 +354,7 @@
     ],
     "title": "Records live on GitHub through Arca's provider behind the store port, every commit conditioned on the repository state and decided again when it moved",
     "updated": "2026-10-08",
-    "version": "1.6.0"
+    "version": "1.7.0"
   },
   {
     "created": "2026-10-05",

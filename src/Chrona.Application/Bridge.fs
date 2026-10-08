@@ -31,6 +31,9 @@ type KernelCall =
     | Announce of message: string
     /// Wait this long (a back-off).
     | Sleep of milliseconds: int
+    /// Take an exclusive Web Lock (Limen's coordination pack), at once or
+    /// once whoever holds it lets go (`wait`). Held until the page goes.
+    | LockAcquire of name: string * wait: bool
 
 /// What the kernel answered.
 type KernelAnswer =
@@ -39,6 +42,8 @@ type KernelAnswer =
     | Done
     /// The browser refused a storage request: `unavailable` or `quota-exceeded`.
     | Refused of reason: string
+    /// A lock request's answer: `Acquired`, `Busy`, `Unsupported` or `Cancelled`.
+    | LockOutcome of kind: string
 
 /// One page's in-flight work.
 [<Sealed>]

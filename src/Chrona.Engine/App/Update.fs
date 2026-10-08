@@ -105,6 +105,9 @@ type Effect =
     | RebuildIndex
     /// Send this account's unsent changes now.
     | SendUnsent
+    /// Take over this browser's unsent changes once the tab holding them
+    /// closes (WI-0067).
+    | TakeOverQueue
     /// Discard this account's unsent changes from this device.
     | DiscardUnsent
     /// Read the device's kept timer for this person (WI-0055).
@@ -129,7 +132,7 @@ let ThisDevice = "this-browser"
 /// Every `data-event` name the page may send; anything else is a defect.
 let eventNames =
     [ "signIn"; "signInRetention"; "signOut"; "retryStore"; "chooseOrganization"; "confirmAdministrator"; "reloadShell"
-      "signOutSend"; "signOutKeep"; "signOutDiscard"; "signOutDiscardConfirmed"; "signOutCancel"
+      "signOutSend"; "signOutKeep"; "signOutDiscard"; "signOutDiscardConfirmed"; "signOutCancel"; "takeOverQueue"
       "memberId"; "memberName"; "memberAccess"; "admitMember"; "changeMemberAccess"; "removeMember"
       "keepStored"; "retryChange"; "redoChange"; "acceptOutsideEdit"; "rebuildIndex"
       "navigate"; "goToday"; "goTrack"; "goMore"; "showDate"; "previousDay"; "nextDay"
@@ -1632,7 +1635,13 @@ let private step (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
         let known = model.Store.Pending |> List.map _.CommitId |> Set.ofList
         let resumed = requests |> List.filter (fun request -> not (known.Contains request.CommitId))
         { model with Store = { model.Store with Pending = model.Store.Pending @ resumed } }, []
-    | SyncChanged sync -> { model with Store = { model.Store with Sync = sync } }, []
+    | SyncChanged sync ->
+        let announcement =
+            match model.Store.Sync.Holder, sync.Holder with
+            | HeldElsewhere _, HeldHere -> "The other tab closed; this tab now holds your unsent changes and sends them."
+            | _ -> model.Announcement
+
+        { model with Store = { model.Store with Sync = sync }; Announcement = announcement }, []
     | IndexRebuilt summary -> { model with Store = { model.Store with Index = summary }; Announcement = summary }, []
     | UnsentDiscarded count ->
         // The device's timer goes with them (WI-0055).
@@ -1674,6 +1683,14 @@ let private step (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
         let text = "This browser did not allow copying. Select the text and copy it yourself."
         { model with CopyStatus = text; Announcement = text }, []
     | Ui("reloadShell", _, _, _) -> reloadShell model
+    // Whoever is signed in may wait for the other tab's changes: they are
+    // sent with the account that made them, never another's.
+    | Ui("takeOverQueue", _, _, _) when model.Store.Sync.Holder = HeldElsewhere false ->
+        { model with
+            Store = { model.Store with Sync = { model.Store.Sync with Holder = HeldElsewhere true } }
+            Announcement = "This tab will take over the unsent changes when the other tab closes." },
+        [ TakeOverQueue ]
+    | Ui("takeOverQueue", _, _, _) -> model, []
     | Ui(("signIn"
          | "signInRetention"
          | "signOut"

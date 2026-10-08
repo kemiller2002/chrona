@@ -41,6 +41,9 @@ and feel and its rules, rebuilt on Limen, Forma, Aegis and Folio
   at startup, usable offline.
 - Audit trail as records (WI-0056): who changed what is stored with the
   records, immutable, and read back with them.
+- One tab holds the unsent changes (WI-0067): a Web Lock through Arca's
+  `LocalStorageQueue.own`; another tab says so and can take them over when
+  the holding tab closes.
 - `Chrona.Engine` and `Chrona.Application`: the Limen engine and its Aegis
   boundary; `Chrona.Wasm`: the WebAssembly shim.
 - The Chrona Forma brand (`brand/chrona.brand.json`) and the legacy

@@ -2,7 +2,7 @@
 id: DF-CHRONA-2026-0005
 title: Records live on GitHub through Arca's provider behind the store port, every commit conditioned on the repository state and decided again when it moved
 status: accepted
-version: 1.6.0
+version: 1.7.0
 created: 2026-10-08
 updated: 2026-10-08
 owners:
@@ -98,6 +98,16 @@ provenance:
         model: unknown
         runtime: claude-code
       reason: "The device's timer (WI-0055)"
+    EXE-20261008T172418702Z-f7fee975:
+      operations: [modified]
+      at: 2026-10-08T17:24:25.926Z
+      actor:
+        kind: agent
+        id: anthropic/claude-code
+        provider: anthropic
+        model: unknown
+        runtime: claude-code
+      reason: "One tab holds the queue (WI-0067)"
 ---
 
 # DF-CHRONA-2026-0005 — Records on GitHub through Arca
@@ -214,6 +224,24 @@ and semantic conflicts surfaced.
     records cannot be opened. Sign-out counts it as unsent work under the
     shared-device policy. A running timer that overlaps time recorded since
     it started is an obligation (`CHRONA.TIMER.CONCURRENT_CONFLICT`).
+13. **One tab holds the queue (WI-0067).** Before it loads, keeps or sends
+    anything kept in this browser, a tab takes the queue through Arca's
+    `LocalStorageQueue.own`: an exclusive Web Lock named for the
+    organization's folder, through Limen's coordination pack, never stolen
+    and held until the page goes. The owner keeps, reads back and sends the
+    queue, as in 8. Another tab (`OwnedElsewhere`) never reads or writes
+    the kept queue: it says that another tab is holding the unsent changes,
+    keeps its own changes in the page and sends them directly while GitHub
+    can be reached (OQ-001), and offers to take over. Taking over waits for
+    the lock, which passes when the owner closes, crashes or navigates
+    away; the new owner reads back what that tab kept, puts its own unsent
+    changes after it, and sends them in order. An entry that tab was sending
+    becomes an outcome to reconcile, so nothing is sent twice. Where the
+    browser has no Web Locks (`OwnershipUnsupported`), each tab uses Arca's
+    fenced store, and the page shows that mode. A save refused because
+    another tab saved first is described as exactly that. A lost lock (only
+    another context's steal) leaves the tab working from the page. The
+    IndexedDB queue's owner replaces this lock in WI-0059.
 4. **Bounded reads.** A change to a month not yet read reads that month
    first, so it is never checked against less than what is stored.
 5. **The organization.** A storing deployment lists the organizations it
@@ -249,6 +277,9 @@ and semantic conflicts surfaced.
   2026-10-08); a deployment's `sharedDevicePolicy: "discardOnSignOut"`
   withdraws the keep option for shared computers. Nothing is lost silently
   and nothing is left behind unknowingly.
+- Two tabs never overwrite each other's unsent changes, and never both send
+  the same ones: one holds them at a time, and the hand-off on close
+  reconciles before sending.
 - Opening the records needs GitHub. Starting offline will come from a
   read-only, rebuildable cache in IndexedDB once Limen offers it (WI-0057);
   never from localStorage.

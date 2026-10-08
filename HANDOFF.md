@@ -150,6 +150,11 @@ for the diagnosis, the evidence, and one unexercised watch item.
   lifecycle pack); a newer Chrona deployed since is offered as a reload that
   keeps unsent changes and the timer (build stamped at publish, compared
   with `build/wasm/wwwroot/chrona-build.json`).
+- One tab holds the unsent changes (WI-0067): the queue kept in this
+  browser is taken through Arca's `LocalStorageQueue.own` (a Web Lock,
+  Limen's coordination pack). Another tab says so, sends its own changes
+  from the page, and can take the queue over when the holding tab closes.
+  Without Web Locks, saves are fenced and the mode is shown.
 - Not built: accessibility and mobile end to end (WI-0064), visual regression (WI-0054),
   the Summa transport (WI-0061), submission and approval screens (need actors and
   authorization, WI-0030 after Fides), and reports over stored data across

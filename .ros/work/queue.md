@@ -72,3 +72,4 @@
 | WI-0064 | Chrona 16c: accessibility and mobile end to end - scenarios 42-44, zoom and reflow, reduced motion, weekly totals and sync problems on a phone (CHX-350, CHX-360) | captured |  | medium |
 | WI-0065 | Move Chrona to Arca 0.2.1 through Conditor: the interim fix for the two-tab offline-queue loss (arca WI-0024, DF-ARCA-2026-0009) | complete | chrona, offline, arca, conditor | high |
 | WI-0066 | Deploy Chrona to GitHub Pages in local demo mode (no Fides): Pages workflow, Pages deployment configuration, CSP meta, docs | complete |  | medium |
+| WI-0067 | Chrona 08f: one tab owns the unsent changes - LocalStorageQueue.own over Limen's coordination pack, hand-off on close (CHX-021, CHX-230, CHX-370) | complete |  | high |

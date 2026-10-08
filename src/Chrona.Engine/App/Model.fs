@@ -71,6 +71,21 @@ type StoreKind =
     | InMemory
     | Durable of name: string
 
+/// Which of this browser's Chrona tabs holds its unsent changes (WI-0067):
+/// one tab at a time keeps, reads back and sends them (Arca's
+/// LocalStorageQueue.own over a Web Lock), so two tabs never overwrite or
+/// both send the same changes.
+type QueueHolder =
+    /// This tab holds them.
+    | HeldHere
+    /// Another tab holds them. This tab keeps its own changes in the page
+    /// and sends them while GitHub can be reached. `waiting`: the person
+    /// asked this tab to take them over when that tab closes.
+    | HeldElsewhere of waiting: bool
+    /// This browser cannot tell its tabs apart (no Web Locks): each tab keeps
+    /// its own, and a save that would overwrite another tab's is refused.
+    | Unlocked
+
 /// Where this page's unsent changes stand (23, WI-0033).
 type SyncState =
     { /// The last attempt to reach GitHub failed; changes wait to be sent
@@ -81,12 +96,15 @@ type SyncState =
       /// its storage is full or holds another account's unsent changes.
       KeptInBrowser: bool
       /// Why they are not kept in this browser, for the person.
-      Note: string option }
+      Note: string option
+      /// Which tab holds this browser's unsent changes.
+      Holder: QueueHolder }
 
 let initialSync =
     { Offline = false
       KeptInBrowser = true
-      Note = None }
+      Note = None
+      Holder = HeldHere }
 
 /// The build of a page that was not built for a deployment: it is never
 /// compared with what is deployed.

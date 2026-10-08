@@ -52,7 +52,9 @@ let private envWith (answer: StoreRequest -> StoreOutcome) =
               Read = fun _ -> ()
               Rebuild = fun () -> ()
               SendNow = fun () -> ()
-              Discard = fun () -> () }
+              Discard = fun () -> ()
+              TakeOver = fun () -> ()
+              Lost = fun () -> () }
           Build = Chrona.Engine.App.Model.Development }
 
     env, requests
@@ -572,6 +574,73 @@ let ``when the kernel offers the lifecycle pack, the engine subscribes, and a pa
     Assert.True(offline.Fault.IsNone)
     let odd, _ = App.handle aegis env offline (lifecycleFact """{"kind":"Teleported","subscription":"lifecycle-1"}""")
     Assert.True(odd.Fault.IsSome)
+
+// ---- one tab holds the unsent changes: Limen's coordination pack (WI-0067) ----------------
+
+let private coordinationOffer =
+    $"""{{"id":"limen.coordination","version":1,"fingerprint":"{AppProtocol.coordination.Fingerprint}"}}"""
+
+let private coordinationFact (body: string) =
+    $"""{{"kind":"CapabilityFact","capability":"limen.coordination","version":1,"fact":{body}}}"""
+
+/// Asks the bridge for the queue's lock, as Arca's LocalStorageQueue.own does,
+/// and records the answer.
+let private askLock (env: App.Env) (wait: bool) =
+    let answers = ResizeArray<Bridge.KernelAnswer>()
+
+    env.Bridge.Start(
+        async {
+            let! answer = env.Bridge.Call(Bridge.LockAcquire("arca.queue/chrona/org_acme", wait))
+            answers.Add answer
+            return []
+        }
+    )
+
+    answers
+
+[<Fact>]
+let ``the queue's lock is an exclusive, never-stolen Web Lock through the coordination pack, and losing it is told to the store`` () =
+    let _, aegis = collector ()
+    let env, _ = envWith committed
+    let lost = ref 0
+    let env = { env with Store = { env.Store with Lost = fun () -> lost.Value <- lost.Value + 1 } }
+    let state, _ = handle aegis env App.initial (initializeWith events (offer $"{schedule},{environment},{coordinationOffer}") "#/track")
+
+    let answers = askLock env true
+    let state, text = App.handle aegis env state (event "goMore" None "")
+
+    let acquire =
+        effects text |> List.find (fun e -> e.["kind"].GetValue<string>() = "Capability" && e.["capability"].GetValue<string>() = "limen.coordination")
+
+    let request = acquire.["request"]
+    Assert.Equal("acquire", request.["operation"].GetValue<string>())
+    Assert.Equal("arca.queue/chrona/org_acme", request.["name"].GetValue<string>())
+    Assert.Equal("exclusive", request.["mode"].GetValue<string>())
+    Assert.True(request.["wait"].GetValue<bool>())
+    Assert.False(request.["steal"].GetValue<bool>())
+    Assert.Empty answers
+
+    let state, _ =
+        App.handle aegis env state (capabilityResult (acquire.["correlationId"].GetValue<string>()) "limen.coordination" """{"kind":"Acquired","lock":"lock-1"}""")
+
+    Assert.Equal<Bridge.KernelAnswer list>([ Bridge.LockOutcome "Acquired" ], List.ofSeq answers)
+    Assert.True(state.Fault.IsNone)
+
+    let state, _ = App.handle aegis env state (coordinationFact """{"kind":"LockLost","lock":"lock-1"}""")
+    Assert.Equal(1, lost.Value)
+    Assert.True(state.Fault.IsNone)
+    let odd, _ = App.handle aegis env state (coordinationFact """{"kind":"Received","channel":"x","from":"y","message":"z"}""")
+    Assert.True(odd.Fault.IsSome)
+
+[<Fact>]
+let ``without the coordination pack, a lock request is answered at once, and the store treats ownership as unsupported`` () =
+    let _, aegis = collector ()
+    let env, _ = envWith committed
+    let state, _ = handle aegis env App.initial initialize
+    let answers = askLock env false
+    let _, text = App.handle aegis env state (event "goMore" None "")
+    Assert.DoesNotContain(effects text, fun e -> e.["kind"].GetValue<string>() = "Capability" && e.["capability"].GetValue<string>() = "limen.coordination")
+    Assert.Equal<Bridge.KernelAnswer list>([ Bridge.Done ], List.ofSeq answers)
 
 [<Fact>]
 let ``a page built for a deployment asks which build is served, and offers a reload when it is newer`` () =

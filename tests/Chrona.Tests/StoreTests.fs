@@ -50,11 +50,34 @@ let private snapshot (visibility: RepositoryVisibility) : CapabilitySnapshot =
 
 let private keys = ref 0
 
-/// One browser's localStorage, shared by the pages opened in it.
+/// One browser's localStorage and Web Locks, shared by the pages opened in it.
 type private Browser() =
     member val Storage = Collections.Generic.Dictionary<string, string>()
     /// The browser refuses storage requests with this reason, when set.
     member val Refusing: string option = None with get, set
+    /// The browser has Web Locks (every current browser does).
+    member val WebLocks = true with get, set
+    /// Who holds each lock: a page.
+    member val Held = Collections.Generic.Dictionary<string, obj>()
+    /// Pages waiting for a lock, oldest first, and how each is told.
+    member val Waiting = Collections.Generic.List<string * obj * (unit -> unit)>()
+
+    /// A page closed: its locks pass to the pages waiting for them.
+    member this.Release(page: obj) =
+        this.Waiting.RemoveAll(fun (_, waiter, _) -> obj.ReferenceEquals(waiter, page)) |> ignore
+
+        let released =
+            this.Held |> Seq.filter (fun pair -> obj.ReferenceEquals(pair.Value, page)) |> Seq.map _.Key |> List.ofSeq
+
+        for name in released do
+            this.Held.Remove name |> ignore
+
+            match this.Waiting |> Seq.tryFind (fun (wanted, _, _) -> wanted = name) with
+            | Some((_, waiter, told) as next) ->
+                this.Waiting.Remove next |> ignore
+                this.Held[name] <- waiter
+                told ()
+            | None -> ()
 
 /// One device: a page's bridge and store over the shared in-memory GitHub,
 /// in a browser whose localStorage it shares with the browser's other pages.
@@ -156,6 +179,7 @@ type private Device(github: InMemoryStore, visibility: RepositoryVisibility, env
             | ReadMonths dates -> store.Read dates
             | RebuildIndex -> store.Rebuild()
             | SendUnsent -> store.SendNow()
+            | TakeOverQueue -> store.TakeOver()
             | DiscardUnsent -> store.Discard()
             // Fides signs the person out; the page hears it.
             | SignOut -> signingOut <- true
@@ -198,6 +222,25 @@ type private Device(github: InMemoryStore, visibility: RepositoryVisibility, env
                     | Bridge.Sleep _, _ ->
                         sleeping.Add id
                         None
+                    | Bridge.LockAcquire _, _ when not browser.WebLocks -> Some(Bridge.LockOutcome "Unsupported")
+                    | Bridge.LockAcquire(name, wait), _ ->
+                        match browser.Held.TryGetValue name with
+                        | true, holder when not (obj.ReferenceEquals(holder, this)) ->
+                            if wait then
+                                browser.Waiting.Add(
+                                    (name,
+                                     box this,
+                                     fun () ->
+                                         bridge.Answer id (Bridge.LockOutcome "Acquired") |> ignore
+                                         this.Settle())
+                                )
+
+                                None
+                            else
+                                Some(Bridge.LockOutcome "Busy")
+                        | _ ->
+                            browser.Held[name] <- box this
+                            Some(Bridge.LockOutcome "Acquired")
                     | other, _ -> failwith $"unexpected browser call %A{other}"
 
                 answer |> Option.iter (fun answer -> bridge.Answer id answer |> ignore)
@@ -216,6 +259,15 @@ type private Device(github: InMemoryStore, visibility: RepositoryVisibility, env
     member _.DisconnectDuringNextCommit() =
         dropAnswer <- true
         disconnect <- true
+
+    /// The page closes (or crashes, or navigates away): the browser lets go
+    /// of its locks. Its unsent changes stay where it kept them.
+    member this.Close() = browser.Release(box this)
+
+    /// Another context took this page's lock from it.
+    member this.LoseLock() =
+        store.Lost()
+        this.Settle()
 
     /// The back-off waits are over: the store tries again.
     member this.Wake() =
@@ -649,6 +701,11 @@ let private viewFlag (key: string) (model: Model) =
     | Chrona.Engine.View.Value(Chrona.Engine.View.Flag f) -> f
     | other -> failwith $"%A{other}"
 
+let private viewText (key: string) (model: Model) =
+    match (Project.project model |> Map.ofList)[key] with
+    | Chrona.Engine.View.Value(Chrona.Engine.View.Text t) -> t
+    | other -> failwith $"%A{other}"
+
 [<Fact>]
 let ``an account the configuration does not list cannot set an organization up, and nothing is written`` () =
     let github = InMemoryStore()
@@ -978,6 +1035,7 @@ let ``unsent changes survive closing the page, and are sent when the records nex
     let commits = github.State.History.Length
 
     // The page closes while offline; later it opens again, online.
+    device.Close()
     let reopened = Device(github, RepositoryVisibility.Private, "production", browser)
     reopened.Open()
     Assert.Equal(commits + 1, github.State.History.Length)
@@ -1004,6 +1062,7 @@ let ``a change whose answer was lost with the connection is reconciled before an
     | other -> failwith $"%A{other}"
 
     // Reopened online, it is found to have landed: it is not sent again.
+    device.Close()
     let reopened = Device(github, RepositoryVisibility.Private, "production", browser)
     reopened.Open()
     Assert.Equal(commits + 1, github.State.History.Length)
@@ -1052,6 +1111,7 @@ let ``another account's unsent changes in this browser are never sent with this 
     let commits = github.State.History.Length
 
     // Someone else signs in on this browser: octocat's change stays unsent.
+    owner.Close()
     let other = Device(github, RepositoryVisibility.Private, "production", hubot, config, browser)
     other.Open()
     Assert.True(canWork other.Model)
@@ -1062,6 +1122,7 @@ let ``another account's unsent changes in this browser are never sent with this 
     Assert.True(other.Model.Ledger.Activities.IsEmpty)
 
     // When octocat opens the records again, it is sent.
+    other.Close()
     let back = Device(github, RepositoryVisibility.Private, "production", browser)
     back.Open()
     Assert.Equal(commits + 3, github.State.History.Length)
@@ -1356,6 +1417,7 @@ let ``signing out with unsent changes asks first, and keeping them leaves them f
     Assert.Equal(commits, github.State.History.Length)
 
     // The same account, back online, sends them.
+    device.Close()
     let back = Device(github, RepositoryVisibility.Private, "production", browser)
     back.Open()
     Assert.Equal(commits + 1, github.State.History.Length)
@@ -1649,9 +1711,9 @@ let ``signing out with a timer on the device asks first, like unsent changes`` (
 /// second tab's save overwrote the first tab's unsent change: the last save
 /// won, and the first tab's change was gone from the browser.
 [<Fact>]
-let ``two tabs offline in one browser: one tab's save never overwrites the other tab's unsent change`` () =
+let ``without Web Locks, two tabs offline in one browser: a stale save is refused, never overwriting the other tab's unsent change`` () =
     let github = InMemoryStore()
-    let browser = Browser()
+    let browser = Browser(WebLocks = false)
     let first = Device(github, RepositoryVisibility.Private, "production", browser)
     let second = Device(github, RepositoryVisibility.Private, "production", browser)
     first.Open()
@@ -1670,7 +1732,11 @@ let ``two tabs offline in one browser: one tab's save never overwrites the other
     Assert.Equal(1, (queued browser).Length)
     Assert.True(first.Model.Store.Sync.KeptInBrowser)
     Assert.False(second.Model.Store.Sync.KeptInBrowser)
-    Assert.True(second.Model.Store.Sync.Note.IsSome)
+    // It says what happened: another tab saved, not that this browser keeps nothing.
+    Assert.Equal(Some "Another Chrona tab saved its unsent changes in this browser, so this tab keeps its own in this page instead of overwriting them.", second.Model.Store.Sync.Note)
+    Assert.Equal(Unlocked, second.Model.Store.Sync.Holder)
+    Assert.Contains("each tab keeps its own", viewText "queueMode" first.Model)
+    Assert.Equal("In this page only", viewText "queueMode" second.Model)
     Assert.Equal(1, second.Model.Store.Pending.Length)
 
     // The first tab is closed while offline: its change exists only in the
@@ -1686,3 +1752,140 @@ let ``two tabs offline in one browser: one tab's save never overwrites the other
     Assert.Equal(commits + 2, github.State.History.Length)
     Assert.Empty(queued browser)
     Assert.Equal<string list>([ "Pairing"; "Review"; "Setup" ], descriptions reopened)
+
+// ---- One tab holds this browser's unsent changes (WI-0067) -------------------
+
+[<Fact>]
+let ``two tabs in one browser: only the tab holding the unsent changes keeps them; the other says so and sends its own from the page`` () =
+    let github = InMemoryStore()
+    let browser = Browser()
+    let first = Device(github, RepositoryVisibility.Private, "production", browser)
+    let second = Device(github, RepositoryVisibility.Private, "production", browser)
+    first.Open()
+    record first "08:00" "08:30" "Setup"
+    second.Open()
+    let commits = github.State.History.Length
+
+    Assert.Equal(HeldHere, first.Model.Store.Sync.Holder)
+    Assert.Equal(HeldElsewhere false, second.Model.Store.Sync.Holder)
+    Assert.False(viewFlag "queueElsewhere" first.Model)
+    Assert.True(viewFlag "queueElsewhere" second.Model)
+    Assert.Equal("Held by another Chrona tab", viewText "queueMode" second.Model)
+    Assert.Equal("Kept in this browser by this tab", viewText "queueMode" first.Model)
+
+    // Online, the second tab still writes directly (OQ-001).
+    record second "07:00" "07:30" "Standup"
+    Assert.Equal(commits + 1, github.State.History.Length)
+    Assert.Empty(queued browser)
+
+    // Offline, only the holder keeps its change in the browser; the other
+    // tab keeps its own in the page, and says where they are.
+    first.Offline <- true
+    second.Offline <- true
+    record first "09:00" "10:00" "Pairing"
+    record second "11:00" "12:00" "Review"
+    Assert.Equal(1, (queued browser).Length)
+    Assert.Equal(1, second.Model.Store.Pending.Length)
+    Assert.StartsWith("Another tab is holding your unsent changes", viewText "storeDetail" second.Model)
+    Assert.DoesNotContain("does not let Chrona keep", viewText "storeDetail" second.Model)
+
+    // Back online, each change is sent once, by the tab that holds it.
+    first.Offline <- false
+    second.Offline <- false
+    first.Wake()
+    second.Wake()
+    Assert.Equal(commits + 3, github.State.History.Length)
+    Assert.Empty(queued browser)
+    Assert.Empty(first.Model.Store.Pending)
+    Assert.Empty(second.Model.Store.Pending)
+
+    let reader = Device(github, RepositoryVisibility.Private, "production")
+    reader.Open()
+    Assert.Equal<string list>([ "Pairing"; "Review"; "Setup"; "Standup" ], descriptions reader)
+
+[<Fact>]
+let ``when the holding tab closes, a tab waiting to take over holds its unsent changes and sends each of them once`` () =
+    let github = InMemoryStore()
+    let browser = Browser()
+    let first = Device(github, RepositoryVisibility.Private, "production", browser)
+    let second = Device(github, RepositoryVisibility.Private, "production", browser)
+    first.Open()
+    record first "08:00" "08:30" "Setup"
+    second.Open()
+    let commits = github.State.History.Length
+
+    first.Offline <- true
+    second.Offline <- true
+    record first "09:00" "10:00" "Pairing"
+    record second "11:00" "12:00" "Review"
+
+    second.Ui("takeOverQueue", "")
+    Assert.Equal(HeldElsewhere true, second.Model.Store.Sync.Holder)
+    Assert.True(viewFlag "queueWaiting" second.Model)
+    // Asking again waits once.
+    second.Ui("takeOverQueue", "")
+    Assert.Equal(1, browser.Waiting.Count)
+
+    // The first tab closes with its change unsent: the lock passes to the
+    // second, which reads that change back, keeps its own after it, and
+    // shows both as unsent.
+    first.Close()
+    Assert.Equal(HeldHere, second.Model.Store.Sync.Holder)
+    Assert.True(second.Model.Store.Sync.KeptInBrowser)
+    Assert.Equal(2, (queued browser).Length)
+    Assert.Equal(2, second.Model.Store.Pending.Length)
+    Assert.StartsWith("The other tab closed", second.Model.Announcement)
+    Assert.Equal<string list>([ "Pairing"; "Review"; "Setup" ], descriptions second)
+
+    // Back online, both are sent, in order, each once.
+    second.Offline <- false
+    second.Wake()
+    Assert.Equal(commits + 2, github.State.History.Length)
+    Assert.Empty(queued browser)
+    Assert.Empty(second.Model.Store.Pending)
+
+    let reader = Device(github, RepositoryVisibility.Private, "production")
+    reader.Open()
+    Assert.Equal<string list>([ "Pairing"; "Review"; "Setup" ], descriptions reader)
+
+[<Fact>]
+let ``a change the closed tab was sending when the connection dropped is reconciled by the tab that takes over, not sent again`` () =
+    let github = InMemoryStore()
+    let browser = Browser()
+    let first = Device(github, RepositoryVisibility.Private, "production", browser)
+    let second = Device(github, RepositoryVisibility.Private, "production", browser)
+    first.Open()
+    record first "08:00" "08:30" "Setup"
+    second.Open()
+    second.Ui("takeOverQueue", "")
+    let commits = github.State.History.Length
+
+    // It lands, but its answer is lost and GitHub is then out of reach.
+    first.DisconnectDuringNextCommit()
+    record first "09:00" "10:00" "Pairing"
+    Assert.Equal(commits + 1, github.State.History.Length)
+    Assert.Equal(1, (queued browser).Length)
+
+    first.Close()
+    second.Wake()
+    Assert.Equal(commits + 1, github.State.History.Length)
+    Assert.Empty(queued browser)
+    Assert.Empty(second.Model.Store.Pending)
+    Assert.Equal<string list>([ "Pairing"; "Setup" ], descriptions second)
+
+[<Fact>]
+let ``a tab whose lock is taken stops keeping unsent changes in the browser, and says another tab holds them`` () =
+    let github = InMemoryStore()
+    let browser = Browser()
+    let device = Device(github, RepositoryVisibility.Private, "production", browser)
+    device.Open()
+    record device "08:00" "08:30" "Setup"
+    device.LoseLock()
+    Assert.Equal(HeldElsewhere false, device.Model.Store.Sync.Holder)
+    Assert.False(device.Model.Store.Sync.KeptInBrowser)
+
+    device.Offline <- true
+    record device "09:00" "10:00" "Pairing"
+    Assert.Empty(queued browser)
+    Assert.Equal(1, device.Model.Store.Pending.Length)
+

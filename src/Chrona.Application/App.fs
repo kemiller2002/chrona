@@ -138,6 +138,9 @@ let private kernelRequest (state: State) (id: string) (call: Bridge.KernelCall) 
     | Bridge.Leave url -> hostCall "leave" [ "url", url ]
     | Bridge.ReplaceAddress url -> hostCall "replaceAddress" [ "url", url ]
     | Bridge.Announce message -> hostCall "broadcast" [ "message", message ]
+    | Bridge.LockAcquire(name, wait) when negotiated coordination state -> Some(Acquire(id, name, wait))
+    // Without the coordination pack, no lock: answered at once, as unsupported.
+    | Bridge.LockAcquire _ -> None
     | Bridge.Sleep milliseconds when negotiated schedule state -> Some(Wake(id, milliseconds))
     | Bridge.Sleep _ -> None
 
@@ -201,6 +204,9 @@ let private requests (env: Env) (state: State) (effects: Update.Effect list) =
             | Update.CheckShell -> state, requests, immediate
             | Update.ReloadPage when negotiated host state -> minted Reloading, requests @ [ Host(id, "reload", []) ], immediate
             | Update.ReloadPage -> state, requests, immediate
+            | Update.TakeOverQueue ->
+                env.Store.TakeOver()
+                state, requests, immediate
             | Update.SendUnsent ->
                 env.Store.SendNow()
                 state, requests, immediate
@@ -335,11 +341,14 @@ let step (env: Env) (state: State) (inbound: Inbound) =
             | ClipboardResult(id, succeeded) ->
                 let _, state = take id state
                 state, Some(Update.Copied succeeded)
-            | CapabilityResult(id, _, outcome) ->
+            | CapabilityResult(id, capability, outcome) ->
                 match take id state, outcome with
                 | (Environment, state), Completed result -> state, Some(environmentZone result)
                 | (Environment, state), NotExecuted _ -> state, Some Update.EnvironmentUnavailable
                 | (Tick generation, state), Completed result -> state, scheduled generation result
+                | (BridgeCall, state), Completed result when capability = coordination.Id ->
+                    answerBridge env id (Bridge.LockOutcome(tryField "kind" result |> Option.map (asString "$.result.kind") |> Option.defaultValue "Unsupported"))
+                    state, None
                 | (BridgeCall, state), Completed result ->
                     // A wait the bridge asked for has passed, or a chrona.host answer.
                     match tryField "kind" result |> Option.map (asString "$.result.kind") with
@@ -402,8 +411,21 @@ let step (env: Env) (state: State) (inbound: Inbound) =
                     | None -> raise (MalformedInput("$.fact.online", "true or false"))
                 | Some("VisibilityChanged" | "PageShown" | "PageHidden" | "Frozen" | "PrerenderActivated" | "ConnectionChanged") -> state, None
                 | _ -> raise (MalformedInput("$.fact.kind", "a known limen.lifecycle fact"))
+            | CapabilityFact(capability, fact) when capability = coordination.Id ->
+                match tryField "kind" fact |> Option.map (asString "$.fact.kind") with
+                // Chrona never steals a lock, so losing one means another
+                // context did: this tab no longer holds the unsent changes.
+                | Some "LockLost" ->
+                    env.Store.Lost()
+                    state, None
+                | _ -> raise (MalformedInput("$.fact.kind", "a limen.coordination fact Chrona asked for"))
             | CapabilityFact(capability, _) ->
-                raise (CapabilityFailed(capability, $"Unexpected CapabilityFact from {capability}: this engine watches only chrona.host and limen.lifecycle"))
+                raise (
+                    CapabilityFailed(
+                        capability,
+                        $"Unexpected CapabilityFact from {capability}: this engine watches only chrona.host, limen.lifecycle and limen.coordination"
+                    )
+                )
             | Initialize _ -> invalidOp "handled above"
 
         let next, sent =

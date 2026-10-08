@@ -153,6 +153,19 @@
         </div>
       </aside>
     </template>
+    <template data-if="queueElsewhere">
+      <aside class="ef-alert chrona-notice" role="status" data-tone="info" id="queue-elsewhere">
+        <div class="ef-alert__icon" aria-hidden="true">i</div>
+        <div class="chrona-stack">
+          <p class="ef-alert__title">Another tab is holding your unsent changes.</p>
+          <p>Changes made in this tab are sent from it while GitHub can be reached; keep it open until they are. Nothing is sent twice.</p>
+          <button type="button" class="chrona-action chrona-action--secondary" id="take-over-queue" data-event="takeOverQueue" data-bind-hidden="queueWaiting">Take them over when that tab closes</button>
+          <template data-if="queueWaiting">
+            <p id="queue-waiting">This tab will take them over, and send them, when the other tab closes.</p>
+          </template>
+        </div>
+      </aside>
+    </template>
     <!-- Unexpected operational failure (Aegis) is its own presentation. A
          refused entry is an ordinary problem beside its form. -->
     <template data-if="hasOperationalFault">
@@ -1298,6 +1311,7 @@
                 <div class="ef-facts__item"><dt>Working as</dt><dd data-text="sessionName"></dd></div>
                 <div class="ef-facts__item"><dt>Time zone</dt><dd id="zone" data-text="zoneId"></dd></div>
                 <div class="ef-facts__item"><dt>Records</dt><dd data-text="storeHeadline"></dd></div>
+                <div class="ef-facts__item"><dt>Unsent changes</dt><dd id="queue-mode" data-text="queueMode"></dd></div>
               </dl>
               <p class="chrona-intro" data-text="storeDetail"></p>
               <template data-if="accountSignedIn">

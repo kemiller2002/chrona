@@ -1,0 +1,7 @@
+/* The kernel verification slice page. Forma (pinned @echelon-foundry/design-system) owns
+   tokens, foundations and components; Folio (pinned
+   @echelon-foundry/print-components) owns print. Both come from the installed
+   packages, never copies. */
+@import "../node_modules/@echelon-foundry/design-system/dist/all.css";
+@import "../node_modules/@echelon-foundry/print-components/src/styles/print.css" print;
+@import "../web-kernel/page.css";

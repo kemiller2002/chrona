@@ -16,6 +16,15 @@ export const test = base.extend({
     expect(problems, "the page reported errors").toEqual([]);
   },
 
+  // The Chrona application, started at `#/more` (or the given fragment) with
+  // the kernel running and the browser's time zone described to the engine.
+  app: async ({ page }, use) => {
+    await page.goto("/web/index.html#/more");
+    await expect(page.locator("html")).toHaveAttribute("data-kernel", "running");
+    await expect(page.locator("#zone")).not.toHaveText("Not yet known");
+    await use(page);
+  },
+
   slice: async ({ page }, use) => {
     // Records the kind of every message the kernel hands the WASM transport
     // (which serializes each one with JSON.stringify), so a test can observe
@@ -31,7 +40,7 @@ export const test = base.extend({
         return stringify.call(this, value, ...rest);
       };
     });
-    await page.goto("/web/index.html");
+    await page.goto("/web/kernel-slice.html");
     await expect(page.locator("html")).toHaveAttribute("data-kernel", "running");
     await use(page);
   }

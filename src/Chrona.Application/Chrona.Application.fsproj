@@ -10,6 +10,8 @@
     <Compile Include="Limen.fs" />
     <Compile Include="Boundary.fs" />
     <Compile Include="Wire.fs" />
+    <Compile Include="AppProtocol.fs" />
+    <Compile Include="App.fs" />
     <Compile Include="Runtime.fs" />
   </ItemGroup>
 

@@ -46,7 +46,7 @@ let private views =
 
 [<Fact>]
 let ``the page binds only what its engine projects and sends only what it handles`` () =
-    let html = readRepoFile "web/index.html"
+    let html = readRepoFile "web/kernel-slice.html"
     let offered = views |> List.map viewNames |> Set.unionMany |> Set.union faultNames
     Assert.Empty(Set.difference (boundKeys html) offered)
     // Every event the page can send is one the engine handles, and every

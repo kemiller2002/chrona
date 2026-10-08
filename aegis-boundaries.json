@@ -13,7 +13,19 @@
         "CHRONA.BOUNDARY.UNEXPECTED"
       ],
       "guarded": true,
-      "$comment": "Every kernel message is parsed and dispatched inside Aegis.capture (Wire.handle). A message that is not the Limen shape the engine relies on (including an unsupported protocol version) is MESSAGE_INVALID; a kernel without the Storage effect, or a result or fact for something the engine never requested or negotiated, is CAPABILITY_UNAVAILABLE. Programming defects (an event name index.html sends that the engine does not know) keep Aegis fail-loud semantics and surface as a Limen bridge error."
+      "$comment": "Every kernel message is parsed and dispatched inside Aegis.capture (Wire.handle). A message that is not the Limen shape the engine relies on (including an unsupported protocol version) is MESSAGE_INVALID; a kernel without the Storage effect, or a result or fact for something the engine never requested or negotiated, is CAPABILITY_UNAVAILABLE. Programming defects (an event name kernel-slice.html sends that the engine does not know) keep Aegis fail-loud semantics and surface as a Limen bridge error."
+    },
+    {
+      "name": "Limen engine message dispatch (Chrona application)",
+      "kind": "ui-interop",
+      "owner": "Chrona.Application",
+      "codes": [
+        "CHRONA.BOUNDARY.MESSAGE_INVALID",
+        "CHRONA.BOUNDARY.CAPABILITY_UNAVAILABLE",
+        "CHRONA.BOUNDARY.UNEXPECTED"
+      ],
+      "guarded": true,
+      "$comment": "Every kernel message for web/index.html is parsed and dispatched inside Aegis.capture (App.handle), classified by the same Boundary.classify. A message that is not the Limen shape is MESSAGE_INVALID; a kernel without the Navigation effect, or a result or fact for something the engine never requested (an Http, Storage or Clipboard result, an unknown correlation id, an unwatched capability fact), is CAPABILITY_UNAVAILABLE. A refused entry, an overlap or an archived reference is a typed domain diagnostic shown beside its form, never a fault. Programming defects (an event name the engine does not define) keep fail-loud semantics."
     },
     {
       "name": "Browser localStorage",
@@ -22,6 +34,14 @@
       "codes": [],
       "guarded": false,
       "$comment": "The kernel performs the Storage effects the engine requests. Their outcomes (including unavailable and quota-exceeded) cross the Limen protocol as explicit typed StorageResults; this declaration does not pretend the .NET Aegis runtime guards JavaScript localStorage."
+    },
+    {
+      "name": "Browser timing and environment (limen.schedule, limen.environment)",
+      "kind": "browser-capability",
+      "owner": "Limen BrowserKernel",
+      "codes": [],
+      "guarded": false,
+      "$comment": "The kernel performs the timer's wake-ups and describes the browser's time zone. Their outcomes cross the Limen protocol as typed capability results; a kernel that does not offer either pack degrades visibly (no display refresh; UTC shown as the zone) rather than failing."
     }
   ],
   "persistence": {

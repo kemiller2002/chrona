@@ -1,7 +1,10 @@
-/* The kernel verification slice page. Forma (pinned @echelon-foundry/design-system) owns
-   tokens, foundations and components; Folio (pinned
-   @echelon-foundry/print-components) owns print. Both come from the installed
-   packages, never copies. */
+/* The Chrona application page. Forma (pinned @echelon-foundry/design-system)
+   owns tokens, foundations and components; the Chrona brand is Forma's own
+   compiler output for brand/chrona.brand.json; Folio (pinned
+   @echelon-foundry/print-components) owns print. All come from the installed
+   packages or their generated output, never copies. chrona.css composes the
+   legacy look and feel from those tokens. */
 @import "../node_modules/@echelon-foundry/design-system/dist/all.css";
+@import "./brand/chrona.css";
 @import "../node_modules/@echelon-foundry/print-components/src/styles/print.css" print;
-@import "../web-kernel/page.css";
+@import "./chrona.css";

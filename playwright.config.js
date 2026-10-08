@@ -1,4 +1,5 @@
-// End-to-end configuration for the kernel verification slice page.
+// End-to-end configuration for Chrona's pages: the application
+// (web/index.html) and the kernel verification slice (web/kernel-slice.html).
 //
 // The .NET tests prove the engine decides correctly. They cannot prove the
 // engine reaches the browser: the [JSExport] shim, the WASM transport,

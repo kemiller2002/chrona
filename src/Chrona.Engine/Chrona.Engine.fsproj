@@ -3,12 +3,22 @@
   <!-- Limen engine: the authority side of Chrona's browser boundary. Pure F#:
        state, legal transitions, effects as data and view projection. No
        browser, storage, network, clock or file-system access, and no package
-       dependencies beyond FSharp.Core. -->
+       dependencies beyond FSharp.Core. The application (App/) decides
+       nothing itself: every rule is Chrona.Domain's. -->
 
   <ItemGroup>
     <Compile Include="View.fs" />
     <Compile Include="KernelSlice.fs" />
     <Compile Include="KernelSliceView.fs" />
+    <Compile Include="App/Format.fs" />
+    <Compile Include="App/Model.fs" />
+    <Compile Include="App/Routes.fs" />
+    <Compile Include="App/Update.fs" />
+    <Compile Include="App/Project.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Chrona.Domain/Chrona.Domain.fsproj" />
   </ItemGroup>
 
 </Project>

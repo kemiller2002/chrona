@@ -50,44 +50,62 @@ let ``the npm foundations are pinned to immutable releases and locked`` () =
         // What is installed is what was pinned.
         Assert.Equal(version, str (json $"node_modules/{name}/package.json").["version"])
 
+let private imports (relative: string) =
+    Regex.Matches(readRepoFile relative, "@import \"([^\"]+)\"") |> Seq.map (fun m -> m.Groups[1].Value) |> Seq.toList
+
 [<Fact>]
-let ``the page takes Forma and Folio from the installed packages`` () =
-    let css = readRepoFile "web/styles.css"
-
-    let imports =
-        Regex.Matches(css, "@import \"([^\"]+)\"") |> Seq.map (fun m -> m.Groups[1].Value) |> Seq.toList
-
+let ``both pages take Forma and Folio from the installed packages`` () =
+    // The kernel verification slice.
     Assert.Equal<string list>(
         [ "../node_modules/@echelon-foundry/design-system/dist/all.css"
           "../node_modules/@echelon-foundry/print-components/src/styles/print.css"
           "../web-kernel/page.css" ],
-        imports
+        imports "web/kernel-slice.css"
     )
 
-    // Folio's print stylesheet applies to print only.
-    Assert.Contains("print.css\" print;", css)
+    // The application: Forma, then the Chrona brand (Forma's compiler output),
+    // then Folio, then Chrona's compositions.
+    Assert.Equal<string list>(
+        [ "../node_modules/@echelon-foundry/design-system/dist/all.css"
+          "./brand/chrona.css"
+          "../node_modules/@echelon-foundry/print-components/src/styles/print.css"
+          "./chrona.css" ],
+        imports "web/styles.css"
+    )
 
-    for imported in imports do
-        Assert.True(File.Exists(Path.GetFullPath(Path.Combine(repositoryRoot, "web", imported))), $"{imported} is not installed")
+    for css in [ "web/kernel-slice.css"; "web/styles.css" ] do
+        // Folio's print stylesheet applies to print only.
+        Assert.Contains("print.css\" print;", readRepoFile css)
 
-    let html = readRepoFile "web/index.html"
-    Assert.Contains("<link rel=\"stylesheet\" href=\"./styles.css\" />", html)
-    Assert.Contains("<script type=\"module\" src=\"./main.js\"></script>", html)
-    Assert.Contains("from \"../web-kernel/limen-wasm.js\"", readRepoFile "web/main.js")
+        for imported in imports css do
+            Assert.True(File.Exists(Path.GetFullPath(Path.Combine(repositoryRoot, "web", imported))), $"{imported} is not installed")
+
+    let slice = readRepoFile "web/kernel-slice.html"
+    Assert.Contains("<link rel=\"stylesheet\" href=\"./kernel-slice.css\" />", slice)
+    Assert.Contains("<script type=\"module\" src=\"./kernel-slice.js\"></script>", slice)
+    Assert.Contains("from \"../web-kernel/limen-wasm.js\"", readRepoFile "web/kernel-slice.js")
+
+    let app = readRepoFile "web/index.html"
+    Assert.Contains("<html lang=\"en\" data-ef-brand=\"chrona\">", app)
+    Assert.Contains("<link rel=\"stylesheet\" href=\"./styles.css\" />", app)
+    Assert.Contains("<script type=\"module\" src=\"./app.js\"></script>", app)
+    Assert.Contains("from \"../web-kernel/limen-wasm.js\"", readRepoFile "web/app.js")
 
 [<Fact>]
-let ``the kernel registers Folio and starts Limen from the installed packages`` () =
+let ``the kernel registers Folio and starts Limen and its packs from the installed packages`` () =
     let kernel = readRepoFile "web-kernel/limen-wasm.js"
 
     for specifier in
         [ "../node_modules/@echelon-foundry/print-components/src/components/register.js"
-          "../node_modules/@echelon-foundry/limen/dist/kernel/browser-kernel.js" ] do
+          "../node_modules/@echelon-foundry/limen/dist/kernel/browser-kernel.js"
+          "../node_modules/@echelon-foundry/limen/dist/capabilities/schedule/index.js"
+          "../node_modules/@echelon-foundry/limen/dist/capabilities/environment/index.js" ] do
         Assert.Contains($"\"{specifier}\"", kernel)
         Assert.True(File.Exists(Path.GetFullPath(Path.Combine(repositoryRoot, "web-kernel", specifier))), specifier)
 
 [<Fact>]
-let ``the page composes Forma's components and Folio's document primitives`` () =
-    let html = readRepoFile "web/index.html"
+let ``the slice page composes Forma's components and Folio's document primitives`` () =
+    let html = readRepoFile "web/kernel-slice.html"
 
     for marker in
         [ "<ef-fault-inline class=\"ef-component-tag\">"
@@ -99,11 +117,32 @@ let ``the page composes Forma's components and Folio's document primitives`` () 
           "<ef-print-document"
           "<ef-print-table>"
           "<ef-print-page-number>" ] do
+        Assert.True(html.Contains marker, $"web/kernel-slice.html lacks {marker}")
+
+[<Fact>]
+let ``the application page composes Forma's components`` () =
+    let html = readRepoFile "web/index.html"
+
+    for marker in
+        [ "<ef-fault-inline class=\"ef-component-tag\">"
+          "class=\"ef-fault ef-fault--inline"
+          "class=\"ef-alert"
+          "class=\"ef-surface"
+          "class=\"ef-field\""
+          "class=\"ef-select-field\""
+          "class=\"ef-checkbox\""
+          "class=\"ef-facts"
+          "class=\"ef-status-lozenge\""
+          "class=\"ef-empty-state"
+          "class=\"ef-visually-hidden\"" ] do
         Assert.True(html.Contains marker, $"web/index.html lacks {marker}")
 
 [<Fact>]
 let ``nothing forks Forma or bypasses Limen's binding rules`` () =
-    let sources = [ "web/index.html"; "web/styles.css"; "web/main.js"; "web-kernel/page.css"; "web-kernel/limen-wasm.js" ]
+    let sources =
+        [ "web/index.html"; "web/styles.css"; "web/chrona.css"; "web/app.js"
+          "web/kernel-slice.html"; "web/kernel-slice.css"; "web/kernel-slice.js"
+          "web-kernel/page.css"; "web-kernel/limen-wasm.js" ]
 
     for source in sources do
         let text = readRepoFile source
@@ -115,6 +154,15 @@ let ``nothing forks Forma or bypasses Limen's binding rules`` () =
         // State cues are data-* attributes plus CSS: never inline or bound styles.
         Assert.DoesNotContain("data-bind-style", text)
         Assert.False(Regex.IsMatch(text, @"\sstyle="""), $"{source} has an inline style")
+
+[<Fact>]
+let ``Chrona's compositions use Forma's tokens, never literal colours`` () =
+    let css = readRepoFile "web/chrona.css"
+    // Comments may name colours; rules may not.
+    let rules = Regex.Replace(css, @"/\*[\s\S]*?\*/", "")
+    Assert.False(Regex.IsMatch(rules, @"#[0-9a-fA-F]{3,8}\b"), "web/chrona.css has a hex colour")
+    Assert.False(Regex.IsMatch(rules, @"\b(rgb|rgba|hsl|hsla|hwb|lab|lch|oklab|oklch)\("), "web/chrona.css has a literal colour function")
+    Assert.Contains("var(--ef-color-", rules)
 
 [<Fact>]
 let ``Aegis is referenced, pinned and its boundary codes are declared`` () =

@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "repository": "chrona",
-  "nextSeq": 46,
+  "nextSeq": 48,
   "items": [
     {
       "id": "WI-0001",
@@ -712,8 +712,8 @@
     },
     {
       "id": "WI-0035",
-      "title": "Chrona 10: reconstruct the product UI on Limen/Forma keeping the legacy look and feel (CHX-003, CHX-005, CHX-320, CHX-330, CHX-340, CHX-350, CHX-360, CHX-370)",
-      "description": "Depends on WI-0026, WI-0032 and WI-0033. Rebuild today/start/stop/manual entry/activity/correction/split/merge/void-restore/evidence/review/month/settings/sign-in on the F# WASM engine behind Limen with Forma components. Match the inventory in WI-0026: same layout, flow and feel, no shortcuts on standards. Quick entry, the obligations/work queue, accessibility (keyboard and screen reader, scenarios 43 and 44), responsive mobile timer workflow (scenario 42) and browser reliability. Visual regression against the legacy screens.",
+      "title": "Chrona 10: product UI remainder on Arca and Fides - sign-in, sync state and conflict resolution, persisted timer, offline and browser reliability, visual regression (CHX-003, CHX-005, CHX-320, CHX-330, CHX-340, CHX-350, CHX-360, CHX-370)",
+      "description": "Depends on WI-0032, WI-0033 and WI-0029. The in-memory screens are WI-0046 and WI-0047; this item completes the UI once storage and sign-in exist: sign-in through Fides, view sync state and resolve conflicts, the timer persisted across refresh and restart, browser reliability (refresh, back/forward, suspension, service-worker update, stale shell, cellular), mobile and screen-reader scenarios 42-44 end to end, and visual regression against the legacy screens.",
       "tags": [
         "chrona",
         "order:10",
@@ -725,7 +725,7 @@
       "status": "captured",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:48.917Z",
-      "updatedAt": "2026-10-08T07:43:48.917Z",
+      "updatedAt": "2026-10-08T09:09:15.160Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",
@@ -895,7 +895,7 @@
     {
       "id": "WI-0042",
       "title": "Raise Forma contract gaps G1-G6 from the legacy look-and-feel inventory (sidebar/tab bar, surface radius, display title scale, inverse hero, time-column timeline, filled primary action and control radius) so Chrona's chrona-* composition can retire",
-      "description": "docs/legacy/look-and-feel-inventory.md section 7. Forma 0.4.1 cannot express these through its Brand Manifest; Chrona composes chrona-* classes on --ef-* tokens until Forma extends its public contract. File the gaps in kemiller2002/forma.",
+      "description": "docs/legacy/look-and-feel-inventory.md section 7. Forma 0.4.1 cannot express these through its Brand Manifest; Chrona composes chrona-* classes on --ef-* tokens until Forma extends its public contract. File the gaps in kemiller2002/forma. Also G7 (found in WI-0046): .ef-skip-link positions itself with marketing spacing tokens (--ef-space-2) that an application page does not load, so it renders in flow; Chrona keeps the legacy skip link (chrona-skip-link) until Forma fixes it.",
       "tags": [
         "forma",
         "ui",
@@ -905,7 +905,7 @@
       "status": "captured",
       "attachments": [],
       "createdAt": "2026-10-08T08:41:17.009Z",
-      "updatedAt": "2026-10-08T08:41:17.009Z",
+      "updatedAt": "2026-10-08T09:35:28.065Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",
@@ -984,6 +984,58 @@
       "attachments": [],
       "createdAt": "2026-10-08T09:03:20.886Z",
       "updatedAt": "2026-10-08T09:06:47.757Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0046",
+      "title": "Chrona 10a: product UI on Limen/Forma in memory - app shell, Track (timer start/pause/resume/stop and completion), manual entry, Today ledger and reference-data administration, keeping the legacy look and feel (CHX-003, CHX-005, CHX-320, CHX-330 partial, CHX-350, CHX-360)",
+      "description": "Depends on WI-0026, WI-0043 and WI-0045. The in-memory part of WI-0035: Limen engine (pure model, update and projection) plus one effectful module; the Chrona Forma brand; a store port with an in-memory implementation and an identity port with a local session, so Arca and Fides plug in later; the kernel slice moves beside the product page. Browser tests via Playwright.",
+      "tags": [
+        "chrona",
+        "ui",
+        "limen",
+        "forma"
+      ],
+      "priority": "high",
+      "status": "ready",
+      "attachments": [],
+      "createdAt": "2026-10-08T09:09:09.957Z",
+      "updatedAt": "2026-10-08T09:09:15.469Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0047",
+      "title": "Chrona 10b: lifecycle and review screens in memory - activity detail (amend, void, restore, split, evidence), merge, day review and attestation, month summary and the obligations queue (CHX-320, CHX-340 partial)",
+      "description": "Depends on WI-0046. The rest of the in-memory part of WI-0035 on the same engine.",
+      "tags": [
+        "chrona",
+        "ui",
+        "limen",
+        "forma"
+      ],
+      "priority": "high",
+      "status": "captured",
+      "attachments": [],
+      "createdAt": "2026-10-08T09:09:10.273Z",
+      "updatedAt": "2026-10-08T09:09:10.273Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Chrona · Kernel verification slice</title>
+<!-- An empty icon: without it Chromium requests /favicon.ico, the static
+     server answers 404, and that console error fails the no-errors check. -->
+<link rel="icon" href="data:," />
+<link rel="stylesheet" href="./kernel-slice.css" />
+</head>
+<body>
+<!-- Structure and presentation only. Every value below is projected by the F#
+     engine (src/Chrona.Engine) through Limen's data-* bindings, and every
+     control sends a named event back to it. Forma owns presentation (its CSS
+     and the inert <ef-*> authoring wrappers around native HTML); Folio owns
+     the print surface. Neither decides anything. -->
+<main class="app ef-stack">
+  <header class="ef-record-header page-header">
+    <div class="ef-record-header__main">
+      <div class="ef-record-header__title">
+        <div><span class="ef-record-header__type">Chrona</span><h1>Kernel verification slice</h1></div>
+      </div>
+      <p>Exercises the Limen bridge end to end through the F# engine on .NET WebAssembly. Not a Chrona product feature.</p>
+    </div>
+  </header>
+
+  <!-- Unexpected operational failure (Aegis) is its own presentation. An
+       invalid label or a storage failure is an ordinary problem below. -->
+  <template data-if="hasOperationalFault">
+    <ef-fault-inline class="ef-component-tag">
+      <div class="ef-fault ef-fault--inline operational-fault" id="operational-fault"
+           data-ef-intent="inline" data-ef-severity="error" role="alert"
+           aria-labelledby="operational-fault-title">
+        <div class="ef-fault__marker" aria-hidden="true">!</div>
+        <div class="ef-fault__body">
+          <p class="ef-fault__severity">Operational error</p>
+          <p class="ef-fault__title" id="operational-fault-title"><strong data-text="operationalFaultTitle"></strong></p>
+          <p class="ef-fault__message" data-text="operationalFaultMessage"></p>
+          <p class="ef-fault-reference">Reference <code data-text="operationalFaultReference"></code></p>
+        </div>
+      </div>
+    </ef-fault-inline>
+  </template>
+
+  <section class="ef-surface ef-stack" aria-labelledby="label-title">
+    <h2 id="label-title">Label</h2>
+    <form id="label-form" class="ef-stack" data-event="save">
+      <div class="ef-field">
+        <label class="ef-field__label" for="label">Label</label>
+        <!-- minlength=2 is deliberately stricter than the engine guard, which
+             accepts 1 character. Without a case that HTML rejects and the
+             engine accepts, the native reportValidity gate is unobservable:
+             data-bind-disabled would disable the button first and the gate
+             would never be reached. The mismatch is the probe. -->
+        <input id="label" name="label" type="text" required minlength="2" aria-describedby="label-note"
+               data-event="draftChanged" data-on="input" data-bind-value="draft" />
+        <p id="label-note" class="ef-field__description">The engine accepts 1&ndash;24 characters; HTML requires 2 or more.</p>
+      </div>
+      <div class="ef-cluster"><button id="save" type="submit" data-bind-disabled="saveDisabled">Save</button></div>
+    </form>
+
+    <!-- Load sits OUTSIDE the form: it is not part of what Save submits.
+         (Limen 0.7.0 also re-fired every data-event control of a form on
+         submit, buttons included; 0.7.1 re-sends only the controls a native
+         submission includes, limen#80/#81.) -->
+    <div class="ef-cluster"><button id="load" type="button" data-event="load" data-bind-disabled="loadDisabled">Load</button></div>
+
+    <p id="status" role="status" aria-live="polite" data-bind-data-phase="phaseKind" data-text="statusText"></p>
+    <p id="phase" hidden data-text="phaseKind"></p>
+
+    <template data-if="hasProblem">
+      <ef-alert class="ef-component-tag">
+        <aside class="ef-alert problem" role="alert" data-tone="attention" data-bind-data-problem="problemKind">
+          <div class="ef-alert__icon" aria-hidden="true">!</div>
+          <p id="problem" data-text="problemText"></p>
+        </aside>
+      </ef-alert>
+    </template>
+  </section>
+
+  <section class="ef-stack" aria-labelledby="log-title">
+    <div class="ef-cluster log-header">
+      <h2 id="log-title">Observed round trips</h2>
+      <span class="ef-status-lozenge" id="log-count" role="status" data-text="logCount"></span>
+    </div>
+    <ul id="log">
+      <template data-each="log" data-key="id">
+        <li data-text="text"></li>
+      </template>
+    </ul>
+  </section>
+
+  <!-- Folio's print surface: the same projected round trips, as a
+       verification record. It adds no meaning. -->
+  <ef-print-document class="print-surface">
+    <ef-print-header>
+      <header>
+        <p>Chrona</p>
+        <h1>Kernel verification record</h1>
+        <p data-text="statusText"></p>
+      </header>
+    </ef-print-header>
+    <ef-print-section>
+      <section>
+        <h2>Observed round trips</h2>
+        <ef-print-table>
+          <table>
+            <thead>
+              <tr><th scope="col">Entry</th><th scope="col">Observation</th></tr>
+            </thead>
+            <tbody>
+              <template data-each="log" data-key="id">
+                <tr>
+                  <td data-text="id"></td>
+                  <td data-text="text"></td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </ef-print-table>
+      </section>
+    </ef-print-section>
+    <ef-print-footer>
+      <footer>
+        <span>Chrona kernel verification · <span data-text="logCount"></span></span>
+        <ef-print-page-number></ef-print-page-number>
+      </footer>
+    </ef-print-footer>
+  </ef-print-document>
+</main>
+<script type="module" src="./kernel-slice.js"></script>
+</body>
+</html>

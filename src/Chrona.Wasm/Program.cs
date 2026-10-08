@@ -15,4 +15,9 @@ public partial class ChronaWasm
     [JSExport]
     internal static string Dispatch(string messageJson) =>
         Chrona.Application.Runtime.dispatch(messageJson);
+
+    /// <summary>One message for the Chrona application page (web/index.html).</summary>
+    [JSExport]
+    internal static string DispatchApp(string messageJson) =>
+        Chrona.Application.Runtime.dispatchApp(messageJson);
 }

@@ -1,4 +1,6 @@
-// Limen kernel side - browser interop only, for the slice page (web/).
+// Limen kernel side - browser interop only, for Chrona's pages (web/): the
+// application (index.html) and the kernel verification slice
+// (kernel-slice.html).
 //
 // Loads the published .NET WebAssembly runtime, hands each Limen message, as
 // JSON, to the [JSExport] in the Chrona.Wasm shim, and starts
@@ -10,6 +12,8 @@
 // upgrades; they are inert light-DOM elements with no behaviour.
 import "../node_modules/@echelon-foundry/print-components/src/components/register.js";
 import { BrowserKernel } from "../node_modules/@echelon-foundry/limen/dist/kernel/browser-kernel.js";
+import { scheduleCapability } from "../node_modules/@echelon-foundry/limen/dist/capabilities/schedule/index.js";
+import { environmentCapability } from "../node_modules/@echelon-foundry/limen/dist/capabilities/environment/index.js";
 
 // Relative to this module, so it resolves the same in the checkout and over
 // HTTP (the repository root is what is served).
@@ -64,13 +68,22 @@ const diagnostics = {
   }
 };
 
-// Starts the kernel for the page. `exportName` is the ChronaWasm export.
+// Starts the kernel for a page. `exportName` is the ChronaWasm export;
+// `capabilities` are the optional Limen packs the page's engine may select.
 // The kernel's status is published on <html data-kernel> so the page (and
 // its browser tests) can tell "running" from a failed start.
-export async function startPage(exportName) {
+export async function startPage(exportName, capabilities = []) {
   const kernel = new BrowserKernel(new WasmEngineTransport(exportName), document, diagnostics, {
-    requireHandshake: true
+    requireHandshake: true,
+    capabilities
   });
   await kernel.start();
   document.documentElement.dataset.kernel = kernel.status;
+}
+
+// The Chrona application: its engine selects the schedule pack (the running
+// timer's once-a-second wake-up) and the environment pack (the browser's time
+// zone). Both are the installed Limen package's own, never copies.
+export async function startApp() {
+  await startPage("DispatchApp", [scheduleCapability(), environmentCapability()]);
 }

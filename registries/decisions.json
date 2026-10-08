@@ -97,6 +97,56 @@
     "version": "1.0.0"
   },
   {
+    "created": "2026-10-08",
+    "derived_from": [
+      "DF-CHRONA-2026-0001"
+    ],
+    "id": "DF-CHRONA-2026-0003",
+    "owners": [
+      "chrona"
+    ],
+    "path": "research/decisions/DF-CHRONA-2026-0003--product-ui-on-limen-in-memory-with-identity-and-store-ports.md",
+    "provenance": {
+      "contributions": {
+        "EXE-20261008T090916106Z-9b107edc": {
+          "actor": {
+            "id": "anthropic/claude-code",
+            "kind": "agent",
+            "model": "unknown",
+            "provider": "anthropic",
+            "runtime": "claude-code"
+          },
+          "at": "2026-10-08T09:35:19.595Z",
+          "operations": [
+            "created"
+          ],
+          "reason": "Record the product UI architecture: pure engine, effectful runtime, identity and store ports"
+        }
+      }
+    },
+    "related_documents": [
+      "research/decisions/DF-CHRONA-2026-0001--reconstruct-on-limen-forma-keeping-legacy-look-and-feel.md",
+      "research/decisions/DF-CHRONA-2026-0002--reconstruct-not-migrate-legacy-reconciliation-and-data-status.md",
+      "docs/legacy/look-and-feel-inventory.md"
+    ],
+    "review_cycle": "on-trigger",
+    "status": "accepted",
+    "superseded_by": [],
+    "supersedes": [],
+    "tags": [
+      "ui",
+      "limen",
+      "forma",
+      "architecture",
+      "ports",
+      "arca",
+      "fides"
+    ],
+    "title": "The product UI is a pure Limen engine with one effectful module, in memory behind identity and store ports until Fides and Arca exist",
+    "updated": "2026-10-08",
+    "version": "1.0.0"
+  },
+  {
     "created": "2026-10-05",
     "id": "DF-CHRONA-FND-2026-0001",
     "owners": [

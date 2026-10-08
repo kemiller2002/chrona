@@ -1,0 +1,825 @@
+/* Chrona's compositions: the legacy time-tracking-application's look and
+   feel (docs/legacy/look-and-feel-inventory.md) rebuilt on Forma.
+
+   Forma owns every component, colour, font, focus ring and forced-colours
+   rule; the Chrona brand (web/brand/chrona.css, compiled by Forma from
+   brand/chrona.brand.json) supplies the legacy palette, type and radii as
+   Forma tokens. This file composes Chrona's own `chrona-*` classes from
+   those tokens only: no literal colours, no restyled `ef-*` component.
+   What Forma 0.4.1 cannot express yet is inventory gaps G1-G6 (WI-0042).
+
+   State cues are data-* attributes the engine projects, matched here; never
+   inline or bound styles (Limen refuses style bindings). */
+
+/* Projected `hidden` must win over any display a layout gives a child. */
+[hidden] {
+  display: none !important;
+}
+
+:root {
+  --chrona-radius-large: calc(var(--ef-primitive-radius-medium) * 1.5);
+  --chrona-gutter: clamp(1.25rem, 4vw, 4rem);
+}
+
+body {
+  margin: 0;
+  background: var(--ef-color-surface-primary);
+  color: var(--ef-color-text-primary);
+  font-family: var(--ef-primitive-font-family-sans);
+  line-height: 1.5;
+}
+
+/* Forma's skip link depends on its marketing spacing tokens, which an
+   application page does not load, so Chrona keeps the legacy one. */
+.chrona-skip-link {
+  position: fixed;
+  z-index: 100;
+  inset-block-start: 0.75rem;
+  inset-inline-start: 0.75rem;
+  padding: 0.7rem 1rem;
+  transform: translateY(-150%);
+  border-radius: var(--ef-primitive-radius-small);
+  background: var(--ef-color-surface-inverse);
+  color: var(--ef-color-text-inverse);
+  font-weight: 800;
+}
+
+.chrona-skip-link:focus {
+  transform: none;
+}
+
+/* Text on the inverse surfaces (sidebar, timer, chip) takes the surface's
+   colour, not the page's. */
+.chrona-sidebar :where(h1, h2, h3, p, span, strong, label, legend, dt, dd),
+.chrona-tracker :where(h1, h2, h3, p, span, strong, label, legend, dt, dd, li),
+.chrona-timer-chip :where(span, strong) {
+  color: inherit;
+}
+
+/* ---- shell (G1) ---------------------------------------------------------- */
+
+.chrona-shell {
+  display: grid;
+  min-block-size: 100vh;
+  grid-template-columns: 15.5rem minmax(0, 1fr);
+}
+
+.chrona-sidebar {
+  position: sticky;
+  inset-block-start: 0;
+  display: flex;
+  block-size: 100vh;
+  flex-direction: column;
+  padding: 1.5rem 1.1rem;
+  background: var(--ef-color-surface-inverse);
+  color: var(--ef-color-text-inverse);
+}
+
+.chrona-brand {
+  display: inline-flex;
+  min-block-size: 44px;
+  align-items: center;
+  gap: 0.7rem;
+  margin: 0;
+  padding: 0.35rem 0.45rem;
+}
+
+.chrona-brand__mark,
+.chrona-nav__mark {
+  display: grid;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+}
+
+.chrona-brand__mark {
+  inline-size: 2rem;
+  block-size: 2rem;
+  font-family: var(--ef-primitive-font-family-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.chrona-brand__name {
+  font-family: var(--ef-primitive-font-family-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.chrona-nav {
+  display: grid;
+  gap: 0.3rem;
+  margin-block-start: 2.75rem;
+}
+
+button.chrona-nav__link {
+  display: flex;
+  min-block-size: 48px;
+  align-items: center;
+  gap: 0.8rem;
+  border: 0;
+  border-radius: var(--ef-primitive-radius-small);
+  padding: 0.65rem 0.8rem;
+  background: transparent;
+  color: inherit;
+  font-weight: 600;
+  text-align: start;
+  cursor: pointer;
+}
+
+button.chrona-nav__link:hover,
+button.chrona-nav__link[aria-current="page"] {
+  background: color-mix(in srgb, var(--ef-color-text-inverse) 10%, transparent);
+}
+
+button.chrona-nav__link[aria-current="page"] {
+  box-shadow: inset 3px 0 var(--ef-color-text-inverse);
+}
+
+.chrona-nav__mark {
+  inline-size: 1.8rem;
+  block-size: 1.8rem;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+
+.chrona-sidebar__status {
+  margin-block-start: auto;
+  border-block-start: 1px solid color-mix(in srgb, var(--ef-color-text-inverse) 20%, transparent);
+  padding: 1.1rem 0.45rem 0;
+}
+
+.chrona-status {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0;
+  font-size: 0.86rem;
+}
+
+.chrona-status__dot {
+  inline-size: 0.55rem;
+  block-size: 0.55rem;
+  flex: none;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+}
+
+/* The dot's fill says the state with a shape too: solid when saved,
+   hollow while only in memory, a square when attention is needed. */
+.chrona-sidebar__status[data-state="ok"] .chrona-status__dot {
+  background: currentColor;
+}
+
+.chrona-sidebar__status[data-state="attention"] .chrona-status__dot {
+  border-radius: 0;
+  background: currentColor;
+}
+
+.chrona-sidebar__meta {
+  margin: 0.45rem 0 0 1.1rem;
+  font-size: 0.76rem;
+  opacity: 0.85;
+}
+
+.chrona-page {
+  inline-size: min(100%, 78rem);
+  margin-inline: auto;
+  padding: 2rem var(--chrona-gutter) 4rem;
+}
+
+.chrona-page:focus {
+  outline: none;
+}
+
+.chrona-topbar {
+  display: flex;
+  min-block-size: 3rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-block-end: 2.25rem;
+}
+
+.chrona-topbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.chrona-identity {
+  display: grid;
+  inline-size: 2.65rem;
+  block-size: 2.65rem;
+  place-items: center;
+  border: 1px solid var(--ef-color-border-functional);
+  border-radius: 50%;
+  background: var(--ef-color-surface-elevated);
+  color: var(--ef-color-accent-primary);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+button.chrona-timer-chip {
+  display: flex;
+  min-block-size: 3rem;
+  align-items: center;
+  gap: 0.9rem;
+  border: 0;
+  border-radius: var(--ef-primitive-radius-medium);
+  padding: 0.5rem 0.9rem;
+  background: var(--ef-color-surface-inverse);
+  color: var(--ef-color-text-inverse);
+  text-align: start;
+  cursor: pointer;
+}
+
+.chrona-timer-chip__activity {
+  display: grid;
+  font-size: 0.82rem;
+}
+
+.chrona-timer-chip__time {
+  font-family: var(--ef-primitive-font-family-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+/* ---- headings (G3) ------------------------------------------------------ */
+
+.chrona-heading {
+  margin-block-end: 2.25rem;
+}
+
+.chrona-eyebrow {
+  margin: 0 0 0.45rem;
+  color: var(--ef-color-accent-primary);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.chrona-title {
+  max-inline-size: 16ch;
+  margin: 0;
+  font-family: var(--ef-primitive-font-family-display);
+  font-size: clamp(2.2rem, 5vw, 4.4rem);
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  line-height: 0.98;
+}
+
+.chrona-intro {
+  max-inline-size: 46rem;
+  margin: 0.9rem 0 0;
+  color: var(--ef-color-text-secondary);
+}
+
+.chrona-section-title {
+  margin: 0 0 1rem;
+  font-family: var(--ef-primitive-font-family-display);
+  font-size: 1.6rem;
+  font-weight: 600;
+}
+
+.chrona-footer {
+  margin-block-start: 3.5rem;
+  border-block-start: 1px solid var(--ef-color-border-subtle);
+  padding-block-start: 1.25rem;
+  color: var(--ef-color-text-secondary);
+  font-size: 0.8rem;
+}
+
+/* ---- layout and cards (G2) ---------------------------------------------- */
+
+.chrona-layout {
+  display: grid;
+  align-items: start;
+  gap: 2.25rem;
+  grid-template-columns: minmax(0, 1.45fr) minmax(17rem, 0.75fr);
+}
+
+.chrona-stack {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.chrona-card {
+  border-radius: var(--chrona-radius-large);
+  padding: clamp(1.1rem, 3vw, 2rem);
+}
+
+.chrona-notice {
+  margin-block: 1rem;
+}
+
+.chrona-day-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-block-end: 1.5rem;
+}
+
+.chrona-day-nav__date input {
+  inline-size: auto;
+}
+
+.chrona-day-summary {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  border-block-end: 1px solid var(--ef-color-border-subtle);
+  padding-block-end: 1rem;
+}
+
+.chrona-summary-label {
+  margin: 0;
+  font-size: 0.82rem;
+}
+
+.chrona-summary-value {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.chrona-summary-count {
+  margin: 0;
+  color: var(--ef-color-text-secondary);
+  font-size: 0.82rem;
+}
+
+.chrona-empty {
+  margin-block-start: 1.5rem;
+}
+
+.chrona-facts {
+  display: grid;
+  margin: 0 0 1.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+}
+
+/* ---- the timeline (G5) --------------------------------------------------- */
+
+.chrona-timeline {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The rule the record markers sit on. */
+.chrona-timeline::before {
+  position: absolute;
+  inset-block: 1.5rem;
+  inset-inline-start: 5.33rem;
+  border-inline-start: 1px solid var(--ef-color-border-functional);
+  content: "";
+}
+
+.chrona-record {
+  position: relative;
+  display: grid;
+  gap: 1.55rem;
+  grid-template-columns: 4.6rem minmax(0, 1fr);
+  padding-block: 1.25rem;
+}
+
+.chrona-record + .chrona-record {
+  border-block-start: 1px solid var(--ef-color-border-subtle);
+}
+
+.chrona-record::before {
+  position: absolute;
+  inset-block-start: 1.45rem;
+  inset-inline-start: 5rem;
+  inline-size: 0.7rem;
+  block-size: 0.7rem;
+  border: 2px solid var(--ef-color-accent-primary);
+  border-radius: 50%;
+  background: var(--ef-color-surface-secondary);
+  content: "";
+}
+
+/* A voided record keeps its place, visibly out of the totals: hollow
+   marker, struck duration and its "Removed from totals" label. */
+.chrona-record[data-voided="true"] {
+  color: var(--ef-color-text-secondary);
+}
+
+.chrona-record[data-voided="true"] .chrona-record__duration {
+  text-decoration: line-through;
+}
+
+.chrona-record[data-voided="false"]::before {
+  background: var(--ef-color-accent-primary);
+}
+
+.chrona-record__time {
+  display: grid;
+  margin: 0;
+  font-family: var(--ef-primitive-font-family-mono);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+.chrona-record__body {
+  min-inline-size: 0;
+  padding-inline-start: 0.4rem;
+}
+
+.chrona-record__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.chrona-record__title {
+  margin: 0;
+  font-family: var(--ef-primitive-font-family-display);
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.chrona-record__duration {
+  font-family: var(--ef-primitive-font-family-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.chrona-record__classification,
+.chrona-record__purpose {
+  margin: 0.2rem 0 0;
+  color: var(--ef-color-text-secondary);
+  font-size: 0.9rem;
+}
+
+.chrona-record__billed {
+  color: var(--ef-color-text-secondary);
+  font-family: var(--ef-primitive-font-family-mono);
+  font-size: 0.76rem;
+  align-self: center;
+}
+
+.chrona-record__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.7rem 0 0;
+}
+
+/* ---- the timer (G4) --------------------------------------------------- */
+
+.chrona-tracker {
+  position: relative;
+  overflow: hidden;
+  border-radius: calc(var(--chrona-radius-large) * 1.1);
+  padding: clamp(1.4rem, 5vw, 3.25rem);
+  background: var(--ef-color-surface-inverse-secondary);
+  color: var(--ef-color-text-inverse);
+}
+
+.chrona-tracker__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0;
+  font-size: 0.76rem;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.chrona-tracker__pulse {
+  inline-size: 0.7rem;
+  block-size: 0.7rem;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+}
+
+/* Running fills the marker; paused leaves it hollow and squared. Motion is
+   never the cue. */
+.chrona-tracker[data-state="running"] .chrona-tracker__pulse {
+  background: currentColor;
+}
+
+.chrona-tracker[data-state="paused"] .chrona-tracker__pulse {
+  border-radius: 0.1rem;
+}
+
+.chrona-tracker__activity {
+  margin: 2rem 0 0.35rem;
+  font-family: var(--ef-primitive-font-family-display);
+  font-size: clamp(1.8rem, 5vw, 3.45rem);
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+}
+
+.chrona-tracker__project,
+.chrona-tracker__note {
+  margin: 0;
+  opacity: 0.88;
+}
+
+.chrona-tracker__display {
+  margin: clamp(1.6rem, 6vw, 3.5rem) 0 1rem;
+  font-family: var(--ef-primitive-font-family-mono);
+  font-size: clamp(3rem, 10vw, 6.4rem);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.chrona-tracker__note {
+  font-size: 0.82rem;
+}
+
+.chrona-tracker__form {
+  display: grid;
+  gap: 1rem;
+  margin-block-start: 1.75rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.chrona-tracker__actions {
+  display: grid;
+  gap: 0.8rem;
+  margin-block-start: 1.75rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.chrona-tracker__problems {
+  margin: 1rem 0 0;
+  padding-inline-start: 1.2rem;
+  font-weight: 700;
+}
+
+.chrona-completion-total {
+  margin: 0 0 0.5rem;
+  font-family: var(--ef-primitive-font-family-display);
+  font-size: 3rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* ---- forms ------------------------------------------------------------------ */
+
+.chrona-form-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.chrona-field--full {
+  grid-column: 1 / -1;
+}
+
+.chrona-pair {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0;
+  border: 0;
+  padding: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.chrona-pair legend {
+  margin-block-end: 0.35rem;
+}
+
+.chrona-tags,
+.chrona-reference {
+  display: grid;
+  gap: 0.5rem;
+  margin: 1.25rem 0 0;
+  border: 0;
+  padding: 0;
+}
+
+.chrona-reference + .chrona-reference {
+  margin-block-start: 2rem;
+}
+
+.chrona-reference__legend {
+  margin-block-end: 0.5rem;
+  font-family: var(--ef-primitive-font-family-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.chrona-reference__add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.65rem;
+}
+
+.chrona-reference__add > :first-child {
+  flex: 1 1 14rem;
+}
+
+.chrona-problems {
+  margin: 0.35rem 0 0;
+  padding-inline-start: 1.2rem;
+}
+
+.chrona-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-block-start: 1.5rem;
+}
+
+/* Controls take the brand's small radius (G6). */
+.chrona-page :where(input:not([type="checkbox"], [type="radio"]), select, textarea) {
+  border-radius: var(--ef-primitive-radius-small);
+}
+
+/* ---- actions (G6) ---------------------------------------------------------- */
+
+button.chrona-action {
+  display: inline-flex;
+  min-block-size: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  border: 1px solid var(--ef-color-border-functional);
+  border-radius: var(--ef-primitive-radius-small);
+  padding: 0.72rem 1rem;
+  background: var(--ef-color-surface-elevated);
+  color: var(--ef-color-text-primary);
+  font-weight: 800;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+button.chrona-action--primary {
+  border-color: var(--ef-color-accent-primary);
+  background: var(--ef-color-accent-primary);
+  color: var(--ef-color-surface-primary);
+}
+
+button.chrona-action--primary:hover {
+  border-color: var(--ef-color-accent-hover);
+  background: var(--ef-color-accent-hover);
+}
+
+button.chrona-action--quiet {
+  min-inline-size: 48px;
+  background: transparent;
+}
+
+button.chrona-action--light {
+  border-color: var(--ef-color-text-inverse);
+  background: var(--ef-color-text-inverse);
+  color: var(--ef-color-surface-inverse-secondary);
+}
+
+button.chrona-action--ghost-light {
+  border-color: var(--ef-color-text-inverse);
+  background: transparent;
+  color: var(--ef-color-text-inverse);
+}
+
+button.chrona-action--full {
+  inline-size: 100%;
+  grid-column: 1 / -1;
+}
+
+/* ---- mobile (G1) ---------------------------------------------------------- */
+
+.chrona-tabbar {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .chrona-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .chrona-shell {
+    display: block;
+  }
+
+  .chrona-sidebar {
+    display: none;
+  }
+
+  .chrona-page {
+    padding-block-end: 6rem;
+  }
+
+  .chrona-tabbar {
+    position: fixed;
+    z-index: 50;
+    inset-inline: 0;
+    inset-block-end: 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-block-start: 1px solid var(--ef-color-border-functional);
+    padding: 0.35rem max(0.4rem, env(safe-area-inset-right)) max(0.35rem, env(safe-area-inset-bottom)) max(0.4rem, env(safe-area-inset-left));
+    background: var(--ef-color-surface-secondary);
+  }
+
+  button.chrona-tabbar__link {
+    display: grid;
+    min-block-size: 53px;
+    place-items: center;
+    align-content: center;
+    gap: 0.15rem;
+    border: 0;
+    border-radius: var(--ef-primitive-radius-small);
+    background: transparent;
+    color: var(--ef-color-text-secondary);
+    font-size: 0.7rem;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  .chrona-tabbar__mark {
+    font-family: var(--ef-primitive-font-family-mono);
+    font-weight: 900;
+  }
+
+  button.chrona-tabbar__link[aria-current="page"] {
+    background: color-mix(in srgb, var(--ef-color-accent-primary) 16%, var(--ef-color-surface-secondary));
+    color: var(--ef-color-text-primary);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  .chrona-tracker__form,
+  .chrona-tracker__actions,
+  .chrona-form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .chrona-form-actions > button.chrona-action {
+    inline-size: 100%;
+  }
+}
+
+/* ---- forced colours and print ---------------------------------------------- */
+
+@media (forced-colors: active) {
+  .chrona-sidebar,
+  .chrona-tracker,
+  button.chrona-timer-chip,
+  button.chrona-action {
+    border: 1px solid CanvasText;
+  }
+
+  .chrona-record::before,
+  .chrona-status__dot,
+  .chrona-tracker__pulse {
+    border-color: CanvasText;
+  }
+}
+
+@media print {
+  .chrona-sidebar,
+  .chrona-tabbar,
+  .chrona-topbar__actions,
+  .chrona-form-actions,
+  .chrona-day-nav {
+    display: none;
+  }
+
+  .chrona-shell {
+    display: block;
+  }
+
+  .chrona-page {
+    inline-size: 100%;
+    padding: 0;
+  }
+}
+
+@media (max-width: 520px) {
+  .chrona-record {
+    gap: 1.1rem;
+    grid-template-columns: 4.1rem minmax(0, 1fr);
+  }
+
+  .chrona-record::before {
+    inset-inline-start: 4.3rem;
+  }
+
+  .chrona-timeline::before {
+    inset-inline-start: 4.63rem;
+  }
+
+  .chrona-day-summary {
+    display: grid;
+  }
+}

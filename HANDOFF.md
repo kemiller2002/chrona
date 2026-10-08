@@ -52,15 +52,22 @@ for the diagnosis, the evidence, and one unexercised watch item.
 - Requirement coverage per section is tracked in
   [`docs/requirements/implementation-gap-analysis.md`](docs/requirements/implementation-gap-analysis.md)
   (`CHX-NNM` ids, baseline and current columns; `GapAnalysisTests` holds the
-  counts). 10 tested, 22 partial, 31 missing of 63 (baseline 0 / 7 / 56).
+  counts). 15 tested, 26 partial, 22 missing of 63 (baseline 0 / 7 / 56).
 - `src/Chrona.Domain` is the pure time domain: `Diagnostics`, `Time`,
   `Activity`, `Overlap`, `ManualEntry` (WI-0020), `Ledger` (WI-0021),
-  `Timer` (WI-0022), `Billing` and `Review` (WI-0023). 28 of the 44 section-43
-  scenarios are tested.
-- Not built: GitHub storage and login, organizations and authorization,
-  offline sync, observations and `Chrona.Integration`, the product UI on
-  Limen/Forma, reports and exports on Folio. The kernel slice is still the
-  only browser surface.
+  `Timer` (WI-0022), `Billing` and `Review` (WI-0023), `Compatibility`
+  (WI-0027), the legacy rules R1-R6 (WI-0043) and `Reference` (WI-0045).
+  29 of the 44 section-43 scenarios are tested.
+- The product UI (`web/index.html`, DF-CHRONA-2026-0003) runs on Limen and
+  Forma in memory: the pure engine `src/Chrona.Engine/App`, the effectful
+  `Chrona.Application.Runtime`, identity and store ports with local and
+  in-memory implementations. Track (timer and manual entry), Today and More
+  (reference data) exist (WI-0046). The kernel verification slice moved to
+  `web/kernel-slice.html`.
+- Not built: GitHub storage (Arca) and sign-in (Fides), organizations and
+  authorization, offline sync, observations and `Chrona.Integration` (Summa
+  owns the contract), the lifecycle and review screens (WI-0047), reports
+  and exports on Folio.
 - The legacy `time-tracking-application` is reconstructed, not migrated
   (DF-CHRONA-2026-0001, DF-CHRONA-2026-0002): its look and feel is inventoried
   in `docs/legacy/` and expressed as the Chrona Forma brand (`brand/`), its
@@ -69,9 +76,9 @@ for the diagnosis, the evidence, and one unexercised watch item.
 
 ## Next action (time domain)
 
-Wire `Chrona.Domain` into a Limen/Forma timer-and-manual-entry page
-(sections 32, 33, 35), then GitHub storage with revision-based concurrency
-(2, 21, 22) and the receiver-owned integration contract for Summa (18).
+The lifecycle and review screens on the same engine (WI-0047), then storage
+on Arca and sign-in through Fides once their minimal slices exist (WI-0028,
+WI-0029, WI-0032), and Summa's contract package (WI-0037).
 
 ## Unresolved questions
 

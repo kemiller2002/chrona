@@ -12,10 +12,10 @@
          reference is disabled in Directory.Build.props. -->
     <PackageVersion Include="FSharp.Core" Version="10.1.401" />
     <PackageVersion Include="EchelonFoundry.Aegis.Core" Version="1.0.0" />
-    <!-- Arca 0.2.0: attested GitHub release assets in vendor/nuget, installed
+    <!-- Arca 0.2.1: attested GitHub release assets in vendor/nuget, installed
          and proven by Conditor (conditor.json, vendor/nuget/arca.lock). -->
-    <PackageVersion Include="EchelonFoundry.Arca.Core" Version="0.2.0" />
-    <PackageVersion Include="EchelonFoundry.Arca.GitHub" Version="0.2.0" />
+    <PackageVersion Include="EchelonFoundry.Arca.Core" Version="0.2.1" />
+    <PackageVersion Include="EchelonFoundry.Arca.GitHub" Version="0.2.1" />
     <!-- Fides 0.2.0, the same way (vendor/nuget/fides.lock): the WASM sign-in
          client and its bridge to Arca's token-provider port. Fides.Hosting
          is the exchange's server side and is not referenced. -->

@@ -2,9 +2,9 @@
 # file are the unmodified release assets named here, each proven against the
 # Registry SHA-256. NuGet restores these ids only from this folder (NuGet.config).
 system arca
-version 0.2.0
+version 0.2.1
 repository kemiller2002/arca
-tag v0.2.0
-release-manifest sha256:38bd3c8ebb6e968d3ead49a0c71fc3f1f8621e56746ea792e3f20cb13fd241f6
-package EchelonFoundry.Arca.Core 0.2.0 EchelonFoundry.Arca.Core.0.2.0.nupkg sha256:71135e9fbd371d47b1f1e9ae9d2279126b4e0a0e0bc2879b0dc9d1346677cfed https://github.com/kemiller2002/arca/releases/download/v0.2.0/EchelonFoundry.Arca.Core.0.2.0.nupkg
-package EchelonFoundry.Arca.GitHub 0.2.0 EchelonFoundry.Arca.GitHub.0.2.0.nupkg sha256:351e61fcf340c60376c4765719bdd4a28a05ec925976c4f1a56c00fb24d5e0bb https://github.com/kemiller2002/arca/releases/download/v0.2.0/EchelonFoundry.Arca.GitHub.0.2.0.nupkg
+tag v0.2.1
+release-manifest sha256:89896a65cf9d21bcfe871a62cfcc8d40558c4832c4cf933c5485ad4e5523b77e
+package EchelonFoundry.Arca.Core 0.2.1 EchelonFoundry.Arca.Core.0.2.1.nupkg sha256:abd54879473967eea1cd8b207ed873222aeb43079eabd9db38e560ac43bd9c99 https://github.com/kemiller2002/arca/releases/download/v0.2.1/EchelonFoundry.Arca.Core.0.2.1.nupkg
+package EchelonFoundry.Arca.GitHub 0.2.1 EchelonFoundry.Arca.GitHub.0.2.1.nupkg sha256:817b4bc98e5e2a457b84cf57ada54c567d523fa10b488a1e4cfbc7a25eb093af https://github.com/kemiller2002/arca/releases/download/v0.2.1/EchelonFoundry.Arca.GitHub.0.2.1.nupkg

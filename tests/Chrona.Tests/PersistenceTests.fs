@@ -675,3 +675,35 @@ let ``the activity index follows each change, and its source set is the one Arca
     let folder = ActivityRecord.monthFolder actor (DateOnly(2026, 10, 1)) |> ok |> RelativePath.render
     Assert.Empty(ActivityIndex.disagreements kept folder [ RelativePath.render path, snapshot.Activities["A-1"].ContentHash ])
     Assert.Equal<string list>([ RelativePath.render path ], ActivityIndex.disagreements kept folder [ RelativePath.render path, "sha256:other" ])
+
+// ---- Audit records (WI-0056) -------------------------------------------------------
+
+module AuditRecord = Chrona.Domain.AuditRecord
+
+[<Fact>]
+let ``an audit entry is an immutable record with a stable id, read back as it was written`` () =
+    let entry: AuditEntry =
+        { Performer = actor
+          At = at 10 7 18 0
+          Source = "chrona-web"
+          Command = "amend"
+          ActivityIds = [ "A-1" ]
+          PriorRevisions = [ "A-1", 1 ]
+          ResultingRevisions = [ "A-1", 2 ]
+          Reason = Some "fix"
+          CorrelationId = None }
+
+    let audited = AuditRecord.place [ activity "A-1" (10, 7) (9, 0) 60 ] [ entry ] |> List.exactlyOne
+    Assert.Equal(actor, audited.Owner)
+    Assert.Equal(AuditRecord.idOf audited, AuditRecord.idOf audited)
+    Assert.NotEqual<string>(AuditRecord.idOf audited, AuditRecord.idOf { audited with Entry = { entry with Reason = Some "other" } })
+
+    let path = AuditRecord.path audited |> ok
+    Assert.Equal("records/chrona.audit/github_3aoctocat/2026/10", RelativePath.render path |> fun p -> p.Substring(0, p.LastIndexOf '/'))
+    let content = AuditRecord.encode audited |> ok
+    Assert.Equal(Ok { Stored.nothing with Audit = [ audited ] }, Stored.changedOf [ Change.Create(path, content) ])
+
+    // Written once: an entry already stored is not written again.
+    let stored = { Stored.empty with Audit = Map.ofList [ RelativePath.render path, audited ] }
+    Assert.Equal(Ok [], Stored.changes stored { Stored.nothing with Audit = [ audited ] })
+    Assert.Empty(AuditRecord.place [] [ entry ])

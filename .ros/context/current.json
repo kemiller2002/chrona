@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-08T15:27:50Z",
+  "updatedAt": "2026-10-08T15:34:08Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -1943,6 +1943,55 @@
         }
       },
       "completedAt": "2026-10-08T15:18:27Z"
+    },
+    {
+      "id": "WI-0056",
+      "type": "feature",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Domain/AuditRecord.fs"
+        },
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Domain/Stored.fs"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/StoreTests.fs"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/PersistenceTests.fs"
+        }
+      ],
+      "updatedAt": "2026-10-08T15:34:08Z",
+      "telemetryExecutionIds": [
+        "EXE-20261008T152358903Z-a0425e9f"
+      ],
+      "latestCheckpoint": {
+        "id": "f357c688c4347074149bacad",
+        "recordedAt": "2026-10-08T15:34:08Z",
+        "executionId": "EXE-20261008T152358903Z-a0425e9f",
+        "repository": "chrona",
+        "branch": "feature/stored-audit",
+        "commit": "b400c9f908940f9a0530548cd9ec76fb040da904",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/chrona"
+        },
+        "remoteBranch": "feature/stored-audit",
+        "remoteCommit": "b400c9f908940f9a0530548cd9ec76fb040da904",
+        "summary": "Audit entries stored as immutable chrona.audit records with the records they audit; history read back; 297 .NET and 26 browser tests pass",
+        "nextAction": "Complete and open the PR",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      },
+      "completedAt": "2026-10-08T15:34:08Z"
     },
     {
       "id": "WI-0060",

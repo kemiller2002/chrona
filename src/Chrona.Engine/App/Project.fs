@@ -643,6 +643,7 @@ let private commandLabel =
     | "merge" -> "Merged"
     | "evidence-link" -> "Evidence linked"
     | "evidence-unlink" -> "Evidence unlinked"
+    | "accept-outside-edit" -> "Outside change accepted"
     | other -> other
 
 let private localStamp (model: Model) (instant: DateTimeOffset) =
@@ -678,6 +679,7 @@ let private detailView (model: Model) =
           items "splitEvidence" []
           items "evidenceKindOptions" []
           items "detailHistory" []
+          text "detailHistoryNote" ""
           flag "hasAmendProblems" false
           items "amendProblems" []
           flag "hasVoidProblems" false
@@ -722,11 +724,16 @@ let private detailView (model: Model) =
             | _ -> ""
 
         let history =
+            // Newest first, in the order the record's revisions were made:
+            // the same whether the trail was kept in this page or read back.
+            let revisionOf (entry: Ledger.AuditEntry) =
+                entry.ResultingRevisions |> List.tryFind (fst >> (=) a.ActivityId) |> Option.map snd |> Option.defaultValue 0
+
             model.Ledger.Audit
-            |> List.indexed
-            |> List.filter (fun (_, entry) -> List.contains a.ActivityId entry.ActivityIds)
-            |> List.rev
-            |> List.map (fun (index, entry) ->
+            |> List.filter (fun entry -> List.contains a.ActivityId entry.ActivityIds)
+            |> List.sortByDescending (fun entry -> entry.At, revisionOf entry)
+            |> List.map (fun entry ->
+                let index = $"{entry.At.UtcTicks}-{entry.Command}-{revisionOf entry}"
                 let revisions =
                     match entry.PriorRevisions |> List.tryFind (fst >> (=) a.ActivityId), entry.ResultingRevisions |> List.tryFind (fst >> (=) a.ActivityId) with
                     | Some(_, before), Some(_, after) -> $"Revision {before} → {after}"
@@ -793,6 +800,20 @@ let private detailView (model: Model) =
           text "evidenceSource" d.EvidenceSource
           text "evidenceNotes" d.EvidenceNotes
           items "detailHistory" history
+          // Revisions made before the audit trail was stored have no entry (WI-0056).
+          text
+              "detailHistoryNote"
+              (let covered =
+                  model.Ledger.Audit
+                  |> List.collect _.ResultingRevisions
+                  |> List.filter (fst >> (=) a.ActivityId)
+                  |> List.map snd
+                  |> Set.ofList
+
+               if [ 1 .. a.Revision ] |> List.forall covered.Contains then
+                   ""
+               else
+                   "Some earlier revisions were made before Chrona kept its history with the records; Git history is the only account of them.")
           flag "hasAmendProblems" (model.Problems.ContainsKey AmendForm)
           items "amendProblems" (problemItems model AmendForm)
           flag "hasVoidProblems" (model.Problems.ContainsKey VoidForm)

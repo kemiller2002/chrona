@@ -61,7 +61,7 @@
 | WI-0053 | Chrona 05b: bootstrap administrators from the deployment configuration; no first-opener takeover (CHX-030, CHX-027) | complete |  | high |
 | WI-0054 | Chrona 16: browser reliability, accessibility end to end, quick-entry conveniences and visual regression (CHX-330, CHX-350, CHX-360, CHX-370) | captured |  | medium |
 | WI-0055 | Chrona 08b: the active timer persisted across refresh and restart, recovered at startup, and concurrent timers across devices as obligations (CHX-101, CHX-102, CHX-105, CHX-260 remainder) | captured |  | high |
-| WI-0056 | Chrona 07b: store the audit trail - each command's audit entry as an immutable Arca record, read back with the activities (CHX-250, CHX-400 remainders) | captured |  | high |
+| WI-0056 | Chrona 07b: store the audit trail - each command's audit entry as an immutable Arca record, read back with the activities (CHX-250, CHX-400 remainders) | complete |  | high |
 | WI-0057 | Chrona 08c: offline start with a read cache (CHX-230 remainder) | captured |  | medium |
 | WI-0058 | Chrona 08d: shared-device sign-out - unsent changes are never left behind unknowingly (CHX-230, CHX-023 remainders) | complete |  | high |
 | WI-0059 | Chrona 08e: move the offline change queue from localStorage to Arca's IndexedDB adapter - one queue owner across tabs, durability mode in sync state, first-run migration (CHX-021, CHX-230, CHX-370; Limen LCP-059, LCP-065, LCP-066, LCP-070, LCP-073) | captured | chrona, offline, limen, indexeddb | medium |

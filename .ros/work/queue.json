@@ -980,10 +980,10 @@
         "domain"
       ],
       "priority": "high",
-      "status": "ready",
+      "status": "complete",
       "attachments": [],
       "createdAt": "2026-10-08T09:03:20.886Z",
-      "updatedAt": "2026-10-08T09:03:26.113Z",
+      "updatedAt": "2026-10-08T09:06:47.757Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

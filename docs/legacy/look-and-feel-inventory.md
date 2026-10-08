@@ -178,6 +178,47 @@ reports in JSON, Markdown and CSV; preferences; GitHub sync settings).
   `aria-labelledby`), `role="alert"` errors, forced-colors and dark-mode
   support, reduced chrome in print.
 
+## 5a. Legacy UI documentation, PWA shell and offline cues
+
+The legacy `docs/UI-*.md` set was read alongside the code. What it adds to
+the look and feel:
+
+- **Principles** (`UI-VISUAL-ENGINEERING-INTERPRETATION.md`): one dominant
+  task per view (Today: see the day; Track: control the timer); timer and
+  sync state visible on every route; one continuous chronological ledger, not
+  a grid of dashboard cards; effective values lead, history discloses
+  progressively; mobile recomposes rather than reorders; restrained colour
+  with text and shape redundancy; the timer gets scale and position, never
+  alarm colour or animation; a compact running-timer control above the
+  navigation everywhere except Track; stop first, then a short completion
+  form.
+- **State model** (`UI-STATE-MODEL.md`): timer `unknown -> idle -> running
+  <-> paused -> stopped`; elapsed time derived from timestamps, never an
+  interval counter; commands `local-only -> sending -> saved` or
+  `needs-attention` / `conflict`; drafts and routes are local UI state.
+- **Components** (`UI-COMPONENTS.md`): semantic CSS patterns, no framework
+  runtime; persistent timer, six-minute duration picker, chronological
+  timeline item, in-page detail workspaces (no modals), conflict comparison,
+  monthly bars with exact-value labels, bottom navigation; 44px targets.
+- **Accessibility** (`UI-ACCESSIBILITY.md`, `UI-VISUAL-REVIEW.md`): WCAG 2.2
+  AA target (conformance not claimed); tabular timer numerals; a polite live
+  region for timer transitions only, never per second; in-page workspaces
+  move focus to Back and restore the invoking control; reviewed at 320px with
+  no overflow. iPhone VoiceOver, 200% zoom and forced-colors checks were
+  listed as still required.
+- **PWA shell** (`web/manifest.webmanifest`, `web/service-worker.js`):
+  standalone display, `background_color #e8e4dc`, `theme_color #215d57`, an
+  SVG icon; the service worker caches the shell and the WASM `_framework`
+  files at runtime, never intercepts writes or cross-origin requests, and
+  falls back to the cached shell for an offline navigation.
+- **Offline cues** (`UI-OFFLINE-BEHAVIOR.md`): every command wrote to
+  `localStorage` first, so there was no pending state to show; the sidebar
+  status line ("Saved to this browser", "All changes saved / Synced at") and
+  the GitHub sync notice carried sync state; a failed push retried on the
+  browser's `online` event. Chrona's offline model (CHX-230, WI-0033) replaces
+  this with an explicit queue on Arca, so the cue vocabulary is kept and the
+  mechanism is not.
+
 ## 6. The design as Forma tokens
 
 The palette, type and radii are expressed as a Forma Brand Manifest,

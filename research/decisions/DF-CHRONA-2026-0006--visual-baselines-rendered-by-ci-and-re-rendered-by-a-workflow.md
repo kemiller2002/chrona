@@ -2,7 +2,7 @@
 id: DF-CHRONA-2026-0006
 title: Visual baselines are rendered by CI's pinned Chromium and re-rendered by a workflow that opens a pull request
 status: accepted
-version: 1.0.0
+version: 1.1.0
 created: 2026-10-08
 updated: 2026-10-08
 owners:
@@ -18,8 +18,9 @@ derived_from: [DF-CHRONA-2026-0001]
 provenance:
   contributions:
     EXE-20261008T190112021Z-53a6293f:
-      operations: [created]
+      operations: [created, modified]
       at: 2026-10-08T19:01:12.470Z
+      last: 2026-10-08T19:22:15.513Z
       actor:
         kind: agent
         id: anthropic/claude-code
@@ -59,13 +60,15 @@ On 2026-10-08 the coordinator, for the user, accepted baselines rendered by CI o
    5. starts the Build workflow on that branch, because a push made with the workflow's token starts no workflow by itself.
 
    The pull request merges under the usual gate: every check green on its head.
+
+   **The single command** is `npm run visual:rebaseline -- <branch> "<reason>"` (`tools/visual/rebaseline.sh`). It starts the workflow, waits for it and reports the pull request. This repository does not let workflows open pull requests, which was found when the workflow was first proven. In that case the workflow leaves the images on their branch with a warning and still starts Build, and the command opens the pull request with the person's own GitHub credentials.
 4. **Review.** Each changed image is reviewed against `docs/legacy/visual-comparison.md` before merging. A font-only re-render is reviewed like any other change.
 
 ## Consequences
 
 - Nobody copies images by hand, and no local environment needs the pinned browser.
 - A runner-image font change is one workflow run and one reviewed pull request.
-- The workflow needs `contents`, `pull-requests` and `actions` write permission on its token. The repository must also allow GitHub Actions to create pull requests (Settings > Actions > General). Without that, the run fails with that explanation and leaves the images on their branch.
+- The workflow needs `contents`, `pull-requests` and `actions` write permission on its token. Opening the pull request from the workflow also needs the repository to allow it (Settings > Actions > General). Without that, the command opens it, so the routine does not depend on the setting.
 
 ## Revisit when
 

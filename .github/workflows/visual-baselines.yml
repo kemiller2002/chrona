@@ -1,7 +1,8 @@
 name: Re-render the visual baselines
 
-# Run by hand (Actions > "Re-render the visual baselines" > Run workflow, or
-# `gh workflow run visual-baselines.yml --ref <branch>`) when a screen changed
+# Run by hand with `npm run visual:rebaseline -- <branch> "<reason>"`
+# (tools/visual/rebaseline.sh), or from Actions > "Re-render the visual
+# baselines" > Run workflow, when a screen changed
 # on purpose, or when the runner image's fonts changed every screen
 # (DF-CHRONA-2026-0006). It renders every baseline again with the pinned
 # Chromium on this runner, the only browser the baselines are compared in,
@@ -94,11 +95,16 @@ jobs:
           git push origin "$branch"
           changed="$(git diff --name-only HEAD~1 -- tests/visual/baselines | sed 's/^/- /')"
           body="$(printf 'Re-rendered by run %s with the pinned Chromium.\n\nReason: %s\n\nChanged baselines:\n%s\n\nReview each image against docs/legacy/visual-comparison.md before merging.' "$GITHUB_RUN_ID" "$REASON" "$changed")"
-          if ! gh pr create --base "$BASE" --head "$branch" --title "Re-render the visual baselines: ${REASON}" --body "$body"; then
-            echo "::error::The images are on branch $branch, but the pull request could not be opened. Allow GitHub Actions to create pull requests (Settings > Actions > General), or open it from $branch."
-            exit 1
-          fi
           echo "branch=$branch" >> "$GITHUB_OUTPUT"
+          # Where the repository does not let workflows open pull requests,
+          # the images wait on their branch: `npm run visual:rebaseline`
+          # opens the pull request with the person's own credentials.
+          if gh pr create --base "$BASE" --head "$branch" --title "Re-render the visual baselines: ${REASON}" --body "$body"; then
+            echo "Opened a pull request from $branch." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning::The images are on branch $branch. This repository does not let workflows open pull requests; npm run visual:rebaseline opens it, or open it from $branch."
+            echo "The images are on branch \`$branch\`; open its pull request into \`$BASE\`." >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       # The pull request's head needs its checks before it can be merged.
       - name: Start the Build workflow on the new branch

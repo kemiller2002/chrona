@@ -11,6 +11,7 @@
     "test:dotnet": "dotnet test Chrona.sln -c Release",
     "test:browser": "npm run build:wasm && playwright test",
     "test:visual": "playwright test -c playwright.visual.config.js",
+    "visual:rebaseline": "tools/visual/rebaseline.sh",
     "test": "npm run check:limen && npm run test:dotnet && npm run test:browser",
     "serve": "python3 -m http.server 4321",
     "start": "npm run build:wasm && npm run serve"

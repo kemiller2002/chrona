@@ -638,6 +638,10 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                             Note = Some note }
         }
 
+    /// The queue locks this page holds, and the store each one keeps: held
+    /// until the page goes.
+    let held = Dictionary<string, QueueStore>()
+
     let mutable retryMs = FirstRetryMs
     let mutable retrying = false
     /// How many times each entry was decided again, by sequence.
@@ -882,16 +886,25 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                 }
 
             // One tab holds this browser's queue: only it loads, keeps and
-            // sends what is kept (WI-0067).
+            // sends what is kept (WI-0067). A Web Lock is not re-entrant, so a
+            // lock this page already holds is not asked for again (opening
+            // the records again would otherwise read as another tab's).
+            let lock = LocalStorageQueue.lockName state.Folder
+
             let! state =
                 async {
-                    match! LocalStorageQueue.own (lockWith bridge false) (localStorage bridge) LocalStorageQueue.DefaultBudget state.Folder with
-                    | QueueOwnership.Owned keeper -> return! keep keeper HeldHere state
-                    | QueueOwnership.OwnedElsewhere -> return { state with Keeper = None; Holder = HeldElsewhere false; Note = None }
-                    // No Web Locks: every save is fenced instead, so one tab's
-                    // save never overwrites another's.
-                    | QueueOwnership.OwnershipUnsupported ->
-                        return! keep (LocalStorageQueue.store (localStorage bridge) LocalStorageQueue.DefaultBudget state.Folder) Unlocked state
+                    match held.TryGetValue lock with
+                    | true, keeper -> return! keep keeper HeldHere state
+                    | _ ->
+                        match! LocalStorageQueue.own (lockWith bridge false) (localStorage bridge) LocalStorageQueue.DefaultBudget state.Folder with
+                        | QueueOwnership.Owned keeper ->
+                            held[lock] <- keeper
+                            return! keep keeper HeldHere state
+                        | QueueOwnership.OwnedElsewhere -> return { state with Keeper = None; Holder = HeldElsewhere false; Note = None }
+                        // No Web Locks: every save is fenced instead, so one
+                        // tab's save never overwrites another's.
+                        | QueueOwnership.OwnershipUnsupported ->
+                            return! keep (LocalStorageQueue.store (localStorage bridge) LocalStorageQueue.DefaultBudget state.Folder) Unlocked state
                 }
 
             opened <- Some state
@@ -1288,6 +1301,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
 
                     // Decisions were counted by the old numbers.
                     decided.Clear()
+                    held[lock] <- keeper
                     let! state = persist { here with Keeper = Some keeper } queue
                     opened <- Some state
                     let resumed = before.Entries |> List.filter unsent |> List.choose (requestOf state.Folder)
@@ -1343,6 +1357,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
         async {
             match opened with
             | Some state when state.Holder = HeldHere && state.Keeper.IsSome ->
+                held.Remove(LocalStorageQueue.lockName state.Folder) |> ignore
                 let state = { state with Keeper = None; Holder = HeldElsewhere false }
                 opened <- Some state
                 return [ sync state false ]

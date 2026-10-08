@@ -74,3 +74,4 @@
 | WI-0066 | Deploy Chrona to GitHub Pages in local demo mode (no Fides): Pages workflow, Pages deployment configuration, CSP meta, docs | complete |  | medium |
 | WI-0067 | Chrona 08f: one tab owns the unsent changes - LocalStorageQueue.own over Limen's coordination pack, hand-off on close (CHX-021, CHX-230, CHX-370) | complete |  | high |
 | WI-0068 | Chrona 16e: iPhone VoiceOver pass by a person, recorded against docs/accessibility-voiceover-checklist.md (CHX-350) | captured |  | medium |
+| WI-0069 | Chrona 08g: a GitHub API fake for the browser suite, and the Chromium two-tab queue tests (CHX-021, CHX-230, CHX-370) | complete |  | high |

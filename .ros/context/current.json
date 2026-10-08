@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-08T10:20:21.835Z",
+  "updatedAt": "2026-10-08T10:34:54.135Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -1330,13 +1330,51 @@
     {
       "id": "WI-0049",
       "type": "feature",
-      "state": "active",
-      "semanticState": "active",
-      "evidence": [],
-      "updatedAt": "2026-10-08T10:20:21.835Z",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Domain/Reports.fs"
+        },
+        {
+          "type": "implementation",
+          "path": "web-kernel/print.js"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/ReportTests.fs"
+        },
+        {
+          "type": "tests",
+          "path": "tests/browser/app-reports.spec.js"
+        }
+      ],
+      "updatedAt": "2026-10-08T10:34:54.135Z",
       "telemetryExecutionIds": [
         "EXE-20261008T102022214Z-39c98638"
-      ]
+      ],
+      "latestCheckpoint": {
+        "id": "4353eaf53da1917a8ac0505b",
+        "recordedAt": "2026-10-08T10:34:52.962Z",
+        "executionId": "EXE-20261008T102022214Z-39c98638",
+        "repository": "chrona",
+        "branch": "feat/reports",
+        "commit": "adaafee89a99ec69fef919989f275c0873a88ce8",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/chrona"
+        },
+        "remoteBranch": "feat/reports",
+        "remoteCommit": "adaafee89a99ec69fef919989f275c0873a88ce8",
+        "summary": "Reports, search, export and Folio print pushed; CI green",
+        "nextAction": "Complete WI-0049, merge, final handoff",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      },
+      "completedAt": "2026-10-08T10:34:54.135Z"
     }
   ]
 }

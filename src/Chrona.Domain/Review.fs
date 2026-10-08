@@ -309,3 +309,28 @@ let recordInvoiced (context: CommandContext) (report: InvoiceReport) (workflow: 
                     Invoices = workflow.Invoices.Add(report.ActivityId, report) }
         | other -> Error [ PublicationStateConflict $"{report.ActivityId} is {other}, not published" ]
     | _ -> Error [ PublicationStateConflict $"{report.PublicationId} is not the publication of {report.ActivityId} at revision {report.Revision}" ]
+
+/// What Summa reports when it needs published time reviewed (6.3), for
+/// example after the invoice that consumed it was voided.
+type AdjustmentReport =
+    { PublicationId: string
+      ActivityId: string
+      Revision: int
+      Reason: string
+      At: DateTimeOffset }
+
+/// Records Summa's request to adjust published time (6.3): the publication
+/// must be the one recorded for that activity, at that revision, and still
+/// published or invoiced. The activity becomes AdjustmentRequired, an
+/// explicit obligation, with Summa's reason in its audit entry. The same
+/// report again is a no-op; any other is refused, never applied.
+let recordAdjustmentRequired (context: CommandContext) (report: AdjustmentReport) (workflow: Workflow) =
+    match workflow.Publications.TryFind report.ActivityId, workflow.Ledger.Activities.TryFind report.ActivityId with
+    | _, None -> Error [ UnknownActivity report.ActivityId ]
+    | Some publication, Some a when publication.PublicationId = report.PublicationId && publication.Revision = report.Revision ->
+        match a.Publication with
+        | AdjustmentRequired when a.Revision = report.Revision -> Ok workflow
+        | Published
+        | InvoicedExternally -> Ok(transition context "adjustment-required" (Some report.Reason) [ { a with Publication = AdjustmentRequired } ] workflow)
+        | other -> Error [ PublicationStateConflict $"{report.ActivityId} is {other}, not published" ]
+    | _ -> Error [ PublicationStateConflict $"{report.PublicationId} is not the publication of {report.ActivityId} at revision {report.Revision}" ]

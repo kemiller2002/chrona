@@ -22,6 +22,10 @@
     <PackageVersion Include="EchelonFoundry.Fides" Version="0.2.0" />
     <PackageVersion Include="EchelonFoundry.Fides.Client" Version="0.2.0" />
     <PackageVersion Include="EchelonFoundry.Fides.Arca" Version="0.2.0" />
+    <!-- Summa's Chrona-to-Summa billing contract 0.1.0 (wire contract
+         summa.chrona-billing 1.0), the same way (vendor/nuget/
+         summa-contracts.lock). Summa owns it; Chrona.Integration maps onto it. -->
+    <PackageVersion Include="EchelonFoundry.Summa.Contracts" Version="0.1.0" />
   </ItemGroup>
 
   <ItemGroup Label="Test">

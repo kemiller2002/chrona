@@ -133,10 +133,15 @@ for the diagnosis, the evidence, and one unexercised watch item.
   administrators add people and change their access under More; a
   deployment lists its organizations and a person chooses one. Publication
   staging (ReadyForPublication) and Summa's invoice report
-  (InvoicedExternally) are domain transitions; their transport is WI-0037.
+  (InvoicedExternally) are domain transitions; their transport is WI-0061.
+- Summa (WI-0037): Summa's Chrona-to-Summa billing contract
+  (summa-contracts 0.1.0, echelon-current 1.8.0) is installed by Conditor;
+  `src/Chrona.Summa` maps Chrona's published, withdrawn, invoiced and
+  adjustment facts onto it, and every golden vector round-trips. The
+  transport, stored publication records and screens are WI-0061.
 - Not built: the persisted timer and starting offline (WI-0055), browser reliability, accessibility end to end, quick
   entry and visual regression (WI-0054),
-  `Chrona.Integration` (Summa owns the contract), submission and approval screens (need actors and
+  the Summa transport (WI-0061), submission and approval screens (need actors and
   authorization, WI-0030 after Fides), and reports over stored data across
   people and organizations (WI-0039).
 - The legacy `time-tracking-application` is reconstructed, not migrated
@@ -147,9 +152,9 @@ for the diagnosis, the evidence, and one unexercised watch item.
 
 ## Next action (time domain)
 
-Summa's contract package (WI-0037) once Summa publishes it; offline use
-(WI-0033); the real sign-in and storage check once a deployment exists
-(WI-0052).
+The persisted timer (WI-0055), then browser reliability and visual
+regression (WI-0054); the Summa transport once Summa chooses it (WI-0061);
+the real sign-in and storage check once a deployment exists (WI-0052).
 
 ## Unresolved questions
 

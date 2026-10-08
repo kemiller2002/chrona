@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Chrona's side of the Chrona-to-Summa billing contract (WI-0037). The
+       contract is Summa's, the receiver's (EchelonFoundry.Summa.Contracts,
+       installed by Conditor from vendor/nuget); this assembly only maps
+       Chrona's domain onto it and back. It is not Chrona.Integration, the
+       contract Chrona owns as the receiver of observations (requirement 18,
+       WI-0038). Pure F#: no transport, clock or I/O. -->
+
+  <ItemGroup>
+    <Compile Include="Billing.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Chrona.Domain/Chrona.Domain.fsproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="EchelonFoundry.Summa.Contracts" />
+  </ItemGroup>
+
+</Project>

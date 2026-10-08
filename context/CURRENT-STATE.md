@@ -52,7 +52,7 @@ and feel and its rules, rebuilt on Limen, Forma, Aegis and Folio
 Real sign-in and storage
 against a deployed Fides exchange (WI-0052), the persisted timer and
 starting offline (WI-0055), browser reliability and visual
-regression (WI-0054), and the Summa contract (owned and published by Summa). A deployment with a data
+regression (WI-0054), and the Summa transport (WI-0061; the contract itself is installed and mapped, WI-0037). A deployment with a data
 location keeps its records on GitHub through Arca (WI-0032); a local
 deployment keeps them in the tab.
 

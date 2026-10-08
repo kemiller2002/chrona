@@ -1,0 +1,9 @@
+# conditor.nuget-feed-lock/v1. Written by Conditor; do not edit. The packages beside this
+# file are the unmodified release assets named here, each proven against the
+# Registry SHA-256. NuGet restores these ids only from this folder (NuGet.config).
+system summa-contracts
+version 0.1.0
+repository kemiller2002/summa
+tag contracts-v0.1.0
+release-manifest sha256:b952e4c667bc83aae23092397e8de3bcd75ecd2a6d59ef7d1047f2f5d094bcfe
+package EchelonFoundry.Summa.Contracts 0.1.0 EchelonFoundry.Summa.Contracts.0.1.0.nupkg sha256:8ef0e595f9749edac7fc3c46c1d400ba1a4d44f10090c3ed27291855845d15f1 https://github.com/kemiller2002/summa/releases/download/contracts-v0.1.0/EchelonFoundry.Summa.Contracts.0.1.0.nupkg

@@ -568,10 +568,10 @@
         "depends:arca"
       ],
       "priority": "high",
-      "status": "ready",
+      "status": "complete",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:46.988Z",
-      "updatedAt": "2026-10-08T12:11:35Z",
+      "updatedAt": "2026-10-08T12:34:25Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

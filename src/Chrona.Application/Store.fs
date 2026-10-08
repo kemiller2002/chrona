@@ -209,6 +209,23 @@ let private revalidate (stored: Stored.Stored) (request: StoreRequest) =
             | Some found -> found.Activity.Revision <> activity.Revision - 1
             | None -> activity.Revision <> 1)
 
+    let members =
+        request.Members
+        |> List.filter (fun membership ->
+            match stored.Members.TryFind membership.Principal.PrincipalId with
+            | Some found -> found.Membership <> membership
+            | None -> true)
+
+    let staleMember =
+        members
+        |> List.tryFind (fun membership ->
+            match stored.Members.TryFind membership.Principal.PrincipalId with
+            | Some found -> found.Membership.Revision <> membership.Revision - 1
+            | None -> membership.Revision <> 1)
+
+    let goneMember =
+        request.RemovedMembers |> List.tryFind (stored.Members.ContainsKey >> not)
+
     let staleReference =
         references
         |> List.tryFind (fun item ->
@@ -227,11 +244,20 @@ let private revalidate (stored: Stored.Stored) (request: StoreRequest) =
         |> List.filter Activity.consumesTime
         |> List.exists (fun activity -> not (Overlap.overlapping others activity).IsEmpty)
 
-    match staleActivity, staleReference with
-    | Some activity, _ -> Error $"Activity \"{activity.Classification.Description}\" was changed elsewhere first."
-    | _, Some item -> Error $"\"{item.Name}\" was changed elsewhere first."
-    | None, None when overlapping -> Error "It overlaps time recorded elsewhere."
-    | None, None -> Ok(pending, references)
+    match staleActivity, staleReference, staleMember, goneMember with
+    | Some activity, _, _, _ -> Error $"Activity \"{activity.Classification.Description}\" was changed elsewhere first."
+    | _, Some item, _, _ -> Error $"\"{item.Name}\" was changed elsewhere first."
+    | _, _, Some membership, _ -> Error $"{membership.Principal.DisplayName}'s access was changed elsewhere first."
+    | _, _, _, Some principalId -> Error $"{principalId} was already removed elsewhere."
+    | None, None, None, None when overlapping -> Error "It overlaps time recorded elsewhere."
+    | None, None, None, None ->
+        Ok
+            { Stored.nothing with
+                Activities = pending
+                References = references
+                Attestations = request.Attestations
+                Members = members
+                Removed = request.RemovedMembers }
 
 /// The Arca store over a backend. `now` is the clock; `newKey` mints the
 /// idempotency keys of the operations the store starts itself. It keeps
@@ -346,6 +372,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
           Activities = state.Stored.Activities.Activities |> Map.toList |> List.map (fun (_, found) -> found.Activity)
           References = state.Stored.References |> Map.toList |> List.map (fun (_, found) -> found.Item)
           Attestations = Stored.attestations state.Stored
+          Members = state.Stored.Members |> Map.toList |> List.map (fun (_, found) -> found.Membership)
           Problems = Stored.problems state.Stored }
 
     /// Reads the state again: the same months, plus any these dates add.
@@ -409,19 +436,45 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                 | BranchAccess.NotWritable _ -> return Error $"The data branch {BranchName.value location.Branch} does not accept direct changes."
         }
 
+    /// The founder's membership, stored when the organization has none.
+    let found (state: Opened) =
+        async {
+            if not state.Stored.Members.IsEmpty then
+                return Ok state
+            else
+                let founder = (Access.founded state.Session.OrganizationId (principalOf state.Session)).Members[state.Session.ActorId]
+                let changed = { Stored.nothing with Members = [ founder ] }
+
+                match Stored.changes state.Stored changed, operationContext state.Session (newKey "found") (now ()) with
+                | Ok changes, Ok context ->
+                    match Storage.operation state.Folder context "found the organization" changes with
+                    | Error diagnostics -> return Error($"The organization could not be founded ({describeAll diagnostics}).")
+                    | Ok operation ->
+                        match! state.Provider.Commit(Operation.requireChangeToken state.Token operation) with
+                        | Ok receipt ->
+                            return
+                                Ok
+                                    { state with
+                                        Token = receipt.ChangeToken
+                                        Stored = Stored.committed changed receipt state.Stored }
+                        | Error failure -> return Error(describeFailure failure)
+                | Error diagnostics, _
+                | _, Error diagnostics -> return Error($"The organization could not be founded ({describeAll diagnostics}).")
+        }
+
     let openJob (config: Deployment.DeploymentConfig) (session: Session) (dates: DateOnly list) () =
         async {
             let at = now ()
 
             let prepared =
-                match Storage.binding config, config.Organization with
+                match Storage.binding config, Deployment.organization config session.OrganizationId with
                 | Ok binding, Some organization ->
                     match Storage.applicationNamespace binding, Storage.organizationNamespace config binding organization.Id with
                     | Ok application, Ok folder -> Ok(binding, application, folder, organization)
                     | Error diagnostic, _
                     | _, Error diagnostic -> Error(code diagnostic)
                 | Error diagnostic, _ -> Error(code diagnostic)
-                | _, None -> Error "the deployment names no organization"
+                | _, None -> Error $"the deployment does not serve {session.OrganizationId}"
 
             let context () = operationContext session (newKey "open") at
 
@@ -469,8 +522,13 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                                           Stored = stored
                                           Months = months }
 
-                                    opened <- Some state
-                                    return [ Update.StoreOpened(contents state) ]
+                                    // An organization without members is founded by the
+                                    // person who opens it: they administer it (3).
+                                    match! found state with
+                                    | Error reason -> return [ Update.StoreUnavailable reason ]
+                                    | Ok state ->
+                                        opened <- Some state
+                                        return [ Update.StoreOpened(contents state) ]
         }
 
     /// The most a commit is decided again after the repository moved.
@@ -489,10 +547,11 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                 async {
                     match revalidate state.Stored request with
                     | Error reason -> return refreshed state @ answer (Conflict $"{reason} The stored records were reloaded.")
-                    | Ok([], []) when request.Attestations.IsEmpty -> return answer Committed
-                    | Ok(activities, references) ->
+                    | Ok changed when changed.Activities.IsEmpty && changed.References.IsEmpty && changed.Attestations.IsEmpty && changed.Members.IsEmpty && changed.Removed.IsEmpty ->
+                        return answer Committed
+                    | Ok changed ->
                         match
-                            Stored.changes state.Stored activities references request.Attestations,
+                            Stored.changes state.Stored changed,
                             operationContext state.Session request.CommitId (now ())
                         with
                         | Error diagnostics, _
@@ -509,7 +568,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                                     let next =
                                         { state with
                                             Token = receipt.ChangeToken
-                                            Stored = Stored.committed activities references request.Attestations receipt state.Stored }
+                                            Stored = Stored.committed changed receipt state.Stored }
 
                                     opened <- Some next
                                     (if tries > 1 then refreshed next else []) @ answer Committed

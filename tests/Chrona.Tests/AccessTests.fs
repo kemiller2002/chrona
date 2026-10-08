@@ -221,3 +221,61 @@ let ``every command the page can send that changes something names the capabilit
     Assert.Equal(Some(ManageTags, ReferenceForm), requirement "referenceActive" (Some "tag:TAG-1"))
     Assert.Equal(Some(ManageActivityTypes, ReferenceForm), requirement "referenceActive" (Some "activityType:TYP-1"))
     Assert.Equal(None, requirement "manualDescription" None)
+
+// ---- Stored rosters and the deployment's organizations (WI-0031) -----------------------
+
+[<Fact>]
+let ``a membership is stored as a closed record and reads back exactly`` () =
+    let roster =
+        acme
+        |> execute "github:1" (Admit(agent "anthropic/claude-code", set [ RecordOwnTime; AmendOwnTime ]))
+        |> Result.bind (execute "github:1" (Grant("anthropic/claude-code", ExportTime)))
+        |> ok
+
+    let membership = roster.Members["anthropic/claude-code"]
+    Assert.Equal(2, membership.Revision)
+
+    let text = MemberRecord.encode membership |> ok
+    let record = Arca.Record.decode Arca.Record.DefaultMaxBytes text |> ok
+    Assert.Equal(membership, MemberRecord.ofBody record.Body |> ok)
+    Assert.Equal("records/chrona.member/anthropic_2fclaude-code.json", MemberRecord.path "anthropic/claude-code" |> ok |> Arca.RelativePath.render)
+
+    // A capability this version does not know, or a person-only capability
+    // held by an agent, is refused rather than dropped.
+    let tampered (from: string) (into: string) =
+        let edited = Arca.Record.decode Arca.Record.DefaultMaxBytes (text.Replace(from, into)) |> ok
+        MemberRecord.ofBody edited.Body |> Result.isError
+
+    Assert.True(tampered "\"ExportTime\"" "\"DeleteEverything\"")
+    Assert.True(tampered "\"ExportTime\"" "\"ApproveTime\"")
+
+[<Fact>]
+let ``access changes are worked out as grants and revocations, applied all or none`` () =
+    let commands = changesTo "github:2" Grants.ownTime Grants.reviewer
+    Assert.Equal(4, commands.Length)
+    Assert.True(commands |> List.forall (function Grant _ -> true | _ -> false))
+
+    let roster = acme |> execute "github:1" (Admit(person "github:2", Grants.ownTime)) |> ok
+    let promoted = roster |> executeAll "github:1" commands |> ok
+    Assert.Equal<Set<Capability>>(Grants.reviewer, promoted.Members["github:2"].Capabilities)
+
+    // One refused change refuses them all.
+    let demoteFounder = changesTo "github:1" Grants.administrator Grants.ownTime
+    Assert.Equal<string list>([ "CHRONA.AUTH.LAST_ADMINISTRATOR" ], roster |> executeAll "github:1" demoteFounder |> codes)
+
+[<Fact>]
+let ``a deployment lists the organizations it serves, the first the default`` () =
+    let text (organizations: string) =
+        $$"""{"environment":"test","environmentName":"test","location":{"owner":"acme","repository":"chrona-data","branch":"main","basePath":""},"identity":{"exchange":"https://fides.test","application":"chrona-test","provider":"github","clientId":"Iv23li","redirectUri":"https://chrona.test/"},"organizations":{{organizations}}}"""
+
+    let two =
+        """[{"id":"org_a","displayName":"A","slug":"a","timeZone":"UTC"},{"id":"org_b","displayName":"B","slug":"b","timeZone":"UTC","location":{"owner":"acme-b","repository":"chrona-b","branch":"main","basePath":""}}]"""
+
+    let config = Deployment.parse (text two) |> ok
+    Assert.Equal("org_a", Deployment.organizationId config)
+    Assert.Equal(Some "B", Deployment.organization config "org_b" |> Option.map _.DisplayName)
+
+    let refused organizations = Deployment.parse (text organizations) |> Result.mapError code |> function Error c -> c | Ok _ -> "ok"
+    Assert.Equal("CHRONA.STORAGE.INVALID_CONFIGURATION", refused "[]")
+    Assert.Equal("CHRONA.STORAGE.INVALID_CONFIGURATION", refused """[{"id":"org_a","displayName":"A","slug":"a","timeZone":"UTC"},{"id":"org_a","displayName":"A2","slug":"a2","timeZone":"UTC"}]""")
+    Assert.Equal("CHRONA.STORAGE.INVALID_SLUG", refused """[{"id":"org_a","displayName":"A","slug":"Not A Slug","timeZone":"UTC"}]""")

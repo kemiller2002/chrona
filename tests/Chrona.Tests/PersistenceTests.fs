@@ -69,7 +69,7 @@ let private activity id (month, day) (startH, startM) minutes =
       Source = None }
 
 let private config =
-    """{"environment":"production","environmentName":"production","location":{"owner":"acme","repository":"chrona-data","branch":"main","basePath":""},"identity":{"exchange":"https://fides.test","application":"chrona-test","provider":"github","clientId":"Iv23liTEST","redirectUri":"https://chrona.test/"},"organization":{"id":"org_acme","displayName":"Acme Consulting","slug":"acme","timeZone":"America/New_York"}}"""
+    """{"environment":"production","environmentName":"production","location":{"owner":"acme","repository":"chrona-data","branch":"main","basePath":""},"identity":{"exchange":"https://fides.test","application":"chrona-test","provider":"github","clientId":"Iv23liTEST","redirectUri":"https://chrona.test/"},"organizations":[{"id":"org_acme","displayName":"Acme Consulting","slug":"acme","timeZone":"America/New_York"}]}"""
     |> Chrona.Domain.Deployment.parse
     |> ok
 

@@ -37,8 +37,7 @@ and feel and its rules, rebuilt on Limen, Forma, Aegis and Folio
 
 ## Not yet built
 
-Stored rosters and choosing an organization (WI-0031), real sign-in and
-storage
+Real sign-in and storage
 against a deployed Fides exchange (WI-0052), offline sync, and the
 Summa contract (owned and published by Summa). A deployment with a data
 location keeps its records on GitHub through Arca (WI-0032); a local

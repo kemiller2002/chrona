@@ -33,6 +33,16 @@ provenance:
         model: unknown
         runtime: claude-code
       reason: "Document the organization section and storage behaviour (WI-0032)"
+    EXE-20261008T132359552Z-11bd758b:
+      operations: [modified]
+      at: 2026-10-08T13:35:19.911Z
+      actor:
+        kind: agent
+        id: anthropic/claude-code
+        provider: anthropic
+        model: unknown
+        runtime: claude-code
+      reason: "Organizations as a list, and people (WI-0031)"
 ---
 
 # Configuring a Chrona deployment
@@ -48,7 +58,6 @@ The repository's copy is a local deployment; a deployment replaces it.
   "environment": "production",
   "environmentName": "production",
   "location": { "owner": "acme", "repository": "chrona-data", "branch": "main", "basePath": "deployments/prod" },
-  "organizations": { "org_eu": { "owner": "acme-eu", "repository": "chrona-eu", "branch": "main", "basePath": "" } },
   "identity": {
     "exchange": "https://fides.acme.example",
     "application": "chrona-production",
@@ -56,7 +65,11 @@ The repository's copy is a local deployment; a deployment replaces it.
     "clientId": "Iv23li...",
     "redirectUri": "https://chrona.acme.example/"
   },
-  "organization": { "id": "org_acme", "displayName": "Acme Consulting", "slug": "acme", "timeZone": "America/New_York" }
+  "organizations": [
+    { "id": "org_acme", "displayName": "Acme Consulting", "slug": "acme", "timeZone": "America/New_York" },
+    { "id": "org_eu", "displayName": "Acme Europe", "slug": "acme-eu", "timeZone": "Europe/Berlin",
+      "location": { "owner": "acme-eu", "repository": "chrona-eu", "branch": "main", "basePath": "" } }
+  ]
 }
 ```
 
@@ -65,17 +78,16 @@ The repository's copy is a local deployment; a deployment replaces it.
 | `environment` | yes | `local`, `test`, `staging` or `production`. Production data is never initialized into a public repository without a recorded decision (CHX-027). |
 | `environmentName` | yes | A display name for the environment. |
 | `location` | no | Where Chrona's data lives (Arca): Chrona owns `<basePath>/chrona` in that repository and nothing else. Use a repository of its own where Chrona's data needs its own permissions (CHX-DATALOC-004). |
-| `organizations` | no | Organizations whose data lives in another repository, by OrganizationId. Needs `location`. |
 | `identity` | no | Sign-in through Fides. Without it the deployment is a local session: one person, in one browser tab. |
 | `identity.exchange` | yes | The Fides exchange's origin: https, no path. |
 | `identity.application` | yes | The application id registered with the exchange. |
 | `identity.provider` | yes | `github`. |
 | `identity.clientId` | yes | The GitHub App's public client id. |
 | `identity.redirectUri` | yes | The page GitHub returns to, exactly as registered (the Chrona page's address). |
-| `organization` | with `location` | The organization the deployment serves: `id` (immutable; it names the organization's folder), `displayName`, `slug` (lower case) and `timeZone` (IANA). |
+| `organizations` | with `location` | The organizations the deployment serves, the default first. Each has an `id` (immutable; it names the organization's folder), `displayName`, `slug` (lower case), `timeZone` (IANA) and, optionally, a `location` of its own, for example to give its data its own permissions (CHX-DATALOC-004). |
 
-A `location` needs `identity` (someone signed in must write the data) and
-`organization`.
+A `location` needs `identity` (someone signed in must write the data) and at
+least one organization; organization ids are unique.
 
 The document is closed: a field Chrona does not define is refused. Every
 address must be https; plain http is accepted only for `localhost`,
@@ -107,6 +119,16 @@ that no longer fits (CHX-210). Records edited outside Chrona are held and
 listed under More (CHX-410). The person's GitHub account needs write access
 to the repository; who may do what inside Chrona is its own roster
 (capabilities), separate from GitHub's permissions.
+
+## People
+
+The person who sets an organization up founds it and administers it.
+Anyone else who signs in is told their GitHub account number and asked to
+pass it to an administrator, who adds them under More, People, with the
+access they need (keeping their own time, reviewing the organization's
+time, or administering it). Rosters are stored in the organization's
+folder, so the same people can work from any device. With several
+organizations, a person chooses which to work in under More.
 
 To make it work for real, a deployment needs a Fides exchange (see Fides'
 `docs/hosting/AWS.md`) with this application registered (its origin and

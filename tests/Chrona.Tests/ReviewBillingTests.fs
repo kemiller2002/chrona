@@ -196,3 +196,84 @@ let ``scenario 23: only approved, billable, recorded time passes the publication
     Assert.Equal<Diagnostic list>([ NotBillableActivity "A3"; NotApproved "A3" ], candidate approval policies wf "A3" |> refused)
     // Where approval is not required, recorded billable time is publishable.
     Assert.Equal(30, (candidate { ApprovalRequired = false } policies wf "A1" |> ok).BillableMinutes)
+
+// ---------------------------------------------------------------------------
+// The publication lifecycle's staging and Summa's invoice report (6.3, WI-0031).
+// ---------------------------------------------------------------------------
+
+[<Fact>]
+let ``approved billable time is staged ready for publication; a change unstages it`` () =
+    let wf = approvedWorkflow [ activity "A1" (9, 0) 30; { activity "A2" (10, 0) 30 with Billability = NonBillable } ]
+    let staged = wf |> stage approval policies approver [ "A1" ] |> ok
+    Assert.Equal(ReadyForPublication, staged.Ledger.Activities["A1"].Publication)
+    Assert.Equal("stage", (List.last staged.Ledger.Audit).Command)
+
+    // Time that may not be published is not staged.
+    Assert.Equal<Diagnostic list>([ NotBillableActivity "A2" ], wf |> stage approval policies approver [ "A2" ] |> refused)
+    let unapproved = workflowWith [ activity "A3" (11, 0) 30 ]
+    Assert.Equal<Diagnostic list>([ NotApproved "A3" ], unapproved |> stage approval policies approver [ "A3" ] |> refused)
+
+    // Staged time is published from ReadyForPublication.
+    let published, _ = staged |> publish approval policies approver "P1" "A1" |> ok
+    Assert.Equal(Published, published.Ledger.Activities["A1"].Publication)
+
+    // Staged time that is corrected is no longer what was staged.
+    let amended =
+        execute
+            actor
+            staged.Ledger
+            (Amend(
+                "A1",
+                1,
+                { Classification = Some { staged.Ledger.Activities["A1"].Classification with Description = "Corrected" }
+                  Billability = None
+                  BillingReference = None
+                  Retime = None
+                  Reason = "fix" }
+            ))
+        |> ok
+
+    Assert.Equal(Unpublished, amended.Activities["A1"].Publication)
+
+[<Fact>]
+let ``Summa's invoice report marks published time invoiced, once, and only for that publication`` () =
+    let wf, record = approvedWorkflow [ activity "A1" (9, 0) 30 ] |> publish approval policies approver "P1" "A1" |> ok
+
+    let report =
+        { PublicationId = "P1"
+          ActivityId = "A1"
+          Revision = record.Revision
+          InvoiceReference = "INV-2026-0042"
+          At = DateTimeOffset(2026, 10, 9, 12, 0, 0, TimeSpan.Zero) }
+
+    let invoiced = wf |> recordInvoiced approver report |> ok
+    Assert.Equal(InvoicedExternally, invoiced.Ledger.Activities["A1"].Publication)
+    Assert.Equal(Some report, invoiced.Invoices.TryFind "A1")
+
+    // The same report again changes nothing; another publication's report is refused.
+    Assert.Equal(invoiced.Ledger.Audit.Length, (invoiced |> recordInvoiced approver report |> ok).Ledger.Audit.Length)
+    Assert.Equal<string list>([ "CHRONA.PUBLICATION.STATE_CONFLICT" ], wf |> recordInvoiced approver { report with PublicationId = "P9" } |> refused |> List.map code)
+    Assert.Equal<string list>([ "CHRONA.PUBLICATION.STATE_CONFLICT" ], wf |> recordInvoiced approver { report with Revision = 7 } |> refused |> List.map code)
+    Assert.Equal<Diagnostic list>([ UnknownActivity "A9" ], wf |> recordInvoiced approver { report with ActivityId = "A9" } |> refused)
+
+    // Unpublished time cannot have been invoiced.
+    let unpublished = approvedWorkflow [ activity "A5" (9, 0) 30 ]
+    Assert.Equal<string list>([ "CHRONA.PUBLICATION.STATE_CONFLICT" ], unpublished |> recordInvoiced approver { report with ActivityId = "A5" } |> refused |> List.map code)
+
+    // Correcting invoiced time needs an adjustment (Summa decides the money).
+    let corrected =
+        execute
+            actor
+            invoiced.Ledger
+            (Amend(
+                "A1",
+                1,
+                { Classification = Some { invoiced.Ledger.Activities["A1"].Classification with Description = "Corrected" }
+                  Billability = None
+                  BillingReference = None
+                  Retime = None
+                  Reason = "fix" }
+            ))
+        |> ok
+
+    Assert.Equal(AdjustmentRequired, corrected.Activities["A1"].Publication)

@@ -113,7 +113,9 @@ module Grants =
 /// One principal's membership of one organization.
 type Membership =
     { Principal: Principal
-      Capabilities: Set<Capability> }
+      Capabilities: Set<Capability>
+      /// Optimistic-concurrency revision, starting at 1.
+      Revision: int }
 
 /// An organization's members, by principal id.
 type Roster =
@@ -128,7 +130,8 @@ let founded (organizationId: string) (founder: Principal) =
         Map.ofList
             [ founder.PrincipalId,
               { Principal = founder
-                Capabilities = Grants.forKind founder.Kind Grants.administrator } ] }
+                Capabilities = Grants.forKind founder.Kind Grants.administrator
+                Revision = 1 } ] }
 
 /// What the principal may do in the roster's organization; empty for a non-member.
 let capabilitiesOf (roster: Roster) (principalId: string) =
@@ -157,6 +160,13 @@ let organizationsOf (rosters: Roster list) (principalId: string) =
     rosters
     |> List.filter (fun roster -> roster.Members.ContainsKey principalId)
     |> List.map _.OrganizationId
+
+/// The capability for its stable name.
+let capabilityOf (name: string) =
+    allCapabilities |> List.tryFind (fun capability -> capabilityName capability = name)
+
+let kindOf (name: string) =
+    [ Human; Agent; Service; Integration ] |> List.tryFind (fun kind -> kindName kind = name)
 
 /// Changes to a roster. Each needs ManageOrganizationSettings.
 type RosterCommand =
@@ -202,7 +212,8 @@ let execute (performer: string) (command: RosterCommand) (roster: Roster) : Resu
                                 roster.Members.Add(
                                     principal.PrincipalId,
                                     { Principal = principal
-                                      Capabilities = capabilities }
+                                      Capabilities = capabilities
+                                      Revision = 1 }
                                 ) }
                 | problems -> Error problems
         | Grant(principalId, capability) ->
@@ -212,15 +223,36 @@ let execute (performer: string) (command: RosterCommand) (roster: Roster) : Resu
                 | [] ->
                     Ok
                         { roster with
-                            Members = roster.Members.Add(principalId, { found with Capabilities = found.Capabilities.Add capability }) }
+                            Members =
+                                roster.Members.Add(
+                                    principalId,
+                                    { found with
+                                        Capabilities = found.Capabilities.Add capability
+                                        Revision = found.Revision + 1 }
+                                ) }
                 | problems -> Error problems)
         | Revoke(principalId, capability) ->
             member' roster principalId
             |> Result.map (fun found ->
                 { roster with
-                    Members = roster.Members.Add(principalId, { found with Capabilities = found.Capabilities.Remove capability }) })
+                    Members =
+                        roster.Members.Add(
+                            principalId,
+                            { found with
+                                Capabilities = found.Capabilities.Remove capability
+                                Revision = found.Revision + 1 }
+                        ) })
             |> Result.bind keepsAnAdministrator
         | Remove principalId ->
             member' roster principalId
             |> Result.map (fun _ -> { roster with Members = roster.Members.Remove principalId })
             |> Result.bind keepsAnAdministrator)
+
+/// The roster changes that take a member from `held` to `wanted`, grants first.
+let changesTo (principalId: string) (held: Set<Capability>) (wanted: Set<Capability>) =
+    (Set.difference wanted held |> Set.toList |> List.map (fun capability -> Grant(principalId, capability)))
+    @ (Set.difference held wanted |> Set.toList |> List.map (fun capability -> Revoke(principalId, capability)))
+
+/// Applies roster changes in order, all or none.
+let executeAll (performer: string) (commands: RosterCommand list) (roster: Roster) =
+    commands |> List.fold (fun state command -> state |> Result.bind (execute performer command)) (Ok roster)

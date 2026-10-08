@@ -78,7 +78,8 @@ let ThisDevice = "this-browser"
 
 /// Every `data-event` name the page may send; anything else is a defect.
 let eventNames =
-    [ "signIn"; "signInRetention"; "signOut"; "retryStore"
+    [ "signIn"; "signInRetention"; "signOut"; "retryStore"; "chooseOrganization"
+      "memberId"; "memberName"; "memberAccess"; "admitMember"; "changeMemberAccess"; "removeMember"
       "navigate"; "goToday"; "goTrack"; "goMore"; "showDate"; "previousDay"; "nextDay"
       "timerActivityType"; "timerProject"; "timerDescription"; "startTimer"; "pauseTimer"; "resumeTimer"; "stopTimer"
       "completeActivityType"; "completeProject"; "completeDescription"; "completePurpose"; "completeTag"; "confirmLongTimer"; "saveCompletion"
@@ -119,7 +120,9 @@ let private commitWith (ctx: Ctx) (activities: Activity list) (references: Refer
           { CommitId = id
             Activities = activities
             References = references
-            Attestations = attestations } ]
+            Attestations = attestations
+            Members = []
+            RemovedMembers = [] } ]
 
 let private commit (ctx: Ctx) (activities: Activity list) (references: Reference.Item list) (model: Model) =
     commitWith ctx activities references [] model
@@ -601,6 +604,88 @@ let private amendDraft (f: ClassificationDraft -> ClassificationDraft) =
 let private month (offset: int) (model: Model) =
     navigate { Screen = Month; Date = Some((selectedMonth model).AddMonths offset) } model
 
+// ---- the organization's members (3) -------------------------------------------------
+
+/// The capability set an access level grants a principal of this kind.
+let accessGrant (access: string) =
+    match access with
+    | "administrator" -> Some Access.Grants.administrator
+    | "reviewer" -> Some Access.Grants.reviewer
+    | "ownTime" -> Some Access.Grants.ownTime
+    | _ -> None
+
+/// Stores a roster change made by the session's person: the changed and
+/// removed memberships go to the store as one commit.
+let private rosterChange (ctx: Ctx) (commands: Access.RosterCommand list) (announcement: string) (model: Model) =
+    match Access.executeAll model.Session.ActorId commands model.Roster with
+    | Error problems -> withProblems MemberForm problems model, []
+    | Ok roster ->
+        // One command is one change of each member it touches: the next
+        // revision of what was stored, however many capabilities moved.
+        let changed =
+            roster.Members
+            |> Map.toList
+            |> List.map snd
+            |> List.filter (fun m -> model.Roster.Members.TryFind m.Principal.PrincipalId <> Some m)
+            |> List.map (fun m ->
+                match model.Roster.Members.TryFind m.Principal.PrincipalId with
+                | Some before -> { m with Revision = before.Revision + 1 }
+                | None -> { m with Revision = 1 })
+
+        let roster =
+            { roster with
+                Members = changed |> List.fold (fun members m -> Map.add m.Principal.PrincipalId m members) roster.Members }
+
+        let removed =
+            model.Roster.Members |> Map.keys |> Seq.filter (roster.Members.ContainsKey >> not) |> List.ofSeq
+
+        let id = ctx.NewId "COMMIT"
+
+        { clear MemberForm model with
+            Roster = roster
+            Announcement = announcement
+            Store = { model.Store with Pending = model.Store.Pending @ [ id ] } },
+        [ Store
+              { CommitId = id
+                Activities = []
+                References = []
+                Attestations = []
+                Members = changed
+                RemovedMembers = removed } ]
+
+let private admitMember (ctx: Ctx) (model: Model) =
+    let draft = model.MemberDraft
+    let id = draft.Id.Trim()
+    let name = draft.Name.Trim()
+
+    let problems =
+        [ if not (id <> "" && id |> Seq.forall Char.IsAsciiDigit) then
+              MissingField "memberId"
+          if name = "" then MissingField "memberName" ]
+
+    match problems, accessGrant draft.Access with
+    | [], Some grant ->
+        let principal: Access.Principal =
+            { PrincipalId = $"github:{id}"
+              Kind = Access.Human
+              DisplayName = name }
+
+        let admitted, effects = rosterChange ctx [ Access.Admit(principal, Access.Grants.forKind principal.Kind grant) ] $"{name} can now work here." model
+        (if admitted.Problems.ContainsKey MemberForm then admitted else { admitted with MemberDraft = emptyMember }), effects
+    | problems, _ -> withProblems MemberForm problems model, []
+
+let private changeMemberAccess (ctx: Ctx) (principalId: string) (access: string) (model: Model) =
+    match model.Roster.Members.TryFind principalId, accessGrant access with
+    | Some membership, Some grant ->
+        let wanted = Access.Grants.forKind membership.Principal.Kind grant
+        rosterChange ctx (Access.changesTo principalId membership.Capabilities wanted) $"{membership.Principal.DisplayName}'s access changed." model
+    | None, _ -> withProblems MemberForm [ NotAMember(principalId, model.Roster.OrganizationId) ] model, []
+    | _, None -> model, []
+
+let private removeMember (ctx: Ctx) (principalId: string) (model: Model) =
+    let name = model.Roster.Members.TryFind principalId |> Option.map _.Principal.DisplayName |> Option.defaultValue principalId
+    rosterChange ctx [ Access.Remove principalId ] $"{name} was removed." model
+
 /// The capability each command needs (3), and where a refusal is shown.
 /// Typing into a draft or moving between screens needs none.
 let requirement (name: string) (key: string option) : (Access.Capability * Form) option =
@@ -627,6 +712,9 @@ let requirement (name: string) (key: string option) : (Access.Capability * Form)
     | "unlinkEvidence" -> Some(Access.AmendOwnTime, EvidenceForm)
     | "saveMerge" -> Some(Access.AmendOwnTime, MergeForm)
     | "attestDay" -> Some(Access.AttestOwnDay, AttestForm)
+    | "admitMember"
+    | "changeMemberAccess"
+    | "removeMember" -> Some(Access.ManageOrganizationSettings, MemberForm)
     | "periodCadence"
     | "periodWeekStart" -> Some(Access.ManageOrganizationSettings, PeriodForm)
     | "copyExport"
@@ -782,6 +870,12 @@ let private onEvent (ctx: Ctx) (name: string) (key: string option) (value: strin
                     To = Format.isoDate (first.AddMonths(1).AddDays -1)
                     GeneratedAt = Some ctx.Now } },
         [ Navigate(Routes.hash { Screen = ReportsScreen; Date = Some first }) ]
+    | "memberId" -> { model with MemberDraft = { model.MemberDraft with Id = value } }, []
+    | "memberName" -> { model with MemberDraft = { model.MemberDraft with Name = value } }, []
+    | "memberAccess" -> { model with MemberDraft = { model.MemberDraft with Access = value } }, []
+    | "admitMember" -> admitMember ctx model
+    | "changeMemberAccess" -> changeMemberAccess ctx (defaultArg key "") value model
+    | "removeMember" -> removeMember ctx (defaultArg key "") model
     | "attestStatement" -> { model with AttestStatement = value }, []
     | "attestDay" -> attestDay ctx model
 
@@ -853,6 +947,9 @@ let private storeOpened (contents: StoreContents) (model: Model) =
             { OrganizationId = model.Session.OrganizationId
               Items = contents.References |> List.map (fun item -> (item.Kind, item.Id), item) |> Map.ofList }
         Attestations = contents.Attestations
+        Roster =
+            { OrganizationId = model.Session.OrganizationId
+              Members = contents.Members |> List.map (fun m -> m.Principal.PrincipalId, m) |> Map.ofList }
         Store =
             { model.Store with
                 Kind = Durable contents.Name
@@ -895,6 +992,14 @@ let private onIdentityEvent (name: string) (value: string) (model: Model) =
         { model with Identity = { identity with Mode = SignInRequired true; Notice = None } }, [ SignIn identity.Retention ]
     | "signOut", SignedInMode -> model, [ SignOut ]
     | "retryStore", SignedInMode when model.Store.Failure.IsSome -> openStore model
+    // Working in another of the deployment's organizations: nothing of the
+    // current one stays in the page, and the other's records are opened.
+    | "chooseOrganization", SignedInMode when value <> model.Session.OrganizationId ->
+        match model.Deployment |> Option.bind (fun config -> Deployment.organization config value) with
+        | Some organization ->
+            let session = { model.Session with OrganizationId = organization.Id }
+            openStore (fresh session identity model)
+        | None -> model, []
     | _ -> model, []
 
 let update (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
@@ -949,7 +1054,7 @@ let update (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
     | Copied false ->
         let text = "This browser did not allow copying. Select the text and copy it yourself."
         { model with CopyStatus = text; Announcement = text }, []
-    | Ui(("signIn" | "signInRetention" | "signOut" | "retryStore") as name, _, value, _) -> onIdentityEvent name value model
+    | Ui(("signIn" | "signInRetention" | "signOut" | "retryStore" | "chooseOrganization") as name, _, value, _) -> onIdentityEvent name value model
     // Nothing is recorded or shown for anyone until they may work.
     | Ui _ when not (canWork model) -> model, []
     | Ui(name, key, value, isChecked) -> authorized name key model (fun () -> onEvent ctx name key value isChecked model)

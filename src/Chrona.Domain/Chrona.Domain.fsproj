@@ -30,6 +30,7 @@
     <Compile Include="ActivityRecord.fs" />
     <Compile Include="ReferenceRecord.fs" />
     <Compile Include="AttestationRecord.fs" />
+    <Compile Include="MemberRecord.fs" />
     <Compile Include="Persistence.fs" />
     <Compile Include="Stored.fs" />
   </ItemGroup>

@@ -33,7 +33,11 @@ type StoreRequest =
     { CommitId: string
       Activities: Activity list
       References: Reference.Item list
-      Attestations: Review.Attestation list }
+      Attestations: Review.Attestation list
+      /// Memberships admitted or changed (3).
+      Members: Access.Membership list
+      /// Principals removed from the roster.
+      RemovedMembers: string list }
 
 type StoreOutcome =
     | Committed
@@ -68,6 +72,8 @@ type StoreContents =
       Activities: Activity list
       References: Reference.Item list
       Attestations: Review.Attestation list
+      /// The organization's roster as stored.
+      Members: Access.Membership list
       Problems: Diagnostic list }
 
 type Screen =
@@ -219,6 +225,16 @@ let initialIdentity =
       Notice = None
       Callback = [] }
 
+/// A new member, as typed: their GitHub account's numeric id (shown to them
+/// when they are not yet a member), a name, and what they may do.
+type MemberDraft =
+    { Id: string
+      Name: string
+      /// "ownTime", "reviewer" or "administrator".
+      Access: string }
+
+let emptyMember = { Id = ""; Name = ""; Access = "ownTime" }
+
 /// Where a refusal is shown.
 type Form =
     | TimerForm
@@ -235,6 +251,8 @@ type Form =
     | PeriodForm
     /// Copying or printing a report.
     | ExportForm
+    /// The organization's members.
+    | MemberForm
 
 [<NoComparison>]
 type Model =
@@ -247,6 +265,7 @@ type Model =
       /// The organization's members and what each may do (3). Every command
       /// is checked against it.
       Roster: Access.Roster
+      MemberDraft: MemberDraft
       Store: StoreState
       /// The business time zone; unknown until the browser describes it.
       Zone: Zone option
@@ -304,6 +323,7 @@ let initial (session: Session) (store: StoreKind) (now: DateTimeOffset) =
       Identity = initialIdentity
       Deployment = None
       Roster = Access.founded session.OrganizationId (principalOf session)
+      MemberDraft = emptyMember
       Store =
         { Kind = store
           Pending = []
@@ -341,7 +361,11 @@ let initial (session: Session) (store: StoreKind) (now: DateTimeOffset) =
 let canWork (model: Model) =
     match model.Identity.Mode with
     | LocalOnly
-    | SignedInMode -> not model.Store.Opening && model.Store.Failure.IsNone
+    | SignedInMode ->
+        not model.Store.Opening
+        && model.Store.Failure.IsNone
+        // Only the organization's members work in it.
+        && model.Roster.Members.ContainsKey model.Session.ActorId
     | Configuring
     | Misconfigured _
     | SignInRequired _ -> false

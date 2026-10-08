@@ -20,6 +20,7 @@
     <Compile Include="Review.fs" />
     <Compile Include="Periods.fs" />
     <Compile Include="Reports.fs" />
+    <Compile Include="Observations.fs" />
     <Compile Include="Compatibility.fs" />
   </ItemGroup>
 

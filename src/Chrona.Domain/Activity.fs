@@ -91,6 +91,14 @@ let noBillingReference =
       BillingClass = None
       ContractReference = None }
 
+/// Where an imported activity came from (19): the producing system, its
+/// observation id, a link back where it has one, and when Chrona ingested it.
+type ObservationSource =
+    { SourceSystem: string
+      ObservationId: string
+      ExternalUrl: string option
+      IngestedAt: DateTimeOffset }
+
 /// When: an exact interval, or a duration on a business date when the
 /// entry has no clock times.
 type Timing =
@@ -123,7 +131,9 @@ type Activity =
       ExternalRef: string option
       Evidence: Evidence list
       /// Source activity ids this one was split from or merged from.
-      Lineage: string list }
+      Lineage: string list
+      /// The observation an imported activity was accepted from.
+      Source: ObservationSource option }
 
 /// Whether the activity consumes the actor's time (12): voided and
 /// superseded records do not; submitted and approved records still do.

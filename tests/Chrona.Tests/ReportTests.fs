@@ -38,7 +38,8 @@ let private activity id day (h, m) minutes =
       WorkItemRef = Some "GH-42"
       ExternalRef = None
       Evidence = []
-      Lineage = [] }
+      Lineage = []
+      Source = None }
 
 let private policies = [ Chrona.Domain.Billing.legacyDefault "ORG-1" ]
 

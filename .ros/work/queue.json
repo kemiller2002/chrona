@@ -1212,10 +1212,10 @@
       "description": "Split from WI-0033, which became the offline change queue. The active timer is kept in this browser's storage per organization and person (Limen Storage, never a competing authority: it holds the device's own unfinished timer, not records), restored and recovered explicitly at startup with its elapsed time derived from its segments (Timer.recover), never silently discarded. A running timer that overlaps time another device stored since is a reconciliation obligation with a stable diagnostic (the concurrent timer conflict, requirement 26). Scenarios 4 and 9. Starting while GitHub cannot be reached: the persisted timer and this browser's unsent changes are shown and the timer keeps working; opening the records themselves offline is WI-0057 (read cache, waits on Limen IndexedDB).",
       "tags": [],
       "priority": "high",
-      "status": "ready",
+      "status": "complete",
       "attachments": [],
       "createdAt": "2026-10-08T14:27:00Z",
-      "updatedAt": "2026-10-08T15:57:01Z",
+      "updatedAt": "2026-10-08T16:19:35Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

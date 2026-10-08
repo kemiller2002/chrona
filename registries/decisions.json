@@ -1,5 +1,51 @@
 [
   {
+    "created": "2026-10-08",
+    "id": "DF-CHRONA-2026-0001",
+    "owners": [
+      "chrona"
+    ],
+    "path": "research/decisions/DF-CHRONA-2026-0001--reconstruct-on-limen-forma-keeping-legacy-look-and-feel.md",
+    "provenance": {
+      "contributions": {
+        "EXE-20261008T074345758Z-6c5a1aa8": {
+          "actor": {
+            "id": "anthropic/claude-code",
+            "kind": "agent",
+            "model": "unknown",
+            "provider": "anthropic",
+            "runtime": "claude-code"
+          },
+          "at": "2026-10-08T07:44:41.707Z",
+          "operations": [
+            "created"
+          ],
+          "reason": "Record user decisions of 2026-10-08 and the per-application data-location requirement"
+        }
+      }
+    },
+    "related_documents": [
+      "docs/requirements/CHRONA-REQUIREMENTS-EXPANSION.txt",
+      "docs/requirements/implementation-gap-analysis.md",
+      "docs/requirements/CHRONA-DATA-LOCATION.md"
+    ],
+    "review_cycle": "on-trigger",
+    "status": "accepted",
+    "superseded_by": [],
+    "supersedes": [],
+    "tags": [
+      "build-order",
+      "legacy",
+      "reconstruction",
+      "ui",
+      "storage",
+      "strata"
+    ],
+    "title": "Chrona is built first, reconstructed (not migrated) from the legacy time-tracking-application, keeps its look and feel, and stores data through Arca without Strata",
+    "updated": "2026-10-08",
+    "version": "1.0.0"
+  },
+  {
     "created": "2026-10-05",
     "id": "DF-CHRONA-FND-2026-0001",
     "owners": [

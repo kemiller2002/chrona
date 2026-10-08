@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "repository": "chrona",
-  "nextSeq": 25,
+  "nextSeq": 41,
   "items": [
     {
       "id": "WI-0001",
@@ -442,6 +442,420 @@
       "attachments": [],
       "createdAt": "2026-10-08T07:19:33.578Z",
       "updatedAt": "2026-10-08T07:20:44.525Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0025",
+      "title": "Capture the remaining Chrona requirements as dependency-ordered backlog slices; add CHX-DATALOC-001 and record the 2026-10-08 decisions",
+      "description": "Turn every missing or partial row of docs/requirements/implementation-gap-analysis.md into deliverable slices ordered by dependency, with storage and sign-in slices declaring their dependency on Arca (kemiller2002/arca) and Fides (kemiller2002/fides). Add the per-application data-location requirement (CHX-DATALOC-001..005) and decision DF-CHRONA-2026-0001 (build order, reconstruct keeping the look and feel, legacy data status, Summa owns the contract, no Strata). Add a test that fails when a non-tested section is not named by an open work item.",
+      "tags": [
+        "planning",
+        "requirements"
+      ],
+      "priority": "high",
+      "status": "complete",
+      "attachments": [],
+      "createdAt": "2026-10-08T07:43:39.000Z",
+      "updatedAt": "2026-10-08T07:45:11.000Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0026",
+      "title": "Chrona 01: look-and-feel inventory of the legacy time-tracking-application (screens, layout, styles, interactions)",
+      "description": "Build order: Chrona is first (user decision 2026-10-08). The user expects Chrona to be reconstructed rather than migrated: KEEP the look and feel, rebuild the code to all current standards with no compromises. Read-only source: kemiller2002/time-tracking-application (do not modify). Inventory every screen in static-ui-screens/ (today, start, stop, manual-entry, activity, correction, split, merge, remove, restore, evidence, review, month, more, settings, sign-in, states, index) and the live web/ client (index.html, styles.css, main.js, dom-bindings.js, service worker, manifest). Record layout, navigation, typography, colour and spacing tokens, components, interaction patterns, keyboard and mobile behaviour, and offline cues, plus docs/UI-*.md (architecture, components, state model, accessibility, offline behaviour, visual review). Map each style to a Forma equivalent or a documented gap. Output: docs/legacy/look-and-feel-inventory.md with screenshots. Requirements: CHX-011, CHX-012, CHX-320, CHX-330. No dependencies.",
+      "tags": [
+        "chrona",
+        "order:01",
+        "legacy",
+        "ui",
+        "inventory"
+      ],
+      "priority": "high",
+      "status": "captured",
+      "attachments": [],
+      "createdAt": "2026-10-08T07:43:45.996Z",
+      "updatedAt": "2026-10-08T07:43:45.996Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0027",
+      "title": "Chrona 02: decide reconstruction versus migration and record legacy data status (CHX-012, CHX-300, CHX-310)",
+      "description": "Depends on WI-0026. Record the decision (the user expects reconstruction, not migration) as a Praxis decision record. Reconcile the expansion's restatement against the legacy docs/DOMAIN-REQUIREMENTS.md in time-tracking-application (an open item in the gap analysis). Record the legacy data status: kemiller2002/time-tracking-data holds an append-only JSON event ledger (ledger/YYYY/MM/activities, evidence-links, derived indexes, integrity manifests), and at 2026-10-08 it contains only DEMO records (ACT-20260802-DEMO-*, EVL-20260802-DEMO-001). No production data needs migrating today. If real records appear, an import is a Chrona application-level migration on top of Arca's migration workflow (ARCA OQ-ARCA-005). Cover rename and source compatibility (CHX-310).",
+      "tags": [
+        "chrona",
+        "order:02",
+        "legacy",
+        "decision"
+      ],
+      "priority": "high",
+      "status": "captured",
+      "attachments": [],
+      "createdAt": "2026-10-08T07:43:46.334Z",
+      "updatedAt": "2026-10-08T07:43:46.334Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0028",
+      "title": "Chrona 03: configurable data location and Chrona-owned namespace with organization manifests (CHX-DATALOC-001, CHX-024..027)",
+      "description": "Depends on arca slice 2 (data location, ARCA-LOC) and arca slice 3 (record format, ARCA-REC) (data location and record format). New requirement CHX-DATALOC-001 (docs/requirements/CHRONA-DATA-LOCATION.md, user decision 2026-10-08): the data repository is configured per deployment and never hard-coded; Chrona creates and owns its namespace and never assumes it is the only application in the repository; Chrona's data must be separable under different permissions from other applications (for example Summa), which means deploying against its own repository, because GitHub permissions are per repository; no at-rest encryption for now. Also: organization folders with immutable OrganizationIds, the organization manifest (CHX-026), and public-repository refusal for production (CHX-027).",
+      "tags": [
+        "chrona",
+        "order:03",
+        "data-location",
+        "depends:arca"
+      ],
+      "priority": "high",
+      "status": "captured",
+      "attachments": [],
+      "createdAt": "2026-10-08T07:43:46.650Z",
+      "updatedAt": "2026-10-08T07:43:46.650Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0029",
+      "title": "Chrona 04: GitHub sign-in through Fides and token safety (CHX-022, CHX-023)",
+      "description": "Depends on fides slice 7 (WASM client and Arca token provider, FID-CLI) (WASM client and Arca token provider) and arca slice 5 (token-provider port, ARCA-AUTH) (token-provider port). Sign in through Fides (GitHub only for now). Resolve the identity from GitHub, never a typed username. Tokens never reach records, integration messages, telemetry, logs, exports or artifacts. Disconnect/clear token is supported, and session-only retention is the default.",
+      "tags": [
+        "chrona",
+        "order:04",
+        "auth",
+        "depends:fides",
+        "depends:arca"
+      ],
+      "priority": "high",
+      "status": "captured",
+      "attachments": [],
+      "createdAt": "2026-10-08T07:43:46.988Z",
+      "updatedAt": "2026-10-08T07:43:46.988Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0030",
+      "title": "Chrona 05: actors, membership and capability-based authorization (CHX-030, CHX-260 remainder)",
+      "description": "Depends on WI-0029. Human/Agent/Service/Integration principals, membership in several organizations, and capability-based authorization (RecordOwnTime ... PublishBillableTime) separate from GitHub authentication. Reference-data changes need admin capabilities. Authorization diagnostics use stable CHRONA.* codes.",
+      "tags": [
+        "chrona",
+        "order:05",
+        "authorization"
+      ],
+      "priority": "high",
+      "status": "captured",
+      "attachments": [],
+      "createdAt": "2026-10-08T07:43:47.325Z",
+      "updatedAt": "2026-10-08T07:43:47.325Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0031",
+      "title": "Chrona 06: reference data - clients, projects, activity types, tags, rate references and billing class (CHX-040, CHX-080 remainder, CHX-063 remainder)",
+      "description": "Depends on WI-0028. Reference data as authoritative records with archive semantics (scenario 15, archived references), plus the rate reference, billing class and contract identifiers that CHX-080 still lacks.",
+      "tags": [
+        "chrona",
+        "order:06",
+        "reference-data"
+      ],
+      "priority": "high",
+      "status": "captured",
+      "attachments": [],
+      "createdAt": "2026-10-08T07:43:47.656Z",
+      "updatedAt": "2026-10-08T07:43:47.656Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0032",
+      "title": "Chrona 07: authoritative storage on Arca - partitioned layout, repository concurrency, integrity and manual edits (CHX-021, CHX-210, CHX-220, CHX-380, CHX-390, CHX-410, CHX-240 remainder, CHX-050 persistence)",
+      "description": "Depends on WI-0028, WI-0030, arca slice 6 (GitHub adapter, ARCA-API/OUT) (GitHub adapter) and arca slice 8 (integrity, ARCA-INT) (integrity). Persist Chrona.Domain records through Arca: deterministic partitioned paths (organization/actor/year-month), bounded reads and writes, one operation as one commit, repository-state optimistic concurrency with reload, revalidation and surfaced semantic conflicts (a clean Git merge is not proof), validation of everything loaded, detection of manual edits, and an API-efficient today view. Covers scenarios 10, 31 and 32 end to end. Also the remaining evidence-reference fields (source, notes) of CHX-240. Includes persisting the full CHX-050 activity record.",
+      "tags": [
+        "chrona",
+        "order:07",
+        "storage",
+        "depends:arca"
+      ],
+      "priority": "high",
+      "status": "captured",
+      "attachments": [],
+      "createdAt": "2026-10-08T07:43:47.968Z",
+      "updatedAt": "2026-10-08T07:44:25.000Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0033",
+      "title": "Chrona 08: offline use, persisted timer and sync reconciliation (CHX-101, CHX-102, CHX-105, CHX-200, CHX-230)",
+      "description": "Depends on WI-0032 and arca slice 9 (offline queue, ARCA-OFF) (offline queue). The timer and manual entry work offline. The active timer survives refresh and restart, and recovery runs at startup. Sync state is visible. Reconnection reconciles idempotently. Conflicts become visible obligations. Startup reconciliation is non-blocking, resumable and paged. Scenarios 4, 33 and 34.",
+      "tags": [
+        "chrona",
+        "order:08",
+        "offline",
+        "depends:arca"
+      ],
+      "priority": "high",
+      "status": "captured",
+      "attachments": [],
+      "createdAt": "2026-10-08T07:43:48.284Z",
+      "updatedAt": "2026-10-08T07:43:48.284Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0034",
+      "title": "Chrona 09: rebuildable derived state - indexes, totals, approval and publication projections (CHX-400)",
+      "description": "Depends on WI-0032 and arca slice 10 (derived indexes and migration, ARCA-MIG). Every projection is rebuildable from authoritative records, and Git history is only evidence. Scenario 40.",
+      "tags": [
+        "chrona",
+        "order:09",
+        "derived-state"
+      ],
+      "priority": "medium",
+      "status": "captured",
+      "attachments": [],
+      "createdAt": "2026-10-08T07:43:48.598Z",
+      "updatedAt": "2026-10-08T07:43:48.598Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0035",
+      "title": "Chrona 10: reconstruct the product UI on Limen/Forma keeping the legacy look and feel (CHX-003, CHX-005, CHX-320, CHX-330, CHX-340, CHX-350, CHX-360, CHX-370)",
+      "description": "Depends on WI-0026, WI-0032 and WI-0033. Rebuild today/start/stop/manual entry/activity/correction/split/merge/void-restore/evidence/review/month/settings/sign-in on the F# WASM engine behind Limen with Forma components. Match the inventory in WI-0026: same layout, flow and feel, no shortcuts on standards. Quick entry, the obligations/work queue, accessibility (keyboard and screen reader, scenarios 43 and 44), responsive mobile timer workflow (scenario 42) and browser reliability. Visual regression against the legacy screens.",
+      "tags": [
+        "chrona",
+        "order:10",
+        "ui",
+        "limen",
+        "forma"
+      ],
+      "priority": "high",
+      "status": "captured",
+      "attachments": [],
+      "createdAt": "2026-10-08T07:43:48.917Z",
+      "updatedAt": "2026-10-08T07:43:48.917Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0036",
+      "title": "Chrona 11: timesheet periods (CHX-150)",
+      "description": "Depends on WI-0032. Period definitions, open/closed states and how they interact with submission, approval and attestation.",
+      "tags": [
+        "chrona",
+        "order:11",
+        "periods"
+      ],
+      "priority": "medium",
+      "status": "captured",
+      "attachments": [],
+      "createdAt": "2026-10-08T07:43:49.227Z",
+      "updatedAt": "2026-10-08T07:43:49.227Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0037",
+      "title": "Chrona 12: consume Summa's Chrona-to-Summa contracts package through conditor.json; Chrona.Integration and publication transport (CHX-170 remainder, CHX-180, CHX-063 remainder, CHX-450 remainder)",
+      "description": "Depends on summa item \"Summa 01: Chrona-to-Summa contracts package\" (the contracts package; the receiving application owns the contract, so Summa owns it, user decision 2026-10-08) and WI-0032. Declare the pinned contracts package in conditor.json, build the receiver-owned Chrona.Integration assembly, publish approved billable projections with idempotent publication ids, and handle InvoicedExternally and AdjustmentRequired feedback. Scenarios 35-38. Completes the CHX-450 architectural boundary: Chrona decides authoritative time, Summa owns the financial consequence.",
+      "tags": [
+        "chrona",
+        "order:12",
+        "integration",
+        "summa",
+        "contracts",
+        "depends:summa"
+      ],
+      "priority": "high",
+      "status": "captured",
+      "attachments": [],
+      "createdAt": "2026-10-08T07:43:49.540Z",
+      "updatedAt": "2026-10-08T07:43:49.540Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0038",
+      "title": "Chrona 13: observation processing - accept, modify, reject, deduplicate, receipts (CHX-190, CHX-120 import path, CHX-250 import audit)",
+      "description": "Depends on WI-0032. Inbox processing with overlap checks on import and audited outcomes. Scenarios 25-30.",
+      "tags": [
+        "chrona",
+        "order:13",
+        "observations"
+      ],
+      "priority": "medium",
+      "status": "captured",
+      "attachments": [],
+      "createdAt": "2026-10-08T07:43:49.855Z",
+      "updatedAt": "2026-10-08T07:43:49.855Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0039",
+      "title": "Chrona 14: search, reporting and export with Folio (CHX-270, CHX-280, CHX-290)",
+      "description": "Depends on WI-0034 and WI-0035. Search, printable and PDF time reports through Folio (every app except Helix uses Folio for PDFs), and CSV/JSON export without tokens or sensitive text.",
+      "tags": [
+        "chrona",
+        "order:14",
+        "reporting",
+        "folio"
+      ],
+      "priority": "medium",
+      "status": "captured",
+      "attachments": [],
+      "createdAt": "2026-10-08T07:43:50.164Z",
+      "updatedAt": "2026-10-08T07:43:50.164Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0040",
+      "title": "Chrona 15: telemetry privacy, remaining scenario tests and the production completion gate (CHX-420, CHX-430, CHX-440, CHX-001, CHX-002, CHX-004 remainders)",
+      "description": "Depends on WI-0035, WI-0037, WI-0038 and WI-0039. Telemetry carries ids and measures only. Close the remaining scenarios of the 44 (28 are tested today). Demonstrate every item of the section 44 production completion gate.",
+      "tags": [
+        "chrona",
+        "order:15",
+        "quality",
+        "gate"
+      ],
+      "priority": "medium",
+      "status": "captured",
+      "attachments": [],
+      "createdAt": "2026-10-08T07:43:50.498Z",
+      "updatedAt": "2026-10-08T07:43:50.498Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

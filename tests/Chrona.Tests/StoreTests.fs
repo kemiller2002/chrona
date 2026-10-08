@@ -1643,3 +1643,46 @@ let ``signing out with a timer on the device asks first, like unsent changes`` (
     device.Ui("signOutDiscardConfirmed", "")
     Assert.True(signedOut device)
     Assert.False(browser.Storage.ContainsKey timerKeyOf)
+
+/// Two tabs of one browser share its localStorage and so the one queue
+/// snapshot (Arca 0.2.1, arca WI-0024, DF-ARCA-2026-0009). Before 0.2.1 the
+/// second tab's save overwrote the first tab's unsent change: the last save
+/// won, and the first tab's change was gone from the browser.
+[<Fact>]
+let ``two tabs offline in one browser: one tab's save never overwrites the other tab's unsent change`` () =
+    let github = InMemoryStore()
+    let browser = Browser()
+    let first = Device(github, RepositoryVisibility.Private, "production", browser)
+    let second = Device(github, RepositoryVisibility.Private, "production", browser)
+    first.Open()
+    record first "08:00" "08:30" "Setup"
+    second.Open()
+    let commits = github.State.History.Length
+    Assert.Empty(queued browser)
+
+    first.Offline <- true
+    second.Offline <- true
+    record first "09:00" "10:00" "Pairing"
+    record second "11:00" "12:00" "Review"
+
+    // The first tab's change is still kept in the browser. The second tab's
+    // keep was refused, so it says so and holds its change in the page.
+    Assert.Equal(1, (queued browser).Length)
+    Assert.True(first.Model.Store.Sync.KeptInBrowser)
+    Assert.False(second.Model.Store.Sync.KeptInBrowser)
+    Assert.True(second.Model.Store.Sync.Note.IsSome)
+    Assert.Equal(1, second.Model.Store.Pending.Length)
+
+    // The first tab is closed while offline: its change exists only in the
+    // browser now. The second tab comes back online and sends its own.
+    second.Offline <- false
+    second.Wake()
+    Assert.Equal(commits + 1, github.State.History.Length)
+
+    // A tab opened later finds the first tab's change in the browser and
+    // sends it: nothing was lost.
+    let reopened = Device(github, RepositoryVisibility.Private, "production", browser)
+    reopened.Open()
+    Assert.Equal(commits + 2, github.State.History.Length)
+    Assert.Empty(queued browser)
+    Assert.Equal<string list>([ "Pairing"; "Review"; "Setup" ], descriptions reopened)

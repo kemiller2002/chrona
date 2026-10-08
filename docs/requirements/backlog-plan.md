@@ -32,4 +32,4 @@ Added 2026-10-08 by WI-0035: the product UI built in memory (WI-0046, WI-0047) l
 
 Added 2026-10-08 by WI-0060: WI-0059 and WI-0057 (above) follow WI-0033's localStorage queue and WI-0058's shared-device sign-out. They come from kemiller2002/limen `docs/requirements/LIMEN-INDEXEDDB-REQUIREMENTS.md` (LCP-043..087) and DF-LIMEN-2026-0005. Those place the IndexedDB queue store and the read cache in Arca's `EchelonFoundry.Arca.Limen` package.
 
-Known hazard until WI-0059: the queue is saved to localStorage as one snapshot. Two Chrona tabs can therefore overwrite each other's unsent entries, because the last save wins.
+Hazard fixed in the interim (WI-0065, Arca 0.2.1): the queue is still saved to localStorage as one snapshot, but Arca now fences every save on the stored text. A second Chrona tab whose snapshot is stale can no longer overwrite another tab's unsent entries: its save is refused, and its change stays in that page until it is sent. The residual race between two tabs saving at the same moment closes when Chrona takes the queue through `LocalStorageQueue.own` (a Web Lock, one owner per namespace), or with WI-0059's IndexedDB owner.

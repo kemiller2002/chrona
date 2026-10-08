@@ -126,6 +126,7 @@ let eventNames =
       "manualDescription"; "manualPurpose"; "manualReason"; "manualTag"; "saveManual"
       "newProjectName"; "newActivityTypeName"; "newTagName"; "addProject"; "addActivityType"; "addTag"; "referenceActive"
       "openActivity"; "openReview"; "previousMonth"; "nextMonth"; "showMonth"
+      "timerUseRecent"; "manualUseRecent"; "manualDuration"; "copyActivity"
       "amendActivityType"; "amendProject"; "amendDescription"; "amendPurpose"; "amendReason"; "saveAmend"
       "voidReason"; "voidActivity"; "restoreActivity"
       "splitFirst"; "splitSecond"; "splitEvidence"; "saveSplit"
@@ -658,6 +659,94 @@ let private manualDraft f = draft f _.Manual.Classification (fun m d -> { m with
 
 let private manual (f: ManualDraft -> ManualDraft) (model: Model) = { model with Manual = f model.Manual }, []
 
+// ---- quick entry (33, WI-0062) --------------------------------------------------------
+
+/// The person's most recent combinations of activity type, project and
+/// description, newest first, while their reference data is still offered.
+let recentCombinations (model: Model) : Classification list =
+    let active kind id =
+        Reference.selectable kind model.References |> List.exists (fun item -> item.Id = id)
+
+    model.Ledger.Activities
+    |> Map.toList
+    |> List.map snd
+    |> List.filter (fun a -> a.ActorId = model.Session.ActorId && consumesTime a)
+    |> List.sortByDescending (fun a -> a.Occurrence.LocalDate, a.Occurrence.LocalTime, a.LastChangedAt)
+    |> List.map _.Classification
+    |> List.filter (fun c -> active Reference.ActivityType c.ActivityTypeId && active Reference.Project c.ProjectId)
+    |> List.distinctBy (fun c -> c.ActivityTypeId, c.ProjectId, c.Description)
+    |> List.truncate 5
+
+/// The common durations the manual form offers (the deployment's, or the default).
+let quickDurations (model: Model) =
+    model.Deployment |> Option.map _.QuickDurations |> Option.defaultValue Deployment.defaultQuickDurations
+
+let private recentAt (key: string option) (model: Model) =
+    match key |> Option.map Int32.TryParse with
+    | Some(true, index) -> recentCombinations model |> List.tryItem index
+    | _ -> None
+
+/// A recent combination fills the timer's draft.
+let private timerUseRecent (key: string option) (model: Model) =
+    match recentAt key model with
+    | Some c ->
+        { model with
+            TimerDraft =
+                { model.TimerDraft with
+                    ActivityTypeId = c.ActivityTypeId
+                    ProjectId = c.ProjectId
+                    Description = c.Description } },
+        []
+    | None -> model, []
+
+/// A recent combination fills the manual entry's classification; its time
+/// is left exactly as typed.
+let private manualUseRecent (key: string option) (model: Model) =
+    match recentAt key model with
+    | Some c -> manual (fun d -> { d with Classification = ofClassification c }) model
+    | None -> model, []
+
+/// A common duration sets the end from the start, visibly: the end time is
+/// written into its field and said, never changed silently afterwards.
+let private manualDuration (key: string option) (model: Model) =
+    let draft = model.Manual
+
+    match key |> Option.map Int32.TryParse, Format.parseIsoDate draft.StartDate, Format.parseTime draft.StartTime with
+    | Some(true, minutes), Some date, Some startTime when List.contains minutes (quickDurations model) ->
+        let finish = date.ToDateTime(startTime).AddMinutes(float minutes)
+
+        if DateOnly.FromDateTime finish <> date then
+            withProblems ManualForm [ CrossesBusinessDay ] model, []
+        else
+            let endTime = TimeOnly.FromDateTime finish
+
+            { model with
+                Manual =
+                    { draft with
+                        EndDate = draft.StartDate
+                        EndTime = endTime.ToString("HH:mm", Globalization.CultureInfo.InvariantCulture) }
+                Announcement = $"End set to {Format.clock endTime}, {Format.minutes minutes} after the start." },
+            []
+    | Some(true, _), _, _ -> withProblems ManualForm [ MissingField "start" ] model, []
+    | _ -> model, []
+
+/// An earlier entry's classification copied into a new manual entry for
+/// today; the new entry's time is the person's to set.
+let private copyActivity (activityId: string) (model: Model) =
+    match model.Ledger.Activities.TryFind activityId with
+    | Some activity ->
+        let today = Format.isoDate (Model.today model)
+
+        { model with
+            Manual =
+                { emptyManual with
+                    Classification = ofClassification activity.Classification
+                    StartDate = today
+                    EndDate = today }
+            Announcement = $"Copied {activity.Classification.Description} into a new entry. Set its time, then save it." },
+        [ Navigate(Routes.hash { Screen = Track; Date = None }) ]
+    | None -> model, []
+
 let private navigate (route: Route) (model: Model) = model, [ Navigate(Routes.hash route) ]
 
 let private mergeDraft f = draft f _.MergeDraft (fun m d -> { m with MergeDraft = d })
@@ -1020,6 +1109,10 @@ let private onEvent (ctx: Ctx) (name: string) (key: string option) (value: strin
     | "timerActivityType" -> timerDraft (fun d -> { d with ActivityTypeId = value }) model
     | "timerProject" -> timerDraft (fun d -> { d with ProjectId = value }) model
     | "timerDescription" -> timerDraft (fun d -> { d with Description = value }) model
+    | "timerUseRecent" -> timerUseRecent key model
+    | "manualUseRecent" -> manualUseRecent key model
+    | "manualDuration" -> manualDuration key model
+    | "copyActivity" -> copyActivity (defaultArg key (model.Detail |> Option.map _.ActivityId |> Option.defaultValue value)) model
     | "startTimer" -> startTimer ctx model
     | "pauseTimer" -> pauseTimer ctx model
     | "resumeTimer" -> resumeTimer ctx model

@@ -1226,3 +1226,34 @@ textarea.chrona-export {
 #offline-waiting:empty {
   display: none;
 }
+
+/* ---- Quick entry: recent work and common durations (WI-0062) ------------------ */
+
+.chrona-quick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-block: 0.5rem;
+}
+
+.chrona-quick__label {
+  color: var(--ef-color-text-secondary);
+  font-size: 0.85rem;
+}
+
+.chrona-chip {
+  min-height: 44px;
+  padding: 0.25rem 0.75rem;
+  border: 1px solid var(--ef-color-border-functional);
+  border-radius: var(--ef-primitive-radius-small);
+  background: var(--ef-color-surface-secondary);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.chrona-chip:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}

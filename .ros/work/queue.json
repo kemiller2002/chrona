@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "repository": "chrona",
-  "nextSeq": 62,
+  "nextSeq": 65,
   "items": [
     {
       "id": "WI-0001",
@@ -1187,14 +1187,14 @@
     },
     {
       "id": "WI-0054",
-      "title": "Chrona 16: browser reliability, accessibility end to end, quick-entry conveniences and visual regression (CHX-330, CHX-350, CHX-360, CHX-370)",
-      "description": "Split from WI-0035, which became the write path's conflict resolution and outside-edit review. Depends on WI-0033 (offline and the persisted timer). Browser reliability (refresh, back/forward, suspension, service-worker update, stale shell, cellular), mobile and screen-reader scenarios 42-44 end to end, the quick-entry conveniences (recent combinations, common durations, copy an entry as a draft), and visual regression against the legacy screens.",
+      "title": "Chrona 16: visual regression against the legacy screens, closing the product UI (CHX-005 look and feel)",
+      "description": "After WI-0062 (quick entry), WI-0063 (browser reliability) and WI-0064 (accessibility and mobile end to end), split from this item. Visual regression of Chrona's screens against the legacy time-tracking-application's look and feel as inventoried in docs/legacy (WI-0026): baseline images of each screen in light and dark, at desktop and phone width, held by the browser suite so an unintended visual change fails it.",
       "tags": [],
       "priority": "medium",
       "status": "captured",
       "attachments": [],
       "createdAt": "2026-10-08T14:03:05Z",
-      "updatedAt": "2026-10-08T14:16:00Z",
+      "updatedAt": "2026-10-08T16:25:43Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",
@@ -1350,6 +1350,69 @@
       "attachments": [],
       "createdAt": "2026-10-08T15:45:49Z",
       "updatedAt": "2026-10-08T16:18:32Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0062",
+      "title": "Chrona 16a: quick entry - recent combinations, configurable common durations and copying an entry as a draft (CHX-330)",
+      "description": "Split from WI-0054. Recent project and activity-type combinations offered in the timer and manual forms, configurable common durations that set a visible end time from the start, and copying an earlier entry as a new draft; convenience never changes exact time silently. Requirement 33.",
+      "tags": [],
+      "priority": "medium",
+      "status": "ready",
+      "attachments": [],
+      "createdAt": "2026-10-08T16:25:38Z",
+      "updatedAt": "2026-10-08T16:25:43Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0063",
+      "title": "Chrona 16b: browser reliability - suspension, shell updates, stale cached shell and intermittent connectivity (CHX-370)",
+      "description": "Split from WI-0054. A page suspended or hidden catches up when it returns (records refreshed, unsent changes sent, the timer display recomputed); a newer Chrona shell is detected and the person is offered a reload that cannot lose pending time; a stale cached shell never runs against a newer deployment silently; intermittent cellular connectivity backs off and recovers. Requirement 37.",
+      "tags": [],
+      "priority": "medium",
+      "status": "captured",
+      "attachments": [],
+      "createdAt": "2026-10-08T16:25:38Z",
+      "updatedAt": "2026-10-08T16:25:38Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0064",
+      "title": "Chrona 16c: accessibility and mobile end to end - scenarios 42-44, zoom and reflow, reduced motion, weekly totals and sync problems on a phone (CHX-350, CHX-360)",
+      "description": "Split from WI-0054. Scenario 42 (mobile timer workflow), 43 (keyboard-only workflow) and 44 (screen-reader timer behaviour) end to end in a real browser; reflow at 320 CSS pixels and 400% zoom; reduced motion; weekly totals and basic sync problems reachable on a phone. iPhone VoiceOver needs a person with an iPhone: its checklist is recorded for them. Requirements 35 and 36.",
+      "tags": [],
+      "priority": "medium",
+      "status": "captured",
+      "attachments": [],
+      "createdAt": "2026-10-08T16:25:38Z",
+      "updatedAt": "2026-10-08T16:25:38Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

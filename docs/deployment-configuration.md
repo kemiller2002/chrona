@@ -96,6 +96,7 @@ The repository's copy is a local deployment; a deployment replaces it.
 | `identity.provider` | yes | `github`. |
 | `identity.clientId` | yes | The GitHub App's public client id. |
 | `identity.redirectUri` | yes | The page GitHub returns to, exactly as registered (the Chrona page's address). |
+| `quickDurations` | no | The common durations, in whole minutes (1 to 720), that the manual entry form offers to set the end from the start. Default `[15, 30, 45, 60, 90, 120]`. |
 | `sharedDevicePolicy` | no | What signing out does with changes that have not reached GitHub: `ask` (the default) or `discardOnSignOut`. See Sign-in. |
 | `organizations` | with `location` | The organizations the deployment serves, the default first. Each has an `id` (immutable; it names the organization's folder), `displayName`, `slug` (lower case), `timeZone` (IANA), its bootstrap `administrators` (GitHub numeric account ids; see People) and, optionally, a `location` of its own, for example to give its data its own permissions (CHX-DATALOC-004). |
 

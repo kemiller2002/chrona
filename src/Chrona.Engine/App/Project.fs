@@ -291,6 +291,18 @@ let private today (model: Model) =
 
 // ---- track -------------------------------------------------------------------------
 
+/// The person's recent combinations, as the forms offer them (33).
+let private recentRows (model: Model) =
+    Update.recentCombinations model
+    |> List.mapi (fun index c ->
+        let parts =
+            [ referenceName model Reference.ActivityType c.ActivityTypeId
+              referenceName model Reference.Project c.ProjectId
+              c.Description ]
+            |> List.filter (String.IsNullOrWhiteSpace >> not)
+
+        [ t "id" (string index); t "label" (String.Join(" · ", parts)) ])
+
 let private timer (model: Model) =
     let active =
         match model.Timer with
@@ -328,6 +340,7 @@ let private timer (model: Model) =
           (active
            |> Option.map (fun t -> $"Started at {localClock model (List.head t.Segments).Start} · exact elapsed time")
            |> Option.defaultValue "Elapsed time comes from the start and stop instants, never a counter.")
+      items "timerRecent" (recentRows model)
       items "timerTypeOptions" (options model Reference.ActivityType model.TimerDraft.ActivityTypeId)
       items "timerProjectOptions" (options model Reference.Project model.TimerDraft.ProjectId)
       flag "timerTypeUnset" (model.TimerDraft.ActivityTypeId = "")
@@ -374,7 +387,15 @@ let private completion (model: Model) =
 let private manual (model: Model) =
     let draft = model.Manual
 
-    [ items "manualTypeOptions" (options model Reference.ActivityType draft.Classification.ActivityTypeId)
+    [ flag "hasRecent" (not (Update.recentCombinations model).IsEmpty)
+      items "manualRecent" (recentRows model)
+      items
+          "manualDurations"
+          (let noStart = Format.parseIsoDate draft.StartDate |> Option.isNone || Format.parseTime draft.StartTime |> Option.isNone
+
+           [ for minutes in Update.quickDurations model ->
+                 [ t "id" (string minutes); t "label" (Format.minutes minutes); f "disabled" noStart ] ])
+      items "manualTypeOptions" (options model Reference.ActivityType draft.Classification.ActivityTypeId)
       items "manualProjectOptions" (options model Reference.Project draft.Classification.ProjectId)
       items "manualTagOptions" (tagOptions model draft.Classification.Tags)
       flag "manualTypeUnset" (draft.Classification.ActivityTypeId = "")

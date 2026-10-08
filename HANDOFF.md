@@ -52,7 +52,7 @@ for the diagnosis, the evidence, and one unexercised watch item.
 - Requirement coverage per section is tracked in
   [`docs/requirements/implementation-gap-analysis.md`](docs/requirements/implementation-gap-analysis.md)
   (`CHX-NNM` ids, baseline and current columns; `GapAnalysisTests` holds the
-  counts). 15 tested, 27 partial, 21 missing of 63 (baseline 0 / 7 / 56).
+  counts). 18 tested, 28 partial, 17 missing of 63 (baseline 0 / 7 / 56).
 - `src/Chrona.Domain` is the pure time domain: `Diagnostics`, `Time`,
   `Activity`, `Overlap`, `ManualEntry` (WI-0020), `Ledger` (WI-0021),
   `Timer` (WI-0022), `Billing` and `Review` (WI-0023), `Compatibility`
@@ -64,12 +64,15 @@ for the diagnosis, the evidence, and one unexercised watch item.
   in-memory implementations. Track (timer and manual entry), Today and More
   (reference data) exist (WI-0046); so do the activity screen (correct,
   remove and restore, split, evidence, history), merge, the day review and
-  attestation, the month and the obligations queue (WI-0047). The kernel
+  attestation, the month and the obligations queue (WI-0047), timesheet
+  periods (WI-0048) and search, reports, deterministic CSV/JSON export and a
+  Folio print document (WI-0049). The kernel
   verification slice moved to `web/kernel-slice.html`.
 - Not built: GitHub storage (Arca) and sign-in (Fides), organizations and
   authorization, offline sync, observations and `Chrona.Integration` (Summa
   owns the contract), submission and approval screens (need actors and
-  authorization, WI-0030 after Fides), reports and exports on Folio.
+  authorization, WI-0030 after Fides), and reports over stored data across
+  people and organizations (WI-0039).
 - The legacy `time-tracking-application` is reconstructed, not migrated
   (DF-CHRONA-2026-0001, DF-CHRONA-2026-0002): its look and feel is inventoried
   in `docs/legacy/` and expressed as the Chrona Forma brand (`brand/`), its

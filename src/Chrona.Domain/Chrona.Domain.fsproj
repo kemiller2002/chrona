@@ -19,6 +19,7 @@
     <Compile Include="Billing.fs" />
     <Compile Include="Review.fs" />
     <Compile Include="Periods.fs" />
+    <Compile Include="Reports.fs" />
     <Compile Include="Compatibility.fs" />
   </ItemGroup>
 

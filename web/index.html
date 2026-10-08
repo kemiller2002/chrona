@@ -797,7 +797,164 @@
             </ul>
           </section>
         </div>
+        <div class="chrona-form-actions">
+          <button type="button" class="chrona-action chrona-action--primary" id="report-month" data-event="reportMonth">Report on this month</button>
+        </div>
         <footer class="chrona-footer">All totals use effective records and exact stored minutes.</footer>
+      </section>
+    </template>
+
+    <!-- ======================= Reports ======================= -->
+    <template data-if="screenReports">
+      <section class="chrona-screen" id="screen-reports" aria-labelledby="reports-title">
+        <div class="chrona-heading">
+          <p class="chrona-eyebrow">Reports &amp; export</p>
+          <h1 class="chrona-title" id="reports-title">Find and report time.</h1>
+          <p class="chrona-intro">Exact recorded time and billable (rounded) time are always reported apart.</p>
+        </div>
+        <div class="chrona-layout">
+          <div class="chrona-stack">
+            <section class="ef-surface chrona-card" aria-labelledby="filters-title">
+              <h2 class="chrona-section-title" id="filters-title">Filters</h2>
+              <div class="chrona-form-grid">
+                <div class="ef-field">
+                  <label class="ef-field__label" for="report-from">From</label>
+                  <input type="date" id="report-from" data-event="reportFrom" data-bind-value="reportFrom" />
+                </div>
+                <div class="ef-field">
+                  <label class="ef-field__label" for="report-to">To</label>
+                  <input type="date" id="report-to" data-event="reportTo" data-bind-value="reportTo" />
+                </div>
+                <label class="ef-select-field">
+                  <span class="ef-field__label">Project</span>
+                  <span class="ef-select">
+                    <select class="ef-select__input" id="report-project" data-event="reportProject">
+                      <template data-each="reportProjectOptions" data-key="id"><option data-bind-value="id" data-bind-selected="selected" data-text="name"></option></template>
+                    </select>
+                    <span class="ef-select__indicator" aria-hidden="true"></span>
+                  </span>
+                </label>
+                <label class="ef-select-field">
+                  <span class="ef-field__label">Activity type</span>
+                  <span class="ef-select">
+                    <select class="ef-select__input" id="report-activity-type" data-event="reportActivityType">
+                      <template data-each="reportTypeOptions" data-key="id"><option data-bind-value="id" data-bind-selected="selected" data-text="name"></option></template>
+                    </select>
+                    <span class="ef-select__indicator" aria-hidden="true"></span>
+                  </span>
+                </label>
+                <label class="ef-select-field">
+                  <span class="ef-field__label">Tag</span>
+                  <span class="ef-select">
+                    <select class="ef-select__input" id="report-tag" data-event="reportTag">
+                      <template data-each="reportTagOptions" data-key="id"><option data-bind-value="id" data-bind-selected="selected" data-text="name"></option></template>
+                    </select>
+                    <span class="ef-select__indicator" aria-hidden="true"></span>
+                  </span>
+                </label>
+                <label class="ef-select-field">
+                  <span class="ef-field__label">Entry method</span>
+                  <span class="ef-select">
+                    <select class="ef-select__input" id="report-method" data-event="reportMethod">
+                      <template data-each="reportMethodOptions" data-key="id"><option data-bind-value="id" data-bind-selected="selected" data-text="name"></option></template>
+                    </select>
+                    <span class="ef-select__indicator" aria-hidden="true"></span>
+                  </span>
+                </label>
+                <label class="ef-select-field">
+                  <span class="ef-field__label">Billability</span>
+                  <span class="ef-select">
+                    <select class="ef-select__input" id="report-billability" data-event="reportBillability">
+                      <template data-each="reportBillabilityOptions" data-key="id"><option data-bind-value="id" data-bind-selected="selected" data-text="name"></option></template>
+                    </select>
+                    <span class="ef-select__indicator" aria-hidden="true"></span>
+                  </span>
+                </label>
+                <div class="ef-field">
+                  <label class="ef-field__label" for="report-text">Search words</label>
+                  <span class="ef-field__description" id="report-text-help">Matched in the description, purpose and work item.</span>
+                  <input type="search" id="report-text" aria-describedby="report-text-help" data-event="reportText" data-on="input" data-bind-value="reportText" />
+                </div>
+              </div>
+              <label class="ef-checkbox chrona-tags"><input class="ef-checkbox__input" type="checkbox" id="report-include-removed" data-event="reportIncludeRemoved" data-bind-checked="reportIncludeRemoved" /><span class="ef-checkbox__box" aria-hidden="true"></span><span class="ef-checkbox__text"><span class="ef-checkbox__label">Show records removed from totals</span><span class="ef-checkbox__description">Listed, never added to the totals.</span></span></label>
+            </section>
+
+            <section class="ef-surface chrona-card" aria-labelledby="report-results-title">
+              <h2 class="chrona-section-title" id="report-results-title">Activities</h2>
+              <p class="chrona-intro"><span id="report-count" data-text="reportCount"></span> · <span data-text="reportRange"></span></p>
+              <template data-if="reportEmpty">
+                <p class="chrona-intro" id="report-empty">Nothing matches these filters.</p>
+              </template>
+              <div class="chrona-table">
+                <table id="report-table">
+                  <caption class="ef-visually-hidden">Activities in the report</caption>
+                  <thead>
+                    <tr><th scope="col">Date</th><th scope="col">Activity</th><th scope="col">Method</th><th scope="col">Exact</th><th scope="col">Billed</th></tr>
+                  </thead>
+                  <tbody>
+                    <template data-each="reportRows" data-key="id">
+                      <tr>
+                        <td><span data-text="date"></span><br /><span class="chrona-table__note" data-text="time"></span></td>
+                        <td><strong data-text="title"></strong><br /><span class="chrona-table__note" data-text="classification"></span><br /><span class="chrona-table__note" data-text="state"></span></td>
+                        <td data-text="method"></td>
+                        <td class="chrona-table__number" data-text="exact"></td>
+                        <td class="chrona-table__number" data-text="billed"></td>
+                      </tr>
+                    </template>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+
+          <aside class="chrona-stack" aria-label="Totals and export">
+            <section class="ef-surface chrona-card" aria-labelledby="report-totals-title">
+              <h2 class="chrona-section-title" id="report-totals-title">Totals</h2>
+              <dl class="ef-facts chrona-facts">
+                <div class="ef-facts__item"><dt>Exact</dt><dd id="report-exact" data-text="reportExact"></dd></div>
+                <div class="ef-facts__item"><dt>Billable, as billed</dt><dd id="report-billable" data-text="reportBillable"></dd></div>
+                <div class="ef-facts__item"><dt>Non-billable</dt><dd data-text="reportNonBillable"></dd></div>
+                <div class="ef-facts__item"><dt>Timer / manual</dt><dd data-text="reportTimerManual"></dd></div>
+                <div class="ef-facts__item"><dt>Approved / not</dt><dd data-text="reportApproved"></dd></div>
+                <div class="ef-facts__item"><dt>Changed after review / publication</dt><dd data-text="reportCorrections"></dd></div>
+              </dl>
+                <label class="ef-select-field">
+                  <span class="ef-field__label">Group by</span>
+                  <span class="ef-select">
+                    <select class="ef-select__input" id="report-grouping" data-event="reportGrouping">
+                      <template data-each="reportGroupingOptions" data-key="id"><option data-bind-value="id" data-bind-selected="selected" data-text="name"></option></template>
+                    </select>
+                    <span class="ef-select__indicator" aria-hidden="true"></span>
+                  </span>
+                </label>
+              <ul class="chrona-days" id="report-groups">
+                <template data-each="reportGroups" data-key="id">
+                  <li class="chrona-days__item"><span data-text="name"></span><span data-text="exact"></span><strong data-text="billable"></strong></li>
+                </template>
+              </ul>
+              <button type="button" class="chrona-action chrona-action--secondary chrona-action--full" id="print-report" data-event="printReport">Print or save as PDF</button>
+            </section>
+
+            <section class="ef-surface chrona-card" aria-labelledby="export-title">
+              <h2 class="chrona-section-title" id="export-title">Export</h2>
+                <label class="ef-select-field">
+                  <span class="ef-field__label">Format</span>
+                  <span class="ef-select">
+                    <select class="ef-select__input" id="report-format" data-event="reportFormat">
+                      <template data-each="reportFormatOptions" data-key="id"><option data-bind-value="id" data-bind-selected="selected" data-text="name"></option></template>
+                    </select>
+                    <span class="ef-select__indicator" aria-hidden="true"></span>
+                  </span>
+                </label>
+              <label class="ef-field__label" for="export-text">Export text</label>
+              <textarea id="export-text" class="chrona-export" rows="10" readonly data-bind-value="exportText"></textarea>
+              <button type="button" class="chrona-action chrona-action--primary chrona-action--full" id="copy-export" data-event="copyExport">Copy export</button>
+              <p class="chrona-intro" id="copy-status" data-text="copyStatus"></p>
+            </section>
+          </aside>
+        </div>
+        <footer class="chrona-footer">Exports are deterministic: the same records and filters always produce the same file, which names its schema, organization, time and filters.</footer>
+
       </section>
     </template>
 
@@ -869,6 +1026,8 @@
           </section>
 
           <aside class="chrona-stack" aria-label="This session">
+            <button type="button" class="chrona-action chrona-action--primary chrona-action--full" id="go-reports" data-event="goReports">Reports &amp; export</button>
+
             <section class="ef-surface chrona-card" aria-labelledby="period-settings-title">
               <h2 class="chrona-section-title" id="period-settings-title">Timesheet period</h2>
               <p class="chrona-intro">How the organization's time is grouped for review. Kept in this tab until storage exists.</p>
@@ -908,6 +1067,54 @@
     </template>
   </main>
 </div>
+
+<template data-if="screenReports">
+  <!-- Folio's print surface: the same report as a document. It adds no
+       meaning; on screen the interactive report is the presentation. -->
+  <ef-print-document class="chrona-print">
+    <ef-print-header>
+      <header>
+        <p>Chrona</p>
+        <h1 data-text="printTitle"></h1>
+        <p data-text="printSubtitle"></p>
+        <p data-text="printGenerated"></p>
+      </header>
+    </ef-print-header>
+    <ef-print-section>
+      <section>
+        <h2>Totals</h2>
+        <ef-print-table>
+          <table>
+            <thead><tr><th scope="col">Measure</th><th scope="col">Time</th></tr></thead>
+            <tbody>
+              <tr><td>Exact recorded</td><td data-text="reportExact"></td></tr>
+              <tr><td>Billable, as billed</td><td data-text="reportBillable"></td></tr>
+              <tr><td>Non-billable</td><td data-text="reportNonBillable"></td></tr>
+            </tbody>
+          </table>
+        </ef-print-table>
+      </section>
+    </ef-print-section>
+    <ef-print-section>
+      <section>
+        <h2>Activities</h2>
+        <ef-print-table>
+          <table>
+            <thead><tr><th scope="col">Date</th><th scope="col">Activity</th><th scope="col">Exact</th><th scope="col">Billed</th></tr></thead>
+            <tbody>
+              <template data-each="reportRows" data-key="id">
+                <tr><td data-text="date"></td><td data-text="title"></td><td data-text="exact"></td><td data-text="billed"></td></tr>
+              </template>
+            </tbody>
+          </table>
+        </ef-print-table>
+      </section>
+    </ef-print-section>
+    <ef-print-footer>
+      <footer><span>Chrona time report · <span data-text="reportRange"></span></span><ef-print-page-number></ef-print-page-number></footer>
+    </ef-print-footer>
+  </ef-print-document>
+</template>
 
 <nav class="chrona-tabbar" aria-label="Primary">
   <template data-each="navigation" data-key="id">

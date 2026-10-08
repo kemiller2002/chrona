@@ -103,6 +103,14 @@ let ``the kernel registers Folio and starts Limen and its packs from the install
         Assert.Contains($"\"{specifier}\"", kernel)
         Assert.True(File.Exists(Path.GetFullPath(Path.Combine(repositoryRoot, "web-kernel", specifier))), specifier)
 
+    // Chrona's own print pack is built on Limen's capability definition.
+    let print = readRepoFile "web-kernel/print.js"
+    let definition = "../node_modules/@echelon-foundry/limen/dist/kernel/capabilities.js"
+    Assert.Contains($"\"{definition}\"", print)
+    Assert.True(File.Exists(Path.GetFullPath(Path.Combine(repositoryRoot, "web-kernel", definition))), definition)
+    Assert.Contains("import { printCapability } from \"./print.js\";", kernel)
+    Assert.Contains($"\"{Chrona.Application.AppProtocol.print.Fingerprint}\"", print)
+
 [<Fact>]
 let ``the slice page composes Forma's components and Folio's document primitives`` () =
     let html = readRepoFile "web/kernel-slice.html"
@@ -134,7 +142,11 @@ let ``the application page composes Forma's components`` () =
           "class=\"ef-facts"
           "class=\"ef-status-lozenge\""
           "class=\"ef-empty-state"
-          "class=\"ef-visually-hidden\"" ] do
+          "class=\"ef-visually-hidden\""
+          "class=\"ef-metric-card\""
+          "<ef-print-document"
+          "<ef-print-table>"
+          "<ef-print-page-number>" ] do
         Assert.True(html.Contains marker, $"web/index.html lacks {marker}")
 
 [<Fact>]
@@ -142,7 +154,7 @@ let ``nothing forks Forma or bypasses Limen's binding rules`` () =
     let sources =
         [ "web/index.html"; "web/styles.css"; "web/chrona.css"; "web/app.js"
           "web/kernel-slice.html"; "web/kernel-slice.css"; "web/kernel-slice.js"
-          "web-kernel/page.css"; "web-kernel/limen-wasm.js" ]
+          "web-kernel/page.css"; "web-kernel/limen-wasm.js"; "web-kernel/print.js" ]
 
     for source in sources do
         let text = readRepoFile source

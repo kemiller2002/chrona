@@ -377,3 +377,42 @@ let ``the application page binds only what its engine projects and sends only wh
     // Every event the page can send is one the engine handles, and every
     // event the engine handles is one the page can send.
     Assert.Equal<Set<string>>(Set.ofList Chrona.Engine.App.Update.eventNames, attributeValues "data-event" html)
+
+[<Fact>]
+let ``an export is copied through Limen's clipboard effect, and its answer is shown`` () =
+    let _, aegis = collector ()
+    let env, _ = envWith App.inMemoryStore
+    let state, _ = run aegis env [ initialize; event "goReports" None "" ]
+    let state, text = App.handle aegis env state (event "copyExport" None "")
+    let copy = (effects text).Head
+    Assert.Equal("Clipboard", copy.["kind"].GetValue<string>())
+    Assert.Equal("writeText", copy.["operation"].GetValue<string>())
+    Assert.StartsWith("# schema: chrona.time-report/1", copy.["text"].GetValue<string>())
+    let id = copy.["correlationId"].GetValue<string>()
+    let result = $"""{{"kind":"EffectResult","result":{{"kind":"ClipboardResult","correlationId":"{id}","outcome":{{"kind":"Success"}}}}}}"""
+    let _, text = App.handle aegis env state result
+    Assert.Equal("Copied to the clipboard.", viewText "copyStatus" text)
+
+[<Fact>]
+let ``without the clipboard effect the page says so at once; without the print pack nothing is requested`` () =
+    let _, aegis = collector ()
+    let env, _ = envWith App.inMemoryStore
+    let noClipboard = initializeWith """["Navigation"]""" (offer $"{schedule},{environment}") "#/reports"
+    let state, _ = run aegis env [ noClipboard ]
+    let state, text = App.handle aegis env state (event "copyExport" None "")
+    Assert.Empty(effects text)
+    Assert.StartsWith("This browser did not allow copying.", viewText "copyStatus" text)
+    let _, text = App.handle aegis env state (event "printReport" None "")
+    Assert.Empty(effects text)
+
+[<Fact>]
+let ``the print pack is selected when offered and opens the print dialog`` () =
+    let _, aegis = collector ()
+    let env, _ = envWith App.inMemoryStore
+    let printOffer = $"""{{"id":"chrona.print","version":1,"fingerprint":"{AppProtocol.print.Fingerprint}"}}"""
+    let state, text = run aegis env [ initializeWith events (offer $"{schedule},{environment},{printOffer}") "#/reports" ]
+    Assert.Equal(3, (reply text).["handshake"].["capabilities"].AsArray().Count)
+    let _, text = App.handle aegis env state (event "printReport" None "")
+    let request = (effects text).Head
+    Assert.Equal("chrona.print", request.["capability"].GetValue<string>())
+    Assert.Equal("print", request.["request"].["action"].GetValue<string>())

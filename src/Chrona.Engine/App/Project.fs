@@ -751,6 +751,87 @@ let private monthView (model: Model) =
       items "monthByType" byType
       items "monthDays" days ]
 
+// ---- reports ------------------------------------------------------------------------
+
+let private reportView (model: Model) =
+    let filter = Update.reportFilter model
+    let draft = model.Report
+    let all = model.Ledger.Activities |> Map.toList |> List.map snd
+    let policies = [ billing model ]
+    let rows = Reports.select filter all
+    let totals = Reports.totals policies rows
+
+    let choice (id: string) (name: string) (current: string) = [ t "id" id; t "name" name; f "selected" (id = current) ]
+
+    let anyOf (kind: Reference.Kind) (current: string) =
+        choice "" "Any" current
+        :: (Reference.all kind model.References |> List.map (fun item -> choice item.Id item.Name current))
+
+    let grouping, groupName =
+        match draft.Grouping with
+        | "activityType" -> Reports.ByActivityType, (fun id -> referenceName model Reference.ActivityType id)
+        | "tag" -> Reports.ByTag, (fun id -> if id = "" then "No tag" else referenceName model Reference.Tag id)
+        | "day" -> Reports.ByDay, (fun id -> Format.parseIsoDate id |> Option.map Format.longDate |> Option.defaultValue id)
+        | _ -> Reports.ByProject, (fun id -> referenceName model Reference.Project id)
+
+    let groups =
+        Reports.groupBy policies grouping rows
+        |> List.map (fun (key, sum) ->
+            [ t "id" (if key = "" then "(none)" else key)
+              t "name" (groupName key)
+              t "exact" (Format.minutes sum.ExactMinutes)
+              t "billable" (Format.minutes sum.BillableMinutes)
+              t "count" (string sum.Count) ])
+
+    let rowItems =
+        rows
+        |> List.map (fun a ->
+            let times =
+                match interval a with
+                | Some(start, finish) -> $"{Format.clock start} – {Format.clock finish}"
+                | None -> ""
+
+            [ t "id" a.ActivityId
+              t "date" (Format.longDate a.Occurrence.LocalDate)
+              t "time" times
+              t "title" a.Classification.Description
+              t "classification" $"{referenceName model Reference.ActivityType a.Classification.ActivityTypeId} · {referenceName model Reference.Project a.Classification.ProjectId}"
+              t "method" (methodLabel a.EntryMethod)
+              t "exact" (Format.minutes a.Minutes)
+              t "billed" (Format.minutes (Reports.billed policies a))
+              t "state" (match a.Record with Voided _ -> "Removed from totals" | _ -> "Recorded") ])
+
+    let range = $"{Format.longDate filter.From} to {Format.longDate filter.To}"
+
+    [ flag "screenReports" (model.Route.Screen = ReportsScreen)
+      text "reportFrom" (Format.isoDate filter.From)
+      text "reportTo" (Format.isoDate filter.To)
+      text "reportText" draft.Text
+      text "reportRange" range
+      flag "reportIncludeRemoved" draft.IncludeRemoved
+      items "reportProjectOptions" (anyOf Reference.Project draft.ProjectId)
+      items "reportTypeOptions" (anyOf Reference.ActivityType draft.ActivityTypeId)
+      items "reportTagOptions" (anyOf Reference.Tag draft.Tag)
+      items "reportMethodOptions" [ choice "" "Any" draft.Method; choice "manual" "Manual entry" draft.Method; choice "timer" "Timer" draft.Method ]
+      items "reportBillabilityOptions" [ choice "" "Any" draft.Billability; choice "billable" "Billable" draft.Billability; choice "non-billable" "Non-billable" draft.Billability; choice "pending" "Not yet classified" draft.Billability ]
+      items "reportGroupingOptions" [ choice "project" "Project" draft.Grouping; choice "activityType" "Activity type" draft.Grouping; choice "tag" "Tag" draft.Grouping; choice "day" "Day" draft.Grouping ]
+      items "reportFormatOptions" [ choice "csv" "CSV" draft.Format; choice "json" "JSON" draft.Format ]
+      text "reportCount" (plural totals.Count "activity" "activities")
+      text "reportExact" (Format.minutes totals.ExactMinutes)
+      text "reportBillable" (Format.minutes totals.BillableMinutes)
+      text "reportNonBillable" (Format.minutes totals.NonBillableMinutes)
+      text "reportTimerManual" $"{Format.minutes totals.TimerMinutes} / {Format.minutes totals.ManualMinutes}"
+      text "reportApproved" $"{Format.minutes totals.ApprovedMinutes} / {Format.minutes totals.UnapprovedMinutes}"
+      text "reportCorrections" $"{totals.AmendedAfterReview} / {totals.CorrectedAfterPublication}"
+      flag "reportEmpty" rows.IsEmpty
+      items "reportRows" rowItems
+      items "reportGroups" groups
+      text "exportText" (Update.exportText model)
+      text "copyStatus" model.CopyStatus
+      text "printTitle" "Time report"
+      text "printSubtitle" $"{model.Session.DisplayName} · {range}"
+      text "printGenerated" $"Generated {localStamp model model.Now} · {Reports.Schema}" ]
+
 // ---- the whole view ---------------------------------------------------------------
 
 let project (model: Model) : View =
@@ -783,4 +864,5 @@ let project (model: Model) : View =
       yield! detailView model
       yield! reviewView model
       yield! monthView model
-      yield! periodView model ]
+      yield! periodView model
+      yield! reportView model ]

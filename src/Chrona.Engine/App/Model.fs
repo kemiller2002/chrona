@@ -63,6 +63,8 @@ type Screen =
     | ActivityDetail of activityId: string
     /// One day's review and attestation.
     | DayReview
+    /// Search, reports and export.
+    | ReportsScreen
 
 type Route = { Screen: Screen; Date: DateOnly option }
 
@@ -114,6 +116,37 @@ type Detail =
       EvidenceUrl: string
       EvidenceLabel: string }
 
+/// The report form, as typed.
+type ReportDraft =
+    { From: string
+      To: string
+      ProjectId: string
+      ActivityTypeId: string
+      Tag: string
+      /// "", "manual" or "timer".
+      Method: string
+      /// "", "billable", "non-billable" or "pending".
+      Billability: string
+      Text: string
+      IncludeRemoved: bool
+      /// "project", "activityType", "tag" or "day".
+      Grouping: string
+      /// "csv" or "json".
+      Format: string }
+
+let emptyReport =
+    { From = ""
+      To = ""
+      ProjectId = ""
+      ActivityTypeId = ""
+      Tag = ""
+      Method = ""
+      Billability = ""
+      Text = ""
+      IncludeRemoved = false
+      Grouping = "project"
+      Format = "csv" }
+
 /// Where a refusal is shown.
 type Form =
     | TimerForm
@@ -158,6 +191,9 @@ type Model =
       AttestStatement: string
       /// The organization's timesheet periods (15).
       PeriodConfig: Periods.PeriodConfig
+      Report: ReportDraft
+      /// What happened to the last copy of an export, in words.
+      CopyStatus: string
       NewNames: Map<Reference.Kind, string>
       Problems: Map<Form, Diagnostic list>
       /// Polite, one-off status text for screen readers: transitions only,
@@ -192,6 +228,8 @@ let initial (session: Session) (store: StoreKind) (now: DateTimeOffset) =
       Attestations = []
       AttestStatement = ""
       PeriodConfig = Periods.defaultConfig "UTC"
+      Report = emptyReport
+      CopyStatus = ""
       NewNames = Map.empty
       Problems = Map.empty
       Announcement = ""

@@ -2,11 +2,12 @@
 /// reads and writes it: the kernel's messages in, the engine's view, effects
 /// and handshake answer out. Mechanics only; no Chrona decision is made here.
 ///
-/// The application requests Navigation (routes) and two optional capability
-/// packs: `limen.schedule` (the timer's once-a-second wake-up) and
-/// `limen.environment` (the browser's time zone). It requests no Http,
-/// Storage or Clipboard effect, so a result for one of those is a contract
-/// violation, not a domain outcome.
+/// The application requests Navigation (routes), Clipboard (copying an
+/// export) and three optional capability packs: `limen.schedule` (the
+/// timer's once-a-second wake-up), `limen.environment` (the browser's time
+/// zone) and `chrona.print` (the browser's print dialog). It requests no Http
+/// or Storage effect, so a result for one of those is a contract violation,
+/// not a domain outcome.
 ///
 /// See the `protocol` export of `@echelon-foundry/limen` (0.7.1) and its
 /// generated schedule and environment contracts.
@@ -35,8 +36,15 @@ let environment =
       Version = 1
       Fingerprint = "sha256:1b206aa0bd7b72688e47f8034166128078a168a42ef9b52cf4a93499b00782f7" }
 
+/// `chrona.print` v1: Chrona's own pack (web-kernel/print.js) that opens the
+/// browser's print dialog for the page's Folio document.
+let print =
+    { Id = "chrona.print"
+      Version = 1
+      Fingerprint = "chrona.print/1: print" }
+
 /// The optional packs the application selects when the kernel offers them.
-let wanted = [ schedule; environment ]
+let wanted = [ schedule; environment; print ]
 
 type NavigationOutcome =
     | Moved of hash: string
@@ -55,6 +63,8 @@ type Inbound =
     | LocationChanged of hash: string
     | NavigationResult of correlationId: string * NavigationOutcome
     | CapabilityResult of correlationId: string * capability: string * CapabilityOutcome
+    /// Whether the browser accepted text onto the clipboard.
+    | ClipboardResult of correlationId: string * succeeded: bool
     | CapabilityFact of capability: string * fact: JsonNode
 
 let private location (path: string) (node: JsonNode) =
@@ -80,6 +90,13 @@ let private effectResult (node: JsonNode) =
 
     match required "kind" path asString node with
     | "NavigationResult" -> NavigationResult(correlation, navigation $"{path}.outcome" (required "outcome" path asObject node))
+    | "ClipboardResult" ->
+        let outcome = required "outcome" path asObject node
+
+        match required "kind" $"{path}.outcome" asString outcome with
+        | "Success" -> ClipboardResult(correlation, true)
+        | "Failure" -> ClipboardResult(correlation, false)
+        | other -> raise (MalformedInput($"{path}.outcome.kind", $"a known clipboard outcome, not '{other}'"))
     | "CapabilityResult" ->
         CapabilityResult(correlation, required "capability" path asString node, capability $"{path}.outcome" (required "outcome" path asObject node))
     | other -> raise (CapabilityFailed(other, $"Unexpected {other} ({correlation}): the application requests no such effect"))
@@ -154,6 +171,8 @@ type Request =
     | Push of correlationId: string * url: string
     | Wake of correlationId: string * delayMs: int
     | DescribeEnvironment of correlationId: string
+    | Copy of correlationId: string * text: string
+    | PrintPage of correlationId: string
 
 let private writeScalar (writer: Utf8JsonWriter) =
     function
@@ -214,6 +233,12 @@ let private writeRequest (writer: Utf8JsonWriter) (request: Request) =
             w.WritePropertyName "preferences"
             w.WriteStartArray()
             w.WriteEndArray())
+    | Copy(correlationId, text) ->
+        writer.WriteString("kind", "Clipboard")
+        writer.WriteString("correlationId", correlationId)
+        writer.WriteString("operation", "writeText")
+        writer.WriteString("text", text)
+    | PrintPage correlationId -> writeCapability writer correlationId print (fun w -> w.WriteString("action", "print"))
 
     writer.WriteEndObject()
 

@@ -1,34 +1,37 @@
 # Chrona current state
 
-## Repository status
+## Product
 
-Newly initialized with Repository Operating System 2.0.1 (greenfield
-profile), State-Directed Engineering execution package 1.1.1 (`.sde/`), and
-`@echelon-foundry/typescript-wasm-kernel` 0.4.1 as the sole runtime
-dependency. That dependency is now `@echelon-foundry/limen`, pinned exactly at
-0.7.1 (WI-0010, then WI-0015). No application code exists yet; `verification/kernel-slice/`
-is verification code, not a product feature.
+Chrona is the Echelon time-tracking application: it records, corrects,
+reviews, reports and publishes business time (`PROJECT-CHARTER.md`). It is a
+reconstruction of the legacy `time-tracking-application`, keeping its look
+and feel and its rules, rebuilt on Limen, Forma, Aegis and Folio
+(DF-CHRONA-2026-0001, DF-CHRONA-2026-0002).
 
-## Observed facts
+## What exists
 
-- No domain evidence has been accepted.
-- No vertical slice has been selected.
-- No discipline-boundary claim has been tested.
+- `Chrona.Domain`: the pure time domain (activity record, manual entry,
+  time zones, overlap, the revision-safe ledger, the timer, billing,
+  review, attestation, publication eligibility, legacy compatibility).
+- `Chrona.Engine` and `Chrona.Application`: the Limen engine and its Aegis
+  boundary; `Chrona.Wasm`: the WebAssembly shim.
+- The Chrona Forma brand (`brand/chrona.brand.json`) and the legacy
+  look-and-feel inventory (`docs/legacy/`).
+- Requirement coverage: `docs/requirements/implementation-gap-analysis.md`;
+  the ordered backlog: `docs/requirements/backlog-plan.md` and
+  `./praxis work ready`.
 
-## Assumptions
+## Not yet built
 
-- A small, concrete communication problem can exercise the operating model.
+Storage through Arca and sign-in through Fides (their minimal slices come
+first), offline sync, the Summa contract (owned and published by Summa),
+observations, reporting on Folio.
+
+## Legacy data
+
+No migration is needed: `kemiller2002/time-tracking-data` holds only demo
+records (DF-CHRONA-2026-0002).
 
 ## Active work
 
-Complete the charter and select the first bounded pilot slice.
-
-## Largest decision-relevant unknown
-
-Which first use case will provide measurable value while exposing the important
-communication constraints?
-
-## Baseline
-
-Not yet recorded. Define how the same slice would be approached without ROS and
-which comparison measures are feasible.
+See `./praxis status` and `HANDOFF.md`.

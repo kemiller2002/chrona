@@ -61,8 +61,11 @@ for the diagnosis, the evidence, and one unexercised watch item.
   offline sync, observations and `Chrona.Integration`, the product UI on
   Limen/Forma, reports and exports on Folio. The kernel slice is still the
   only browser surface.
-- The legacy `time-tracking-application` sources were not available in this
-  repository; the domain follows the expansion's restatement of them.
+- The legacy `time-tracking-application` is reconstructed, not migrated
+  (DF-CHRONA-2026-0001, DF-CHRONA-2026-0002): its look and feel is inventoried
+  in `docs/legacy/` and expressed as the Chrona Forma brand (`brand/`), its
+  rules are reconciled against `Chrona.Domain` (gaps R1-R6: WI-0043), and its
+  data repository holds only demo records, so nothing is migrated.
 
 ## Next action (time domain)
 

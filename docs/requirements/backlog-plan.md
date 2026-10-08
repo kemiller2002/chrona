@@ -6,6 +6,7 @@ Captured 2026-10-08 (WI-0025) from the missing and partial rows of [`implementat
 |---:|---|---|---|
 | 1 | WI-0026 | Chrona 01: look-and-feel inventory of the legacy time-tracking-application (screens, layout, styles, interactions) | - |
 | 2 | WI-0027 | Chrona 02: decide reconstruction versus migration and record legacy data status (CHX-012, CHX-300, CHX-310) | WI-0026 |
+| 2b | WI-0043 | Chrona.Domain: close the legacy rule gaps R1-R6 found reconciling DOMAIN-REQUIREMENTS.md (DF-CHRONA-2026-0002) | WI-0027 |
 | 3 | WI-0028 | Chrona 03: configurable data location and Chrona-owned namespace with organization manifests (CHX-DATALOC-001, CHX-024..027) | arca slice 2 (data location, ARCA-LOC) and arca slice 3 (record format, ARCA-REC) (data location and record format) |
 | 4 | WI-0029 | Chrona 04: GitHub sign-in through Fides and token safety (CHX-022, CHX-023) | fides slice 7 (WASM client and Arca token provider, FID-CLI) (WASM client and Arca token provider) and arca slice 5 (token-provider port, ARCA-AUTH) (token-provider port) |
 | 5 | WI-0030 | Chrona 05: actors, membership and capability-based authorization (CHX-030, CHX-260 remainder) | WI-0029 |
@@ -21,3 +22,5 @@ Captured 2026-10-08 (WI-0025) from the missing and partial rows of [`implementat
 | 15 | WI-0040 | Chrona 15: telemetry privacy, remaining scenario tests and the production completion gate (CHX-420, CHX-430, CHX-440, CHX-001, CHX-002, CHX-004 remainders) | WI-0035, WI-0037, WI-0038 and WI-0039 |
 
 The backlog itself lives in `.ros/work/queue.json` and is managed only through the Praxis CLI. This table is a readable snapshot from when the slices were captured.
+
+Added 2026-10-08 by WI-0027: WI-0043 (above) and WI-0044, the legacy import on Arca, captured only so it is not forgotten; it runs after WI-0032 and only if production legacy records appear.

@@ -21,6 +21,7 @@
     <Compile Include="TimerTests.fs" />
     <Compile Include="ReviewBillingTests.fs" />
     <Compile Include="BrandTokenTests.fs" />
+    <Compile Include="CompatibilityTests.fs" />
   </ItemGroup>
 
   <ItemGroup>

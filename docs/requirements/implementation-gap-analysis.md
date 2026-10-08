@@ -65,7 +65,7 @@ reporting and export remain open (see the rows marked `later`).
 
 | Corpus | Sections | Baseline tested | Baseline partial | Baseline missing |
 |---|---:|---:|---:|---:|
-| CHRONA-REQUIREMENTS-EXPANSION | 63 | 0 | 7 | 56 |
+| CHRONA-REQUIREMENTS-EXPANSION | 64 | 0 | 7 | 57 |
 
 ## Sections
 
@@ -134,9 +134,10 @@ reporting and export remain open (see the rows marked `later`).
 | CHX-430 | missing | partial | **43 Required scenario tests.** 0 of 44 scenarios tested. **WI-0020:** scenarios 1, 6, 7 and 8 tested. **WI-0020, WI-0021:** scenarios 1, 6, 7, 8, 10, 11, 12, 13, 14, 32, 37 and 38 tested. **WI-0022:** scenarios 2, 3, 4, 5 and 9 added (17 of 44 tested in total). **WI-0023:** scenarios 16-24, 35 and 36 added (28 of 44 tested in total). **WI-0045:** scenario 15 added (29 of 44). **WI-0050:** scenarios 25-30 added (35 of 44 tested). | WI-0020..WI-0023, WI-0050 |
 | CHX-440 | missing | missing | **44 Production completion gate.** Gate not met. | later |
 | CHX-450 | missing | partial | **45 Architectural boundary.** No time authority or Summa boundary. **WI-0023:** Chrona decides authoritative time and publishes approved billable projections; money stays out of Chrona. **WI-0037:** the boundary is Summa's contract: Chrona sends identifiers and minutes only (no rates, amounts or invoices), and accepts Summa's feedback only for publications it recorded. The transport is WI-0061. | WI-0023, WI-0037, WI-0061 |
+| CHX-460 | missing | partial | **46 Navigable state in the URL.** Added 2026-10-08. Every screen had a fragment route (WI-0046), but filters, sections and sign-in did not keep their place, there was no canonical form, and an unknown address showed Today. **WI-0071:** Chrona's places and their canonical addresses are a typed codec over Limen's URL-state semantics (`Places`, on an interim copy of Limen.Routing run against Limen's 165 conformance vectors, DF-CHRONA-2026-0007): typed parameters, one canonical form, credential-like names refused, legacy addresses redirected, return targets checked, share links without the page's query, and the route inventory `.echelon/routes.json`, which is the table's own rendering byte for byte (`PlacesTests`). The application adopting it (cold deep links, Copy link, not-found and not-permitted pages, sign-in return), the week, period and project views, and candidate review (WI-0038) remain. | WI-0071, WI-0038 |
 
 ## Coverage after this programme
 
 | Corpus | Sections | Current tested | Current partial | Current missing |
 |---|---:|---:|---:|---:|
-| CHRONA-REQUIREMENTS-EXPANSION | 63 | 36 | 25 | 2 |
+| CHRONA-REQUIREMENTS-EXPANSION | 64 | 36 | 26 | 2 |

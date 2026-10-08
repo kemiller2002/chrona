@@ -1,0 +1,371 @@
+{
+  "home": "today",
+  "legacy": [
+    {
+      "name": "legacy-1",
+      "params": {},
+      "pattern": "/today",
+      "to": "today"
+    },
+    {
+      "name": "legacy-2",
+      "params": {
+        "on": "{on}"
+      },
+      "pattern": "/today/{on:date}",
+      "to": "day"
+    },
+    {
+      "name": "legacy-3",
+      "params": {
+        "id": "{id}"
+      },
+      "pattern": "/activity/{id:string}",
+      "to": "entry"
+    }
+  ],
+  "mode": "hash",
+  "notFound": "notFound",
+  "routes": [
+    {
+      "guards": [
+        "signedIn"
+      ],
+      "name": "today",
+      "params": [],
+      "pattern": "/",
+      "requires": [],
+      "returnTarget": true
+    },
+    {
+      "guards": [
+        "signedIn"
+      ],
+      "name": "day",
+      "params": [
+        {
+          "default": null,
+          "in": "path",
+          "name": "on",
+          "required": true,
+          "type": "date",
+          "values": null
+        },
+        {
+          "default": null,
+          "in": "query",
+          "name": "project",
+          "required": false,
+          "type": "string",
+          "values": null
+        }
+      ],
+      "pattern": "/day/{on:date}",
+      "requires": [],
+      "returnTarget": true
+    },
+    {
+      "guards": [
+        "signedIn"
+      ],
+      "name": "thisMonth",
+      "params": [],
+      "pattern": "/month",
+      "requires": [],
+      "returnTarget": true
+    },
+    {
+      "guards": [
+        "signedIn"
+      ],
+      "name": "month",
+      "params": [
+        {
+          "default": null,
+          "in": "path",
+          "name": "period",
+          "required": true,
+          "type": "month",
+          "values": null
+        }
+      ],
+      "pattern": "/month/{period:month}",
+      "requires": [],
+      "returnTarget": true
+    },
+    {
+      "guards": [
+        "signedIn"
+      ],
+      "name": "track",
+      "params": [],
+      "pattern": "/track",
+      "requires": [],
+      "returnTarget": true
+    },
+    {
+      "guards": [
+        "signedIn"
+      ],
+      "name": "entry",
+      "params": [
+        {
+          "default": null,
+          "in": "path",
+          "name": "id",
+          "required": true,
+          "type": "string",
+          "values": null
+        },
+        {
+          "default": null,
+          "in": "query",
+          "name": "on",
+          "required": false,
+          "type": "date",
+          "values": null
+        }
+      ],
+      "pattern": "/entries/{id:string}",
+      "requires": [
+        "activity"
+      ],
+      "returnTarget": true
+    },
+    {
+      "guards": [
+        "signedIn"
+      ],
+      "name": "reviewToday",
+      "params": [],
+      "pattern": "/review",
+      "requires": [],
+      "returnTarget": true
+    },
+    {
+      "guards": [
+        "signedIn"
+      ],
+      "name": "review",
+      "params": [
+        {
+          "default": null,
+          "in": "path",
+          "name": "on",
+          "required": true,
+          "type": "date",
+          "values": null
+        }
+      ],
+      "pattern": "/review/{on:date}",
+      "requires": [],
+      "returnTarget": true
+    },
+    {
+      "guards": [
+        "signedIn"
+      ],
+      "name": "reports",
+      "params": [
+        {
+          "default": null,
+          "in": "query",
+          "name": "from",
+          "required": false,
+          "type": "date",
+          "values": null
+        },
+        {
+          "default": null,
+          "in": "query",
+          "name": "to",
+          "required": false,
+          "type": "date",
+          "values": null
+        },
+        {
+          "default": null,
+          "in": "query",
+          "name": "project",
+          "required": false,
+          "type": "string",
+          "values": null
+        },
+        {
+          "default": null,
+          "in": "query",
+          "name": "type",
+          "required": false,
+          "type": "string",
+          "values": null
+        },
+        {
+          "default": null,
+          "in": "query",
+          "name": "tag",
+          "required": false,
+          "type": "string",
+          "values": null
+        },
+        {
+          "default": null,
+          "in": "query",
+          "name": "method",
+          "required": false,
+          "type": "enum",
+          "values": [
+            "manual",
+            "timer"
+          ]
+        },
+        {
+          "default": null,
+          "in": "query",
+          "name": "billing",
+          "required": false,
+          "type": "enum",
+          "values": [
+            "billable",
+            "non-billable",
+            "pending"
+          ]
+        },
+        {
+          "default": null,
+          "in": "query",
+          "name": "q",
+          "required": false,
+          "type": "string",
+          "values": null
+        },
+        {
+          "default": false,
+          "in": "query",
+          "name": "removed",
+          "required": false,
+          "type": "bool",
+          "values": null
+        },
+        {
+          "default": "project",
+          "in": "query",
+          "name": "group",
+          "required": false,
+          "type": "enum",
+          "values": [
+            "project",
+            "type",
+            "tag",
+            "day"
+          ]
+        },
+        {
+          "default": "csv",
+          "in": "query",
+          "name": "format",
+          "required": false,
+          "type": "enum",
+          "values": [
+            "csv",
+            "json"
+          ]
+        }
+      ],
+      "pattern": "/reports",
+      "requires": [],
+      "returnTarget": true
+    },
+    {
+      "guards": [
+        "signedIn"
+      ],
+      "name": "settings.all",
+      "params": [],
+      "pattern": "/more",
+      "requires": [],
+      "returnTarget": true
+    },
+    {
+      "guards": [
+        "signedIn",
+        "administrator"
+      ],
+      "name": "settings.people",
+      "params": [],
+      "pattern": "/more/people",
+      "requires": [],
+      "returnTarget": true
+    },
+    {
+      "guards": [
+        "signedIn",
+        "administrator"
+      ],
+      "name": "settings.index",
+      "params": [],
+      "pattern": "/more/index",
+      "requires": [],
+      "returnTarget": true
+    },
+    {
+      "guards": [
+        "signedIn"
+      ],
+      "name": "settings.section",
+      "params": [
+        {
+          "default": null,
+          "in": "path",
+          "name": "section",
+          "required": true,
+          "type": "enum",
+          "values": [
+            "references",
+            "periods",
+            "changes",
+            "account"
+          ]
+        }
+      ],
+      "pattern": "/more/{section:enum}",
+      "requires": [],
+      "returnTarget": true
+    },
+    {
+      "guards": [],
+      "name": "signIn",
+      "params": [
+        {
+          "default": null,
+          "in": "query",
+          "name": "returnTo",
+          "required": false,
+          "type": "string",
+          "values": null
+        }
+      ],
+      "pattern": "/sign-in",
+      "requires": [],
+      "returnTarget": false
+    },
+    {
+      "guards": [],
+      "name": "notFound",
+      "params": [
+        {
+          "default": null,
+          "in": "path",
+          "name": "rest",
+          "required": false,
+          "type": "string",
+          "values": null
+        }
+      ],
+      "pattern": "/{*rest}",
+      "requires": [],
+      "returnTarget": false
+    }
+  ],
+  "schema": "echelon.routes/v1",
+  "signIn": "signIn"
+}

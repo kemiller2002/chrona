@@ -18,9 +18,12 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+      # The SDK global.json names, and the .NET 8 runtime the interim copy of
+      # Limen's routing conformance runner targets (vendor/limen-routing).
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
+          dotnet-version: 8.0.x
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
@@ -43,6 +46,12 @@ jobs:
       # foundations conformance tests and the HTML/engine binding agreement.
       - name: Test
         run: dotnet test Chrona.sln --no-build --configuration Release --verbosity normal
+
+      # The interim copy of Limen.Routing against Limen's own 165 language-
+      # neutral vectors and its round-trip, canonical-form and totality
+      # properties (DF-CHRONA-2026-0007). Gone when Limen 0.9.0 ships it.
+      - name: Verify Limen's routing semantics
+        run: dotnet run --project vendor/limen-routing/conformance/routing/fsharp/Limen.Routing.Conformance/Limen.Routing.Conformance.fsproj --no-build --configuration Release
 
       # The page's brand CSS must be Forma's own compiler output for
       # brand/chrona.brand.json at the pinned Forma release, never hand-edited.

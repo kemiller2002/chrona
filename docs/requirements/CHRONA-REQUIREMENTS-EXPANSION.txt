@@ -1064,6 +1064,28 @@ Summa owns the financial consequence.
 
 ---
 
+## 46. Navigable state in the URL
+
+Portfolio requirement, added 2026-10-08 (WI-0071, DF-CHRONA-2026-0007). Every navigable state lives in the URL, so a copied link opens the same view.
+
+Chrona must:
+
+- keep every navigable state in the URL: the day, week and month shown; an entry; projects; reports and timesheet periods; the filters applied to any of them; the administration screens; and candidate review;
+- route in the URL's fragment (`#/day/2026-10-08?project=…`), with relative links, so a static host serves every address;
+- give each place one canonical address: declared parameters only, in declaration order, defaults omitted, sets sorted and de-duplicated, and `%20` with uppercase hex;
+- type every parameter (string, int, bool, date, month, enum or set) and refuse a parameter named like a credential (token, secret, key, session, auth, code and similar);
+- open an address cold (a new tab, a reload, a bookmark or a shared link), including on the published static site, and keep Back and Forward working: opening an address never adds a history entry, refining a view (a filter or a date) replaces the current one, and going somewhere else adds one;
+- keep the target through sign-in: an address that needs sign-in goes to `#/sign-in?returnTo=…`, and after the GitHub sign-in round trip the person lands on that target, re-checked and in canonical form, never on another site;
+- show a clear not-found page for an unknown address or identifier, and a clear not-permitted page for a place the person may not see, never a blank page or another place;
+- offer "Copy link" for the current view, as an absolute link that opens the same view on another day;
+- keep tokens, sign-in codes and other sensitive data out of every URL and link;
+- keep addresses used before working, by redirecting them to where they live now;
+- publish its route inventory as `.echelon/routes.json` (schema `echelon.routes/v1`).
+
+The semantics are Limen's (Limen LCP-088..112); Chrona uses Limen's routing library rather than its own.
+
+---
+
 ## 0.5 Shared Echelon application foundations
 
 The cross-cutting requirements in `docs/requirements/ECHELON-SHARED-APPLICATION-FOUNDATIONS.md` are normative for every Chrona requirement when applicable.

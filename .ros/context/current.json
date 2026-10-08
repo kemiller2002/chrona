@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-08T19:01:48Z",
+  "updatedAt": "2026-10-08T19:45:53.000Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -2454,6 +2454,37 @@
         "EXE-20261008T190112021Z-53a6293f"
       ],
       "completedAt": "2026-10-08T19:01:48Z"
+    },
+    {
+      "id": "WI-0071",
+      "type": "task",
+      "state": "active",
+      "semanticState": "active",
+      "evidence": [],
+      "updatedAt": "2026-10-08T19:45:53.000Z",
+      "telemetryExecutionIds": [
+        "EXE-20261008T194553879Z-750991d9"
+      ],
+      "latestCheckpoint": {
+        "id": "e8ee372f9344f3a6729cf217",
+        "recordedAt": "2026-10-08T19:58:09.000Z",
+        "executionId": "EXE-20261008T194553879Z-750991d9",
+        "repository": "chrona",
+        "branch": "feature/deep-links-route-model",
+        "commit": "ee2dc71437cbe74014e7b24b2f03fada04e4b29e",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/chrona"
+        },
+        "remoteBranch": "feature/deep-links-route-model",
+        "remoteCommit": "ee2dc71437cbe74014e7b24b2f03fada04e4b29e",
+        "summary": "Route model, typed codec, interim Limen.Routing with conformance, inventory, requirement 46 and DF-CHRONA-2026-0007 pushed on feature/deep-links-route-model",
+        "nextAction": "Merge PR A, then adopt the codec in the engine: adopt/navigate/refine, not-found and not-permitted pages, Copy link, returnTo through sign-in, cold deep-link browser tests incl. the Pages build",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      }
     }
   ]
 }

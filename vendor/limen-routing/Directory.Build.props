@@ -1,0 +1,14 @@
+<Project>
+  <!-- The interim copy of Limen.Routing (SOURCE.md) builds as Limen builds
+       it, so its files stay byte-for-byte Limen's: Chrona's repository-wide
+       settings (nullable reference checking, XML documentation) are not
+       imported here. FSharp.Core comes from Chrona's central pin
+       (Directory.Packages.props), the one FSharp.Core in the solution. -->
+  <PropertyGroup>
+    <DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FSharp.Core" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,18 @@
+{
+  "branch": "urlstate/wi-0168-semantics-fsharp",
+  "commit": "e935da7d3160bc0c5f402b6c0e034771159aa363",
+  "files": {
+    "LICENSE": "sha256:e26da7c631b207a3ea65b0eb4761774fa246183e2855c52001d080b41577e9f2",
+    "conformance/routing/README.md": "sha256:c57d2db3eab6449abee39ff301cad28381489f5e893af51d22cd1561fac79738",
+    "conformance/routing/fsharp/Limen.Routing.Conformance/Limen.Routing.Conformance.fsproj": "sha256:713f077bfc1503e5882925eef2a487f0c279ec06f0656d57c7734fa8f335d702",
+    "conformance/routing/fsharp/Limen.Routing.Conformance/Program.fs": "sha256:3e74ac7d9e15ededab82b6e6d5e9e7ca94643518165ffa5cde801e36a8ad33f0",
+    "conformance/routing/routing.vectors.json": "sha256:27ded668bde4646653d8bb8eb2e472f88d683acf49dc91239625d74efc47cf70",
+    "conformance/routing/url-state.vectors.json": "sha256:8c3bf1c5bc06b790d7e4eeb201c89150fd397539c85b55258b622454c677bd9b",
+    "libraries/fsharp/Limen.Routing/Limen.Routing.fsproj": "sha256:15db789d7081bb53af3a2ad5dad32289e7afe3dd1657d86bf1229ff1037e8a97",
+    "libraries/fsharp/Limen.Routing/Routing.fs": "sha256:c7fc955063b2b4490d1fbcc29aa7302e2f16f0310609d45dd0679c32ba664338"
+  },
+  "name": "Limen.Routing (interim)",
+  "replacedBy": "Limen 0.9.0 (Limen.Routing), installed through Conditor",
+  "repository": "kemiller2002/limen",
+  "schema": "chrona.vendored-source/v1"
+}

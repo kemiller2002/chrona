@@ -775,10 +775,10 @@
         "depends:summa"
       ],
       "priority": "high",
-      "status": "ready",
+      "status": "complete",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:49.540Z",
-      "updatedAt": "2026-10-08T15:47:27Z",
+      "updatedAt": "2026-10-08T15:51:22Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

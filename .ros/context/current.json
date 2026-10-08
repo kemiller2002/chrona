@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-08T19:01:11Z",
+  "updatedAt": "2026-10-08T19:01:48Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -2433,13 +2433,27 @@
     {
       "id": "WI-0070",
       "type": "feature",
-      "state": "active",
-      "semanticState": "active",
-      "evidence": [],
-      "updatedAt": "2026-10-08T19:01:11Z",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "implementation",
+          "path": ".github/workflows/visual-baselines.yml"
+        },
+        {
+          "type": "tests",
+          "path": "tests/visual/screens.spec.js"
+        },
+        {
+          "type": "documentation",
+          "path": "research/decisions/DF-CHRONA-2026-0006--visual-baselines-rendered-by-ci-and-re-rendered-by-a-workflow.md"
+        }
+      ],
+      "updatedAt": "2026-10-08T19:01:48Z",
       "telemetryExecutionIds": [
         "EXE-20261008T190112021Z-53a6293f"
-      ]
+      ],
+      "completedAt": "2026-10-08T19:01:48Z"
     }
   ]
 }

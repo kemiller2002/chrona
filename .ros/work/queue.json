@@ -1540,10 +1540,10 @@
       "description": "Coordinator answer (2026-10-08) to WI-0054's question: baselines rendered by CI's pinned Chromium are accepted, provided regenerating them is routine rather than manual. A workflow_dispatch workflow renders every baseline again on CI's runner, checks the render is stable, commits the images to a new branch, opens a pull request for review, and starts the Build workflow on that branch so its head has its checks. The decision is recorded as DF-CHRONA-2026-0006.",
       "tags": [],
       "priority": "high",
-      "status": "ready",
+      "status": "complete",
       "attachments": [],
       "createdAt": "2026-10-08T19:00:54Z",
-      "updatedAt": "2026-10-08T19:01:11Z",
+      "updatedAt": "2026-10-08T19:01:48Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

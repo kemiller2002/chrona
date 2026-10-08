@@ -2,16 +2,11 @@
 /// inside the Limen request/reply loop.
 ///
 /// Fides' client is asynchronous and asks its host for a handful of browser
-/// services (`ClientPorts`). Here every port that needs the browser becomes a
-/// kernel request: the exchange is Limen's Http effect, device storage its
-/// Storage effect, and this tab's session storage, leaving for the provider,
-/// tidying the address bar and telling the other tabs are `chrona.host`
-/// requests. A port call parks its continuation under a fresh correlation id
-/// and the request goes out with the engine's next reply; when the kernel
-/// answers, the continuation resumes, and runs until the client needs the
-/// browser again or finishes. A finished operation becomes an engine message
-/// (`IdentityChanged`). The browser runtime has one thread, so all of this
-/// runs synchronously inside one `App.step`.
+/// services (`ClientPorts`). Each becomes a kernel request through the
+/// `Bridge`: the exchange is Limen's Http effect, device storage its Storage
+/// effect, and this tab's session storage, leaving for the provider, tidying
+/// the address bar and telling the other tabs are `chrona.host` requests. A
+/// finished operation becomes an engine message (`IdentityChanged`).
 ///
 /// Tokens stay inside the Fides client. Chrona sees the identity the provider
 /// resolved (subject and login), never a typed name, and hands Arca the
@@ -19,32 +14,12 @@
 module Chrona.Application.Identity
 
 open System
-open System.Collections.Generic
 open Fides
 open Fides.Client
 open Chrona.Domain
 open Chrona.Engine.App
 open Chrona.Engine.App.Model
-
-/// What the client asked of the browser.
-type KernelCall =
-    | Post of url: string * body: string
-    | DeviceGet of key: string
-    | DeviceSet of key: string * value: string
-    | DeviceRemove of key: string
-    | TabGet of key: string
-    | TabSet of key: string * value: string
-    | TabRemove of key: string
-    /// Leave the page for the provider's sign-in page.
-    | Leave of url: string
-    | ReplaceAddress of url: string
-    | Announce of message: string
-
-/// What the kernel answered.
-type KernelAnswer =
-    | Posted of HttpOutcome
-    | Read of value: string option
-    | Done
+open Chrona.Application.Bridge
 
 /// The identity port the application drives.
 [<NoComparison; NoEquality>]
@@ -56,17 +31,14 @@ type IdentityPort =
       SignOut: unit -> unit
       /// A message another tab broadcast.
       Receive: string -> unit
-      /// Resumes the operation waiting on this correlation id; false when no
-      /// operation is waiting on it.
-      Answer: string -> KernelAnswer -> bool
-      /// The kernel calls made and the engine messages produced since the
-      /// last drain. An operation that failed unexpectedly is an exception.
-      Drain: unit -> Result<(string * KernelCall) list * Update.Msg list, exn>
       /// Arca's token provider, once sign-in is configured.
-      TokenProvider: unit -> Arca.TokenProvider option }
+      TokenProvider: unit -> Arca.TokenProvider option
+      /// GitHub refused the token: the session is revoked.
+      ReportUnauthorized: unit -> Async<unit> }
 
 /// The engine's session for an identity the provider resolved: the stable
-/// subject is the actor, the login is only a display name (CHX-022).
+/// subject is the actor, the login is only a display name (CHX-022). The
+/// engine places it in the deployment's organization.
 let sessionOf (identity: Identity) : Session =
     let (ProviderId provider) = identity.Provider
 
@@ -110,26 +82,18 @@ let configuration (config: Deployment.IdentityConfig) : ClientConfiguration =
 /// The providers Chrona can sign in with.
 let catalog = ProviderCatalog.ofList [ GitHub.provider GitHub.githubDotCom ]
 
-/// A new identity port. `now` and `randomBytes` are the clock and the
-/// browser's cryptographic random source.
-let create (now: unit -> DateTimeOffset) (randomBytes: int -> byte array) : IdentityPort =
-    let waiting = Dictionary<string, KernelAnswer -> unit>()
-    let outbox = List<string * KernelCall>()
-    let finished = List<Update.Msg>()
-    let failures = List<exn>()
-    let mutable sequence = 0
-    let mutable client: FidesClient option = None
+/// How long the exchange may take to answer.
+[<Literal>]
+let ExchangeTimeoutMs = 15000
 
-    let call (request: KernelCall) : Async<KernelAnswer> =
-        Async.FromContinuations(fun (resume, _, _) ->
-            sequence <- sequence + 1
-            let id = $"identity-{sequence}"
-            waiting[id] <- resume
-            outbox.Add(id, request))
+/// A new identity port over the page's bridge. `now` and `randomBytes` are
+/// the clock and the browser's cryptographic random source.
+let create (bridge: Bridge) (now: unit -> DateTimeOffset) (randomBytes: int -> byte array) : IdentityPort =
+    let mutable client: FidesClient option = None
 
     let read request =
         async {
-            match! call request with
+            match! bridge.Call request with
             | Read value -> return value
             | _ -> return None
         }
@@ -138,39 +102,37 @@ let create (now: unit -> DateTimeOffset) (randomBytes: int -> byte array) : Iden
         { PostToExchange =
             fun path body ->
                 async {
-                    match! call (Post(exchange + path, body)) with
-                    | Posted outcome -> return outcome
+                    match! bridge.Call(Http("POST", exchange + path, [ "Content-Type", "application/json" ], Some body, ExchangeTimeoutMs, [])) with
+                    | Answered(AppProtocol.HttpSucceeded(status, _, body)) -> return HttpOutcome.Responded { Status = status; Body = body }
+                    | Answered(AppProtocol.HttpUnknown _) -> return HttpOutcome.Failed TransportFailure.TimedOut
                     | _ -> return HttpOutcome.Failed TransportFailure.Unreachable
                 }
           TabStorage =
             { Read = fun key -> read (TabGet key)
-              Write = fun key value -> call (TabSet(key, value)) |> Async.Ignore
-              Remove = fun key -> call (TabRemove key) |> Async.Ignore }
+              Write = fun key value -> bridge.Call(TabSet(key, value)) |> Async.Ignore
+              Remove = fun key -> bridge.Call(TabRemove key) |> Async.Ignore }
           DeviceStorage =
             { Read = fun key -> read (DeviceGet key)
-              Write = fun key value -> call (DeviceSet(key, value)) |> Async.Ignore
-              Remove = fun key -> call (DeviceRemove key) |> Async.Ignore }
-          Navigate = fun url -> call (Leave url) |> Async.Ignore
-          ReplaceAddress = fun url -> call (ReplaceAddress url) |> Async.Ignore
-          Broadcast = fun message -> call (Announce message) |> Async.Ignore |> Async.StartImmediate
+              Write = fun key value -> bridge.Call(DeviceSet(key, value)) |> Async.Ignore
+              Remove = fun key -> bridge.Call(DeviceRemove key) |> Async.Ignore }
+          Navigate = fun url -> bridge.Call(Leave url) |> Async.Ignore
+          ReplaceAddress = fun url -> bridge.Call(ReplaceAddress url) |> Async.Ignore
+          Broadcast =
+            fun message ->
+                bridge.Start(
+                    async {
+                        let! _ = bridge.Call(Announce message)
+                        return []
+                    }
+                )
           Now = now
           RandomBytes = randomBytes }
 
-    /// Runs an operation to its first kernel call (or its end), recording the
-    /// message it finishes with, or the exception it failed with.
-    let start (work: Async<Update.Msg option>) =
-        Async.StartImmediate(
-            async {
-                match! Async.Catch work with
-                | Choice1Of2(Some msg) -> finished.Add msg
-                | Choice1Of2 None -> ()
-                | Choice2Of2 error -> failures.Add error
-            }
-        )
+    let changed change = [ Update.IdentityChanged change ]
 
-    let withClient (work: FidesClient -> Async<Update.Msg option>) =
+    let withClient (work: FidesClient -> Async<Update.Msg list>) =
         match client with
-        | Some fides -> start (work fides)
+        | Some fides -> bridge.Start(work fides)
         | None -> ()
 
     { Begin =
@@ -179,14 +141,14 @@ let create (now: unit -> DateTimeOffset) (randomBytes: int -> byte array) : Iden
             client <- Some fides
 
             if isCallback query then
-                start (async {
+                bridge.Start(async {
                     let! outcome = fides.CompleteCallback query
-                    return Some(Update.IdentityChanged(callbackChange outcome))
+                    return changed (callbackChange outcome)
                 })
             else
-                start (async {
+                bridge.Start(async {
                     let! state = fides.Restore()
-                    return Some(Update.IdentityChanged(changeOf state))
+                    return changed (changeOf state)
                 })
       SignIn =
         fun kept ->
@@ -194,41 +156,26 @@ let create (now: unit -> DateTimeOffset) (randomBytes: int -> byte array) : Iden
                 async {
                     match! fides.SignIn(retention kept) with
                     // The page is leaving for the provider; it returns with the callback.
-                    | Ok() -> return Some(Update.IdentityChanged SigningIn)
-                    | Error _ -> return Some(Update.IdentityChanged(SignedOutWith(Some "sign_in_failed")))
+                    | Ok() -> return changed SigningIn
+                    | Error _ -> return changed (SignedOutWith(Some "sign_in_failed"))
                 })
       SignOut =
         fun () ->
             withClient (fun fides ->
                 async {
                     let! _ = fides.SignOut()
-                    return Some(Update.IdentityChanged(SignedOutWith(Some "signed_out")))
+                    return changed (SignedOutWith(Some "signed_out"))
                 })
       Receive =
         fun message ->
             withClient (fun fides ->
                 async {
                     do! fides.Receive message
-                    return Some(Update.IdentityChanged(changeOf (fides.State())))
+                    return changed (changeOf (fides.State()))
                 })
-      Answer =
-        fun id answer ->
-            match waiting.TryGetValue id with
-            | true, resume ->
-                waiting.Remove id |> ignore
-                resume answer
-                true
-            | _ -> false
-      Drain =
+      TokenProvider = fun () -> client |> Option.map Fides.Arca.TokenBridge.ofClient
+      ReportUnauthorized =
         fun () ->
-            let calls = List.ofSeq outbox
-            let messages = List.ofSeq finished
-            let failed = List.ofSeq failures
-            outbox.Clear()
-            finished.Clear()
-            failures.Clear()
-
-            match failed with
-            | error :: _ -> Error error
-            | [] -> Ok(calls, messages)
-      TokenProvider = fun () -> client |> Option.map Fides.Arca.TokenBridge.ofClient }
+            match client with
+            | Some fides -> fides.ReportUnauthorized()
+            | None -> async.Return() }

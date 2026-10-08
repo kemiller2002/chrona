@@ -23,6 +23,16 @@ provenance:
         model: unknown
         runtime: claude-code
       reason: "Sign-in through Fides and the deployment's configuration document (WI-0029)"
+    EXE-20261008T125405928Z-c10c8445:
+      operations: [modified]
+      at: 2026-10-08T13:16:03.773Z
+      actor:
+        kind: agent
+        id: anthropic/claude-code
+        provider: anthropic
+        model: unknown
+        runtime: claude-code
+      reason: "Document the organization section and storage behaviour (WI-0032)"
 ---
 
 # Configuring a Chrona deployment
@@ -45,7 +55,8 @@ The repository's copy is a local deployment; a deployment replaces it.
     "provider": "github",
     "clientId": "Iv23li...",
     "redirectUri": "https://chrona.acme.example/"
-  }
+  },
+  "organization": { "id": "org_acme", "displayName": "Acme Consulting", "slug": "acme", "timeZone": "America/New_York" }
 }
 ```
 
@@ -61,6 +72,10 @@ The repository's copy is a local deployment; a deployment replaces it.
 | `identity.provider` | yes | `github`. |
 | `identity.clientId` | yes | The GitHub App's public client id. |
 | `identity.redirectUri` | yes | The page GitHub returns to, exactly as registered (the Chrona page's address). |
+| `organization` | with `location` | The organization the deployment serves: `id` (immutable; it names the organization's folder), `displayName`, `slug` (lower case) and `timeZone` (IANA). |
+
+A `location` needs `identity` (someone signed in must write the data) and
+`organization`.
 
 The document is closed: a field Chrona does not define is refused. Every
 address must be https; plain http is accepted only for `localhost`,
@@ -76,6 +91,22 @@ They choose where their token is kept: in the page only (the default; a
 reload signs them out) or until the tab closes. Their identity is GitHub's
 (`github:<numeric id>`, shown by login); nothing is typed. Signing out
 clears the token from the tab and revokes it at GitHub (CHX-023).
+
+## Storage
+
+With a `location`, the records open after sign-in. Chrona reads the
+repository with the person's GitHub credential and refuses to start: when
+it cannot read or write the repository, when the data branch is missing or
+does not accept direct changes, and, in production, when the repository is
+public (CHX-027). On first use it sets up `<basePath>/chrona` and the
+organization's folder `<basePath>/chrona/datasets/<id>`, with the
+organization's manifest. Every change is one commit, made only if the
+repository is still as it was read; when it moved, Chrona reloads and
+decides again, keeping others' independent changes and refusing a change
+that no longer fits (CHX-210). Records edited outside Chrona are held and
+listed under More (CHX-410). The person's GitHub account needs write access
+to the repository; who may do what inside Chrona is its own roster
+(capabilities), separate from GitHub's permissions.
 
 To make it work for real, a deployment needs a Fides exchange (see Fides'
 `docs/hosting/AWS.md`) with this application registered (its origin and

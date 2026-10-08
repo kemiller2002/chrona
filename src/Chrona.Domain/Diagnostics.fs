@@ -68,6 +68,7 @@ type Diagnostic =
     | InvalidStoredRecord of path: string * detail: string
     | StorageOperationRefused of detail: string
     | UnstorableActivity of id: string * detail: string
+    | UnstorableRecord of id: string * detail: string
     // Integrity of stored activities (WI-0051, expansion 39 and 41).
     | MisplacedRecord of path: string
     | ImpossibleRevision of id: string
@@ -139,6 +140,7 @@ let code =
     | InvalidStoredRecord _ -> "CHRONA.STORAGE.INVALID_RECORD"
     | StorageOperationRefused _ -> "CHRONA.STORAGE.OPERATION_REFUSED"
     | UnstorableActivity _ -> "CHRONA.STORAGE.UNSTORABLE_ACTIVITY"
+    | UnstorableRecord _ -> "CHRONA.STORAGE.UNSTORABLE_RECORD"
     | MisplacedRecord _ -> "CHRONA.INTEGRITY.MISPLACED_RECORD"
     | ImpossibleRevision _ -> "CHRONA.INTEGRITY.IMPOSSIBLE_REVISION"
     | DuplicateActivityId _ -> "CHRONA.INTEGRITY.DUPLICATE_ID"

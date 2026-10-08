@@ -19,16 +19,24 @@ let dispatch (messageJson: string) =
     state <- next
     reply
 
+let private bridge = Bridge.Bridge()
+
+let private now () = System.DateTimeOffset.UtcNow
+
+let private identity =
+    Identity.create bridge now System.Security.Cryptography.RandomNumberGenerator.GetBytes
+
+let private newId (prefix: string) = $"{prefix}-{System.Guid.NewGuid():N}"
+
 let private appEnv: App.Env =
-    { Now = fun () -> System.DateTimeOffset.UtcNow
-      NewId = fun prefix -> $"{prefix}-{System.Guid.NewGuid():N}"
+    { Now = now
+      NewId = newId
       Session = App.localSession
-      Identity =
-        Identity.create
-            (fun () -> System.DateTimeOffset.UtcNow)
-            System.Security.Cryptography.RandomNumberGenerator.GetBytes
-      StoreKind = Chrona.Engine.App.Model.InMemory
-      Store = App.inMemoryStore }
+      Bridge = bridge
+      Identity = identity
+      // Arca's GitHub adapter, through the bridge, with Fides' token
+      // provider; used only when the deployment configures a location.
+      Store = Store.arca bridge (Store.gitHub bridge identity.TokenProvider identity.ReportUnauthorized) now newId }
 
 let mutable private appState = App.initial
 

@@ -153,7 +153,9 @@ let private evidenceJson (evidence: Evidence) =
           "kind", Json.String evidence.Kind
           "label", Json.String evidence.Label
           "capturedAt", Json.String(instantText evidence.CapturedAt)
-          "hash", textOrNull evidence.Hash ]
+          "hash", textOrNull evidence.Hash
+          "source", textOrNull evidence.Source
+          "notes", textOrNull evidence.Notes ]
 
 let private sourceJson (source: ObservationSource) =
     Json.objectOf
@@ -365,17 +367,23 @@ let private reviewOf value =
             | _, Error e -> Error e))
 
 let private evidenceOf (value: Json) =
-    closed [ "capturedAt"; "hash"; "id"; "kind"; "label"; "url" ] value
+    closed [ "capturedAt"; "hash"; "id"; "kind"; "label"; "notes"; "source"; "url" ] value
     |> Result.bind (fun () ->
         match text "id" value, text "url" value, text "kind" value, text "label" value, instant "capturedAt" value, optionalText "hash" value with
         | Ok id, Ok url, Ok kind, Ok label, Ok captured, Ok hash ->
-            Ok
-                { Id = id
-                  Url = url
-                  Kind = kind
-                  Label = label
-                  CapturedAt = captured
-                  Hash = hash }
+            match optionalText "source" value, optionalText "notes" value with
+            | Ok source, Ok notes ->
+                Ok
+                    { Id = id
+                      Url = url
+                      Kind = kind
+                      Label = label
+                      CapturedAt = captured
+                      Hash = hash
+                      Source = source
+                      Notes = notes }
+            | Error e, _
+            | _, Error e -> Error e
         | Error e, _, _, _, _, _
         | _, Error e, _, _, _, _
         | _, _, Error e, _, _, _

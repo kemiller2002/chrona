@@ -12,7 +12,9 @@
     <Compile Include="Boundary.fs" />
     <Compile Include="Wire.fs" />
     <Compile Include="AppProtocol.fs" />
+    <Compile Include="Bridge.fs" />
     <Compile Include="Identity.fs" />
+    <Compile Include="Store.fs" />
     <Compile Include="App.fs" />
     <Compile Include="Runtime.fs" />
   </ItemGroup>
@@ -22,6 +24,7 @@
     <PackageReference Include="EchelonFoundry.Fides" />
     <PackageReference Include="EchelonFoundry.Fides.Client" />
     <PackageReference Include="EchelonFoundry.Fides.Arca" />
+    <PackageReference Include="EchelonFoundry.Arca.GitHub" />
   </ItemGroup>
 
   <ItemGroup>

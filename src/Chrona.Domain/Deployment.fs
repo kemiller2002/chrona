@@ -8,12 +8,14 @@
 ///  "location":{"owner":"acme","repository":"chrona-data","branch":"main","basePath":"deployments/prod"},
 ///  "organizations":{"org_2":{"owner":"acme-eu","repository":"chrona-eu","branch":"main","basePath":""}},
 ///  "identity":{"exchange":"https://fides.acme.example","application":"chrona-production",
-///              "provider":"github","clientId":"Iv23li...","redirectUri":"https://chrona.acme.example/"}}
+///              "provider":"github","clientId":"Iv23li...","redirectUri":"https://chrona.acme.example/"},
+///  "organization":{"id":"org_acme","displayName":"Acme Consulting","slug":"acme","timeZone":"America/New_York"}}
 /// ```
 ///
-/// `location`, `organizations` and `identity` are optional: a local
-/// deployment configures neither storage nor sign-in and runs as a local
-/// session in memory. The document is closed and every value validated.
+/// `location`, `organizations`, `identity` and `organization` are optional:
+/// a local deployment configures neither storage nor sign-in and runs as a
+/// local session in memory. A deployment that stores data on GitHub needs
+/// sign-in (someone must write it) and names its organization. The document is closed and every value validated.
 /// Nothing in it is secret: the client id is public and the client secret
 /// stays with the exchange.
 ///
@@ -47,6 +49,14 @@ type IdentityConfig =
       /// provider sends the person back to.
       RedirectUri: string }
 
+/// The organization a deployment serves: its immutable id, the names people
+/// see, and its business time zone (requirements expansion 2.5, 2.6).
+type OrganizationConfig =
+    { Id: string
+      DisplayName: string
+      Slug: string
+      TimeZone: string }
+
 /// A deployment's configuration.
 type DeploymentConfig =
     { Environment: EnvironmentKind
@@ -57,7 +67,14 @@ type DeploymentConfig =
       /// Organizations whose data lives somewhere other than `Location`, by OrganizationId.
       OrganizationLocations: Map<string, LocationConfig>
       /// How people sign in; None for a local session.
-      Identity: IdentityConfig option }
+      Identity: IdentityConfig option
+      /// The organization the deployment serves; needed to store data.
+      Organization: OrganizationConfig option }
+
+/// The organization id a session works in: the configured organization's,
+/// or `local` for a deployment that configures none.
+let organizationId (config: DeploymentConfig) =
+    config.Organization |> Option.map _.Id |> Option.defaultValue "local"
 
 /// The identity providers Chrona signs in with.
 let providers = [ "github" ]
@@ -188,12 +205,37 @@ let private identityOf value =
             | _, _, _, Error e, _
             | _, _, _, _, Error e -> Error e)
 
+let private organizationOf value =
+    match Json.field "organization" value with
+    | None -> Ok None
+    | Some organization ->
+        closed [ "displayName"; "id"; "slug"; "timeZone" ] organization
+        |> Result.bind (fun _ ->
+            match text "id" organization, text "displayName" organization, text "slug" organization, text "timeZone" organization with
+            | Ok id, Ok displayName, Ok slug, Ok zone ->
+                let manifest = Organization.create id displayName slug zone DateTimeOffset.UnixEpoch
+
+                match Organization.problems manifest with
+                | [] ->
+                    Ok(
+                        Some
+                            { Id = id
+                              DisplayName = displayName
+                              Slug = slug
+                              TimeZone = zone }
+                    )
+                | problem :: _ -> Error problem
+            | Error e, _, _, _
+            | _, Error e, _, _
+            | _, _, Error e, _
+            | _, _, _, Error e -> Error e)
+
 /// A deployment's configuration from its JSON text, every value validated.
 let parse (text': string) : Result<DeploymentConfig, Diagnostic> =
     match Json.parse text' with
     | Error error -> invalid (JsonError.describe error)
     | Ok value ->
-        closed [ "environment"; "environmentName"; "identity"; "location"; "organizations" ] value
+        closed [ "environment"; "environmentName"; "identity"; "location"; "organization"; "organizations" ] value
         |> Result.bind (fun _ ->
             match text "environment" value |> Result.bind environmentOf, text "environmentName" value with
             | Ok _, Ok name when String.IsNullOrWhiteSpace name -> Error(MissingField "environmentName")
@@ -203,19 +245,25 @@ let parse (text': string) : Result<DeploymentConfig, Diagnostic> =
                     | None -> Ok None
                     | Some found -> locationOf found |> Result.map Some
 
-                match location, organizationsOf value, identityOf value with
-                | Ok location, Ok organizations, Ok identity ->
+                match location, organizationsOf value, identityOf value, organizationOf value with
+                | Ok location, Ok organizations, Ok identity, Ok organization ->
                     if location.IsNone && not organizations.IsEmpty then
                         invalid "'organizations' needs a 'location'"
+                    elif location.IsSome && (identity.IsNone || organization.IsNone) then
+                        // Data on GitHub needs someone signed in to write it,
+                        // and an organization to keep it under.
+                        invalid "a 'location' needs 'identity' and 'organization'"
                     else
                         Ok
                             { Environment = environment
                               EnvironmentName = environmentName
                               Location = location
                               OrganizationLocations = organizations
-                              Identity = identity }
-                | Error e, _, _
-                | _, Error e, _
-                | _, _, Error e -> Error e
+                              Identity = identity
+                              Organization = organization }
+                | Error e, _, _, _
+                | _, Error e, _, _
+                | _, _, Error e, _
+                | _, _, _, Error e -> Error e
             | Error e, _
             | _, Error e -> Error e)

@@ -77,6 +77,22 @@
   </div>
 </template>
 
+<template data-if="screenOpening">
+  <main class="chrona-gate" id="opening" aria-busy="true">
+    <p class="chrona-brand"><span class="chrona-brand__mark" aria-hidden="true">C</span><span class="chrona-brand__name">Chrona</span></p>
+    <p class="chrona-intro">Opening your records…</p>
+  </main>
+</template>
+
+<template data-if="screenStoreFailed">
+  <main class="chrona-gate" id="store-failed">
+    <p class="chrona-brand"><span class="chrona-brand__mark" aria-hidden="true">C</span><span class="chrona-brand__name">Chrona</span></p>
+    <h1 class="chrona-title">Your records could not be opened.</h1>
+    <p class="chrona-intro" role="alert" id="store-failure" data-text="storeFailure"></p>
+    <button type="button" class="chrona-action chrona-action--primary" id="retry-store" data-event="retryStore">Try again</button>
+  </main>
+</template>
+
 <template data-if="shellVisible">
 <div class="chrona-shell">
   <aside class="chrona-sidebar" aria-label="Chrona">
@@ -681,6 +697,8 @@
                       <li class="chrona-evidence__item">
                         <p class="chrona-evidence__title"><strong data-text="label"></strong> <span class="ef-status-lozenge" data-state="ok" data-text="kind"></span></p>
                         <p class="chrona-evidence__meta"><span data-text="url"></span> · <span data-text="captured"></span></p>
+                        <p class="chrona-evidence__meta chrona-evidence__source" data-text="source"></p>
+                        <p class="chrona-evidence__meta chrona-evidence__notes" data-text="notes"></p>
                         <template data-if="detailRecorded"><button type="button" class="chrona-link" data-event="unlinkEvidence">Unlink</button></template>
                       </li>
                     </template>
@@ -702,6 +720,14 @@
                     <div class="ef-field">
                       <label class="ef-field__label" for="evidence-url">Link <span class="ef-field__description">Optional</span></label>
                       <input id="evidence-url" type="text" inputmode="url" autocomplete="url" data-event="evidenceUrl" data-on="input" data-bind-value="evidenceUrl" />
+                    </div>
+                    <div class="ef-field">
+                      <label class="ef-field__label" for="evidence-source">Source <span class="ef-field__description">Optional: where it came from</span></label>
+                      <input id="evidence-source" type="text" data-event="evidenceSource" data-on="input" data-bind-value="evidenceSource" />
+                    </div>
+                    <div class="ef-field">
+                      <label class="ef-field__label" for="evidence-notes">Notes <span class="ef-field__description">Optional</span></label>
+                      <textarea id="evidence-notes" rows="2" data-event="evidenceNotes" data-on="input" data-bind-value="evidenceNotes"></textarea>
                     </div>
                     <template data-if="hasEvidenceProblems">
                       <ul class="chrona-problems" role="alert" id="evidence-problems"><template data-each="evidenceProblems" data-key="id"><li data-bind-data-code="code" data-text="text"></li></template></ul>
@@ -1140,6 +1166,15 @@
                 <div class="chrona-account" id="account">
                   <p class="chrona-intro">Signed in with <span data-text="accountProvider"></span> as <strong id="account-login" data-text="accountLogin"></strong>. <span data-text="accountRetention"></span></p>
                   <button type="button" class="chrona-action chrona-action--secondary" id="sign-out" data-event="signOut">Sign out and clear the token</button>
+                </div>
+              </template>
+              <template data-if="hasStoreProblems">
+                <div class="ef-alert chrona-notice" role="alert" data-tone="attention" id="store-problems">
+                  <div class="ef-alert__icon" aria-hidden="true">!</div>
+                  <div>
+                    <p class="ef-alert__title" data-text="storeProblemSummary"></p>
+                    <ul class="chrona-problems"><template data-each="storeProblems" data-key="id"><li data-bind-data-code="code" data-text="text"></li></template></ul>
+                  </div>
                 </div>
               </template>
               <div class="chrona-access" id="access">

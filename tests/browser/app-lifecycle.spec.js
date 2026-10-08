@@ -64,9 +64,13 @@ test("evidence is linked and checked, and a split assigns it to one part", async
   await page.selectOption("#evidence-kind", { label: "Pull request" });
   await page.fill("#evidence-label", "PR 4");
   await page.fill("#evidence-url", "https://example.test/pr/4");
+  await page.fill("#evidence-source", "GitHub");
+  await page.fill("#evidence-notes", "The change that fixed the overlap.");
   await page.click("#attach");
   await expect(page.locator("#evidence-list li")).toHaveCount(1);
   await expect(page.locator("#evidence-list li")).toContainText("PR 4");
+  await expect(page.locator("#evidence-list .chrona-evidence__source")).toHaveText("Source: GitHub");
+  await expect(page.locator("#evidence-list .chrona-evidence__notes")).toHaveText("The change that fixed the overlap.");
 
   await page.fill("#split-first", "20");
   await page.fill("#split-second", "20");

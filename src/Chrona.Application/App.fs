@@ -30,9 +30,10 @@ type Env =
       /// A fresh, unique id with a prefix.
       NewId: string -> string
       Session: Session
+      /// The page's in-flight asynchronous work (sign-in and storage).
+      Bridge: Bridge.Bridge
       Identity: Identity.IdentityPort
-      StoreKind: StoreKind
-      Store: StoreRequest -> StoreOutcome }
+      Store: Store.StorePort }
 
 /// The identity port's implementation until sign-in exists.
 let localSession =
@@ -40,10 +41,6 @@ let localSession =
       OrganizationId = "local"
       DisplayName = "Local session"
       Kind = LocalSession }
-
-/// The store port's in-memory implementation: every commit is acknowledged
-/// at once; nothing outlives the tab.
-let inMemoryStore (_: StoreRequest) = Committed
 
 /// What a correlation id was minted for.
 type Purpose =
@@ -54,8 +51,8 @@ type Purpose =
     | Printing
     /// Reading the deployment's configuration document.
     | Configuration
-    /// A browser service Fides' client asked for (Identity).
-    | IdentityCall
+    /// A browser service Fides' client or Arca's adapter asked for (Bridge).
+    | BridgeCall
 
 [<NoComparison; NoEquality>]
 type State =
@@ -83,20 +80,10 @@ let initial =
 
 let private negotiated (offer: CapabilityOffer) (state: State) = List.contains offer state.Capabilities
 
-/// Runs one engine message, then every store request it produced through the
-/// store port, feeding each answer back, until no store work remains.
-let rec private run (env: Env) (msg: Update.Msg) (model: Model) (effects: Update.Effect list) =
+/// Runs one engine message.
+let private run (env: Env) (msg: Update.Msg) (model: Model) =
     let ctx: Update.Ctx = { Now = env.Now(); NewId = env.NewId }
-    let next, produced = Update.update ctx msg model
-    let stores, others = produced |> List.partition (function Update.Store _ -> true | _ -> false)
-
-    stores
-    |> List.fold
-        (fun (model, effects) effect ->
-            match effect with
-            | Update.Store request -> run env (Update.StoreAnswered(request.CommitId, env.Store request)) model effects
-            | _ -> model, effects)
-        (next, effects @ others)
+    Update.update ctx msg model
 
 /// The deployment's configuration document: `chrona.deployment.json` beside
 /// the page. A deployment replaces it; the repository's copy runs locally.
@@ -108,28 +95,32 @@ let configurationUrl (state: State) =
 [<Literal>]
 let RequestTimeoutMs = 15000
 
-/// A browser service the identity port asked for, as a Limen request.
-let private kernelRequest (state: State) (id: string) (call: Identity.KernelCall) =
+/// A browser service the bridge's clients asked for, as a Limen request;
+/// None for a wait the kernel cannot time (no schedule pack), which is
+/// answered at once.
+let private kernelRequest (state: State) (id: string) (call: Bridge.KernelCall) =
     let hostCall operation arguments =
         if negotiated host state then
-            Host(id, operation, arguments)
+            Some(Host(id, operation, arguments))
         else
             raise (CapabilityFailed("chrona.host", "Sign-in needs the chrona.host pack, which the kernel did not offer"))
 
     match call with
-    | Identity.Post(url, body) -> Http(id, "POST", url, [ "Content-Type", "application/json" ], Some body, RequestTimeoutMs)
-    | Identity.DeviceGet key -> StorageGet(id, key)
-    | Identity.DeviceSet(key, value) -> StorageSet(id, key, value)
-    | Identity.DeviceRemove key -> StorageRemove(id, key)
-    | Identity.TabGet key -> hostCall "tabGet" [ "key", key ]
-    | Identity.TabSet(key, value) -> hostCall "tabSet" [ "key", key; "value", value ]
-    | Identity.TabRemove key -> hostCall "tabRemove" [ "key", key ]
-    | Identity.Leave url -> hostCall "leave" [ "url", url ]
-    | Identity.ReplaceAddress url -> hostCall "replaceAddress" [ "url", url ]
-    | Identity.Announce message -> hostCall "broadcast" [ "message", message ]
+    | Bridge.Http(method, url, headers, body, timeoutMs, responseHeaders) -> Some(Http(id, method, url, headers, body, timeoutMs, responseHeaders))
+    | Bridge.DeviceGet key -> Some(StorageGet(id, key))
+    | Bridge.DeviceSet(key, value) -> Some(StorageSet(id, key, value))
+    | Bridge.DeviceRemove key -> Some(StorageRemove(id, key))
+    | Bridge.TabGet key -> hostCall "tabGet" [ "key", key ]
+    | Bridge.TabSet(key, value) -> hostCall "tabSet" [ "key", key; "value", value ]
+    | Bridge.TabRemove key -> hostCall "tabRemove" [ "key", key ]
+    | Bridge.Leave url -> hostCall "leave" [ "url", url ]
+    | Bridge.ReplaceAddress url -> hostCall "replaceAddress" [ "url", url ]
+    | Bridge.Announce message -> hostCall "broadcast" [ "message", message ]
+    | Bridge.Sleep milliseconds when negotiated schedule state -> Some(Wake(id, milliseconds))
+    | Bridge.Sleep _ -> None
 
-/// Engine effects to Limen requests, minting the correlation ids. Sign-in
-/// effects start work in the identity port; its requests follow on `settle`.
+/// Engine effects to Limen requests, minting the correlation ids. Sign-in and
+/// storage effects start work in their ports; their requests follow on `settle`.
 let private requests (env: Env) (state: State) (effects: Update.Effect list) =
     effects
     |> List.fold
@@ -153,7 +144,7 @@ let private requests (env: Env) (state: State) (effects: Update.Effect list) =
             // the Folio document.
             | Update.Print -> state, requests, immediate
             | Update.ReadConfiguration when List.contains "Http" state.Effects ->
-                minted Configuration, requests @ [ Http(id, "GET", configurationUrl state, [], None, RequestTimeoutMs) ], immediate
+                minted Configuration, requests @ [ Http(id, "GET", configurationUrl state, [], None, RequestTimeoutMs, []) ], immediate
             | Update.ReadConfiguration -> state, requests, immediate @ [ Update.ConfigurationRead None ]
             | Update.BeginIdentity(config, callback) ->
                 env.Identity.Begin config callback
@@ -164,7 +155,12 @@ let private requests (env: Env) (state: State) (effects: Update.Effect list) =
             | Update.SignOut ->
                 env.Identity.SignOut()
                 state, requests, immediate
-            | Update.Store _ -> invalidOp "Store requests are answered before replying")
+            | Update.Store request ->
+                env.Store.Commit request
+                state, requests, immediate
+            | Update.OpenStore(config, session, dates) ->
+                env.Store.Open config session dates
+                state, requests, immediate)
         (state, [], [])
 
 let private view (state: State) =
@@ -179,26 +175,32 @@ let rec private advance (env: Env) (state: State) (msg: Update.Msg) (sent: Reque
     match state.Model with
     | None -> state, sent
     | Some model ->
-        let model, effects = run env msg model []
+        let model, effects = run env msg model
         let state, made, immediate = requests env { state with Model = Some model } effects
         immediate |> List.fold (fun (state, sent) msg -> advance env state msg sent) (settle env state (sent @ made))
 
-/// The identity port's kernel calls become requests; the operations it
-/// finished become engine messages. An operation that failed unexpectedly
-/// is raised here, inside the Aegis boundary.
+/// The bridge's browser calls become requests; the operations that finished
+/// become engine messages. A wait the kernel cannot time is answered at once.
+/// An operation that failed unexpectedly is raised here, inside the Aegis
+/// boundary.
 and private settle (env: Env) (state: State) (sent: Request list) =
-    match env.Identity.Drain() with
+    match env.Bridge.Drain() with
     | Result.Error error -> raise error
     | Ok([], []) -> state, sent
     | Ok(calls, finished) ->
-        let state, made =
+        let state, made, untimed =
             calls
             |> List.fold
-                (fun (state: State, made) (id, call) ->
-                    { state with Pending = state.Pending.Add(id, IdentityCall) }, made @ [ kernelRequest state id call ])
-                (state, [])
+                (fun (state: State, made, untimed) (id, call) ->
+                    match kernelRequest state id call with
+                    | Some request -> { state with Pending = state.Pending.Add(id, BridgeCall) }, made @ [ request ], untimed
+                    | None -> state, made, untimed @ [ id ])
+                (state, [], [])
 
-        finished |> List.fold (fun (state, sent) msg -> advance env state msg sent) (state, sent @ made)
+        untimed |> List.iter (fun id -> env.Bridge.Answer id Bridge.Done |> ignore)
+        let state, sent = if untimed.IsEmpty then state, sent @ made else settle env state (sent @ made)
+
+        finished |> List.fold (fun (state, sent) msg -> advance env state msg sent) (state, sent)
 
 let private take (id: string) (state: State) =
     match state.Pending.TryFind id with
@@ -212,23 +214,15 @@ let private environmentZone (result: JsonNode) =
         Update.EnvironmentDescribed(required "timeZone" "$.result.environment" asString environment)
     | _ -> Update.EnvironmentUnavailable
 
-/// A kernel Http outcome as Fides reads it.
-let private posted =
-    function
-    | HttpSucceeded(status, body) -> Identity.Posted(Fides.HttpOutcome.Responded { Status = status; Body = body })
-    | HttpUnknown _ -> Identity.Posted(Fides.HttpOutcome.Failed Fides.TransportFailure.TimedOut)
-    | HttpFailed _
-    | HttpCancelled -> Identity.Posted(Fides.HttpOutcome.Failed Fides.TransportFailure.Unreachable)
-
 /// A `chrona.host` result: a value read from tab storage, or done.
 let private hosted (result: JsonNode) =
     match tryField "value" result with
-    | Some value -> Identity.Read(Some(asString "$.result.value" value))
-    | None -> Identity.Read None
+    | Some value -> Bridge.Read(Some(asString "$.result.value" value))
+    | None -> Bridge.Read None
 
-let private answerIdentity (env: Env) (id: string) (answer: Identity.KernelAnswer) =
-    if not (env.Identity.Answer id answer) then
-        raise (CapabilityFailed("correlation", $"A result for {id}, which no sign-in operation is waiting on"))
+let private answerBridge (env: Env) (id: string) (answer: Bridge.KernelAnswer) =
+    if not (env.Bridge.Answer id answer) then
+        raise (CapabilityFailed("correlation", $"A result for {id}, which no operation is waiting on"))
 
 let private scheduled (generation: int) (result: JsonNode) =
     match tryField "kind" result |> Option.map (asString "$.result.kind") with
@@ -251,7 +245,7 @@ let step (env: Env) (state: State) (inbound: Inbound) =
         | Accepted(_, _, capabilities) as handshake ->
             let started =
                 { state with
-                    Model = Some(Model.initial env.Session env.StoreKind (env.Now()))
+                    Model = Some(Model.initial env.Session env.Store.Kind (env.Now()))
                     Origin = origin
                     Path = path
                     Capabilities = capabilities
@@ -279,30 +273,34 @@ let step (env: Env) (state: State) (inbound: Inbound) =
                 | (Environment, state), Completed result -> state, Some(environmentZone result)
                 | (Environment, state), NotExecuted _ -> state, Some Update.EnvironmentUnavailable
                 | (Tick generation, state), Completed result -> state, scheduled generation result
-                | (IdentityCall, state), Completed result ->
-                    answerIdentity env id (hosted result)
+                | (BridgeCall, state), Completed result ->
+                    // A wait the bridge asked for has passed, or a chrona.host answer.
+                    match tryField "kind" result |> Option.map (asString "$.result.kind") with
+                    | Some "Fired" -> answerBridge env id Bridge.Done
+                    | _ -> answerBridge env id (hosted result)
+
                     state, None
-                | (IdentityCall, state), NotExecuted _ ->
-                    answerIdentity env id (Identity.Read None)
+                | (BridgeCall, state), NotExecuted _ ->
+                    answerBridge env id (Bridge.Read None)
                     state, None
                 | (_, state), _ -> state, None
             | HttpResponse(id, result) ->
                 match take id state, result with
-                | (Configuration, state), HttpSucceeded(200, body) -> state, Some(Update.ConfigurationRead(Some body))
+                | (Configuration, state), HttpSucceeded(200, _, body) -> state, Some(Update.ConfigurationRead(Some body))
                 | (Configuration, state), _ -> state, Some(Update.ConfigurationRead None)
-                | (IdentityCall, state), result ->
-                    answerIdentity env id (posted result)
+                | (BridgeCall, state), result ->
+                    answerBridge env id (Bridge.Answered result)
                     state, None
                 | (_, _), _ -> raise (CapabilityFailed("Http", $"An Http result for {id}, which was not an Http request"))
             | StorageResponse(id, result) ->
                 match take id state with
-                | IdentityCall, state ->
-                    answerIdentity
+                | BridgeCall, state ->
+                    answerBridge
                         env
                         id
                         (match result with
-                         | StorageValue value -> Identity.Read value
-                         | StorageFailed _ -> Identity.Read None)
+                         | StorageValue value -> Bridge.Read value
+                         | StorageFailed _ -> Bridge.Read None)
 
                     state, None
                 | _ -> raise (CapabilityFailed("Storage", $"A Storage result for {id}, which was not a Storage request"))

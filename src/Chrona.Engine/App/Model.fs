@@ -53,7 +53,22 @@ type StoreState =
       Pending: string list
       Committed: int
       /// The last answer that was not `Committed`, until the next success.
-      Problem: StoreOutcome option }
+      Problem: StoreOutcome option
+      /// The organization's records are being read; nothing can be done yet.
+      Opening: bool
+      /// Why the records could not be read, until a retry succeeds.
+      Failure: string option
+      /// What was found wrong in the records read (39, 41).
+      Integrity: Diagnostic list }
+
+/// What the store read from the organization's folder.
+type StoreContents =
+    { /// Where the records live, for the person: `owner/repository`.
+      Name: string
+      Activities: Activity list
+      References: Reference.Item list
+      Attestations: Review.Attestation list
+      Problems: Diagnostic list }
 
 type Screen =
     | Today
@@ -115,7 +130,9 @@ type Detail =
       SplitEvidence: Map<string, int>
       EvidenceKind: string
       EvidenceUrl: string
-      EvidenceLabel: string }
+      EvidenceLabel: string
+      EvidenceSource: string
+      EvidenceNotes: string }
 
 /// The report form, as typed.
 type ReportDraft =
@@ -291,7 +308,10 @@ let initial (session: Session) (store: StoreKind) (now: DateTimeOffset) =
         { Kind = store
           Pending = []
           Committed = 0
-          Problem = None }
+          Problem = None
+          Opening = false
+          Failure = None
+          Integrity = [] }
       Zone = None
       Now = now
       Ledger = Ledger.empty
@@ -321,7 +341,7 @@ let initial (session: Session) (store: StoreKind) (now: DateTimeOffset) =
 let canWork (model: Model) =
     match model.Identity.Mode with
     | LocalOnly
-    | SignedInMode -> true
+    | SignedInMode -> not model.Store.Opening && model.Store.Failure.IsNone
     | Configuring
     | Misconfigured _
     | SignInRequired _ -> false

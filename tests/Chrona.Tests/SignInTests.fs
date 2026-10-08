@@ -342,20 +342,22 @@ let private event (name: string) (value: string) =
 
 let private envFor (clock: DateTimeOffset ref) : App.Env =
     let counter = ref 0uy
+    let bridge = Bridge.Bridge()
 
     { Now = fun () -> clock.Value
       NewId = fun prefix -> $"{prefix}-{Guid.NewGuid():N}"
       Session = App.localSession
+      Bridge = bridge
       // Deterministic, distinct bytes: the test's stand-in for crypto.getRandomValues.
       Identity =
         Identity.create
+            bridge
             (fun () -> clock.Value)
             (fun count ->
                 Array.init count (fun _ ->
                     counter.Value <- counter.Value + 1uy
                     counter.Value))
-      StoreKind = InMemory
-      Store = App.inMemoryStore }
+      Store = Store.inMemory bridge }
 
 /// Signs in end to end: the page leaves for GitHub, GitHub sends it back with
 /// a code, a new page load completes the callback. Returns the signed-in page.

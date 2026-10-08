@@ -59,7 +59,7 @@
 | WI-0051 | Chrona 07a: activity records on Arca - record codec, partitioned layout, change sets and integrity on load (CHX-220, CHX-390, CHX-410, CHX-050 persistence) | complete |  | medium |
 | WI-0052 | Chrona 04b: real end-to-end sign-in against a deployed Fides exchange and GitHub App (CHX-022 remainder) | captured |  | medium |
 | WI-0053 | Chrona 05b: bootstrap administrators from the deployment configuration; no first-opener takeover (CHX-030, CHX-027) | complete |  | high |
-| WI-0054 | Chrona 16: visual regression against the legacy screens, closing the product UI (CHX-005 look and feel) | ready |  | medium |
+| WI-0054 | Chrona 16: visual regression against the legacy screens, closing the product UI (CHX-005 look and feel) | complete |  | medium |
 | WI-0055 | Chrona 08b: the active timer persisted across refresh and restart, recovered at startup, and concurrent timers across devices as obligations (CHX-101, CHX-102, CHX-105, CHX-260 remainder) | complete |  | high |
 | WI-0056 | Chrona 07b: store the audit trail - each command's audit entry as an immutable Arca record, read back with the activities (CHX-250, CHX-400 remainders) | complete |  | high |
 | WI-0057 | Chrona 08c: offline start with a read cache (CHX-230 remainder) | captured |  | medium |

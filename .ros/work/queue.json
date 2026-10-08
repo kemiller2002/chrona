@@ -722,10 +722,10 @@
         "forma"
       ],
       "priority": "high",
-      "status": "ready",
+      "status": "complete",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:48.917Z",
-      "updatedAt": "2026-10-08T14:03:18Z",
+      "updatedAt": "2026-10-08T14:19:15Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

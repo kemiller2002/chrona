@@ -732,6 +732,7 @@ button.chrona-timer-chip {
 }
 
 .chrona-heading .chrona-link {
+  display: inline-block;
   margin-block-end: 1.5rem;
 }
 

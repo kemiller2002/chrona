@@ -1184,7 +1184,7 @@ let private weekView (model: Model) =
     [ flag "screenWeek" (shows model (function Places.ThisWeek | Places.Week _ -> true | _ -> false))
       text "weekTitle" (periodLabel week)
       text "weekTotal" (Format.minutes total)
-      text "weekBilled" $"{Format.minutes billed} billed"
+      text "weekBilled" (Format.minutes billed)
       text "weekDecimal" (Format.decimalHours total)
       text "weekEntryCount" (plural counted.Length "entry" "entries")
       items "weekDays" (dayRows project week.Start week.Finish counted)
@@ -1257,7 +1257,7 @@ let private projectView (model: Model) =
       text "projectName" (item |> Option.map _.Name |> Option.defaultValue "")
       text "projectState" (item |> Option.map projectState |> Option.defaultValue "")
       text "projectTotal" (Format.minutes total)
-      text "projectBilled" $"{Format.minutes (counted |> List.sumBy (fun a -> Billing.billableMinutes (billing model) a.Minutes))} billed"
+      text "projectBilled" (Format.minutes (counted |> List.sumBy (fun a -> Billing.billableMinutes (billing model) a.Minutes)))
       text "projectEntryCount" (plural counted.Length "entry" "entries")
       flag "projectEmpty" (entries.IsEmpty && model.Store.Reading.IsEmpty)
       flag "projectReading" (not model.Store.Reading.IsEmpty)
@@ -1267,10 +1267,9 @@ let private projectView (model: Model) =
            |> List.truncate 50
            |> List.map (fun a ->
                [ t "id" a.ActivityId
-                 t "date" (Format.longDate a.Occurrence.LocalDate)
+                 t "detail" (Format.longDate a.Occurrence.LocalDate + (match a.Record with Voided _ -> " · removed from totals" | _ -> ""))
                  t "title" a.Classification.Description
                  t "duration" (Format.minutes a.Minutes)
-                 t "state" (match a.Record with Voided _ -> "Removed from totals" | _ -> "Recorded")
                  t "href" (hrefOf (Places.Entry(a.ActivityId, Some a.Occurrence.LocalDate))) ]))
       text "projectTodayHref" (hrefOf (Places.Day(today, Some id)))
       text "projectWeekHref" (hrefOf (Places.Week((weekOf model today).Start, Some id)))

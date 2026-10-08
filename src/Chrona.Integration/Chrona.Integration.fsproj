@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Chrona's side of the Chrona-to-Summa billing contract (WI-0037). The
+       contract is Summa's (EchelonFoundry.Summa.Contracts, installed by
+       Conditor from vendor/nuget); this assembly only maps Chrona's domain
+       onto it and back. Pure F#: no transport, clock or I/O. -->
+
+  <ItemGroup>
+    <Compile Include="SummaBilling.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Chrona.Domain/Chrona.Domain.fsproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="EchelonFoundry.Summa.Contracts" />
+  </ItemGroup>
+
+</Project>

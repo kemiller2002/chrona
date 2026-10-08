@@ -2,8 +2,8 @@
   "schema": "echelon.resolved-release-set/v1",
   "profile": {
     "id": "echelon-current",
-    "version": "1.7.0",
-    "sha256": "fa152de99edcf8bbc25372673a1fa05adfc9ad67e0f2fb0c860eefe1313719a6"
+    "version": "1.8.0",
+    "sha256": "dae7b241ce1cd4d965fae8a2dd2f4979a428ce5881620ccb7f12c2289f837fad"
   },
   "platform": "linux-x64",
   "resolver": {
@@ -11,7 +11,7 @@
     "version": "0.1.0"
   },
   "catalogSnapshot": {
-    "sha256": "e2f5d6787046a5b79adfa9bd0698fa4506f4781fcb6789edc70ab71be08118be"
+    "sha256": "9232a3d40549e845a2903f48d3e88e64becef8efb1351a43dd4b5b78f4689ddf"
   },
   "components": [
     {
@@ -535,6 +535,42 @@
           "purpose": "checksums",
           "platform": null,
           "sha256": "a32e49303d650afa60cd51f860732216afb633c103f0c4ce0cbf76c93592378d"
+        }
+      ]
+    },
+    {
+      "systemId": "summa-contracts",
+      "role": "project-binding",
+      "required": false,
+      "version": "0.1.0",
+      "repository": "kemiller2002/summa",
+      "tag": "contracts-v0.1.0",
+      "commit": "e888cfb102be7001db7129121a5769a02c44a968",
+      "releaseStage": "stable",
+      "lifecycleState": "active",
+      "distributionClass": "nuget-library",
+      "executable": null,
+      "releaseManifest": {
+        "schema": "echelon.release/v2",
+        "sha256": "b952e4c667bc83aae23092397e8de3bcd75ecd2a6d59ef7d1047f2f5d094bcfe"
+      },
+      "distribution": {
+        "mechanism": "github-release",
+        "package": null,
+        "url": "https://github.com/kemiller2002/summa/releases/tag/contracts-v0.1.0"
+      },
+      "artifacts": [
+        {
+          "name": "EchelonFoundry.Summa.Contracts.0.1.0.nupkg",
+          "purpose": "package",
+          "platform": null,
+          "sha256": "8ef0e595f9749edac7fc3c46c1d400ba1a4d44f10090c3ed27291855845d15f1"
+        },
+        {
+          "name": "checksums.txt",
+          "purpose": "checksums",
+          "platform": null,
+          "sha256": "526dc765ac6736de9043a0cc08b4f9932b4b79518c4bff0b049d5366df7f6776"
         }
       ]
     }

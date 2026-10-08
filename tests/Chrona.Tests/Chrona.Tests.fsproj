@@ -35,6 +35,7 @@
     <Compile Include="GovernanceTests.fs" />
     <Compile Include="AppEngineTests.fs" />
     <Compile Include="AppBoundaryTests.fs" />
+    <Compile Include="SummaBillingTests.fs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -48,6 +49,7 @@
     <ProjectReference Include="../../src/Chrona.Domain/Chrona.Domain.fsproj" />
     <ProjectReference Include="../../src/Chrona.Engine/Chrona.Engine.fsproj" />
     <ProjectReference Include="../../src/Chrona.Application/Chrona.Application.fsproj" />
+    <ProjectReference Include="../../src/Chrona.Integration/Chrona.Integration.fsproj" />
   </ItemGroup>
 
 </Project>

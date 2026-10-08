@@ -4,7 +4,7 @@
   "registryAuthority": {
     "kind": "resolved-release-set",
     "path": ".conditor/authority/resolved-release-set.json",
-    "sha256": "a7e2806fc6069a72f94fef2c1b73e3b7bfb4e01b7c8366739fe847b385fee3ab"
+    "sha256": "50623c2ba4ec58324fe261d64ebc3eb3cc5c87b1a5d781810f47c9d50b1ddcdd"
   },
   "components": [
     {
@@ -30,6 +30,11 @@
     {
       "id": "fides",
       "version": "0.2.0",
+      "required": true
+    },
+    {
+      "id": "summa-contracts",
+      "version": "0.1.0",
       "required": true
     }
   ],

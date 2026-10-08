@@ -644,10 +644,10 @@
         "depends:arca"
       ],
       "priority": "high",
-      "status": "ready",
+      "status": "complete",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:47.968Z",
-      "updatedAt": "2026-10-08T12:54:05Z",
+      "updatedAt": "2026-10-08T13:18:08Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

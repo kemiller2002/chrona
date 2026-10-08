@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-08T12:54:05Z",
+  "updatedAt": "2026-10-08T13:18:08Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -1604,13 +1604,47 @@
     {
       "id": "WI-0032",
       "type": "feature",
-      "state": "active",
-      "semanticState": "active",
-      "evidence": [],
-      "updatedAt": "2026-10-08T12:54:05Z",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Application/Store.fs"
+        },
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Domain/Stored.fs"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/StoreTests.fs"
+        }
+      ],
+      "updatedAt": "2026-10-08T13:18:08Z",
       "telemetryExecutionIds": [
         "EXE-20261008T125405928Z-c10c8445"
-      ]
+      ],
+      "latestCheckpoint": {
+        "id": "b621777b86b5c5d9e834734b",
+        "recordedAt": "2026-10-08T13:18:07Z",
+        "executionId": "EXE-20261008T125405928Z-c10c8445",
+        "repository": "chrona",
+        "branch": "feat/wi-0032-github-storage",
+        "commit": "61fda51c8b8b19744a5fe59c63d62efbaa81236c",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/chrona"
+        },
+        "remoteBranch": "feat/wi-0032-github-storage",
+        "remoteCommit": "61fda51c8b8b19744a5fe59c63d62efbaa81236c",
+        "summary": "Store port on Arca's provider (GitHub adapter through the bridge, in-memory in tests), change-token commits with reload and revalidation, records codecs, evidence source and notes; StoreTests (commit 61fda51)",
+        "nextAction": "Open the PR; merge once every check on its head is green; then WI-0031",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      },
+      "completedAt": "2026-10-08T13:18:08Z"
     }
   ]
 }

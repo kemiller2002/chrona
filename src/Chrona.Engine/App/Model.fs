@@ -118,6 +118,9 @@ type StoreState =
       Sync: SyncState
       /// How many of the ledger's audit entries were handed to the store.
       Audited: int
+      /// This account's changes waiting in this browser while the records
+      /// cannot be opened (WI-0055).
+      Waiting: int
       /// The months whose folders were read, as (year, month).
       Months: (int * int) list
       /// Months asked for and not read yet.
@@ -405,7 +408,10 @@ type Model =
       Announcement: string
       /// Entries for dates more than this many days before today need a
       /// reason. The legacy rule is 0: any date that is not today.
-      HistoricalAfterDays: int }
+      HistoricalAfterDays: int
+      /// What recovering the device's timer found, said again when the
+      /// records open (WI-0055).
+      TimerNote: string option }
 
 /// The principal a session acts as. A local session and a GitHub sign-in are
 /// both a person; agents, services and integrations reach Chrona through
@@ -438,6 +444,7 @@ let initial (session: Session) (store: StoreKind) (now: DateTimeOffset) =
           Conflicts = []
           Sync = initialSync
           Audited = 0
+          Waiting = 0
           Months = []
           Reading = []
           History = []
@@ -465,7 +472,8 @@ let initial (session: Session) (store: StoreKind) (now: DateTimeOffset) =
       NewNames = Map.empty
       Problems = Map.empty
       Announcement = ""
-      HistoricalAfterDays = 0 }
+      HistoricalAfterDays = 0
+      TimerNote = None }
 
 /// Whether the person may work: the deployment runs locally, or someone is
 /// signed in. Nothing is recorded, shown or stored for anyone else.

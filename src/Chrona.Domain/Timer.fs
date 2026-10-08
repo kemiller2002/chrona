@@ -266,3 +266,18 @@ let concurrent (now: DateTimeOffset) (timers: ActiveTimer list) =
           for b in List.skip (i + 1) timers do
               if a.ActorId = b.ActorId && a.OrganizationId = b.OrganizationId && overlaps a b then
                   yield a.TimerId, b.TimerId ]
+
+/// Recorded activities of the timer's person that its timing overlaps:
+/// typically time recorded on another device while this timer ran (10.5).
+/// Each is a reconciliation obligation; the timer's time is never recorded
+/// over them silently, because completing it checks overlap again.
+let overlapsRecorded (now: DateTimeOffset) (timer: ActiveTimer) (activities: Activity list) =
+    let spans = timer.Segments |> List.map (fun s -> s.Start, defaultArg s.Finish now)
+
+    activities
+    |> List.filter (fun a -> a.ActorId = timer.ActorId && a.OrganizationId = timer.OrganizationId && consumesTime a)
+    |> List.filter (fun a ->
+        match interval a with
+        | Some(start, finish) -> spans |> List.exists (fun (s, e) -> start < e && s < finish)
+        | None -> false)
+    |> List.map (fun a -> ConcurrentTimer a.ActivityId)

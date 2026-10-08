@@ -32,6 +32,7 @@
     <Compile Include="ReferenceRecord.fs" />
     <Compile Include="AttestationRecord.fs" />
     <Compile Include="AuditRecord.fs" />
+    <Compile Include="TimerRecord.fs" />
     <Compile Include="MemberRecord.fs" />
     <Compile Include="Persistence.fs" />
     <Compile Include="Stored.fs" />

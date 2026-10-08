@@ -1212,10 +1212,10 @@
       "description": "Split from WI-0033, which became the offline change queue. The active timer is kept in this browser's storage per organization and person (Limen Storage, never a competing authority: it holds the device's own unfinished timer, not records), restored and recovered explicitly at startup with its elapsed time derived from its segments (Timer.recover), never silently discarded. A running timer that overlaps time another device stored since is a reconciliation obligation with a stable diagnostic (the concurrent timer conflict, requirement 26). Scenarios 4 and 9. Starting while GitHub cannot be reached: the persisted timer and this browser's unsent changes are shown and the timer keeps working; opening the records themselves offline is WI-0057 (read cache, waits on Limen IndexedDB).",
       "tags": [],
       "priority": "high",
-      "status": "captured",
+      "status": "complete",
       "attachments": [],
       "createdAt": "2026-10-08T14:27:00Z",
-      "updatedAt": "2026-10-08T15:15:10Z",
+      "updatedAt": "2026-10-08T16:19:35Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",
@@ -1343,13 +1343,13 @@
     {
       "id": "WI-0061",
       "title": "Chrona 12b: publication transport and stored publication records - send BillableTimePublished and PublicationWithdrawn to Summa and apply its feedback, durably (CHX-170, CHX-390, CHX-450 remainders)",
-      "description": "Split from WI-0037, which installed Summa's contract (summa-contracts 0.1.0) and mapped Chrona onto it (Chrona.Integration.SummaBilling, golden vectors). Remaining: the review workflow's records (submissions, approvals, publication records, Summa's invoice and adjustment reports) are kept only in the page's memory and must be stored as Arca records like the activities (so a publication's source revision is checked on load, CHX-390); the transport that delivers Chrona's messages to Summa and Summa's feedback to Chrona (where Summa receives them, for example an inbox in the data repository or Summa's own endpoint, is Summa's decision); retries by publication id; and the screens to stage and publish time and to see invoiced and adjustment obligations. Scenarios 35-38. Requirements 17 (CHX-170 remainder), 45 (CHX-450 remainder) and 39 (CHX-390 remainder). Depends on the transport Summa chooses and on WI-0036 (stored submissions and approvals).",
+      "description": "Split from WI-0037, which installed Summa's contract (summa-contracts 0.1.0) and mapped Chrona onto it (Chrona.Integration.SummaBilling, golden vectors). Remaining: the review workflow's records (submissions, approvals, publication records, Summa's invoice and adjustment reports) are kept only in the page's memory and must be stored as Arca records like the activities (so a publication's source revision is checked on load, CHX-390); the transport that delivers Chrona's messages to Summa and Summa's feedback to Chrona (where Summa receives them, for example an inbox in the data repository or Summa's own endpoint, is Summa's decision); retries by publication id; and the screens to stage and publish time and to see invoiced and adjustment obligations. Scenarios 35-38. Requirements 17 (CHX-170 remainder), 45 (CHX-450 remainder) and 39 (CHX-390 remainder). Depends on the transport Summa chooses and on WI-0036 (stored submissions and approvals). Also the CHX-260 remainder: a stable CHRONA diagnostic for a message of an unsupported contract version from Summa.",
       "tags": [],
       "priority": "high",
       "status": "captured",
       "attachments": [],
       "createdAt": "2026-10-08T15:45:49Z",
-      "updatedAt": "2026-10-08T15:47:27Z",
+      "updatedAt": "2026-10-08T16:18:32Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

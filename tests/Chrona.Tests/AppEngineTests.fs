@@ -149,7 +149,13 @@ let ``starting needs an activity type and a project`` () =
 [<Fact>]
 let ``a running timer wakes the engine once a second and the display is computed, not counted`` () =
     let running, effects = play (chooseForTimer @ [ start, ui "startTimer" "" ]) ready
-    Assert.Equal<Effect list>([ Wake(1, TickMs) ], effects)
+
+    match effects with
+    // The engine wakes itself, and the device keeps the timer (WI-0055).
+    | [ Wake(1, TickMs); SaveTimer(key, Some kept) ] ->
+        Assert.Equal(Chrona.Domain.TimerRecord.key "org-1" "person-1", key)
+        Assert.True(Chrona.Domain.TimerRecord.decode kept |> Result.isOk)
+    | other -> failwith $"%A{other}"
     Assert.Equal("Timer started.", running.Announcement)
     Assert.True(flagOf "timerRunning" running)
     Assert.Equal("Research", textOf "timerTitle" running)
@@ -169,7 +175,7 @@ let ``pausing stops the wake-ups; a wake-up from an earlier run is ignored`` () 
     Assert.Equal<Effect list>([], snd (update (ctxAt (at 11.0)) (Ticked 1) paused))
     Assert.Equal("00:10:00", textOf "timerElapsed" (fst (update (ctxAt (at 30.0)) (Ticked 1) paused)))
     let resumed, effects = update (ctxAt (at 20.0)) (ui "resumeTimer" "") paused
-    Assert.Equal<Effect list>([ Wake(2, TickMs) ], effects)
+    Assert.Equal<Effect list>([ Wake(2, TickMs) ], effects |> List.filter (function SaveTimer _ -> false | _ -> true))
     Assert.Equal<Effect list>([], snd (update (ctxAt (at 21.0)) (Ticked 1) resumed))
     Assert.Equal("Paused", textOf "timerStateText" paused)
 
@@ -207,7 +213,8 @@ let ``a stopped timer is held until completed, then recorded through the domain 
     Assert.False(saved.Problems.ContainsKey CompletionForm)
 
     match effects with
-    | [ Store request ] ->
+    // Completed: the activity is committed, and the device no longer keeps the timer.
+    | [ Store request; SaveTimer(_, None) ] ->
         Assert.Equal<Activity.Activity list>([ activity ], request.Activities)
         Assert.Equal<string list>([ request.CommitId ], saved.Store.Pending |> List.map _.CommitId)
         Assert.Equal("Saving…", textOf "storeHeadline" saved)

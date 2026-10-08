@@ -1210,11 +1210,39 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
     let memory = inMemory bridge
     let mutable requested = false
 
+    /// How many of this account's changes wait in this browser for the
+    /// organization's folder, when the records cannot be opened (WI-0055).
+    let waiting (config: Deployment.DeploymentConfig) (session: Session) =
+        async {
+            match Storage.binding config with
+            | Error _ -> return 0
+            | Ok binding ->
+                match Storage.organizationNamespace config binding session.OrganizationId with
+                | Error _ -> return 0
+                | Ok folder ->
+                    let keeper = LocalStorageQueue.store (localStorage bridge) LocalStorageQueue.DefaultBudget folder
+
+                    match! keeper.Load() with
+                    | Ok(Some kept) ->
+                        return kept.Entries |> List.filter (fun entry -> unsent entry && entry.Operation.ActorId = session.ActorId) |> List.length
+                    | _ -> return 0
+        }
+
     { Kind = InMemory
       Open =
         fun config session dates ->
             requested <- true
-            serial (openJob config session dates)
+
+            serial (fun () ->
+                async {
+                    let! messages = openJob config session dates ()
+
+                    if messages |> List.exists (function Update.StoreUnavailable _ -> true | _ -> false) then
+                        let! count = waiting config session
+                        return messages @ [ Update.UnsentWaiting count ]
+                    else
+                        return messages
+                })
       Confirm = fun () -> serial confirmJob
       Commit =
         fun request ->

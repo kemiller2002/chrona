@@ -183,6 +183,17 @@ let private sourceJson (source: ObservationSource) =
           "externalUrl", textOrNull source.ExternalUrl
           "ingestedAt", Json.String(instantText source.IngestedAt) ]
 
+/// A classification as stored.
+let classificationJson (classification: Classification) =
+    Json.objectOf
+        [ "projectId", Json.String classification.ProjectId
+          "clientId", textOrNull classification.ClientId
+          "engagementId", textOrNull classification.EngagementId
+          "activityTypeId", Json.String classification.ActivityTypeId
+          "tags", Json.Array(classification.Tags |> List.map Json.String)
+          "description", Json.String classification.Description
+          "businessPurpose", Json.String classification.BusinessPurpose ]
+
 /// The activity's record body.
 let body (activity: Activity) =
     let occurrence = activity.Occurrence
@@ -201,15 +212,7 @@ let body (activity: Activity) =
                 "localTime", Json.String(timeText occurrence.LocalTime) ]
           "timing", timingJson activity.Timing
           "minutes", Json.Number(decimal activity.Minutes)
-          "classification",
-          Json.objectOf
-              [ "projectId", Json.String classification.ProjectId
-                "clientId", textOrNull classification.ClientId
-                "engagementId", textOrNull classification.EngagementId
-                "activityTypeId", Json.String classification.ActivityTypeId
-                "tags", Json.Array(classification.Tags |> List.map Json.String)
-                "description", Json.String classification.Description
-                "businessPurpose", Json.String classification.BusinessPurpose ]
+          "classification", classificationJson classification
           "entryMethod", entryJson activity.EntryMethod
           "billability", Json.String(billabilityName activity.Billability)
           "billingReference",
@@ -296,7 +299,8 @@ let private timingOf value =
                 |> Result.map DurationOnDate
             | other -> Error $"'{other}' is not a timing"))
 
-let private classificationOf value =
+/// A stored classification, from the object holding it as `classification`.
+let classificationOf value =
     field "classification" value
     |> Result.bind (fun c ->
         closed [ "activityTypeId"; "businessPurpose"; "clientId"; "description"; "engagementId"; "projectId"; "tags" ] c

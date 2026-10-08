@@ -1221,3 +1221,8 @@ textarea.chrona-export {
 #history-note:empty {
   display: none;
 }
+
+/* Shown only when this browser holds unsent changes (WI-0055). */
+#offline-waiting:empty {
+  display: none;
+}

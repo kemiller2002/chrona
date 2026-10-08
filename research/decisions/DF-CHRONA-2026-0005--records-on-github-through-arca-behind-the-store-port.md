@@ -2,7 +2,7 @@
 id: DF-CHRONA-2026-0005
 title: Records live on GitHub through Arca's provider behind the store port, every commit conditioned on the repository state and decided again when it moved
 status: accepted
-version: 1.5.0
+version: 1.6.0
 created: 2026-10-08
 updated: 2026-10-08
 owners:
@@ -88,13 +88,23 @@ provenance:
         model: unknown
         runtime: claude-code
       reason: "The audit trail as records (WI-0056)"
+    EXE-20261008T155702353Z-04d86325:
+      operations: [modified]
+      at: 2026-10-08T16:19:22.339Z
+      actor:
+        kind: agent
+        id: anthropic/claude-code
+        provider: anthropic
+        model: unknown
+        runtime: claude-code
+      reason: "The device's timer (WI-0055)"
 ---
 
 # DF-CHRONA-2026-0005 — Records on GitHub through Arca
 
 - **Date:** 2026-10-08
 - **Status:** accepted
-- **Work items:** WI-0028, WI-0051, WI-0032, WI-0053, WI-0035, WI-0033, WI-0034, WI-0058, WI-0056
+- **Work items:** WI-0028, WI-0051, WI-0032, WI-0053, WI-0035, WI-0033, WI-0034, WI-0058, WI-0056, WI-0055
 
 ## Context
 
@@ -196,6 +206,14 @@ and semantic conflicts surfaced.
     fact is never written twice. A change refused as a conflict writes no
     entry; one decided again carries its entries. The activity screen's
     history is read from them; revisions from before say so.
+12. **The device's timer (WI-0055).** The active timer, or a stopped one
+    whose time is held until completed, is kept in this browser's storage
+    under `chrona.timer.<organization>.<person>` (`TimerRecord`): device
+    state, never a record and never an authority, written whenever it
+    changes and recovered explicitly at startup. It keeps working when the
+    records cannot be opened. Sign-out counts it as unsent work under the
+    shared-device policy. A running timer that overlaps time recorded since
+    it started is an obligation (`CHRONA.TIMER.CONCURRENT_CONFLICT`).
 4. **Bounded reads.** A change to a month not yet read reads that month
    first, so it is never checked against less than what is stored.
 5. **The organization.** A storing deployment lists the organizations it

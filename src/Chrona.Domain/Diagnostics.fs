@@ -36,6 +36,9 @@ type Diagnostic =
     | TimerNotPaused
     | TimerPaused
     | LongRunningTimerNeedsReview of minutes: int
+    /// The running timer overlaps time recorded since it started, for
+    /// example on another device (10.5).
+    | ConcurrentTimer of activityId: string
     // Review, billing and publication (WI-0023).
     | ApprovalNotEnabled
     | StaleApproval of activityId: string
@@ -121,6 +124,7 @@ let code =
     | TimerNotPaused -> "CHRONA.TIMER.NOT_PAUSED"
     | TimerPaused -> "CHRONA.TIMER.PAUSED"
     | LongRunningTimerNeedsReview _ -> "CHRONA.TIMER.LONG_RUNNING_REVIEW"
+    | ConcurrentTimer _ -> "CHRONA.TIMER.CONCURRENT_CONFLICT"
     | ApprovalNotEnabled -> "CHRONA.REVIEW.APPROVAL_NOT_ENABLED"
     | StaleApproval _ -> "CHRONA.REVIEW.STALE_APPROVAL"
     | NotBillableActivity _ -> "CHRONA.PUBLICATION.NOT_BILLABLE"

@@ -50,6 +50,11 @@ type Msg =
     | StoreReadFailed of reason: string
     /// This account's unsent changes were discarded from this device: how many.
     | UnsentDiscarded of count: int
+    /// The device's kept timer under this key, if any (WI-0055).
+    | TimerLoaded of key: string * value: string option
+    /// The records could not be opened; this many of this account's changes
+    /// wait in this browser to be sent.
+    | UnsentWaiting of count: int
     /// The activity index changed with a commit: each person's months, and
     /// what it covers.
     | IndexChanged of history: ActivityIndex.MonthTotal list * summary: string
@@ -93,6 +98,10 @@ type Effect =
     | SendUnsent
     /// Discard this account's unsent changes from this device.
     | DiscardUnsent
+    /// Read the device's kept timer for this person (WI-0055).
+    | LoadTimer of key: string
+    /// Keep the device's timer for this person, or clear it (None).
+    | SaveTimer of key: string * value: string option
 
 /// The timer display refreshes once a second while running (the label is
 /// whole seconds); the engine computes it, never a client-side counter.
@@ -1155,6 +1164,76 @@ let noOne =
 
 /// The model a new session starts from: nothing of the previous person's
 /// remains in memory. The route, the zone and the deployment carry over.
+/// Whether this device keeps an active or stopped timer for the person (WI-0055).
+let hasKeptTimer (model: Model) =
+    TimerRecord.ofState model.Timer model.Stopped |> Option.isSome
+
+// ---- the device's timer (WI-0055) ------------------------------------------------
+
+/// Where this device keeps the person's timer.
+let private timerKey (model: Model) =
+    TimerRecord.key model.Session.OrganizationId model.Session.ActorId
+
+/// Whether someone is working here whose timer this device keeps.
+let private keepsTimers (model: Model) =
+    match model.Identity.Mode with
+    | SignedInMode
+    | LocalOnly -> true
+    | _ -> false
+
+/// The records cannot be opened (offline at startup, for example), but the
+/// person's own timer on this device keeps working.
+let private offlineTimer (model: Model) =
+    model.Identity.Mode = SignedInMode
+    && model.Store.Failure.IsSome
+    && hasKeptTimer model
+
+/// A timer the device kept, recovered explicitly with its elapsed time
+/// (10.2): never silently discarded, and never over a timer already here.
+let private timerLoaded (key: string) (value: string option) (model: Model) =
+    // Said now, and again when the records open.
+    let say (note: string) (model: Model) = { model with Announcement = note; TimerNote = Some note }
+
+    match value with
+    | _ when key <> timerKey model || hasKeptTimer model -> model, []
+    | None -> model, []
+    | Some text ->
+        match TimerRecord.decode text with
+        // Left as it is in the browser: it is not overwritten while this
+        // page has no timer of its own.
+        | Error _ -> say "A timer kept in this browser could not be read. It was left as it is." model, []
+        | Ok(TimerRecord.KeptStopped timer) ->
+            match tryZone timer.ZoneId with
+            | Error _ -> say "A stopped timer kept in this browser names an unknown time zone. It was left as it is." model, []
+            | Ok zone ->
+                let finish = timer.Segments |> List.choose _.Finish |> List.fold max (List.head timer.Segments).Start
+
+                match Timer.stop zone finish (Timer.Paused timer) with
+                | Ok(_, stopped) ->
+                    say
+                        $"Your stopped timer was recovered: {Format.minutes stopped.TotalMinutes} held. Complete the record to save it."
+                        { model with
+                            Stopped = Some stopped
+                            LongTimerConfirmed = false
+                            CompletionDraft =
+                                stopped.Timer.Classification |> Option.map ofClassification |> Option.defaultValue emptyClassification },
+                    []
+                | Error _ -> model, []
+        | Ok(TimerRecord.KeptPaused timer) ->
+            say
+                $"Your paused timer was recovered: {Format.minutes (Timer.elapsedMinutes model.Now timer)} so far."
+                { model with Timer = Timer.Paused timer },
+            []
+        | Ok(TimerRecord.KeptRunning timer) ->
+            let generation = model.TickGeneration + 1
+
+            say
+                $"Your timer was recovered and is still running: {Format.minutes (Timer.elapsedMinutes model.Now timer)} so far."
+                { model with
+                    Timer = Timer.Running timer
+                    TickGeneration = generation },
+            [ Wake(generation, TickMs) ]
+
 let private fresh (session: Session) (identity: IdentityState) (model: Model) =
     { Model.initial session model.Store.Kind model.Now with
         Route = model.Route
@@ -1174,7 +1253,9 @@ let private configurationRead (text: string option) (model: Model) =
         let model = { model with Deployment = Some config }
 
         match config.Identity with
-        | None -> { model with Identity = { model.Identity with Mode = LocalOnly; Callback = [] } }, []
+        | None ->
+            let local = { model with Identity = { model.Identity with Mode = LocalOnly; Callback = [] } }
+            local, [ LoadTimer(timerKey local) ]
         | Some identity ->
             { model with Identity = { model.Identity with Mode = SignInRequired true; Callback = [] } },
             [ BeginIdentity(identity, model.Identity.Callback) ]
@@ -1223,11 +1304,20 @@ let private storeOpened (contents: StoreContents) (model: Model) =
                 Held = contents.Held
                 Months = contents.Months
                 Audited = contents.Audit.Length
+                Waiting = 0
                 Reading = model.Store.Reading |> List.filter (fun month -> not (List.contains month contents.Months))
                 History = contents.History
                 Index = contents.Index }
-        // Said once, when they first open; reading a further month is quiet.
-        Announcement = if model.Store.Opening then "Your records are open." else model.Announcement },
+        // Said once, when they first open, with what recovering the timer
+        // found; reading a further month is quiet.
+        Announcement =
+            if model.Store.Opening then
+                match model.TimerNote with
+                | Some note -> $"Your records are open. {note}"
+                | None -> "Your records are open."
+            else
+                model.Announcement
+        TimerNote = None },
     []
 
 let private identityChanged (change: IdentityChange) (model: Model) =
@@ -1241,7 +1331,8 @@ let private identityChanged (change: IdentityChange) (model: Model) =
                 OrganizationId = model.Deployment |> Option.map Deployment.organizationId |> Option.defaultValue session.OrganizationId }
 
         let model = fresh session { identity with Mode = SignedInMode; Notice = None } model
-        openStore { model with Announcement = $"Signed in as {session.DisplayName}." }
+        let opened, effects = openStore { model with Announcement = $"Signed in as {session.DisplayName}." }
+        opened, effects @ [ LoadTimer(timerKey opened) ]
     | SigningIn -> { model with Identity = { identity with Mode = SignInRequired true } }, []
     | SignedOutWith notice ->
         let signedOut = { identity with Mode = SignInRequired false; Notice = notice }
@@ -1260,6 +1351,11 @@ let private identityChanged (change: IdentityChange) (model: Model) =
 let unsentCount (model: Model) =
     model.Store.Pending.Length + model.Store.Conflicts.Length
 
+/// Everything of this account's that has not reached GitHub: changes, and
+/// the device's timer.
+let unsentWork (model: Model) =
+    unsentCount model + (if hasKeptTimer model then 1 else 0)
+
 let private policy (model: Model) =
     model.Deployment |> Option.map _.SharedDevice |> Option.defaultValue Deployment.Ask
 
@@ -1267,7 +1363,7 @@ let private policy (model: Model) =
 /// allows it, and only for changes the device can keep (a change not saved
 /// because the records moved lives only in this page).
 let canKeepUnsent (model: Model) =
-    policy model = Deployment.Ask && model.Store.Conflicts.IsEmpty && not model.Store.Pending.IsEmpty
+    policy model = Deployment.Ask && model.Store.Conflicts.IsEmpty && unsentWork model > 0
 
 /// Sending them now: when there are some to send. Whether GitHub can be
 /// reached is found out by trying; if not, the choice comes back.
@@ -1280,6 +1376,8 @@ let private afterSending (model: Model) =
     let choose note = { model with Identity = { identity with SignOut = Some ChoosingUnsent; SignOutNote = Some note } }, []
 
     match identity.SignOut with
+    | Some SendingUnsent when model.Store.Pending.IsEmpty && model.Store.Conflicts.IsEmpty && hasKeptTimer model ->
+        choose "Your changes are stored. Your timer is still on this device: keep it for this account, or discard it."
     | Some SendingUnsent when model.Store.Pending.IsEmpty && model.Store.Conflicts.IsEmpty ->
         { model with Identity = { identity with SignOut = None; SignOutNote = None } }, [ SignOut ]
     | Some SendingUnsent when model.Store.Pending.IsEmpty ->
@@ -1297,17 +1395,15 @@ let private onIdentityEvent (name: string) (value: string) (model: Model) =
     | "signIn", SignInRequired false ->
         { model with Identity = { identity with Mode = SignInRequired true; Notice = None } }, [ SignIn identity.Retention ]
     // Unsent changes are never left behind unknowingly (WI-0058).
-    | "signOut", SignedInMode when unsentCount model > 0 ->
+    | "signOut", SignedInMode when unsentWork model > 0 ->
         { model with Identity = { identity with SignOut = Some ChoosingUnsent; SignOutNote = None } }, []
     | "signOut", SignedInMode -> model, [ SignOut ]
     | "signOutSend", SignedInMode when identity.SignOut = Some ChoosingUnsent && canSendUnsent model ->
         { model with Identity = { identity with SignOut = Some SendingUnsent; SignOutNote = None } }, [ SendUnsent ]
     | "signOutKeep", SignedInMode when identity.SignOut = Some ChoosingUnsent && canKeepUnsent model ->
-        let kept = model.Store.Pending.Length
-
         { model with
             Identity = { identity with SignOut = None }
-            Announcement = $"{kept} unsent changes are kept on this device for {model.Session.DisplayName}." },
+            Announcement = $"Your unsent work is kept on this device for {model.Session.DisplayName}." },
         [ SignOut ]
     | "signOutDiscard", SignedInMode when identity.SignOut = Some ChoosingUnsent ->
         { model with Identity = { identity with SignOut = Some ConfirmingDiscard } }, []
@@ -1399,11 +1495,18 @@ let private step (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
     | SyncChanged sync -> { model with Store = { model.Store with Sync = sync } }, []
     | IndexRebuilt summary -> { model with Store = { model.Store with Index = summary }; Announcement = summary }, []
     | UnsentDiscarded count ->
+        // The device's timer goes with them (WI-0055).
+        let timer = if hasKeptTimer model then [ SaveTimer(timerKey model, None) ] else []
+
         { model with
             Store = { model.Store with Pending = []; Conflicts = [] }
+            Timer = Timer.Idle
+            Stopped = None
             Identity = { model.Identity with SignOut = None; SignOutNote = None }
             Announcement = (if count = 1 then "1 unsent change was discarded." else $"{count} unsent changes were discarded.") },
-        [ SignOut ]
+        timer @ [ SignOut ]
+    | UnsentWaiting count -> { model with Store = { model.Store with Waiting = count } }, []
+    | TimerLoaded(key, value) -> timerLoaded key value model
     | IndexChanged(history, summary) -> { model with Store = { model.Store with History = history; Index = summary } }, []
     | StoreReadFailed reason ->
         { model with
@@ -1430,11 +1533,25 @@ let private step (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
          _) ->
         onIdentityEvent name value model
     // Nothing is recorded or shown for anyone until they may work.
+    // Starting offline, the device's own timer keeps working (WI-0055).
+    | Ui(("pauseTimer" | "resumeTimer" | "stopTimer") as name, key, value, isChecked) when offlineTimer model ->
+        onEvent ctx name key value isChecked model
     | Ui _ when not (canWork model) -> model, []
     | Ui(name, key, value, isChecked) -> authorized name key model (fun () -> onEvent ctx name key value isChecked model)
 
 let update (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
     let next, effects = step ctx msg model
+
+    // The device keeps the person's timer whenever it changes, under their
+    // own key; a different person or organization is never written for.
+    let effects =
+        let before, after = TimerRecord.ofState model.Timer model.Stopped, TimerRecord.ofState next.Timer next.Stopped
+
+        if keepsTimers model && keepsTimers next && timerKey model = timerKey next && before <> after
+           && not (effects |> List.exists (function SaveTimer _ -> true | _ -> false)) then
+            effects @ [ SaveTimer(timerKey next, after |> Option.map TimerRecord.encode) ]
+        else
+            effects
 
     match msg with
     // Signing out waits for the unsent changes it is sending.

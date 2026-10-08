@@ -123,8 +123,11 @@ type private Device(github: InMemoryStore, visibility: RepositoryVisibility, env
 
     let ids = ref 0
 
-    let ctx =
-        { Now = start
+    /// The device's clock.
+    let mutable now = start
+
+    let ctx () =
+        { Now = now
           NewId = fun prefix -> $"{prefix}-{environment}-{Threading.Interlocked.Increment ids:D6}-{Guid.NewGuid():N}" }
 
     new(github, visibility, environment, person, config) = Device(github, visibility, environment, person, config, Browser())
@@ -136,11 +139,17 @@ type private Device(github: InMemoryStore, visibility: RepositoryVisibility, env
     /// Sends a message, carries out the store effects, and feeds back every
     /// message the store produces, until nothing is left.
     member this.Send(msg: Msg) =
-        let next, effects = update ctx msg this.Model
+        let next, effects = update (ctx ()) msg this.Model
         this.Model <- next
+        let heard = Collections.Generic.List<Msg>()
 
         for effect in effects do
             match effect with
+            // The device's timer, in this browser's storage (WI-0055).
+            | LoadTimer key ->
+                heard.Add(TimerLoaded(key, (match browser.Storage.TryGetValue key with | true, value -> Some value | _ -> None)))
+            | SaveTimer(key, Some value) -> browser.Storage[key] <- value
+            | SaveTimer(key, None) -> browser.Storage.Remove key |> ignore
             | OpenStore(config, session, dates) -> store.Open config session dates
             | Store request -> store.Commit request
             | ConfirmAdministrator -> store.Confirm()
@@ -151,6 +160,9 @@ type private Device(github: InMemoryStore, visibility: RepositoryVisibility, env
             // Fides signs the person out; the page hears it.
             | SignOut -> signingOut <- true
             | _ -> ()
+
+        for message in heard do
+            this.Send message
 
         this.Settle()
 
@@ -216,6 +228,11 @@ type private Device(github: InMemoryStore, visibility: RepositoryVisibility, env
         this.Settle()
 
     member _.Sleeping = sleeping.Count
+
+    /// The device's clock.
+    member _.Now
+        with get () = now
+        and set value = now <- value
 
     member this.Ui(name: string, value: string) = this.Send(Ui(name, None, value, None))
 
@@ -1473,3 +1490,156 @@ let ``accepting an outside edit is audited, and revisions made before the trail 
 
     // Revision 2 was written on github.com: no entry tells of it.
     Assert.Contains("before Chrona kept its history", (Project.project reader.Model |> Map.ofList)["detailHistoryNote"] |> function Chrona.Engine.View.Value(Chrona.Engine.View.Text t) -> t | other -> failwith $"%A{other}")
+
+// ---- The device's timer (WI-0055: 10.1, 10.2, 10.5, 23) -------------------------------------------
+
+let private startTimer (device: Device) =
+    device.Ui("timerActivityType", activityType device.Model)
+    device.Ui("timerProject", project device.Model)
+    device.Ui("timerDescription", "Deep work")
+    device.Ui("startTimer", "")
+    Assert.True(match device.Model.Timer with Timer.Running _ -> true | _ -> false)
+
+let private timerKeyOf = TimerRecord.key "org_acme" "github:583231"
+
+[<Fact>]
+let ``a running timer survives a refresh, and is recovered with its elapsed time from its timestamps`` () =
+    let github = InMemoryStore()
+    let browser = Browser()
+    let device = Device(github, RepositoryVisibility.Private, "production", browser)
+    device.Open()
+    record device "08:00" "08:30" "Setup"
+    startTimer device
+    Assert.True(browser.Storage.ContainsKey timerKeyOf)
+
+    // The page is reloaded 25 minutes later.
+    let reloaded = Device(github, RepositoryVisibility.Private, "production", browser)
+    reloaded.Now <- start.AddMinutes 25.0
+    reloaded.Open()
+
+    match reloaded.Model.Timer with
+    | Timer.Running timer -> Assert.Equal(25, Timer.elapsedMinutes reloaded.Now timer)
+    | other -> failwith $"%A{other}"
+
+    Assert.Equal("Your records are open. Your timer was recovered and is still running: 25m so far.", reloaded.Model.Announcement)
+
+[<Fact>]
+let ``a stopped timer's held time survives a refresh until it is completed, then the device lets it go`` () =
+    let github = InMemoryStore()
+    let browser = Browser()
+    let device = Device(github, RepositoryVisibility.Private, "production", browser)
+    device.Open()
+    record device "08:00" "08:30" "Setup"
+    startTimer device
+    device.Now <- start.AddMinutes 40.0
+    device.Ui("stopTimer", "")
+
+    let reloaded = Device(github, RepositoryVisibility.Private, "production", browser)
+    reloaded.Now <- start.AddMinutes 45.0
+    reloaded.Open()
+    Assert.Equal(40, reloaded.Model.Stopped.Value.TotalMinutes)
+
+    reloaded.Ui("completePurpose", "Delivery")
+    reloaded.Ui("saveCompletion", "")
+    Assert.True(reloaded.Model.Stopped.IsNone)
+    Assert.False(browser.Storage.ContainsKey timerKeyOf)
+    Assert.Contains("Deep work", descriptions reloaded)
+
+[<Fact>]
+let ``a kept timer that cannot be read is left as it is, and another account never sees this one's`` () =
+    let github = InMemoryStore()
+    let browser = Browser()
+    browser.Storage[timerKeyOf] <- "{not a timer"
+    let device = Device(github, RepositoryVisibility.Private, "production", browser)
+    device.Open()
+    Assert.Equal("Your records are open. A timer kept in this browser could not be read. It was left as it is.", device.Model.Announcement)
+    Assert.Equal("{not a timer", browser.Storage[timerKeyOf])
+
+    // octocat's timer, then hubot on the same browser.
+    browser.Storage.Remove timerKeyOf |> ignore
+    record device "08:00" "08:30" "Setup"
+    device.Ui("memberId", "1001")
+    device.Ui("memberName", "hubot")
+    device.Ui("memberAccess", "ownTime")
+    device.Ui("admitMember", "")
+    startTimer device
+    let other = Device(github, RepositoryVisibility.Private, "production", hubot, configuration "production", browser)
+    other.Open()
+    Assert.Equal(Timer.Idle, other.Model.Timer)
+    Assert.True(browser.Storage.ContainsKey timerKeyOf)
+
+[<Fact>]
+let ``starting offline, the timer keeps working and the unsent changes are counted`` () =
+    let github = InMemoryStore()
+    let browser = Browser()
+    let device = Device(github, RepositoryVisibility.Private, "production", browser)
+    device.Open()
+    record device "08:00" "08:30" "Setup"
+    startTimer device
+    device.Offline <- true
+    record device "09:00" "10:00" "Pairing"
+
+    // The page starts again while GitHub cannot be reached.
+    let offline = Device(github, RepositoryVisibility.Private, "production", browser)
+    offline.Offline <- true
+    offline.Now <- start.AddMinutes 30.0
+    offline.Open()
+    Assert.True(offline.Model.Store.Failure.IsSome)
+    let view () = Project.project offline.Model |> Map.ofList
+    Assert.Equal(Chrona.Engine.View.Value(Chrona.Engine.View.Flag true), (view ())["offlineTimer"])
+    Assert.Equal(Chrona.Engine.View.Value(Chrona.Engine.View.Text "1 change waits in this browser and is sent when your records open."), (view ())["offlineWaiting"])
+
+    // Pausing and stopping work without the records; the time is held, and kept.
+    offline.Ui("pauseTimer", "")
+    Assert.True(match offline.Model.Timer with Timer.Paused _ -> true | _ -> false)
+    offline.Ui("stopTimer", "")
+    Assert.Equal(30, offline.Model.Stopped.Value.TotalMinutes)
+    Assert.Contains("\"stopped\"", browser.Storage[timerKeyOf])
+
+[<Fact>]
+let ``a running timer that overlaps time recorded on another device is an obligation with a stable code`` () =
+    let github = InMemoryStore()
+    let browser = Browser()
+    let laptop = Device(github, RepositoryVisibility.Private, "production", browser)
+    laptop.Open()
+    record laptop "08:00" "08:30" "Setup"
+    startTimer laptop
+
+    // Meanwhile, the phone records 14:15 to 14:35 today.
+    let phone = Device(github, RepositoryVisibility.Private, "production")
+    phone.Now <- start.AddMinutes 40.0
+    phone.Open()
+    phone.Ui("manualActivityType", activityType phone.Model)
+    phone.Ui("manualProject", project phone.Model)
+    phone.Ui("manualStartDate", "2026-10-08")
+    phone.Ui("manualEndDate", "2026-10-08")
+    phone.Ui("manualStartTime", "14:15")
+    phone.Ui("manualEndTime", "14:35")
+    phone.Ui("manualDescription", "Call")
+    phone.Ui("manualPurpose", "Delivery")
+    phone.Ui("saveManual", "")
+    Assert.Equal(None, phone.Model.Store.Problem)
+
+    let reopened = Device(github, RepositoryVisibility.Private, "production", browser)
+    reopened.Now <- start.AddMinutes 45.0
+    reopened.Open()
+    let title = rowText "obligations" "title" reopened.Model
+    Assert.Equal("Your timer overlaps \"Call\", recorded since it started", title)
+    Assert.Contains("CHRONA.TIMER.CONCURRENT_CONFLICT", rowText "obligations" "detail" reopened.Model)
+
+[<Fact>]
+let ``signing out with a timer on the device asks first, like unsent changes`` () =
+    let github = InMemoryStore()
+    let browser = Browser()
+    let device = Device(github, RepositoryVisibility.Private, "production", browser)
+    device.Open()
+    record device "08:00" "08:30" "Setup"
+    startTimer device
+
+    device.Ui("signOut", "")
+    Assert.Equal(Some ChoosingUnsent, device.Model.Identity.SignOut)
+    device.Ui("signOutDiscard", "")
+    Assert.Equal(Chrona.Engine.View.Value(Chrona.Engine.View.Text "Discard your timer? They will not be saved anywhere, and this cannot be undone."), (Project.project device.Model |> Map.ofList)["signOutDiscardText"])
+    device.Ui("signOutDiscardConfirmed", "")
+    Assert.True(signedOut device)
+    Assert.False(browser.Storage.ContainsKey timerKeyOf)

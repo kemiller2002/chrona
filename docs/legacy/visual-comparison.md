@@ -49,7 +49,7 @@ Forma cannot yet express some of the legacy presentation: the dark sidebar, the 
 ## Changing a baseline
 
 1. Push the change.
-2. CI's "Compare the screens with their baselines" step fails and uploads the rendered images: the `*-actual.png` files in the `playwright-traces` artifact.
+2. CI's "Compare the screens with their baselines" step fails and uploads the rendered images in the `playwright-traces` artifact: `*-actual.png` for a changed screen, and a removed baseline rendered under `tests/visual/baselines/`.
 3. Check them against this page.
 4. Copy them over `tests/visual/baselines/` and push again.
 

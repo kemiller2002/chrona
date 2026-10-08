@@ -23,6 +23,7 @@
     <Compile Include="BrandTokenTests.fs" />
     <Compile Include="CompatibilityTests.fs" />
     <Compile Include="LegacyRuleTests.fs" />
+    <Compile Include="ReferenceTests.fs" />
   </ItemGroup>
 
   <ItemGroup>

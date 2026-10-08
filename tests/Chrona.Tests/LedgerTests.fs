@@ -4,6 +4,7 @@ module Chrona.Tests.LedgerTests
 
 open System
 open Xunit
+open Chrona.Tests.Support
 open Chrona.Domain.Diagnostics
 open Chrona.Domain.Time
 open Chrona.Domain.Activity
@@ -16,7 +17,7 @@ let private zone =
 
 let private day = DateOnly(2026, 10, 7)
 let private at (h: int) (m: int) = DateTimeOffset(2026, 10, 7, h + 4, m, 0, TimeSpan.Zero) // EDT
-let private context = { Performer = "ACTOR-1"; At = DateTimeOffset(2026, 10, 7, 22, 0, 0, TimeSpan.Zero); Source = "chrona-web"; Zone = zone; CorrelationId = Some "corr-1" }
+let private context = { Performer = "ACTOR-1"; At = DateTimeOffset(2026, 10, 7, 22, 0, 0, TimeSpan.Zero); Source = "chrona-web"; Zone = zone; References = references; CorrelationId = Some "corr-1" }
 
 let private evidence id = { Id = id; Url = $"https://example.test/{id}"; Kind = "commit"; Label = id; CapturedAt = at 8 0; Hash = None }
 
@@ -33,6 +34,7 @@ let private activity id (startH, startM) minutes =
         { ProjectId = "PRJ-1"; ClientId = None; EngagementId = None; ActivityTypeId = "ACT-DEV"; Tags = []; Description = "Work"; BusinessPurpose = "Delivery" }
       EntryMethod = Manual
       Billability = Billable
+      BillingReference = noBillingReference
       Record = Recorded
       Review = Unsubmitted
       Publication = Unpublished
@@ -61,7 +63,7 @@ let private get id (ledger: Ledger) = ledger.Activities[id]
 [<Fact>]
 let ``scenario 10 and 32: a command against a stale revision is a conflict, never last-write-wins`` () =
     let ledger = run [ Record(activity "A1" (9, 0) 60) ]
-    let amend description = { Classification = Some { (get "A1" ledger).Classification with Description = description }; Billability = None; Retime = None; Reason = "fix" }
+    let amend description = { Classification = Some { (get "A1" ledger).Classification with Description = description }; Billability = None; BillingReference = None; Retime = None; Reason = "fix" }
     // Two devices both edit revision 1. The first wins; the second is refused.
     let first = execute context ledger (Amend("A1", 1, amend "Device A")) |> ok
     Assert.Equal<Diagnostic list>([ RevisionConflict(1, 2) ], execute context first (Amend("A1", 1, amend "Device B")) |> refused)
@@ -132,7 +134,7 @@ let ``merge refuses incompatible sources explicitly`` () =
 [<Fact>]
 let ``scenarios 37 and 38: changing published or invoiced time creates a correction obligation`` () =
     let ledger = run [ Record { activity "A1" (9, 0) 60 with Publication = Published }; Record { activity "A2" (11, 0) 60 with Publication = InvoicedExternally } ]
-    let amendment = { Classification = None; Billability = None; Retime = None; Reason = "client asked" }
+    let amendment = { Classification = None; Billability = None; BillingReference = None; Retime = None; Reason = "client asked" }
     Assert.Equal(AdjustmentRequired, (get "A1" (execute context ledger (Amend("A1", 1, amendment)) |> ok)).Publication)
     Assert.Equal(AdjustmentRequired, (get "A1" (execute context ledger (Void("A1", 1, "wrong")) |> ok)).Publication)
     // Chrona may correct its own truth even after Summa invoiced the time,
@@ -146,17 +148,17 @@ let ``scenarios 37 and 38: changing published or invoiced time creates a correct
 [<Fact>]
 let ``scenario 22: changing reviewed time reopens its review`` () =
     let ledger = run [ Record { activity "A1" (9, 0) 60 with Review = Approved }; Record { activity "A2" (11, 0) 60 with Review = Submitted } ]
-    let amendment = { Classification = None; Billability = None; Retime = None; Reason = "late correction" }
+    let amendment = { Classification = None; Billability = None; BillingReference = None; Retime = None; Reason = "late correction" }
     Assert.Equal(Reopened, (get "A1" (execute context ledger (Amend("A1", 1, amendment)) |> ok)).Review)
     Assert.Equal(Reopened, (get "A2" (execute context ledger (Void("A2", 1, "wrong")) |> ok)).Review)
 
 [<Fact>]
 let ``amending billability moves the publication state with it, and retiming rechecks overlap`` () =
     let ledger = run [ Record(activity "A1" (9, 0) 60); Record(activity "A2" (11, 0) 60) ]
-    let nonBillable = execute context ledger (Amend("A1", 1, { Classification = None; Billability = Some NonBillable; Retime = None; Reason = "internal" })) |> ok
+    let nonBillable = execute context ledger (Amend("A1", 1, { Classification = None; Billability = Some NonBillable; BillingReference = None; Retime = None; Reason = "internal" })) |> ok
     Assert.Equal(NotBillable, (get "A1" nonBillable).Publication)
     let retime = Some(occurrence zone (at 10 30), Interval(at 10 30, at 11 30), 60)
-    Assert.Equal<Diagnostic list>([ OverlapsActivity "A2" ], execute context ledger (Amend("A1", 1, { Classification = None; Billability = None; Retime = retime; Reason = "moved" })) |> refused)
+    Assert.Equal<Diagnostic list>([ OverlapsActivity "A2" ], execute context ledger (Amend("A1", 1, { Classification = None; Billability = None; BillingReference = None; Retime = retime; Reason = "moved" })) |> refused)
 
 [<Fact>]
 let ``every transition is audited with revisions, reason and correlation; refusals are not`` () =

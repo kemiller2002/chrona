@@ -44,6 +44,8 @@ type CommandContext =
       At: DateTimeOffset
       Source: string
       Zone: Zone
+      /// The organization's reference data: new assignments name active items.
+      References: Reference.Catalogue
       CorrelationId: string option }
 
 /// What an amendment may change. A timing change carries the re-derived
@@ -51,6 +53,7 @@ type CommandContext =
 type Amendment =
     { Classification: Classification option
       Billability: Billability option
+      BillingReference: BillingReference option
       Retime: (Occurrence * Timing * int) option
       Reason: string }
 
@@ -119,10 +122,17 @@ let private bump (context: CommandContext) (activity: Activity) =
 /// The creation rules a record must satisfy whenever it is recorded, amended
 /// or restored: a complete classification and no overlap (R2: amended
 /// fields are revalidated by the same rules as creation).
-let private valid (context: CommandContext) (ledger: Ledger) (candidate: Activity) =
+///
+/// `previous` is what the record already carried: references it keeps stay
+/// valid after they are archived; newly assigned ones must be active.
+let private valid (context: CommandContext) (ledger: Ledger) (previous: Classification list) (candidate: Activity) =
     let others = ledger.Activities |> Map.toList |> List.map snd
 
-    match classificationProblems candidate.Classification @ Overlap.check context.Zone others candidate with
+    match
+        classificationProblems candidate.Classification
+        @ Reference.assignmentProblems context.References previous candidate.Classification
+        @ Overlap.check context.Zone others candidate
+    with
     | [] -> Ok candidate
     | problems -> Error problems
 
@@ -147,7 +157,7 @@ let private apply (context: CommandContext) (ledger: Ledger) (command: Command) 
     match command with
     | Record activity when ledger.Activities.ContainsKey activity.ActivityId ->
         Error [ IllegalTransition("Recorded", "create") ]
-    | Record activity -> valid context ledger activity >>= fun a -> Ok [ a ]
+    | Record activity -> valid context ledger [] activity >>= fun a -> Ok [ a ]
 
     | Amend(id, expected, amendment) ->
         find ledger id expected
@@ -160,6 +170,7 @@ let private apply (context: CommandContext) (ledger: Ledger) (command: Command) 
                         Review = reopenIfReviewed activity.Review
                         Classification = defaultArg amendment.Classification activity.Classification
                         Billability = defaultArg amendment.Billability activity.Billability
+                        BillingReference = defaultArg amendment.BillingReference activity.BillingReference
                         Publication =
                             match amendment.Billability, publication with
                             | Some NonBillable, (Unpublished | ReadyForPublication) -> NotBillable
@@ -171,7 +182,7 @@ let private apply (context: CommandContext) (ledger: Ledger) (command: Command) 
                     | None -> changed
                     | Some(occurrence, timing, minutes) -> { changed with Occurrence = occurrence; Timing = timing; Minutes = minutes }
 
-                valid context ledger changed >>= fun a -> Ok [ a ]
+                valid context ledger [ activity.Classification ] changed >>= fun a -> Ok [ a ]
 
     | Void(id, expected, reason) ->
         find ledger id expected
@@ -187,7 +198,7 @@ let private apply (context: CommandContext) (ledger: Ledger) (command: Command) 
             match activity.Record with
             | Voided _ ->
                 // Restoring rechecks overlap against the ledger as it is now.
-                valid context ledger { bump context activity with Record = Recorded } >>= fun a -> Ok [ a ]
+                valid context ledger [ activity.Classification ] { bump context activity with Record = Recorded } >>= fun a -> Ok [ a ]
             | other -> Error [ IllegalTransition(recordStateName other, "restore") ]
 
     | Split(id, expected, parts) ->
@@ -206,7 +217,13 @@ let private apply (context: CommandContext) (ledger: Ledger) (command: Command) 
                   if List.distinct assigned <> assigned || not (Set.isSubset (Set.ofList assigned) evidenceIds) then
                       EvidenceAssignmentInvalid
                   // A reclassified child obeys the creation rules too.
-                  yield! parts |> List.collect (fun p -> p.Classification |> Option.map classificationProblems |> Option.defaultValue []) |> List.distinct ]
+                  yield!
+                      parts
+                      |> List.collect (fun p ->
+                          match p.Classification with
+                          | Some c -> classificationProblems c @ Reference.assignmentProblems context.References [ source.Classification ] c
+                          | None -> [])
+                      |> List.distinct ]
 
             if not problems.IsEmpty then
                 Error problems
@@ -303,7 +320,10 @@ let private apply (context: CommandContext) (ledger: Ledger) (command: Command) 
                         LastChangedAt = context.At
                         Review = Unsubmitted }
 
-                match classificationProblems merged.Classification with
+                match
+                    classificationProblems merged.Classification
+                    @ Reference.assignmentProblems context.References (items |> List.map _.Classification) merged.Classification
+                with
                 | [] -> Ok(merged :: (items |> List.map (fun a -> { bump context a with Record = Superseded [ newId ] })))
                 | problems -> Error problems
 

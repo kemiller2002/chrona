@@ -240,6 +240,7 @@ let toActivities (now: DateTimeOffset) (newId: int -> string) (billability: Bill
                   Classification = classification
                   EntryMethod = Timer
                   Billability = billability
+                  BillingReference = noBillingReference
                   Record = Recorded
                   Review = Unsubmitted
                   Publication = if billability = NonBillable then NotBillable else Unpublished

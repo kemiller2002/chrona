@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "repository": "chrona",
-  "nextSeq": 45,
+  "nextSeq": 46,
   "items": [
     {
       "id": "WI-0001",
@@ -610,8 +610,8 @@
     },
     {
       "id": "WI-0031",
-      "title": "Chrona 06: reference data - clients, projects, activity types, tags, rate references and billing class (CHX-040, CHX-080 remainder, CHX-063 remainder)",
-      "description": "Depends on WI-0028. Reference data as authoritative records with archive semantics (scenario 15, archived references), plus the rate reference, billing class and contract identifiers that CHX-080 still lacks.",
+      "title": "Chrona 06: reference data on Arca - authoritative reference records, their storage and administration across devices (CHX-040 remainder, CHX-063 remainder)",
+      "description": "Depends on WI-0028. The pure catalogue, archive semantics, assignment rules and billing references were built in memory by WI-0045; this item makes reference data authoritative records stored through Arca (organization-scoped, shared across devices and people) and wires the CHX-063 remainder (Summa's InvoicedExternally report and ReadyForPublication staging).",
       "tags": [
         "chrona",
         "order:06",
@@ -621,7 +621,7 @@
       "status": "captured",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:47.656Z",
-      "updatedAt": "2026-10-08T07:43:47.656Z",
+      "updatedAt": "2026-10-08T09:03:25.766Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",
@@ -958,6 +958,32 @@
       "attachments": [],
       "createdAt": "2026-10-08T08:48:15.864Z",
       "updatedAt": "2026-10-08T08:48:15.864Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0045",
+      "title": "Chrona 06a: reference data domain - clients, projects, engagements, activity types and tags with archive semantics, assignment rules, and billing references (CHX-040, CHX-080 remainder, scenario 15), in memory",
+      "description": "The pure, storage-independent part of WI-0031: an organization-scoped reference catalogue with stable ids and active/archived state; newly assigned references must exist and be active, unchanged ones stay valid when archived (legacy rule); rate reference, billing class and contract identifiers on the activity. Ledger and manual entry enforce it. Persistence on Arca stays with WI-0031.",
+      "tags": [
+        "chrona",
+        "order:06a",
+        "reference-data",
+        "domain"
+      ],
+      "priority": "high",
+      "status": "ready",
+      "attachments": [],
+      "createdAt": "2026-10-08T09:03:20.886Z",
+      "updatedAt": "2026-10-08T09:03:26.113Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

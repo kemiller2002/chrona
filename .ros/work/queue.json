@@ -1367,10 +1367,10 @@
       "description": "Split from WI-0054. Recent project and activity-type combinations offered in the timer and manual forms, configurable common durations that set a visible end time from the start, and copying an earlier entry as a new draft; convenience never changes exact time silently. Requirement 33.",
       "tags": [],
       "priority": "medium",
-      "status": "ready",
+      "status": "complete",
       "attachments": [],
       "createdAt": "2026-10-08T16:25:38Z",
-      "updatedAt": "2026-10-08T16:25:43Z",
+      "updatedAt": "2026-10-08T16:34:16Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

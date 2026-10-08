@@ -267,8 +267,26 @@ type IdentityMode =
     /// provider, never typed.
     | SignedInMode
 
+/// Signing out while this account's changes have not reached GitHub
+/// (WI-0058): nothing is lost silently, and nothing is left behind on the
+/// device unknowingly.
+type SignOutStep =
+    /// The person chooses: send them now, keep them on this device for this
+    /// account (when the deployment allows), or discard them.
+    | ChoosingUnsent
+    /// Sending them; signed out once every one is stored.
+    | SendingUnsent
+    /// Confirming that they are discarded.
+    | ConfirmingDiscard
+    /// Discarding them; signed out once they are gone.
+    | DiscardingUnsent
+
 type IdentityState =
     { Mode: IdentityMode
+      /// Signing out, while changes are unsent.
+      SignOut: SignOutStep option
+      /// Why sending them did not finish, for the person.
+      SignOutNote: string option
       Retention: Retention
       /// The code of the last sign-in outcome to tell the person about, for
       /// example `state_expired` or `signed_out`.
@@ -290,6 +308,8 @@ type IdentityChange =
 
 let initialIdentity =
     { Mode = Configuring
+      SignOut = None
+      SignOutNote = None
       Retention = ThisPage
       Notice = None
       Callback = [] }

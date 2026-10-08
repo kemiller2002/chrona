@@ -1048,6 +1048,24 @@ let private identityView (model: Model) =
       text "signInNotice" (notice |> Option.map noticeText |> Option.defaultValue "")
       text "signInNoticeCode" (notice |> Option.defaultValue "")
       flag "accountSignedIn" (identity.Mode = SignedInMode)
+      // Signing out with unsent changes (WI-0058).
+      flag "signOutChoosing" (identity.SignOut = Some ChoosingUnsent)
+      flag "signOutSending" (identity.SignOut = Some SendingUnsent)
+      flag "signOutConfirming" (identity.SignOut = Some ConfirmingDiscard)
+      flag "signOutDiscarding" (identity.SignOut = Some DiscardingUnsent)
+      flag "signOutCannotSend" (not (Update.canSendUnsent model))
+      flag "signOutCannotKeep" (not (Update.canKeepUnsent model))
+      text
+          "signOutSummary"
+          (let count = Update.unsentCount model
+           (if count = 1 then "1 change has" else $"{count} changes have")
+           + " not reached GitHub. Signing out must not leave them behind without your knowing.")
+      text "signOutNote" (identity.SignOutNote |> Option.defaultValue "")
+      text
+          "signOutDiscardText"
+          (let count = Update.unsentCount model
+           (if count = 1 then "Discard 1 change?" else $"Discard {count} changes?")
+           + " They will not be saved anywhere, and this cannot be undone.")
       flag "accountLocal" (identity.Mode = LocalOnly)
       text "accountLogin" model.Session.DisplayName
       text "accountProvider" (match model.Session.Kind with SignedIn provider -> provider | LocalSession -> "")

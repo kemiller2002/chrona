@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "repository": "chrona",
-  "nextSeq": 57,
+  "nextSeq": 59,
   "items": [
     {
       "id": "WI-0001",
@@ -1209,13 +1209,13 @@
     {
       "id": "WI-0055",
       "title": "Chrona 08b: the active timer persisted across refresh and restart, recovered at startup, and concurrent timers across devices as obligations (CHX-101, CHX-102, CHX-105, CHX-260 remainder)",
-      "description": "Split from WI-0033, which became the offline change queue. The active timer is kept in this browser's storage per organization and person (Limen Storage, never a competing authority: it holds the device's own unfinished timer, not records), restored and recovered explicitly at startup with its elapsed time derived from its segments (Timer.recover), never silently discarded. A running timer that overlaps time another device stored since is a reconciliation obligation with a stable diagnostic (the concurrent timer conflict, requirement 26). Scenarios 4 and 9. Also the CHX-230 remainder: starting while GitHub cannot be reached, the persisted timer and this browser's unsent changes are shown and the timer keeps working, without reading records from anywhere but GitHub.",
+      "description": "Split from WI-0033, which became the offline change queue. The active timer is kept in this browser's storage per organization and person (Limen Storage, never a competing authority: it holds the device's own unfinished timer, not records), restored and recovered explicitly at startup with its elapsed time derived from its segments (Timer.recover), never silently discarded. A running timer that overlaps time another device stored since is a reconciliation obligation with a stable diagnostic (the concurrent timer conflict, requirement 26). Scenarios 4 and 9. Starting while GitHub cannot be reached: the persisted timer and this browser's unsent changes are shown and the timer keeps working; opening the records themselves offline is WI-0057 (read cache, waits on Limen IndexedDB).",
       "tags": [],
       "priority": "high",
       "status": "captured",
       "attachments": [],
       "createdAt": "2026-10-08T14:27:00Z",
-      "updatedAt": "2026-10-08T14:37:41Z",
+      "updatedAt": "2026-10-08T15:15:10Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",
@@ -1237,6 +1237,48 @@
       "attachments": [],
       "createdAt": "2026-10-08T14:59:18Z",
       "updatedAt": "2026-10-08T14:59:18Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0057",
+      "title": "Chrona 08c: offline start with a read cache (CHX-230 remainder)",
+      "description": "Depends on Limen's IndexedDB capability (its requirements are being written in the limen repository) and WI-0033. When GitHub cannot be reached at startup, open the organization's records from a read-only cache in IndexedDB so recording can start offline. GitHub stays the only authority: the cache is a rebuildable projection of what was last read (records with their revisions and the change token they were read at), never written to except from GitHub reads, discarded and rebuilt whenever it cannot be trusted, kept per account and organization, and cleared by the shared-device policy at sign-out. Changes made from it go through the offline queue, decided again on reconnect. No read cache on localStorage (coordinator decision 2026-10-08). Requirement 23 (CHX-230).",
+      "tags": [],
+      "priority": "medium",
+      "status": "captured",
+      "attachments": [],
+      "createdAt": "2026-10-08T15:09:22Z",
+      "updatedAt": "2026-10-08T15:09:22Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0058",
+      "title": "Chrona 08d: shared-device sign-out - unsent changes are never left behind unknowingly (CHX-230, CHX-023 remainders)",
+      "description": "Coordinator decision 2026-10-08. Signing out while this account has unsent changes in this browser asks the person to choose: send them now (when GitHub can be reached), keep them on this device for this account, or discard them after a confirmation that names how many. Nothing is lost silently and nothing is left behind unknowingly. The queue stays per account. A deployment setting sharedDevicePolicy chooses ask (the default) or discardOnSignOut, which offers only sending now or discarding. Tests for every path.",
+      "tags": [],
+      "priority": "high",
+      "status": "ready",
+      "attachments": [],
+      "createdAt": "2026-10-08T15:09:22Z",
+      "updatedAt": "2026-10-08T15:09:26Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

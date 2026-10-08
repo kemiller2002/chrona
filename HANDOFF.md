@@ -109,12 +109,14 @@ for the diagnosis, the evidence, and one unexercised watch item.
   dedicated data repository avoids needless reloads.
 - Offline (WI-0033): every change goes through Arca's offline queue, kept
   write-ahead in this browser's localStorage (Arca's LocalStorageQueue over
-  Limen Storage) and sent in order; a lost connection backs off and
+  Limen Storage) and sent in order; signing out with unsent changes asks
+  to send, keep (per account) or discard them, per the deployment's
+  `sharedDevicePolicy` (WI-0058); a lost connection backs off and
   retries, the queue survives refresh and restart and is sent after the
   records open, and a change the repository moved under is decided again
   and revised or becomes a conflict. The sync state is shown. Opening the
-  records still needs GitHub; the persisted timer and starting offline are
-  WI-0055.
+  records still needs GitHub; the persisted timer is WI-0055, and starting
+  offline from an IndexedDB read cache is WI-0057 (waits on Limen).
 - Derived state (WI-0034): the activity index, an Arca derived index under
   `derived/indexes/activity-months.json` with one entry per activity record,
   is written in the same commit as the records it covers, so it is always

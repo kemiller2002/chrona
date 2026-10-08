@@ -72,6 +72,7 @@ type private Device(github: InMemoryStore, visibility: RepositoryVisibility, env
     let mutable disconnect = false
     /// Waits the store asked for (its back-off), not yet over.
     let sleeping = Collections.Generic.List<string>()
+    let mutable signingOut = false
 
     let unreachable () =
         async.Return(Error(StorageFailure.ProviderFailed("AEGIS.NETWORK.UNAVAILABLE", true, "GitHub could not be reached")))
@@ -145,9 +146,17 @@ type private Device(github: InMemoryStore, visibility: RepositoryVisibility, env
             | ConfirmAdministrator -> store.Confirm()
             | ReadMonths dates -> store.Read dates
             | RebuildIndex -> store.Rebuild()
+            | SendUnsent -> store.SendNow()
+            | DiscardUnsent -> store.Discard()
+            // Fides signs the person out; the page hears it.
+            | SignOut -> signingOut <- true
             | _ -> ()
 
         this.Settle()
+
+        if signingOut then
+            signingOut <- false
+            this.Send(IdentityChanged(SignedOutWith(Some "signed_out")))
 
     /// Answers the browser calls the store made (localStorage, waits) and
     /// feeds back every message, until nothing is left.
@@ -1277,3 +1286,126 @@ let ``every projection is rebuilt from the stored records alone`` () =
         let view (d: Device) = Project.project d.Model |> List.filter (fst >> ephemeral >> not)
         let differing = List.zip (view device) (view reader) |> List.filter (fun (a, b) -> a <> b)
         Assert.True(differing.IsEmpty, $"{route}: %A{differing}")
+
+// ---- Signing out with unsent changes (WI-0058) -------------------------------------------------
+
+let private signedOut (device: Device) =
+    match device.Model.Identity.Mode with
+    | SignInRequired _ -> true
+    | _ -> false
+
+/// A device in a shared browser whose next change cannot reach GitHub.
+let private unsentOn (browser: Browser) (config: Deployment.DeploymentConfig) =
+    let github = InMemoryStore()
+    let device = Device(github, RepositoryVisibility.Private, "production", octocat, config, browser)
+    device.Open()
+    record device "08:00" "08:30" "Setup"
+    device.Offline <- true
+    record device "09:00" "10:00" "Pairing"
+    Assert.Equal(1, device.Model.Store.Pending.Length)
+    github, device
+
+[<Fact>]
+let ``signing out with nothing unsent signs out at once`` () =
+    let github = InMemoryStore()
+    let device = Device(github, RepositoryVisibility.Private, "production")
+    device.Open()
+    record device "08:00" "08:30" "Setup"
+    device.Ui("signOut", "")
+    Assert.True(signedOut device)
+
+[<Fact>]
+let ``signing out with unsent changes asks first, and keeping them leaves them for this account only`` () =
+    let browser = Browser()
+    let github, device = unsentOn browser (configuration "production")
+    let commits = github.State.History.Length
+
+    device.Ui("signOut", "")
+    Assert.False(signedOut device)
+    Assert.Equal(Some ChoosingUnsent, device.Model.Identity.SignOut)
+    Assert.StartsWith("1 change has not reached GitHub", (Project.project device.Model |> Map.ofList)["signOutSummary"] |> function Chrona.Engine.View.Value(Chrona.Engine.View.Text t) -> t | other -> failwith $"%A{other}")
+
+    device.Ui("signOutKeep", "")
+    Assert.True(signedOut device)
+    Assert.Equal(1, (queued browser).Length)
+    Assert.Equal(commits, github.State.History.Length)
+
+    // The same account, back online, sends them.
+    let back = Device(github, RepositoryVisibility.Private, "production", browser)
+    back.Open()
+    Assert.Equal(commits + 1, github.State.History.Length)
+    Assert.Empty(queued browser)
+
+[<Fact>]
+let ``discarding unsent changes at sign-out needs a confirmation that names how many`` () =
+    let browser = Browser()
+    let github, device = unsentOn browser (configuration "production")
+    let commits = github.State.History.Length
+
+    device.Ui("signOut", "")
+    device.Ui("signOutDiscard", "")
+    Assert.Equal(Some ConfirmingDiscard, device.Model.Identity.SignOut)
+    Assert.Equal(Chrona.Engine.View.Value(Chrona.Engine.View.Text "Discard 1 change? They will not be saved anywhere, and this cannot be undone."), (Project.project device.Model |> Map.ofList)["signOutDiscardText"])
+
+    // Changing one's mind keeps them, signed in.
+    device.Ui("signOutCancel", "")
+    Assert.Equal(None, device.Model.Identity.SignOut)
+    Assert.Equal(1, (queued browser).Length)
+
+    device.Ui("signOut", "")
+    device.Ui("signOutDiscard", "")
+    device.Ui("signOutDiscardConfirmed", "")
+    Assert.True(signedOut device)
+    Assert.Empty(queued browser)
+
+    device.Offline <- false
+    let back = Device(github, RepositoryVisibility.Private, "production", browser)
+    back.Open()
+    Assert.Equal(commits, github.State.History.Length)
+
+[<Fact>]
+let ``sending unsent changes at sign-out signs out once they are stored, or comes back when they cannot be sent`` () =
+    let browser = Browser()
+    let github, device = unsentOn browser (configuration "production")
+    let commits = github.State.History.Length
+
+    // Still offline: the choice comes back, saying why.
+    device.Ui("signOut", "")
+    device.Ui("signOutSend", "")
+    Assert.False(signedOut device)
+    Assert.Equal(Some ChoosingUnsent, device.Model.Identity.SignOut)
+    Assert.Equal(Some "GitHub cannot be reached, so they could not be sent.", device.Model.Identity.SignOutNote)
+
+    // Online again: they are sent, and then the person is signed out.
+    device.Offline <- false
+    device.Ui("signOutSend", "")
+    Assert.Equal(commits + 1, github.State.History.Length)
+    Assert.True(signedOut device)
+    Assert.Empty(queued browser)
+
+[<Fact>]
+let ``a deployment that keeps nothing on shared devices offers only sending or discarding`` () =
+    let config =
+        """{"environment":"production","environmentName":"production","sharedDevicePolicy":"discardOnSignOut","location":{"owner":"acme","repository":"chrona-data","branch":"main","basePath":"deployments"},"identity":{"exchange":"https://fides.test","application":"chrona-test","provider":"github","clientId":"Iv23liTEST","redirectUri":"https://chrona.test/"},"organizations":[{"id":"org_acme","displayName":"Acme Consulting","slug":"acme","timeZone":"America/New_York","administrators":["583231"]}]}"""
+        |> Deployment.parse
+        |> ok
+
+    Assert.Equal(Deployment.DiscardOnSignOut, config.SharedDevice)
+    let browser = Browser()
+    let _, device = unsentOn browser config
+    device.Ui("signOut", "")
+    Assert.Equal(Chrona.Engine.View.Value(Chrona.Engine.View.Flag true), (Project.project device.Model |> Map.ofList)["signOutCannotKeep"])
+
+    // Keeping is not offered, and asking for it does nothing.
+    device.Ui("signOutKeep", "")
+    Assert.False(signedOut device)
+    Assert.Equal(1, (queued browser).Length)
+
+[<Fact>]
+let ``the shared-device policy is ask unless the deployment says otherwise, and nothing else is accepted`` () =
+    Assert.Equal(Deployment.Ask, (configuration "production").SharedDevice)
+
+    let refused =
+        """{"environment":"local","environmentName":"local","sharedDevicePolicy":"forget"}""" |> Deployment.parse
+
+    Assert.True(Result.isError refused)

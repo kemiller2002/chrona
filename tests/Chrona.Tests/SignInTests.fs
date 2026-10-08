@@ -159,6 +159,8 @@ let ``signing out leaves nothing of the person in the page`` () =
         |> step (Ui("addProject", None, "", None))
 
     Assert.False(model.References.Items.IsEmpty)
+    // The change is stored first: nothing is left unsent.
+    let model, _ = (model, []) |> step (StoreAnswered(model.Store.Pending.Head.CommitId, Committed))
     let model, effects = (model, []) |> step (Ui("signOut", None, "", None))
     Assert.Equal<Effect list>([ SignOut ], effects)
 

@@ -1435,10 +1435,10 @@
         "conditor"
       ],
       "priority": "high",
-      "status": "ready",
+      "status": "complete",
       "attachments": [],
       "createdAt": "2026-10-08T16:44:36.599Z",
-      "updatedAt": "2026-10-08T16:44:36.000Z",
+      "updatedAt": "2026-10-08T16:46:38.000Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

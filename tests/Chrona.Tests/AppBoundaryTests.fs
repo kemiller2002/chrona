@@ -44,6 +44,7 @@ let private envWith (answer: StoreRequest -> StoreOutcome) =
           Store =
             { Kind = InMemory
               Open = fun _ _ _ -> ()
+              Confirm = fun () -> ()
               Commit =
                 fun request ->
                     requests.Add request

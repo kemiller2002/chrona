@@ -99,7 +99,8 @@ for the diagnosis, the evidence, and one unexercised watch item.
   outside Chrona. A local deployment keeps records in the tab. Tested
   against Arca's in-memory provider; the real check is WI-0052.
 - Rosters, people and organizations (WI-0031): member records in each
-  organization's folder; the founder administers; only members work;
+  organization's folder; only the configuration's listed administrators
+  set an organization up or administer it first (WI-0053); only members work;
   administrators add people and change their access under More; a
   deployment lists its organizations and a person chooses one. Publication
   staging (ReadyForPublication) and Summa's invoice report

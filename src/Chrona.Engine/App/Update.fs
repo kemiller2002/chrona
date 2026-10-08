@@ -30,6 +30,9 @@ type Msg =
     | StoreOpened of StoreContents
     /// The organization's records could not be read, and why.
     | StoreUnavailable of reason: string
+    /// The organization has no listed administrator: why, and whether this
+    /// person may confirm themselves as one.
+    | StoreNeedsConfirmation of reason: string * canConfirm: bool
     | EnvironmentDescribed of timeZone: string
     | EnvironmentUnavailable
     | LocationMoved of hash: string
@@ -65,6 +68,8 @@ type Effect =
     /// Open the organization's records at the deployment's location, as this
     /// session, reading what these dates need.
     | OpenStore of Deployment.DeploymentConfig * Session * dates: DateOnly list
+    /// Make this listed person the organization's administrator, then open it.
+    | ConfirmAdministrator
 
 /// The timer display refreshes once a second while running (the label is
 /// whole seconds); the engine computes it, never a client-side counter.
@@ -78,7 +83,7 @@ let ThisDevice = "this-browser"
 
 /// Every `data-event` name the page may send; anything else is a defect.
 let eventNames =
-    [ "signIn"; "signInRetention"; "signOut"; "retryStore"; "chooseOrganization"
+    [ "signIn"; "signInRetention"; "signOut"; "retryStore"; "chooseOrganization"; "confirmAdministrator"
       "memberId"; "memberName"; "memberAccess"; "admitMember"; "changeMemberAccess"; "removeMember"
       "navigate"; "goToday"; "goTrack"; "goMore"; "showDate"; "previousDay"; "nextDay"
       "timerActivityType"; "timerProject"; "timerDescription"; "startTimer"; "pauseTimer"; "resumeTimer"; "stopTimer"
@@ -934,7 +939,8 @@ let private openStore (model: Model) =
                 { model.Store with
                     Kind = Durable "GitHub"
                     Opening = true
-                    Failure = None } },
+                    Failure = None
+                    Confirmation = None } },
         [ OpenStore(config, model.Session, openingDates model) ]
     | _ -> model, []
 
@@ -955,6 +961,7 @@ let private storeOpened (contents: StoreContents) (model: Model) =
                 Kind = Durable contents.Name
                 Opening = false
                 Failure = None
+                Confirmation = None
                 Integrity = contents.Problems }
         Announcement = "Your records are open." },
     []
@@ -992,6 +999,8 @@ let private onIdentityEvent (name: string) (value: string) (model: Model) =
         { model with Identity = { identity with Mode = SignInRequired true; Notice = None } }, [ SignIn identity.Retention ]
     | "signOut", SignedInMode -> model, [ SignOut ]
     | "retryStore", SignedInMode when model.Store.Failure.IsSome -> openStore model
+    | "confirmAdministrator", SignedInMode when model.Store.Confirmation |> Option.exists snd ->
+        { model with Store = { model.Store with Opening = true; Confirmation = None } }, [ ConfirmAdministrator ]
     // Working in another of the deployment's organizations: nothing of the
     // current one stays in the page, and the other's records are opened.
     | "chooseOrganization", SignedInMode when value <> model.Session.OrganizationId ->
@@ -1022,6 +1031,8 @@ let update (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
     | StoreOpened contents -> storeOpened contents model
     | StoreUnavailable reason ->
         { model with Store = { model.Store with Opening = false; Failure = Some reason } }, []
+    | StoreNeedsConfirmation(reason, canConfirm) ->
+        { model with Store = { model.Store with Opening = false; Confirmation = Some(reason, canConfirm) } }, []
     | EnvironmentDescribed timeZone ->
         // An unknown zone falls back to UTC, visibly: the More screen says
         // which zone is in use.
@@ -1054,7 +1065,8 @@ let update (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
     | Copied false ->
         let text = "This browser did not allow copying. Select the text and copy it yourself."
         { model with CopyStatus = text; Announcement = text }, []
-    | Ui(("signIn" | "signInRetention" | "signOut" | "retryStore" | "chooseOrganization") as name, _, value, _) -> onIdentityEvent name value model
+    | Ui(("signIn" | "signInRetention" | "signOut" | "retryStore" | "chooseOrganization" | "confirmAdministrator") as name, _, value, _) ->
+        onIdentityEvent name value model
     // Nothing is recorded or shown for anyone until they may work.
     | Ui _ when not (canWork model) -> model, []
     | Ui(name, key, value, isChecked) -> authorized name key model (fun () -> onEvent ctx name key value isChecked model)

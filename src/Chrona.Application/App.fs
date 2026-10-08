@@ -160,6 +160,9 @@ let private requests (env: Env) (state: State) (effects: Update.Effect list) =
                 state, requests, immediate
             | Update.OpenStore(config, session, dates) ->
                 env.Store.Open config session dates
+                state, requests, immediate
+            | Update.ConfirmAdministrator ->
+                env.Store.Confirm()
                 state, requests, immediate)
         (state, [], [])
 

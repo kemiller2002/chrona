@@ -32,6 +32,7 @@
     <Compile Include="SignInTests.fs" />
     <Compile Include="AccessTests.fs" />
     <Compile Include="StoreTests.fs" />
+    <Compile Include="GovernanceTests.fs" />
     <Compile Include="AppEngineTests.fs" />
     <Compile Include="AppBoundaryTests.fs" />
   </ItemGroup>

@@ -43,6 +43,16 @@ provenance:
         model: unknown
         runtime: claude-code
       reason: "Organizations as a list, and people (WI-0031)"
+    EXE-20261008T134532885Z-23ecf533:
+      operations: [modified]
+      at: 2026-10-08T13:50:50.909Z
+      actor:
+        kind: agent
+        id: anthropic/claude-code
+        provider: anthropic
+        model: unknown
+        runtime: claude-code
+      reason: "Bootstrap administrators and the dedicated-repository recommendation (WI-0053)"
 ---
 
 # Configuring a Chrona deployment
@@ -66,8 +76,10 @@ The repository's copy is a local deployment; a deployment replaces it.
     "redirectUri": "https://chrona.acme.example/"
   },
   "organizations": [
-    { "id": "org_acme", "displayName": "Acme Consulting", "slug": "acme", "timeZone": "America/New_York" },
+    { "id": "org_acme", "displayName": "Acme Consulting", "slug": "acme", "timeZone": "America/New_York",
+      "administrators": [ "583231" ] },
     { "id": "org_eu", "displayName": "Acme Europe", "slug": "acme-eu", "timeZone": "Europe/Berlin",
+      "administrators": [ "583231", "1001" ],
       "location": { "owner": "acme-eu", "repository": "chrona-eu", "branch": "main", "basePath": "" } }
   ]
 }
@@ -84,7 +96,7 @@ The repository's copy is a local deployment; a deployment replaces it.
 | `identity.provider` | yes | `github`. |
 | `identity.clientId` | yes | The GitHub App's public client id. |
 | `identity.redirectUri` | yes | The page GitHub returns to, exactly as registered (the Chrona page's address). |
-| `organizations` | with `location` | The organizations the deployment serves, the default first. Each has an `id` (immutable; it names the organization's folder), `displayName`, `slug` (lower case), `timeZone` (IANA) and, optionally, a `location` of its own, for example to give its data its own permissions (CHX-DATALOC-004). |
+| `organizations` | with `location` | The organizations the deployment serves, the default first. Each has an `id` (immutable; it names the organization's folder), `displayName`, `slug` (lower case), `timeZone` (IANA), its bootstrap `administrators` (GitHub numeric account ids; see People) and, optionally, a `location` of its own, for example to give its data its own permissions (CHX-DATALOC-004). |
 
 A `location` needs `identity` (someone signed in must write the data) and at
 least one organization; organization ids are unique.
@@ -115,14 +127,35 @@ organization's folder `<basePath>/chrona/datasets/<id>`, with the
 organization's manifest. Every change is one commit, made only if the
 repository is still as it was read; when it moved, Chrona reloads and
 decides again, keeping others' independent changes and refusing a change
-that no longer fits (CHX-210). Records edited outside Chrona are held and
+that no longer fits (CHX-210).
+
+**Use a repository of Chrona's own.** That is the recommended setup. "Moved"
+means any commit to the repository, not only Chrona's: in a repository
+shared with other applications or other content, every one of their commits
+makes Chrona's next save reload and decide again. That is safe, but slower
+and uses more of the GitHub rate limit. A dedicated repository also gives
+Chrona's data its own permissions (CHX-DATALOC-004). Records edited outside Chrona are held and
 listed under More (CHX-410). The person's GitHub account needs write access
 to the repository; who may do what inside Chrona is its own roster
 (capabilities), separate from GitHub's permissions.
 
 ## People
 
-The person who sets an organization up founds it and administers it.
+The configuration is the root of trust. Each organization lists its
+bootstrap `administrators` by GitHub numeric account id (a person can find
+theirs at `https://api.github.com/users/<login>`, or on Chrona's page when
+they are not yet a member). Only a listed account can set an organization
+up, and it becomes the first administrator; opening an organization first
+grants nothing. With no administrators listed, an organization is not set
+up; production says so plainly. Only an explicitly `local` environment that
+lists no one keeps the first person to open an organization as its
+administrator.
+
+An organization whose roster has no administrator who is also listed (for
+example one set up before this rule) is held: nothing in it can be done,
+and nothing is granted, until a listed account signs in and confirms itself
+as administrator.
+
 Anyone else who signs in is told their GitHub account number and asked to
 pass it to an administrator, who adds them under More, People, with the
 access they need (keeping their own time, reviewing the organization's

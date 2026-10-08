@@ -28,6 +28,16 @@ provenance:
         model: unknown
         runtime: claude-code
       reason: "Record how records are stored on GitHub through Arca behind the store port (WI-0032)"
+    EXE-20261008T134532885Z-23ecf533:
+      operations: [modified]
+      at: 2026-10-08T13:50:51.345Z
+      actor:
+        kind: agent
+        id: anthropic/claude-code
+        provider: anthropic
+        model: unknown
+        runtime: claude-code
+      reason: "Bootstrap administrators and the dedicated-repository recommendation (WI-0053)"
 ---
 
 # DF-CHRONA-2026-0005 — Records on GitHub through Arca
@@ -75,16 +85,20 @@ and semantic conflicts surfaced.
    outcome is reconciled before anything is sent again.
 4. **Bounded reads.** A change to a month not yet read reads that month
    first, so it is never checked against less than what is stored.
-5. **The organization.** A storing deployment names the organization it
-   serves; a signed-in session works in it. Choosing between several
-   organizations, and storing rosters, is WI-0031.
+5. **The organization.** A storing deployment lists the organizations it
+   serves; a signed-in session works in one (WI-0031). Only the accounts the
+   configuration lists set an organization up or become its first
+   administrators (WI-0053); one without a listed administrator is held
+   until a listed account confirms.
 
 ## Consequences
 
 - Any commit to the repository (including other applications' in a shared
   repository) makes the next Chrona commit decide again. That is the
-  requirement's choice: correctness over fewer reloads. A repository of
-  its own avoids the extra reloads.
+  requirement's choice: correctness over fewer reloads, kept by decision
+  on 2026-10-08. A repository of Chrona's own is the recommended setup and
+  avoids the extra reloads; the check is not narrowed to Chrona's own
+  paths unless Arca supports that safely.
 - Manual-edit detection reads each loaded activity's history; derived
   indexes (WI-0034) can make that cheaper.
 - Offline durability (WI-0033) adds Arca's offline queue behind the same

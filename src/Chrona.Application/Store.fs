@@ -49,6 +49,8 @@ type Backend =
 type StorePort =
     { Kind: StoreKind
       Open: Deployment.DeploymentConfig -> Session -> DateOnly list -> unit
+      /// A listed administrator confirms an organization that has none.
+      Confirm: unit -> unit
       Commit: StoreRequest -> unit }
 
 /// A store that keeps nothing: every commit is acknowledged at once. For a
@@ -56,6 +58,7 @@ type StorePort =
 let inMemory (bridge: Bridge) : StorePort =
     { Kind = InMemory
       Open = fun _ _ _ -> bridge.Start(async { return [ Update.StoreUnavailable "This deployment stores nothing." ] })
+      Confirm = fun () -> ()
       Commit = fun request -> bridge.Start(async { return [ Update.StoreAnswered(request.CommitId, Committed) ] }) }
 
 // ---- GitHub, through the bridge ----------------------------------------------------
@@ -143,7 +146,9 @@ type private Opened =
       Token: ChangeToken
       Stored: Stored.Stored
       /// The months read so far.
-      Months: Set<int * int> }
+      Months: Set<int * int>
+      /// The organization as the deployment configures it.
+      Organization: Deployment.OrganizationConfig }
 
 let private describeFailure =
     function
@@ -265,6 +270,8 @@ let private revalidate (stored: Stored.Stored) (request: StoreRequest) =
 /// a deployment that configures a location.
 let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newKey: string -> string) : StorePort =
     let mutable opened: Opened option = None
+    /// Records read but held until a listed administrator confirms.
+    let mutable pending: Opened option = None
     let queue = Queue<unit -> Async<Update.Msg list>>()
     let mutable busy = false
 
@@ -436,31 +443,43 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                 | BranchAccess.NotWritable _ -> return Error $"The data branch {BranchName.value location.Branch} does not accept direct changes."
         }
 
-    /// The founder's membership, stored when the organization has none.
-    let found (state: Opened) =
+    /// Makes the session's person the organization's administrator: the
+    /// founder of a new organization, or a listed account confirming one
+    /// that has no listed administrator (Governance).
+    let appoint (state: Opened) =
         async {
-            if not state.Stored.Members.IsEmpty then
-                return Ok state
-            else
-                let founder = (Access.founded state.Session.OrganizationId (principalOf state.Session)).Members[state.Session.ActorId]
-                let changed = { Stored.nothing with Members = [ founder ] }
+            let roster = Stored.roster state.Session.OrganizationId state.Stored
+            let membership = Governance.administrator (principalOf state.Session) roster
+            let changed = { Stored.nothing with Members = [ membership ] }
 
-                match Stored.changes state.Stored changed, operationContext state.Session (newKey "found") (now ()) with
-                | Ok changes, Ok context ->
-                    match Storage.operation state.Folder context "found the organization" changes with
-                    | Error diagnostics -> return Error($"The organization could not be founded ({describeAll diagnostics}).")
-                    | Ok operation ->
-                        match! state.Provider.Commit(Operation.requireChangeToken state.Token operation) with
-                        | Ok receipt ->
-                            return
-                                Ok
-                                    { state with
-                                        Token = receipt.ChangeToken
-                                        Stored = Stored.committed changed receipt state.Stored }
-                        | Error failure -> return Error(describeFailure failure)
-                | Error diagnostics, _
-                | _, Error diagnostics -> return Error($"The organization could not be founded ({describeAll diagnostics}).")
+            match Stored.changes state.Stored changed, operationContext state.Session (newKey "appoint") (now ()) with
+            | Ok changes, Ok context ->
+                match Storage.operation state.Folder context "appoint an administrator" changes with
+                | Error diagnostics -> return Error($"The administrator could not be recorded ({describeAll diagnostics}).")
+                | Ok operation ->
+                    match! state.Provider.Commit(Operation.requireChangeToken state.Token operation) with
+                    | Ok receipt ->
+                        return
+                            Ok
+                                { state with
+                                    Token = receipt.ChangeToken
+                                    Stored = Stored.committed changed receipt state.Stored }
+                    | Error failure -> return Error(describeFailure failure)
+            | Error diagnostics, _
+            | _, Error diagnostics -> return Error($"The administrator could not be recorded ({describeAll diagnostics}).")
         }
+
+    /// Why an organization waits for a listed administrator, for this person.
+    let confirmationReason (organization: Deployment.OrganizationConfig) (canConfirm: bool) =
+        let accounts = organization.Administrators |> String.concat ", "
+
+        match canConfirm, organization.Administrators with
+        | true, _ ->
+            $"{organization.DisplayName} has no administrator from this deployment's configuration. You are one of its listed administrators: confirm to administer it."
+        | false, [] ->
+            $"{organization.DisplayName} has no administrator from this deployment's configuration, and the configuration lists none. Nothing can be done in it until the deployment lists one."
+        | false, _ ->
+            $"{organization.DisplayName} has no administrator from this deployment's configuration. One of its listed administrators (GitHub accounts {accounts}) must sign in and confirm first."
 
     let openJob (config: Deployment.DeploymentConfig) (session: Session) (dates: DateOnly list) () =
         async {
@@ -501,34 +520,85 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                             let provider = if separate then backend.Provider folder.Location else applicationProvider
                             let manifest = Organization.create organization.Id organization.DisplayName organization.Slug organization.TimeZone at
 
-                            match!
-                                ensure provider folder (fun () ->
-                                    context ()
-                                    |> Result.bind (fun context -> Storage.initializeOrganization config binding repository.Visibility None context manifest))
-                            with
-                            | Error reason -> return [ Update.StoreUnavailable reason ]
-                            | Ok() ->
-                                let months = dates |> List.map monthOf |> Set.ofList
+                            let! existing =
+                                async {
+                                    match Layout.manifestPath with
+                                    | Error error -> return Error(LocationError.describe error)
+                                    | Ok path ->
+                                        match! provider.Read folder path with
+                                        | Ok ReadOutcome.Absent -> return Ok false
+                                        | Ok(ReadOutcome.Found _) -> return Ok true
+                                        | Error failure -> return Error(describeFailure failure)
+                                }
 
-                                match! load provider folder session.ActorId months with
+                            let decideFor isNew roster =
+                                Governance.decide config.Environment organization isNew roster session.ActorId
+
+                            let nobody: Access.Roster = { OrganizationId = organization.Id; Members = Map.empty }
+
+                            match existing, decideFor true nobody with
+                            | Error reason, _ -> return [ Update.StoreUnavailable reason ]
+                            // Nothing is written for someone who may not set it up.
+                            | Ok false, Governance.Refused reason -> return [ Update.StoreUnavailable reason ]
+                            | Ok isExisting, _ ->
+                                match!
+                                    ensure provider folder (fun () ->
+                                        context ()
+                                        |> Result.bind (fun context -> Storage.initializeOrganization config binding repository.Visibility None context manifest))
+                                with
                                 | Error reason -> return [ Update.StoreUnavailable reason ]
-                                | Ok(token, stored) ->
-                                    let state =
-                                        { Session = session
-                                          Folder = folder
-                                          Provider = provider
-                                          Name = string folder.Location.Repository
-                                          Token = token
-                                          Stored = stored
-                                          Months = months }
+                                | Ok() ->
+                                    let months = dates |> List.map monthOf |> Set.ofList
 
-                                    // An organization without members is founded by the
-                                    // person who opens it: they administer it (3).
-                                    match! found state with
+                                    match! load provider folder session.ActorId months with
                                     | Error reason -> return [ Update.StoreUnavailable reason ]
-                                    | Ok state ->
-                                        opened <- Some state
-                                        return [ Update.StoreOpened(contents state) ]
+                                    | Ok(token, stored) ->
+                                        let state =
+                                            { Session = session
+                                              Folder = folder
+                                              Provider = provider
+                                              Name = string folder.Location.Repository
+                                              Token = token
+                                              Stored = stored
+                                              Months = months
+                                              Organization = organization }
+
+                                        let roster = Stored.roster organization.Id stored
+
+                                        match decideFor (not isExisting) roster with
+                                        | Governance.Proceed ->
+                                            opened <- Some state
+                                            return [ Update.StoreOpened(contents state) ]
+                                        | Governance.Found ->
+                                            match! appoint state with
+                                            | Error reason -> return [ Update.StoreUnavailable reason ]
+                                            | Ok state ->
+                                                opened <- Some state
+                                                return [ Update.StoreOpened(contents state) ]
+                                        | Governance.NeedsConfirmation canConfirm ->
+                                            // Nothing is granted: the records stay closed
+                                            // until a listed account confirms.
+                                            opened <- None
+                                            pending <- Some state
+                                            return [ Update.StoreNeedsConfirmation(confirmationReason organization canConfirm, canConfirm) ]
+                                        | Governance.Refused reason -> return [ Update.StoreUnavailable reason ]
+        }
+
+    /// A listed account confirms itself as the administrator of an
+    /// organization that has none from the configuration.
+    let confirmJob () =
+        async {
+            match pending with
+            | Some state when Deployment.isBootstrapAdministrator state.Organization state.Session.ActorId ->
+                pending <- None
+
+                match! appoint state with
+                | Error reason -> return [ Update.StoreUnavailable reason ]
+                | Ok state ->
+                    opened <- Some state
+                    return [ Update.StoreOpened(contents state) ]
+            | Some state -> return [ Update.StoreNeedsConfirmation(confirmationReason state.Organization false, false) ]
+            | None -> return [ Update.StoreUnavailable "There is nothing to confirm." ]
         }
 
     /// The most a commit is decided again after the repository moved.
@@ -627,6 +697,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
         fun config session dates ->
             requested <- true
             serial (openJob config session dates)
+      Confirm = fun () -> serial confirmJob
       Commit =
         fun request ->
             if requested then

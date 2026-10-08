@@ -951,9 +951,13 @@ let private membershipView (model: Model) =
         model.Identity.Mode = SignedInMode
         && not model.Store.Opening
         && model.Store.Failure.IsNone
+        && model.Store.Confirmation.IsNone
         && not (model.Roster.Members.ContainsKey me)
 
     [ flag "screenNotMember" notMember
+      flag "screenConfirmAdministrator" (model.Identity.Mode = SignedInMode && model.Store.Confirmation.IsSome)
+      text "confirmationDetail" (model.Store.Confirmation |> Option.map fst |> Option.defaultValue "")
+      flag "canConfirmAdministrator" (model.Store.Confirmation |> Option.exists snd)
       text
           "notMemberDetail"
           $"You signed in as {model.Session.DisplayName}. GitHub account {subject} is not a member of {organizationName model model.Session.OrganizationId}. Ask one of its administrators to add GitHub account {subject}."

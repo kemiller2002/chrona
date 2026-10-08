@@ -53,7 +53,7 @@ let private activity id (h, m) minutes =
       Lineage = []
       Source = None }
 
-let private evidence id = { Id = id; Url = $"https://example.test/{id}"; Kind = "url"; Label = id; CapturedAt = at 8 0; Hash = None }
+let private evidence id = { Id = id; Url = $"https://example.test/{id}"; Kind = "url"; Label = id; CapturedAt = at 8 0; Hash = None; Source = None; Notes = None }
 
 let private ok result =
     match result with

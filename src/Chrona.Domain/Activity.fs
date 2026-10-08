@@ -49,7 +49,11 @@ type Evidence =
       Kind: string
       Label: string
       CapturedAt: DateTimeOffset
-      Hash: string option }
+      Hash: string option
+      /// Where the evidence came from: a system or a person, in words.
+      Source: string option
+      /// Anything worth saying about it.
+      Notes: string option }
 
 /// Every problem with an evidence reference (24): it needs a label saying
 /// what it is; a URL, when given, must be an absolute http or https address

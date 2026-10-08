@@ -28,7 +28,10 @@
     <Compile Include="Deployment.fs" />
     <Compile Include="Storage.fs" />
     <Compile Include="ActivityRecord.fs" />
+    <Compile Include="ReferenceRecord.fs" />
+    <Compile Include="AttestationRecord.fs" />
     <Compile Include="Persistence.fs" />
+    <Compile Include="Stored.fs" />
   </ItemGroup>
 
   <ItemGroup>

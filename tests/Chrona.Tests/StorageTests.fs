@@ -29,7 +29,7 @@ let private codeOf (result: Result<'a, Diagnostic>) =
     | Error diagnostic -> code diagnostic
 
 let private configText (owner: string) (repository: string) (basePath: string) =
-    """{"environment":"production","environmentName":"production","location":{"owner":"OWNER","repository":"REPOSITORY","branch":"main","basePath":"BASE"}}"""
+    """{"environment":"production","environmentName":"production","location":{"owner":"OWNER","repository":"REPOSITORY","branch":"main","basePath":"BASE"},"identity":{"exchange":"https://fides.test","application":"chrona-test","provider":"github","clientId":"Iv23liTEST","redirectUri":"https://chrona.test/"},"organization":{"id":"org_acme","displayName":"Acme Consulting","slug":"acme","timeZone":"America/New_York"}}"""
         .Replace("OWNER", owner)
         .Replace("REPOSITORY", repository)
         .Replace("BASE", basePath)
@@ -164,7 +164,7 @@ let ``each organization has its own folder named by its immutable id`` () =
 [<Fact>]
 let ``an organization can keep its data in its own repository, for its own permissions`` () =
     let text =
-        """{"environment":"production","environmentName":"production","location":{"owner":"acme","repository":"chrona-data","branch":"main","basePath":"deployments/prod"},"organizations":{"org_eu":{"owner":"acme-eu","repository":"chrona-eu","branch":"main","basePath":""}}}"""
+        """{"environment":"production","environmentName":"production","location":{"owner":"acme","repository":"chrona-data","branch":"main","basePath":"deployments/prod"},"organizations":{"org_eu":{"owner":"acme-eu","repository":"chrona-eu","branch":"main","basePath":""}},"identity":{"exchange":"https://fides.test","application":"chrona-test","provider":"github","clientId":"Iv23liTEST","redirectUri":"https://chrona.test/"},"organization":{"id":"org_acme","displayName":"Acme Consulting","slug":"acme","timeZone":"America/New_York"}}"""
 
     let config = Deployment.parse text |> ok
     let binding = bindingOf config

@@ -1139,3 +1139,9 @@ textarea.chrona-export {
   color: var(--ef-color-text-secondary);
   font-size: 0.85rem;
 }
+
+/* Evidence source and notes are shown only when the reference has them. */
+.chrona-evidence__source:empty,
+.chrona-evidence__notes:empty {
+  display: none;
+}

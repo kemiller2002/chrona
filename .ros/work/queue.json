@@ -611,7 +611,7 @@
     {
       "id": "WI-0031",
       "title": "Chrona 06: reference data on Arca - authoritative reference records, their storage and administration across devices (CHX-040 remainder, CHX-063 remainder)",
-      "description": "Depends on WI-0028. The pure catalogue, archive semantics, assignment rules and billing references were built in memory by WI-0045; this item makes reference data authoritative records stored through Arca (organization-scoped, shared across devices and people) and wires the CHX-063 remainder (Summa's InvoicedExternally report and ReadyForPublication staging). Also the CHX-030 remainder: organization rosters (Access.Roster) stored as records beside the reference data, members admitted and capabilities granted or revoked across devices by those who hold ManageOrganizationSettings, and choosing the organization to work in when a person belongs to several.",
+      "description": "Depends on WI-0028. The pure catalogue, archive semantics, assignment rules and billing references were built in memory by WI-0045; this item makes reference data authoritative records stored through Arca (organization-scoped, shared across devices and people) and wires the CHX-063 remainder (Summa's InvoicedExternally report and ReadyForPublication staging). Also the CHX-030 remainder: organization rosters (Access.Roster) stored as records beside the reference data, members admitted and capabilities granted or revoked across devices by those who hold ManageOrganizationSettings, and choosing the organization to work in when a person belongs to several. Also the CHX-025 remainder: choosing the organization to work in when a person belongs to several, each opened from its own folder or repository.",
       "tags": [
         "chrona",
         "order:06",
@@ -621,7 +621,7 @@
       "status": "captured",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:47.656Z",
-      "updatedAt": "2026-10-08T12:44:58Z",
+      "updatedAt": "2026-10-08T13:15:26Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",
@@ -644,10 +644,10 @@
         "depends:arca"
       ],
       "priority": "high",
-      "status": "captured",
+      "status": "ready",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:47.968Z",
-      "updatedAt": "2026-10-08T12:44:59Z",
+      "updatedAt": "2026-10-08T12:54:05Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",
@@ -662,7 +662,7 @@
     {
       "id": "WI-0033",
       "title": "Chrona 08: offline use, persisted timer and sync reconciliation (CHX-101, CHX-102, CHX-105, CHX-200, CHX-230)",
-      "description": "Depends on WI-0032 and arca slice 9 (offline queue, ARCA-OFF) (offline queue). The timer and manual entry work offline. The active timer survives refresh and restart, and recovery runs at startup. Sync state is visible. Reconnection reconciles idempotently. Conflicts become visible obligations. Startup reconciliation is non-blocking, resumable and paged. Scenarios 4, 33 and 34.",
+      "description": "Depends on WI-0032 and arca slice 9 (offline queue, ARCA-OFF) (offline queue). The timer and manual entry work offline. The active timer survives refresh and restart, and recovery runs at startup. Sync state is visible. Reconnection reconciles idempotently. Conflicts become visible obligations. Startup reconciliation is non-blocking, resumable and paged. Scenarios 4, 33 and 34. Also the CHX-021 remainder: offline durability in browser storage (Arca's OfflineQueue with LocalStorageQueue behind the store port) that never becomes a competing authority.",
       "tags": [
         "chrona",
         "order:08",
@@ -673,7 +673,7 @@
       "status": "captured",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:48.284Z",
-      "updatedAt": "2026-10-08T07:43:48.284Z",
+      "updatedAt": "2026-10-08T13:15:27Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",
@@ -688,7 +688,7 @@
     {
       "id": "WI-0034",
       "title": "Chrona 09: rebuildable derived state - indexes, totals, approval and publication projections (CHX-400)",
-      "description": "Depends on WI-0032 and arca slice 10 (derived indexes and migration, ARCA-MIG). Every projection is rebuildable from authoritative records, and Git history is only evidence. Scenario 40.",
+      "description": "Depends on WI-0032 and arca slice 10 (derived indexes and migration, ARCA-MIG). Every projection is rebuildable from authoritative records, and Git history is only evidence. Scenario 40. Also the CHX-220 and CHX-380 remainders: rebuildable projections and cached derived indexes (Arca Derived) so reads beyond the current period stay bounded.",
       "tags": [
         "chrona",
         "order:09",
@@ -698,7 +698,7 @@
       "status": "captured",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:48.598Z",
-      "updatedAt": "2026-10-08T07:43:48.598Z",
+      "updatedAt": "2026-10-08T13:15:27Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",
@@ -713,7 +713,7 @@
     {
       "id": "WI-0035",
       "title": "Chrona 10: product UI remainder on Arca and Fides - sign-in, sync state and conflict resolution, persisted timer, offline and browser reliability, visual regression (CHX-003, CHX-005, CHX-320, CHX-330, CHX-340, CHX-350, CHX-360, CHX-370)",
-      "description": "Depends on WI-0032, WI-0033 and WI-0029. The in-memory screens are WI-0046 and WI-0047; this item completes the UI once storage and sign-in exist: sign-in through Fides, view sync state and resolve conflicts, the timer persisted across refresh and restart, browser reliability (refresh, back/forward, suspension, service-worker update, stale shell, cellular), mobile and screen-reader scenarios 42-44 end to end, and visual regression against the legacy screens.",
+      "description": "Depends on WI-0032, WI-0033 and WI-0029. The in-memory screens are WI-0046 and WI-0047; this item completes the UI once storage and sign-in exist: sign-in through Fides, view sync state and resolve conflicts, the timer persisted across refresh and restart, browser reliability (refresh, back/forward, suspension, service-worker update, stale shell, cellular), mobile and screen-reader scenarios 42-44 end to end, and visual regression against the legacy screens. Also the CHX-410 remainder (reviewing and accepting a record edited outside Chrona, Persistence.acceptExternalEdit, from the application) and the CHX-260 remainder (a stable diagnostic code for an unresolved semantic conflict, with its resolution screen).",
       "tags": [
         "chrona",
         "order:10",
@@ -725,7 +725,7 @@
       "status": "captured",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:48.917Z",
-      "updatedAt": "2026-10-08T09:09:15.160Z",
+      "updatedAt": "2026-10-08T13:15:27Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",
@@ -765,7 +765,7 @@
     {
       "id": "WI-0037",
       "title": "Chrona 12: consume Summa's Chrona-to-Summa contracts package through conditor.json; Chrona.Integration and publication transport (CHX-170 remainder, CHX-180, CHX-063 remainder, CHX-450 remainder)",
-      "description": "Depends on summa item \"Summa 01: Chrona-to-Summa contracts package\" (the contracts package; the receiving application owns the contract, so Summa owns it, user decision 2026-10-08) and WI-0032. Declare the pinned contracts package in conditor.json, build the receiver-owned Chrona.Integration assembly, publish approved billable projections with idempotent publication ids, and handle InvoicedExternally and AdjustmentRequired feedback. Scenarios 35-38. Completes the CHX-450 architectural boundary: Chrona decides authoritative time, Summa owns the financial consequence.",
+      "description": "Depends on summa item \"Summa 01: Chrona-to-Summa contracts package\" (the contracts package; the receiving application owns the contract, so Summa owns it, user decision 2026-10-08) and WI-0032. Declare the pinned contracts package in conditor.json, build the receiver-owned Chrona.Integration assembly, publish approved billable projections with idempotent publication ids, and handle InvoicedExternally and AdjustmentRequired feedback. Scenarios 35-38. Completes the CHX-450 architectural boundary: Chrona decides authoritative time, Summa owns the financial consequence. Also the CHX-390 remainder for publications: a publication without its source activity revision is detected.",
       "tags": [
         "chrona",
         "order:12",
@@ -778,7 +778,7 @@
       "status": "captured",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:49.540Z",
-      "updatedAt": "2026-10-08T07:43:49.540Z",
+      "updatedAt": "2026-10-08T13:15:28Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",
@@ -793,7 +793,7 @@
     {
       "id": "WI-0038",
       "title": "Chrona 13: observation inboxes on Arca - reading producer inboxes, durable candidates and receipts, startup reconciliation (CHX-190 remainder, CHX-200, CHX-120 import path remainder, CHX-250 import audit remainder)",
-      "description": "Depends on WI-0032. Inbox processing with overlap checks on import and audited outcomes. Scenarios 25-30. The pure processing rules are WI-0050; this item stores candidates and receipts through Arca and reads producer inboxes.",
+      "description": "Depends on WI-0032. Inbox processing with overlap checks on import and audited outcomes. Scenarios 25-30. The pure processing rules are WI-0050; this item stores candidates and receipts through Arca and reads producer inboxes. Also the CHX-390 remainder for receipts: a receipt without a durable processing result is detected.",
       "tags": [
         "chrona",
         "order:13",
@@ -803,7 +803,7 @@
       "status": "captured",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:49.855Z",
-      "updatedAt": "2026-10-08T11:00:45.350Z",
+      "updatedAt": "2026-10-08T13:15:28Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",
@@ -1146,13 +1146,13 @@
     {
       "id": "WI-0052",
       "title": "Chrona 04b: real end-to-end sign-in against a deployed Fides exchange and GitHub App (CHX-022 remainder)",
-      "description": "Waits on the user's deployment: Fides is not deployed anywhere yet (no AWS account, domain or GitHub App). When a Fides exchange is hosted (Fides docs/hosting/AWS.md) with Chrona registered (origin and redirect URI) and a GitHub App exists, write that deployment's chrona.deployment.json (docs/deployment-configuration.md), sign in with a real GitHub account, check the identity Chrona shows is GitHub's, that the token is kept as chosen and revoked on sign-out, that a refresh after eight hours works, and that the exchange's CORS allows exactly the deployment's origin. WI-0029 built and tested all of it against a fake exchange and GitHub; this is the check against the real ones.",
+      "description": "Waits on the user's deployment: Fides is not deployed anywhere yet (no AWS account, domain or GitHub App). When a Fides exchange is hosted (Fides docs/hosting/AWS.md) with Chrona registered (origin and redirect URI) and a GitHub App exists, write that deployment's chrona.deployment.json (docs/deployment-configuration.md), sign in with a real GitHub account, check the identity Chrona shows is GitHub's, that the token is kept as chosen and revoked on sign-out, that a refresh after eight hours works, and that the exchange's CORS allows exactly the deployment's origin. WI-0029 built and tested all of it against a fake exchange and GitHub; this is the check against the real ones. Also the CHX-021 check against a real repository: the records open, a first sign-in sets up the folders, commits land as one commit each with Arca's trailers, and a public production repository is refused.",
       "tags": [],
       "priority": "medium",
       "status": "captured",
       "attachments": [],
       "createdAt": "2026-10-08T12:33:30Z",
-      "updatedAt": "2026-10-08T12:33:30Z",
+      "updatedAt": "2026-10-08T13:15:28Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

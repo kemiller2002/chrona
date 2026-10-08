@@ -24,22 +24,30 @@ let private now = DateTimeOffset(2026, 10, 8, 14, 10, 0, TimeSpan.FromHours -4.0
 /// The test's clock: tests move it forward explicitly.
 let private clock = ref now
 
+/// Every commit is acknowledged, as a store that keeps nothing does.
+let private committed (_: StoreRequest) = Committed
+
 /// An environment whose store records what it was asked and answers as told.
 let private envWith (answer: StoreRequest -> StoreOutcome) =
     clock.Value <- now
     let requests = ResizeArray<StoreRequest>()
     let ids = ref 0
 
+    let bridge = Bridge.Bridge()
+
     let env: App.Env =
         { Now = fun () -> clock.Value
           NewId = fun prefix -> $"{prefix}-{Threading.Interlocked.Increment ids}"
           Session = App.localSession
-          Identity = Identity.create (fun () -> clock.Value) (fun count -> Array.create count 7uy)
-          StoreKind = InMemory
+          Bridge = bridge
+          Identity = Identity.create bridge (fun () -> clock.Value) (fun count -> Array.create count 7uy)
           Store =
-            fun request ->
-                requests.Add request
-                answer request }
+            { Kind = InMemory
+              Open = fun _ _ _ -> ()
+              Commit =
+                fun request ->
+                    requests.Add request
+                    bridge.Start(async { return [ Chrona.Engine.App.Update.StoreAnswered(request.CommitId, answer request) ] }) } }
 
     env, requests
 
@@ -102,7 +110,7 @@ let private describedAs (zone: string) (state: App.State, text: string) =
 [<Fact>]
 let ``Initialize accepts the core contract and selects the schedule and environment packs`` () =
     let _, aegis = collector ()
-    let env, _ = envWith App.inMemoryStore
+    let env, _ = envWith committed
     let _, text = handle aegis env App.initial initialize
     let handshake = (reply text).["handshake"]
     Assert.Equal("Accepted", handshake.["kind"].GetValue<string>())
@@ -130,7 +138,7 @@ let ``Initialize accepts the core contract and selects the schedule and environm
 [<Fact>]
 let ``a pack offered at another fingerprint is not selected`` () =
     let _, aegis = collector ()
-    let env, _ = envWith App.inMemoryStore
+    let env, _ = envWith committed
     let stale = """{"id":"limen.schedule","version":1,"fingerprint":"sha256:00"}"""
     let _, text = handle aegis env App.initial (initializeWith events (offer stale) "")
     Assert.Equal(0, (reply text).["handshake"].["capabilities"].AsArray().Count)
@@ -142,7 +150,7 @@ let ``a pack offered at another fingerprint is not selected`` () =
 [<Fact>]
 let ``a kernel without Navigation is refused as an unavailable capability`` () =
     let sink, aegis = collector ()
-    let env, _ = envWith App.inMemoryStore
+    let env, _ = envWith committed
     let state, text = handle aegis env App.initial (initializeWith """["Storage"]""" (offer "") "")
     Assert.True(viewFlag "hasOperationalFault" text)
     Assert.Equal<string list>([ Boundary.CapabilityUnavailable ], recordedCodes sink)
@@ -151,7 +159,7 @@ let ``a kernel without Navigation is refused as an unavailable capability`` () =
 [<Fact>]
 let ``a kernel without Http or Storage is refused: configuration and sign-in need them`` () =
     let sink, aegis = collector ()
-    let env, _ = envWith App.inMemoryStore
+    let env, _ = envWith committed
     let state, text = App.handle aegis env App.initial (initializeWith """["Navigation","Clipboard"]""" (offer "") "")
     Assert.True(viewFlag "hasOperationalFault" text)
     Assert.Equal<string list>([ Boundary.CapabilityUnavailable ], recordedCodes sink)
@@ -160,7 +168,7 @@ let ``a kernel without Http or Storage is refused: configuration and sign-in nee
 [<Fact>]
 let ``a contract mismatch is answered with the reason and leaves the page unbound`` () =
     let _, aegis = collector ()
-    let env, _ = envWith App.inMemoryStore
+    let env, _ = envWith committed
     let wrong = """{"protocol":{"major":1,"minor":4},"contract":{"unit":"limen.core","version":1,"fingerprint":"sha256:00"},"capabilities":[]}"""
     let state, text = handle aegis env App.initial (initializeWith events wrong "")
     Assert.Equal("Rejected", (reply text).["handshake"].["kind"].GetValue<string>())
@@ -170,7 +178,7 @@ let ``a contract mismatch is answered with the reason and leaves the page unboun
 [<Fact>]
 let ``the described time zone becomes the business zone`` () =
     let _, aegis = collector ()
-    let env, _ = envWith App.inMemoryStore
+    let env, _ = envWith committed
     let state, text = run aegis env [ initialize ]
     let id = (effects text).Head.["correlationId"].GetValue<string>()
     let _, text = handle aegis env state (capabilityResult id "limen.environment" """{"kind":"Described","environment":{"locale":"en-US","languages":["en-US"],"timeZone":"America/New_York","direction":"ltr","preferences":[]}}""")
@@ -179,7 +187,7 @@ let ``the described time zone becomes the business zone`` () =
 [<Fact>]
 let ``navigation is a same-origin push of the page path and fragment; the result moves the route`` () =
     let _, aegis = collector ()
-    let env, _ = envWith App.inMemoryStore
+    let env, _ = envWith committed
     let state, _ = run aegis env [ initialize ]
     let state, text = handle aegis env state (event "navigate" (Some "more") "")
 
@@ -202,7 +210,7 @@ let ``navigation is a same-origin push of the page path and fragment; the result
 [<Fact>]
 let ``a running timer asks the schedule pack for one-second wake-ups, and a fired wake-up re-arms`` () =
     let _, aegis = collector ()
-    let env, _ = envWith App.inMemoryStore
+    let env, _ = envWith committed
 
     let started = handle aegis env App.initial initialize
     let described = handle aegis env (fst started) (describedAs "America/New_York" started) |> fst
@@ -242,14 +250,14 @@ let ``every commit goes through the store port, and its answer is shown`` () =
     Assert.Equal<string list>([ "HelixNote" ], request.References |> List.map _.Name)
     Assert.Equal("Not saved: changed elsewhere", viewText "storeHeadline" text)
 
-    let env, _ = envWith App.inMemoryStore
+    let env, _ = envWith committed
     let _, text = run aegis env [ initialize; event "newProjectName" None "HelixNote"; event "addProject" None "" ]
     Assert.Equal("Kept in this tab only", viewText "storeHeadline" text)
 
 [<Fact>]
 let ``a result nobody requested, or a result kind the app never asks for, is a classified fault`` () =
     let sink, aegis = collector ()
-    let env, _ = envWith App.inMemoryStore
+    let env, _ = envWith committed
     let state, _ = run aegis env [ initialize ]
     let before = state.Model.Value.Route
 
@@ -269,7 +277,7 @@ let ``a result nobody requested, or a result kind the app never asks for, is a c
 [<Fact>]
 let ``a malformed message is a classified fault that changes nothing`` () =
     let sink, aegis = collector ()
-    let env, _ = envWith App.inMemoryStore
+    let env, _ = envWith committed
     let state, _ = run aegis env [ initialize ]
     let after, text = handle aegis env state """{"kind":"Event","event":{"kind":"Event"}}"""
     Assert.True(viewFlag "hasOperationalFault" text)
@@ -302,7 +310,7 @@ let private toggled (name: string) (key: string) (on: bool) =
 /// activity with evidence and history, and a month.
 let private richViews () =
     let _, aegis = collector ()
-    let env, _ = envWith App.inMemoryStore
+    let env, _ = envWith committed
     let started = handle aegis env App.initial initialize
     let send (state: App.State) message = fst (handle aegis env state message)
     let view (state: App.State) = Chrona.Engine.App.Project.project state.Model.Value
@@ -399,7 +407,12 @@ let private richViews () =
         let limitedState = { state with Model = Some { model with Roster = limited } }
         [ event "periodCadence" None "monthly"; event "copyExport" None "" ] |> List.fold send limitedState
 
-    [ activity; review; month; today; view restricted ]
+    // Records read from storage that need attention.
+    let troubled =
+        let model = state.Model.Value
+        { state with Model = Some { model with Store = { model.Store with Integrity = [ Chrona.Domain.Diagnostics.ExternalEdit "records/chrona.activity/a/2026/10/A-1.json" ] } } }
+
+    [ activity; review; month; today; view restricted; view troubled ]
 
 [<Fact>]
 let ``the application page binds only what its engine projects and sends only what it handles`` () =
@@ -432,7 +445,7 @@ let ``the application page binds only what its engine projects and sends only wh
 [<Fact>]
 let ``an export is copied through Limen's clipboard effect, and its answer is shown`` () =
     let _, aegis = collector ()
-    let env, _ = envWith App.inMemoryStore
+    let env, _ = envWith committed
     let state, _ = run aegis env [ initialize; event "goReports" None "" ]
     let state, text = handle aegis env state (event "copyExport" None "")
     let copy = (effects text).Head
@@ -447,7 +460,7 @@ let ``an export is copied through Limen's clipboard effect, and its answer is sh
 [<Fact>]
 let ``without the clipboard effect the page says so at once; without the print pack nothing is requested`` () =
     let _, aegis = collector ()
-    let env, _ = envWith App.inMemoryStore
+    let env, _ = envWith committed
     let noClipboard = initializeWith """["Http","Storage","Navigation"]""" (offer $"{schedule},{environment}") "#/reports"
     let state, _ = run aegis env [ noClipboard ]
     let state, text = handle aegis env state (event "copyExport" None "")
@@ -459,7 +472,7 @@ let ``without the clipboard effect the page says so at once; without the print p
 [<Fact>]
 let ``the print pack is selected when offered and opens the print dialog`` () =
     let _, aegis = collector ()
-    let env, _ = envWith App.inMemoryStore
+    let env, _ = envWith committed
     let printOffer = $"""{{"id":"chrona.print","version":1,"fingerprint":"{AppProtocol.print.Fingerprint}"}}"""
     let state, text = run aegis env [ initializeWith events (offer $"{schedule},{environment},{printOffer}") "#/reports" ]
     Assert.Equal(3, (reply text).["handshake"].["capabilities"].AsArray().Count)

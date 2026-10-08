@@ -52,7 +52,7 @@ for the diagnosis, the evidence, and one unexercised watch item.
 - Requirement coverage per section is tracked in
   [`docs/requirements/implementation-gap-analysis.md`](docs/requirements/implementation-gap-analysis.md)
   (`CHX-NNM` ids, baseline and current columns; `GapAnalysisTests` holds the
-  counts). 18 tested, 39 partial, 6 missing of 63 (baseline 0 / 7 / 56).
+  counts). 25 tested, 33 partial, 5 missing of 63 (baseline 0 / 7 / 56).
 - `src/Chrona.Domain` is the pure time domain: `Diagnostics`, `Time`,
   `Activity`, `Overlap`, `ManualEntry` (WI-0020), `Ledger` (WI-0021),
   `Timer` (WI-0022), `Billing` and `Review` (WI-0023), `Compatibility`
@@ -91,8 +91,15 @@ for the diagnosis, the evidence, and one unexercised watch item.
   and per-organization rosters; the engine checks every command by
   capability (`Update.requirement`). The session's person founds and
   administers the in-memory organization until rosters are stored (WI-0031).
-- Not built: driving storage through Arca's GitHub adapter (WI-0032),
-  stored rosters and member administration (WI-0031), offline sync,
+- Storage on GitHub (WI-0032, DF-CHRONA-2026-0005): `Chrona.Application.Store`
+  runs Arca's provider (the GitHub adapter through the bridge, tokens from
+  Fides) behind the store port: it opens the organization's records after
+  sign-in, writes one commit per command conditioned on the repository
+  state, reloads and decides again when it moved, and holds records edited
+  outside Chrona. A local deployment keeps records in the tab. Tested
+  against Arca's in-memory provider; the real check is WI-0052.
+- Not built: stored rosters, member administration and choosing an
+  organization (WI-0031), offline sync (WI-0033), derived indexes (WI-0034),
   `Chrona.Integration` (Summa owns the contract), submission and approval screens (need actors and
   authorization, WI-0030 after Fides), and reports over stored data across
   people and organizations (WI-0039).
@@ -104,9 +111,8 @@ for the diagnosis, the evidence, and one unexercised watch item.
 
 ## Next action (time domain)
 
-Storage through Arca's GitHub adapter with Fides' token provider (WI-0032),
-then reference data and rosters on Arca (WI-0031); then Summa's contract
-package (WI-0037).
+Reference data administration and rosters on Arca (WI-0031); then Summa's
+contract package (WI-0037).
 
 ## Unresolved questions
 

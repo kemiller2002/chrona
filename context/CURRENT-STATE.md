@@ -37,11 +37,12 @@ and feel and its rules, rebuilt on Limen, Forma, Aegis and Folio
 
 ## Not yet built
 
-Driving storage through Arca's GitHub adapter from the engine (WI-0032),
-reference data and rosters on Arca (WI-0031), real sign-in
+Stored rosters and choosing an organization (WI-0031), real sign-in and
+storage
 against a deployed Fides exchange (WI-0052), offline sync, and the
-Summa contract (owned and published by Summa). Today the application keeps
-its data in the tab's memory.
+Summa contract (owned and published by Summa). A deployment with a data
+location keeps its records on GitHub through Arca (WI-0032); a local
+deployment keeps them in the tab.
 
 ## Legacy data
 

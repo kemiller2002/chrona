@@ -57,7 +57,8 @@ let wanted = [ schedule; environment; print; host ]
 
 /// What came back for an Http request (Limen's EffectOutcome).
 type HttpResult =
-    | HttpSucceeded of status: int * body: string
+    /// A response; the headers are those the request asked for, names in lower case.
+    | HttpSucceeded of status: int * headers: (string * string) list * body: string
     | HttpFailed of reason: string
     | HttpCancelled
     /// The request may or may not have reached the server.
@@ -149,10 +150,23 @@ let private effectResult (node: JsonNode) =
         let result =
             match required "kind" at asString outcome with
             | "Success" ->
-                let body =
-                    optional "body" at asString outcome |> Option.defaultValue ""
+                let body = optional "body" at asString outcome |> Option.defaultValue ""
 
-                HttpSucceeded(required "status" at asInt outcome, body)
+                let headers =
+                    match tryField "headers" outcome with
+                    | Some found ->
+                        match found with
+                        | :? JsonObject as headers ->
+                            headers
+                            |> Seq.choose (fun pair ->
+                                pair.Value
+                                |> Option.ofObj
+                                |> Option.map (fun value -> pair.Key.ToLowerInvariant(), asString $"{at}.headers.{pair.Key}" value))
+                            |> List.ofSeq
+                        | _ -> []
+                    | None -> []
+
+                HttpSucceeded(required "status" at asInt outcome, headers, body)
             | "Failure" -> HttpFailed(required "reason" at asString outcome)
             | "Cancelled" -> HttpCancelled
             | "OutcomeUnknown" -> HttpUnknown(required "reason" at asString outcome)
@@ -250,7 +264,14 @@ type Request =
     | Copy of correlationId: string * text: string
     | PrintPage of correlationId: string
     /// An Http request whose response body is read as text.
-    | Http of correlationId: string * method: string * url: string * headers: (string * string) list * body: string option * timeoutMs: int
+    | Http of
+        correlationId: string *
+        method: string *
+        url: string *
+        headers: (string * string) list *
+        body: string option *
+        timeoutMs: int *
+        responseHeaders: string list
     | StorageGet of correlationId: string * key: string
     | StorageSet of correlationId: string * key: string * value: string
     | StorageRemove of correlationId: string * key: string
@@ -322,7 +343,7 @@ let private writeRequest (writer: Utf8JsonWriter) (request: Request) =
         writer.WriteString("operation", "writeText")
         writer.WriteString("text", text)
     | PrintPage correlationId -> writeCapability writer correlationId print (fun w -> w.WriteString("action", "print"))
-    | Http(correlationId, method, url, headers, body, timeoutMs) ->
+    | Http(correlationId, method, url, headers, body, timeoutMs, responseHeaders) ->
         writer.WriteString("kind", "Http")
         writer.WriteString("correlationId", correlationId)
         writer.WriteString("method", method)
@@ -338,6 +359,12 @@ let private writeRequest (writer: Utf8JsonWriter) (request: Request) =
         writer.WriteNumber("timeoutMs", timeoutMs)
         writer.WriteString("response", "text")
         writer.WriteString("credentials", "omit")
+
+        if not responseHeaders.IsEmpty then
+            writer.WritePropertyName "responseHeaders"
+            writer.WriteStartArray()
+            responseHeaders |> List.iter writer.WriteStringValue
+            writer.WriteEndArray()
     | StorageGet(correlationId, key) ->
         writer.WriteString("kind", "Storage")
         writer.WriteString("operation", "get")

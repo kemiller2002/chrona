@@ -291,7 +291,10 @@ let private activityFrom (context: DecisionContext) (candidate: Candidate) (clas
                   Kind = kind
                   Label = reference
                   CapturedAt = o.ObservedAt
-                  Hash = None })
+                  Hash = None
+                  // Evidence from an observation comes from its producer.
+                  Source = Some o.SourceSystem
+                  Notes = None })
           Lineage = []
           Source =
             Some

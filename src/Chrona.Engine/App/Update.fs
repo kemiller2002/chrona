@@ -26,6 +26,10 @@ type Msg =
     /// The deployment's configuration document, or None when it could not be read.
     | ConfigurationRead of text: string option
     | IdentityChanged of IdentityChange
+    /// The organization's records, read from the store.
+    | StoreOpened of StoreContents
+    /// The organization's records could not be read, and why.
+    | StoreUnavailable of reason: string
     | EnvironmentDescribed of timeZone: string
     | EnvironmentUnavailable
     | LocationMoved of hash: string
@@ -58,6 +62,9 @@ type Effect =
     | SignIn of Retention
     /// Clear every token this tab holds and revoke it at the provider.
     | SignOut
+    /// Open the organization's records at the deployment's location, as this
+    /// session, reading what these dates need.
+    | OpenStore of Deployment.DeploymentConfig * Session * dates: DateOnly list
 
 /// The timer display refreshes once a second while running (the label is
 /// whole seconds); the engine computes it, never a client-side counter.
@@ -71,7 +78,7 @@ let ThisDevice = "this-browser"
 
 /// Every `data-event` name the page may send; anything else is a defect.
 let eventNames =
-    [ "signIn"; "signInRetention"; "signOut"
+    [ "signIn"; "signInRetention"; "signOut"; "retryStore"
       "navigate"; "goToday"; "goTrack"; "goMore"; "showDate"; "previousDay"; "nextDay"
       "timerActivityType"; "timerProject"; "timerDescription"; "startTimer"; "pauseTimer"; "resumeTimer"; "stopTimer"
       "completeActivityType"; "completeProject"; "completeDescription"; "completePurpose"; "completeTag"; "confirmLongTimer"; "saveCompletion"
@@ -82,7 +89,7 @@ let eventNames =
       "amendActivityType"; "amendProject"; "amendDescription"; "amendPurpose"; "amendReason"; "saveAmend"
       "voidReason"; "voidActivity"; "restoreActivity"
       "splitFirst"; "splitSecond"; "splitEvidence"; "saveSplit"
-      "evidenceKind"; "evidenceUrl"; "evidenceLabel"; "attachEvidence"; "unlinkEvidence"
+      "evidenceKind"; "evidenceUrl"; "evidenceLabel"; "evidenceSource"; "evidenceNotes"; "attachEvidence"; "unlinkEvidence"
       "mergeSelect"; "mergeActivityType"; "mergeProject"; "mergeDescription"; "mergePurpose"; "saveMerge"
       "attestStatement"; "attestDay"; "resolveObligation"; "periodCadence"; "periodWeekStart"
       "reportFrom"; "reportTo"; "reportProject"; "reportActivityType"; "reportTag"; "reportMethod"; "reportBillability"; "reportText"
@@ -368,7 +375,9 @@ let openDetail (model: Model) (activityId: string) : Detail option =
           SplitEvidence = a.Evidence |> List.map (fun e -> e.Id, 1) |> Map.ofList
           EvidenceKind = "url"
           EvidenceUrl = ""
-          EvidenceLabel = "" })
+          EvidenceLabel = ""
+          EvidenceSource = ""
+          EvidenceNotes = "" })
 
 /// Keeps the detail drafts in step with the route: opened when an activity
 /// screen is entered, dropped when it is left.
@@ -442,6 +451,10 @@ let private saveSplit (ctx: Ctx) (model: Model) =
         (fun d -> Ledger.Split(d.ActivityId, d.Revision, [ part d 1 d.SplitFirst; part d 2 d.SplitSecond ]))
         model
 
+/// What a person typed, or None for nothing.
+let private optionalText (text: string) =
+    if String.IsNullOrWhiteSpace text then None else Some(text.Trim())
+
 let private attachEvidence (ctx: Ctx) (model: Model) =
     ledgerCommand
         ctx
@@ -456,7 +469,9 @@ let private attachEvidence (ctx: Ctx) (model: Model) =
                   Kind = d.EvidenceKind.Trim()
                   Label = d.EvidenceLabel.Trim()
                   CapturedAt = ctx.Now
-                  Hash = None }
+                  Hash = None
+                  Source = optionalText d.EvidenceSource
+                  Notes = optionalText d.EvidenceNotes }
             ))
         model
 
@@ -707,6 +722,8 @@ let private onEvent (ctx: Ctx) (name: string) (key: string option) (value: strin
     | "evidenceKind" -> detail (fun d -> { d with EvidenceKind = value }) model
     | "evidenceUrl" -> detail (fun d -> { d with EvidenceUrl = value }) model
     | "evidenceLabel" -> detail (fun d -> { d with EvidenceLabel = value }) model
+    | "evidenceSource" -> detail (fun d -> { d with EvidenceSource = value }) model
+    | "evidenceNotes" -> detail (fun d -> { d with EvidenceNotes = value }) model
     | "attachEvidence" -> attachEvidence ctx model
     | "unlinkEvidence" -> unlinkEvidence ctx (defaultArg key "") model
 
@@ -806,13 +823,57 @@ let private configurationRead (text: string option) (model: Model) =
             { model with Identity = { model.Identity with Mode = SignInRequired true; Callback = [] } },
             [ BeginIdentity(identity, model.Identity.Callback) ]
 
+/// The dates the first read covers: today and the current period, so the
+/// today view, the period and the obligations have their records (38).
+let private openingDates (model: Model) =
+    let today = Model.today model
+    let period = Periods.containing model.PeriodConfig today
+    [ today; period.Start; period.Finish ] |> List.distinct
+
+/// Starts reading the organization's records when the deployment keeps them;
+/// until they arrive nothing can be done.
+let private openStore (model: Model) =
+    match model.Deployment with
+    | Some config when config.Location.IsSome ->
+        { model with
+            Store =
+                { model.Store with
+                    Kind = Durable "GitHub"
+                    Opening = true
+                    Failure = None } },
+        [ OpenStore(config, model.Session, openingDates model) ]
+    | _ -> model, []
+
+let private storeOpened (contents: StoreContents) (model: Model) =
+    { model with
+        Ledger =
+            { Activities = contents.Activities |> List.map (fun a -> a.ActivityId, a) |> Map.ofList
+              Audit = [] }
+        References =
+            { OrganizationId = model.Session.OrganizationId
+              Items = contents.References |> List.map (fun item -> (item.Kind, item.Id), item) |> Map.ofList }
+        Attestations = contents.Attestations
+        Store =
+            { model.Store with
+                Kind = Durable contents.Name
+                Opening = false
+                Failure = None
+                Integrity = contents.Problems }
+        Announcement = "Your records are open." },
+    []
+
 let private identityChanged (change: IdentityChange) (model: Model) =
     let identity = model.Identity
 
     match change with
     | SignedInAs session ->
+        // The person works in the organization the deployment serves.
+        let session =
+            { session with
+                OrganizationId = model.Deployment |> Option.map Deployment.organizationId |> Option.defaultValue session.OrganizationId }
+
         let model = fresh session { identity with Mode = SignedInMode; Notice = None } model
-        { model with Announcement = $"Signed in as {session.DisplayName}." }, []
+        openStore { model with Announcement = $"Signed in as {session.DisplayName}." }
     | SigningIn -> { model with Identity = { identity with Mode = SignInRequired true } }, []
     | SignedOutWith notice ->
         let signedOut = { identity with Mode = SignInRequired false; Notice = notice }
@@ -833,6 +894,7 @@ let private onIdentityEvent (name: string) (value: string) (model: Model) =
     | "signIn", SignInRequired false ->
         { model with Identity = { identity with Mode = SignInRequired true; Notice = None } }, [ SignIn identity.Retention ]
     | "signOut", SignedInMode -> model, [ SignOut ]
+    | "retryStore", SignedInMode when model.Store.Failure.IsSome -> openStore model
     | _ -> model, []
 
 let update (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
@@ -852,6 +914,9 @@ let update (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
         [ DescribeEnvironment; ReadConfiguration ]
     | ConfigurationRead text -> configurationRead text model
     | IdentityChanged change -> identityChanged change model
+    | StoreOpened contents -> storeOpened contents model
+    | StoreUnavailable reason ->
+        { model with Store = { model.Store with Opening = false; Failure = Some reason } }, []
     | EnvironmentDescribed timeZone ->
         // An unknown zone falls back to UTC, visibly: the More screen says
         // which zone is in use.
@@ -884,7 +949,7 @@ let update (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
     | Copied false ->
         let text = "This browser did not allow copying. Select the text and copy it yourself."
         { model with CopyStatus = text; Announcement = text }, []
-    | Ui(("signIn" | "signInRetention" | "signOut") as name, _, value, _) -> onIdentityEvent name value model
+    | Ui(("signIn" | "signInRetention" | "signOut" | "retryStore") as name, _, value, _) -> onIdentityEvent name value model
     // Nothing is recorded or shown for anyone until they may work.
     | Ui _ when not (canWork model) -> model, []
     | Ui(name, key, value, isChecked) -> authorized name key model (fun () -> onEvent ctx name key value isChecked model)

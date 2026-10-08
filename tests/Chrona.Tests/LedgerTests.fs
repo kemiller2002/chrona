@@ -19,7 +19,7 @@ let private day = DateOnly(2026, 10, 7)
 let private at (h: int) (m: int) = DateTimeOffset(2026, 10, 7, h + 4, m, 0, TimeSpan.Zero) // EDT
 let private context = { Performer = "ACTOR-1"; At = DateTimeOffset(2026, 10, 7, 22, 0, 0, TimeSpan.Zero); Source = "chrona-web"; Zone = zone; References = references; CorrelationId = Some "corr-1" }
 
-let private evidence id = { Id = id; Url = $"https://example.test/{id}"; Kind = "commit"; Label = id; CapturedAt = at 8 0; Hash = None }
+let private evidence id = { Id = id; Url = $"https://example.test/{id}"; Kind = "commit"; Label = id; CapturedAt = at 8 0; Hash = None; Source = None; Notes = None }
 
 let private activity id (startH, startM) minutes =
     let start = at startH startM

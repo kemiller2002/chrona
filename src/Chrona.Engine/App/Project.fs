@@ -106,6 +106,14 @@ let describe (model: Model) (diagnostic: Diagnostic) =
     | IllegalTransition(from, command) -> $"A record that is {from.ToLowerInvariant()} cannot be changed that way ({command})."
     | OrganizationMismatch
     | ActorMismatch -> "These belong to different people or organizations."
+    | InvalidStoredRecord(path, detail) -> $"{path} is not a valid record ({detail}). It was left as it is."
+    | MisplacedRecord path -> $"{path} is not where its contents say it belongs. It was left as it is."
+    | DuplicateActivityId id -> $"Activity {id} is stored twice. Neither copy is shown until one is removed."
+    | ImpossibleRevision id -> $"Activity {id} has an impossible revision. It was left as it is."
+    | StoredOverlap(first, second) -> $"Activities {first} and {second} overlap in what is stored."
+    | InvalidLineage(first, second) -> $"Activities {first} and {second} disagree about a split or merge."
+    | IncompleteRead folder -> $"Not everything in {folder} could be read."
+    | ExternalEdit path -> $"{path} was changed outside Chrona. It is held until it is reviewed."
     | UnauthorizedCapability capability -> $"You do not have permission to {capabilityText capability} in this organization."
     | NotAMember _ -> "You are not a member of this organization."
     | other -> $"Chrona could not do that ({code other})."
@@ -141,7 +149,7 @@ let private storeLines (model: Model) =
     | _, InMemory ->
         "memory",
         "Kept in this tab only",
-        "Records last until this tab closes. Saving to GitHub arrives with storage."
+        "This deployment stores nothing: records last until this tab closes."
     | _, Durable name -> "ok", "All changes saved", $"Saved to {name}."
 
 let private elapsedSpan (model: Model) (timer: Timer.ActiveTimer) =
@@ -534,7 +542,7 @@ let private detailView (model: Model) =
     let blank =
         [ "detailTitle"; "detailClassification"; "detailTimes"; "detailDate"; "detailDuration"; "detailBilled"; "detailMethod"; "detailState"
           "detailRevision"; "detailPurpose"; "detailReason"; "detailTags"; "detailLineage"; "detailReplacedBy"; "amendDescription"; "amendPurpose"
-          "amendReason"; "voidReason"; "splitFirst"; "splitSecond"; "splitTotal"; "evidenceUrl"; "evidenceLabel" ]
+          "amendReason"; "voidReason"; "splitFirst"; "splitSecond"; "splitTotal"; "evidenceUrl"; "evidenceLabel"; "evidenceSource"; "evidenceNotes" ]
 
     match found with
     | None ->
@@ -652,7 +660,9 @@ let private detailView (model: Model) =
                      t "kind" (kindLabel e.Kind)
                      t "url" e.Url
                      f "hasUrl" (e.Url <> "")
-                     t "captured" (localStamp model e.CapturedAt) ]))
+                     t "captured" (localStamp model e.CapturedAt)
+                     t "source" (e.Source |> Option.map (fun source -> $"Source: {source}") |> Option.defaultValue "")
+                     t "notes" (e.Notes |> Option.defaultValue "") ]))
           items
               "splitEvidence"
               (a.Evidence
@@ -662,6 +672,8 @@ let private detailView (model: Model) =
           items "evidenceKindOptions" (evidenceKinds |> List.map (fun (id, name) -> [ t "id" id; t "name" name; f "selected" (id = d.EvidenceKind) ]))
           text "evidenceUrl" d.EvidenceUrl
           text "evidenceLabel" d.EvidenceLabel
+          text "evidenceSource" d.EvidenceSource
+          text "evidenceNotes" d.EvidenceNotes
           items "detailHistory" history
           flag "hasAmendProblems" (model.Problems.ContainsKey AmendForm)
           items "amendProblems" (problemItems model AmendForm)
@@ -900,7 +912,16 @@ let private identityView (model: Model) =
       flag "accountLocal" (identity.Mode = LocalOnly)
       text "accountLogin" model.Session.DisplayName
       text "accountProvider" (match model.Session.Kind with SignedIn provider -> provider | LocalSession -> "")
-      text "accountRetention" (retentionText identity.Retention) ]
+      text "accountRetention" (retentionText identity.Retention)
+      flag "screenOpening" (identity.Mode = SignedInMode && model.Store.Opening)
+      flag "screenStoreFailed" (identity.Mode = SignedInMode && model.Store.Failure.IsSome)
+      text "storeFailure" (model.Store.Failure |> Option.defaultValue "")
+      flag "hasStoreProblems" (not model.Store.Integrity.IsEmpty)
+      text "storeProblemSummary" (plural model.Store.Integrity.Length "record needs attention" "records need attention")
+      items
+          "storeProblems"
+          (model.Store.Integrity
+           |> List.mapi (fun index d -> [ t "id" $"{index}"; t "code" (code d); t "text" (describe model d) ])) ]
 
 /// What the session's person may do in the organization (3).
 let private accessView (model: Model) =

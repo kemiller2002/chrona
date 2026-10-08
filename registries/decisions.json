@@ -196,6 +196,55 @@
     "version": "1.0.0"
   },
   {
+    "created": "2026-10-08",
+    "derived_from": [
+      "DF-CHRONA-2026-0003",
+      "DF-CHRONA-2026-0004"
+    ],
+    "id": "DF-CHRONA-2026-0005",
+    "owners": [
+      "chrona"
+    ],
+    "path": "research/decisions/DF-CHRONA-2026-0005--records-on-github-through-arca-behind-the-store-port.md",
+    "provenance": {
+      "contributions": {
+        "EXE-20261008T125405928Z-c10c8445": {
+          "actor": {
+            "id": "anthropic/claude-code",
+            "kind": "agent",
+            "model": "unknown",
+            "provider": "anthropic",
+            "runtime": "claude-code"
+          },
+          "at": "2026-10-08T13:16:03.255Z",
+          "operations": [
+            "created"
+          ],
+          "reason": "Record how records are stored on GitHub through Arca behind the store port (WI-0032)"
+        }
+      }
+    },
+    "related_documents": [
+      "research/decisions/DF-CHRONA-2026-0003--product-ui-on-limen-in-memory-with-identity-and-store-ports.md",
+      "research/decisions/DF-CHRONA-2026-0004--sign-in-through-fides-client-over-limen-requests.md",
+      "docs/deployment-configuration.md"
+    ],
+    "review_cycle": "on-trigger",
+    "status": "accepted",
+    "superseded_by": [],
+    "supersedes": [],
+    "tags": [
+      "storage",
+      "arca",
+      "github",
+      "concurrency",
+      "architecture"
+    ],
+    "title": "Records live on GitHub through Arca's provider behind the store port, every commit conditioned on the repository state and decided again when it moved",
+    "updated": "2026-10-08",
+    "version": "1.0.0"
+  },
+  {
     "created": "2026-10-05",
     "id": "DF-CHRONA-FND-2026-0001",
     "owners": [

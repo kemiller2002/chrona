@@ -88,6 +88,18 @@ let initialSync =
       KeptInBrowser = true
       Note = None }
 
+/// The build of a page that was not built for a deployment: it is never
+/// compared with what is deployed.
+[<Literal>]
+let Development = "development"
+
+/// Which Chrona this page runs (WI-0063): its build, and a newer build the
+/// deployment serves now, if it found one. A page never runs a stale shell
+/// against a newer deployment without saying so.
+type ShellState =
+    { Build: string
+      Newer: string option }
+
 /// A change that was not stored because the stored records moved: kept,
 /// with what diverged, until the person resolves it (23, 34). Neither side
 /// is silently discarded.
@@ -411,7 +423,9 @@ type Model =
       HistoricalAfterDays: int
       /// What recovering the device's timer found, said again when the
       /// records open (WI-0055).
-      TimerNote: string option }
+      TimerNote: string option
+      /// The Chrona this page runs, and a newer one deployed since (WI-0063).
+      Shell: ShellState }
 
 /// The principal a session acts as. A local session and a GitHub sign-in are
 /// both a person; agents, services and integrations reach Chrona through
@@ -473,7 +487,8 @@ let initial (session: Session) (store: StoreKind) (now: DateTimeOffset) =
       Problems = Map.empty
       Announcement = ""
       HistoricalAfterDays = 0
-      TimerNote = None }
+      TimerNote = None
+      Shell = { Build = Development; Newer = None } }
 
 /// Whether the person may work: the deployment runs locally, or someone is
 /// signed in. Nothing is recorded, shown or stored for anyone else.

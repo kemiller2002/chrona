@@ -55,6 +55,15 @@ type Msg =
     /// The records could not be opened; this many of this account's changes
     /// wait in this browser to be sent.
     | UnsentWaiting of count: int
+    /// The build this page runs (WI-0063).
+    | BuildKnown of build: string
+    /// The page is back after being hidden, frozen or restored from the
+    /// back/forward cache: it catches up.
+    | PageReturned
+    /// The browser says it has, or has no, network.
+    | ConnectionChanged of online: bool
+    /// The build the deployment serves now, if it could be read.
+    | ShellChecked of build: string option
     /// The activity index changed with a commit: each person's months, and
     /// what it covers.
     | IndexChanged of history: ActivityIndex.MonthTotal list * summary: string
@@ -102,6 +111,10 @@ type Effect =
     | LoadTimer of key: string
     /// Keep the device's timer for this person, or clear it (None).
     | SaveTimer of key: string * value: string option
+    /// Ask which Chrona build the deployment serves now (WI-0063).
+    | CheckShell
+    /// Load the page again, to run the newer Chrona.
+    | ReloadPage
 
 /// The timer display refreshes once a second while running (the label is
 /// whole seconds); the engine computes it, never a client-side counter.
@@ -115,7 +128,7 @@ let ThisDevice = "this-browser"
 
 /// Every `data-event` name the page may send; anything else is a defect.
 let eventNames =
-    [ "signIn"; "signInRetention"; "signOut"; "retryStore"; "chooseOrganization"; "confirmAdministrator"
+    [ "signIn"; "signInRetention"; "signOut"; "retryStore"; "chooseOrganization"; "confirmAdministrator"; "reloadShell"
       "signOutSend"; "signOutKeep"; "signOutDiscard"; "signOutDiscardConfirmed"; "signOutCancel"
       "memberId"; "memberName"; "memberAccess"; "admitMember"; "changeMemberAccess"; "removeMember"
       "keepStored"; "retryChange"; "redoChange"; "acceptOutsideEdit"; "rebuildIndex"
@@ -1327,6 +1340,40 @@ let private timerLoaded (key: string) (value: string option) (model: Model) =
                     TickGeneration = generation },
             [ Wake(generation, TickMs) ]
 
+// ---- the page coming back, and a newer Chrona (WI-0063) ----------------------------
+
+/// The page is back after being hidden, frozen or restored from the
+/// back/forward cache. Nothing was lost while it was away (the queue and the
+/// timer are kept as they change), but it may be behind: the timer's
+/// wake-ups start again from its timestamps, unsent changes are sent, the
+/// records are read again, and the deployment is asked whether a newer
+/// Chrona is served.
+let private pageReturned (model: Model) =
+    let generation = model.TickGeneration + 1
+
+    let ticking =
+        match model.Timer with
+        | Timer.Running _ -> [ Wake(generation, TickMs) ]
+        | _ -> []
+
+    let records =
+        match model.Store.Kind with
+        | Durable _ when canWork model -> [ ReadMonths [] ]
+        | _ -> []
+
+    let unsent = if model.Store.Pending.IsEmpty then [] else [ SendUnsent ]
+    let shell = if model.Shell.Build = Development then [] else [ CheckShell ]
+    { model with TickGeneration = generation }, ticking @ unsent @ records @ shell
+
+/// Reloads for the newer Chrona, unless something the page cannot keep would
+/// be lost: changes not saved because they changed elsewhere live only in
+/// this page until they are resolved. Unsent changes and the timer are kept
+/// across a reload already.
+let private reloadShell (model: Model) =
+    match model.Shell.Newer with
+    | Some _ when model.Store.Conflicts.IsEmpty -> model, [ ReloadPage ]
+    | _ -> model, []
+
 let private fresh (session: Session) (identity: IdentityState) (model: Model) =
     { Model.initial session model.Store.Kind model.Now with
         Route = model.Route
@@ -1599,6 +1646,22 @@ let private step (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
             Announcement = (if count = 1 then "1 unsent change was discarded." else $"{count} unsent changes were discarded.") },
         timer @ [ SignOut ]
     | UnsentWaiting count -> { model with Store = { model.Store with Waiting = count } }, []
+    | BuildKnown build ->
+        let model = { model with Shell = { model.Shell with Build = build } }
+        model, (if build = Development then [] else [ CheckShell ])
+    | PageReturned -> pageReturned model
+    | ConnectionChanged true when not model.Store.Pending.IsEmpty -> model, [ SendUnsent ]
+    | ConnectionChanged true -> model, []
+    // Offline means the browser has no network: what waits is said to wait.
+    | ConnectionChanged false -> { model with Store = { model.Store with Sync = { model.Store.Sync with Offline = true } } }, []
+    | ShellChecked(Some build) when build <> model.Shell.Build && model.Shell.Build <> Development ->
+        let first = model.Shell.Newer.IsNone
+
+        { model with
+            Shell = { model.Shell with Newer = Some build }
+            Announcement = if first then "A newer Chrona is ready. Reload to use it." else model.Announcement },
+        []
+    | ShellChecked _ -> model, []
     | TimerLoaded(key, value) -> timerLoaded key value model
     | IndexChanged(history, summary) -> { model with Store = { model.Store with History = history; Index = summary } }, []
     | StoreReadFailed reason ->
@@ -1610,6 +1673,7 @@ let private step (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
     | Copied false ->
         let text = "This browser did not allow copying. Select the text and copy it yourself."
         { model with CopyStatus = text; Announcement = text }, []
+    | Ui("reloadShell", _, _, _) -> reloadShell model
     | Ui(("signIn"
          | "signInRetention"
          | "signOut"

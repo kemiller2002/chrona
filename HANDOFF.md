@@ -52,7 +52,7 @@ for the diagnosis, the evidence, and one unexercised watch item.
 - Requirement coverage per section is tracked in
   [`docs/requirements/implementation-gap-analysis.md`](docs/requirements/implementation-gap-analysis.md)
   (`CHX-NNM` ids, baseline and current columns; `GapAnalysisTests` holds the
-  counts). 35 tested, 26 partial, 2 missing of 63 (baseline 0 / 7 / 56).
+  counts). 36 tested, 25 partial, 2 missing of 63 (baseline 0 / 7 / 56).
 - `src/Chrona.Domain` is the pure time domain: `Diagnostics`, `Time`,
   `Activity`, `Overlap`, `ManualEntry` (WI-0020), `Ledger` (WI-0021),
   `Timer` (WI-0022), `Billing` and `Review` (WI-0023), `Compatibility`
@@ -146,8 +146,11 @@ for the diagnosis, the evidence, and one unexercised watch item.
   sign-out treats it as unsent work.
 - Quick entry (WI-0062): recent combinations, the deployment's common
   durations and copying an entry as a draft.
-- Not built: browser reliability (WI-0063), accessibility and mobile end to
-  end (WI-0064), visual regression (WI-0054),
+- Browser reliability (WI-0063): a page that comes back catches up (Limen
+  lifecycle pack); a newer Chrona deployed since is offered as a reload that
+  keeps unsent changes and the timer (build stamped at publish, compared
+  with `build/wasm/wwwroot/chrona-build.json`).
+- Not built: accessibility and mobile end to end (WI-0064), visual regression (WI-0054),
   the Summa transport (WI-0061), submission and approval screens (need actors and
   authorization, WI-0030 after Fides), and reports over stored data across
   people and organizations (WI-0039).
@@ -159,7 +162,7 @@ for the diagnosis, the evidence, and one unexercised watch item.
 
 ## Next action (time domain)
 
-Browser reliability (WI-0063), accessibility and mobile end to end (WI-0064) and visual regression (WI-0054); the Summa transport once Summa chooses it (WI-0061);
+Accessibility and mobile end to end (WI-0064) and visual regression (WI-0054); the Summa transport once Summa chooses it (WI-0061);
 the real sign-in and storage check once a deployment exists (WI-0052).
 
 ## Unresolved questions

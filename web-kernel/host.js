@@ -10,6 +10,7 @@
 //   leave { url }             -> { kind: "Done" }  sends the page to the identity provider (https only)
 //   replaceAddress { url }    -> { kind: "Done" }  same-origin history.replaceState, no navigation
 //   broadcast { message }     -> { kind: "Done" }  to the origin's other tabs (BroadcastChannel)
+//   reload {}                 -> { kind: "Done" }  loads the page again (a newer Chrona; WI-0063)
 // Facts: { kind: "Broadcast", message } for a message another tab sent.
 //
 // Messages carry no token (Fides says only what happened). Session storage
@@ -20,7 +21,7 @@ import { defineCapability } from "../node_modules/@echelon-foundry/limen/dist/ke
 export const HOST_CAPABILITY = {
   id: "chrona.host",
   version: 1,
-  fingerprint: "chrona.host/1: tab storage, leave, replace address, broadcast"
+  fingerprint: "chrona.host/1: tab storage, leave, replace address, broadcast, reload"
 };
 
 const CHANNEL = "chrona.host";
@@ -31,7 +32,8 @@ const shapes = {
   tabRemove: ["key"],
   leave: ["url"],
   replaceAddress: ["url"],
-  broadcast: ["message"]
+  broadcast: ["message"],
+  reload: []
 };
 
 const decodeRequest = (value, path = "$") => {
@@ -95,6 +97,9 @@ export const hostCapability = () =>
         }
         case "broadcast":
           channel?.postMessage(request.message);
+          return { kind: "Done" };
+        case "reload":
+          document.defaultView.location.reload();
           return { kind: "Done" };
       }
       throw new Error(`chrona.host: unknown operation ${request.operation}`);

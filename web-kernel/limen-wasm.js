@@ -14,6 +14,7 @@ import "../node_modules/@echelon-foundry/print-components/src/components/registe
 import { BrowserKernel } from "../node_modules/@echelon-foundry/limen/dist/kernel/browser-kernel.js";
 import { scheduleCapability } from "../node_modules/@echelon-foundry/limen/dist/capabilities/schedule/index.js";
 import { environmentCapability } from "../node_modules/@echelon-foundry/limen/dist/capabilities/environment/index.js";
+import { lifecycleCapability } from "../node_modules/@echelon-foundry/limen/dist/capabilities/lifecycle/index.js";
 import { printCapability } from "./print.js";
 import { hostCapability } from "./host.js";
 
@@ -99,11 +100,13 @@ export async function startPage(exportName, capabilities = []) {
 }
 
 // The Chrona application: its engine selects the schedule pack (the running
-// timer's once-a-second wake-up) and the environment pack (the browser's time
-// zone), both the installed Limen package's own, never copies, Chrona's
-// print pack (./print.js: the browser's print dialog for the Folio report)
-// and Chrona's host pack (./host.js: what Fides' sign-in client needs from the
-// browser beyond Limen's core effects).
+// timer's once-a-second wake-up), the environment pack (the browser's time
+// zone) and the lifecycle pack (the page hidden, frozen, restored or offline,
+// so it catches up when it returns), all the installed Limen package's own,
+// never copies, Chrona's print pack (./print.js: the browser's print dialog
+// for the Folio report) and Chrona's host pack (./host.js: what Fides'
+// sign-in client needs from the browser beyond Limen's core effects, and
+// reloading for a newer Chrona).
 export async function startApp() {
-  await startPage("DispatchApp", [scheduleCapability(), environmentCapability(), printCapability(), hostCapability()]);
+  await startPage("DispatchApp", [scheduleCapability(), environmentCapability(), printCapability(), hostCapability(), lifecycleCapability()]);
 }

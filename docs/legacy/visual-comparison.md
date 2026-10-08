@@ -51,15 +51,17 @@ Forma cannot yet express some of the legacy presentation: the dark sidebar, the 
 The baselines are re-rendered by a workflow (DF-CHRONA-2026-0006):
 
 ```
-gh workflow run visual-baselines.yml --ref <branch> -f reason="<why the screens change>"
+npm run visual:rebaseline -- <branch> "<why the screens change>"
 ```
 
-You can also run "Re-render the visual baselines" from the Actions tab. The workflow:
+The command starts the "Re-render the visual baselines" workflow, which you can also start from the Actions tab. The workflow:
 
 1. renders every screen with CI's pinned Chromium and checks the render is stable;
 2. commits the images to `visual/rebaseline-<run>`;
 3. opens a pull request that lists each changed image;
 4. starts the Build workflow on that branch.
+
+The command waits for the run and prints the pull request. It opens the pull request itself when the repository does not let workflows do so.
 
 Review each image against this page, then merge under the usual gate.
 

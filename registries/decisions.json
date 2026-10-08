@@ -377,8 +377,10 @@
             "runtime": "claude-code"
           },
           "at": "2026-10-08T19:01:12.470Z",
+          "last": "2026-10-08T19:22:15.513Z",
           "operations": [
-            "created"
+            "created",
+            "modified"
           ],
           "reason": "Visual baselines rendered by CI, re-rendered by a workflow (WI-0070)"
         }
@@ -400,7 +402,7 @@
     ],
     "title": "Visual baselines are rendered by CI's pinned Chromium and re-rendered by a workflow that opens a pull request",
     "updated": "2026-10-08",
-    "version": "1.0.0"
+    "version": "1.1.0"
   },
   {
     "created": "2026-10-05",

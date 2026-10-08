@@ -1,19 +1,19 @@
 {
   "schemaVersion": 4,
   "project": "chrona",
-  "manifestSha256": "534bb8e5a20e7218ce94ddcd8a27f9b5564b0d19ef09f9840438ce0638341b8d",
+  "manifestSha256": "058c4d27e424833ecc62b7d1c02ad9c4c269bad0cbf3d307022da47c3eadfa42",
   "manifest": {
     "schemaVersion": 1,
     "name": "chrona",
     "registryAuthority": {
       "kind": "resolved-release-set",
       "path": ".conditor/authority/resolved-release-set.json",
-      "sha256": "cd8d8d0482c5c4750f4bb31d28bc79e9597d3be4f6264955691e3aebd86cb6d2"
+      "sha256": "ea1b39a003d3f2f41c4fb6e979694ec82fd03964854e5dd268e38df51cd22931"
     },
     "components": [
       {
         "id": "ordo",
-        "version": "1.4.2",
+        "version": "1.5.0",
         "required": true
       },
       {
@@ -35,12 +35,12 @@
   "components": [
     {
       "id": "ordo",
-      "version": "1.4.2",
+      "version": "1.5.0",
       "distribution": "host-tool",
       "package": "ordo",
-      "descriptorSha256": "ee057aa4a0c4cd5180269fd262e5570ff6146035e52fd6d17a0baede0df21f5c",
+      "descriptorSha256": "cac222af525161218391dade23d2a583c29315e8df255ffb9f11f0f2bb4eaf3a",
       "authority": "embedded-component-descriptor",
-      "sourceReference": "host:ordo@1.4.2"
+      "sourceReference": "host:ordo@1.5.0"
     },
     {
       "id": "praxis",
@@ -61,5 +61,14 @@
       "sourceReference": "@echelon-foundry/visual-engineering@1.0.1"
     }
   ],
-  "requirements": []
+  "requirements": [],
+  "reviewSignals": [
+    {
+      "component": "ordo",
+      "code": "SDE-STRUCT-001",
+      "band": "strong-review",
+      "path": "src/Chrona.Wasm/bin/Release/net10.0/wwwroot/_framework/dotnet.js",
+      "lineCount": 1150
+    }
+  ]
 }

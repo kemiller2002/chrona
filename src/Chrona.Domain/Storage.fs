@@ -145,7 +145,10 @@ let private metadata (context: OperationContext) (summary: string) : OperationMe
       CorrelationId = context.CorrelationId
       IdempotencyKey = context.IdempotencyKey }
 
-let private operation ns context summary changes =
+/// One Arca operation in `ns`: the changes become one commit, carrying the
+/// context's actor, correlation and idempotency key, or every reason Arca
+/// refuses to send it.
+let operation (ns: Namespace) (context: OperationContext) (summary: string) (changes: Change list) : Result<Operation, Diagnostic list> =
     Operation.create ns (metadata context summary) changes
     |> Result.mapError (fun error ->
         [ StorageOperationRefused(

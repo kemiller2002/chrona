@@ -56,3 +56,4 @@
 | WI-0048 | Chrona 11a: timesheet periods in the pure domain - cadences, organization period configuration and period summaries, shown in the app in memory (CHX-150) | complete | chrona, periods, domain | medium |
 | WI-0049 | Chrona 14a: search, reports and deterministic export in memory, printable through Folio (CHX-270, CHX-280, CHX-290, CHX-005) | complete | chrona, reporting, folio | medium |
 | WI-0050 | Chrona 13a: observation processing in the pure domain - candidates, dispositions (pending, accepted, accepted with changes, rejected, duplicate, needs attention), source auto-accept policy, deduplication and receipts (CHX-190, CHX-120 import path, CHX-250 import audit; scenarios 25-30) | complete | chrona, observations, domain | high |
+| WI-0051 | Chrona 07a: activity records on Arca - record codec, partitioned layout, change sets and integrity on load (CHX-220, CHX-390, CHX-410, CHX-050 persistence) | active |  | medium |

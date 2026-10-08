@@ -52,7 +52,7 @@ for the diagnosis, the evidence, and one unexercised watch item.
 - Requirement coverage per section is tracked in
   [`docs/requirements/implementation-gap-analysis.md`](docs/requirements/implementation-gap-analysis.md)
   (`CHX-NNM` ids, baseline and current columns; `GapAnalysisTests` holds the
-  counts). 18 tested, 32 partial, 13 missing of 63 (baseline 0 / 7 / 56).
+  counts). 18 tested, 36 partial, 9 missing of 63 (baseline 0 / 7 / 56).
 - `src/Chrona.Domain` is the pure time domain: `Diagnostics`, `Time`,
   `Activity`, `Overlap`, `ManualEntry` (WI-0020), `Ledger` (WI-0021),
   `Timer` (WI-0022), `Billing` and `Review` (WI-0023), `Compatibility`
@@ -61,7 +61,10 @@ for the diagnosis, the evidence, and one unexercised watch item.
   on Arca 0.2.0, `Organization` and `Storage` (WI-0028): the configured data
   location, Chrona's namespace, per-organization folders and repositories,
   the organization manifest and the public-production refusal, tested
-  against Arca's in-memory provider (which passes Arca's conformance suite).
+  against Arca's in-memory provider (which passes Arca's conformance suite);
+  `ActivityRecord` and `Persistence` (WI-0051): activities as partitioned
+  Arca records, one command per commit under revision checks, integrity on
+  load, and manual edits held for review.
   35 of the 44 section-43 scenarios are tested.
 - The product UI (`web/index.html`, DF-CHRONA-2026-0003) runs on Limen and
   Forma in memory: the pure engine `src/Chrona.Engine/App`, the effectful

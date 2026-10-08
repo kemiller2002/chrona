@@ -616,3 +616,75 @@ let ``the export copied is the export shown, whatever happens between`` () =
     // Changing the report generates it afresh.
     let changed, _ = update (ctxAt later) (ui "reportText" "first") reports
     Assert.Contains("# generatedAt: 2026-10-08T18:10:01Z", textOf "exportText" changed)
+
+// ---- quick entry (33, WI-0062) ----------------------------------------------------------
+
+let private entry (date: string) (startTime: string) (endTime: string) (description: string) =
+    [ start, ui "manualActivityType" activityType
+      start, ui "manualProject" project
+      start, ui "manualStartDate" date
+      start, ui "manualStartTime" startTime
+      start, ui "manualEndTime" endTime
+      start, ui "manualDescription" description
+      start, ui "manualPurpose" "Delivery"
+      start, ui "saveManual" "" ]
+
+[<Fact>]
+let ``recent combinations are offered newest first, and fill a form's classification but never its time`` () =
+    let model, _ = play (entry "2026-10-08" "09:00" "10:00" "Pairing" @ entry "2026-10-08" "11:00" "12:00" "Review") ready
+    let labels name = itemsOf name model |> List.map (field "label")
+    Assert.Equal<string list>([ "Research · HelixNote · Review"; "Research · HelixNote · Pairing" ], labels "manualRecent")
+    Assert.Equal<string list>(labels "manualRecent", labels "timerRecent")
+
+    let typed, _ = play [ start, ui "manualStartDate" "2026-10-08"; start, ui "manualStartTime" "13:00" ] model
+    let used, _ = update (ctxAt start) (keyed "manualUseRecent" "1" "") typed
+    Assert.Equal("Pairing", used.Manual.Classification.Description)
+    Assert.Equal(project, used.Manual.Classification.ProjectId)
+    Assert.Equal(("2026-10-08", "13:00", ""), (used.Manual.StartDate, used.Manual.StartTime, used.Manual.EndTime))
+
+    let timer, _ = update (ctxAt start) (keyed "timerUseRecent" "0" "") model
+    Assert.Equal(("Review", activityType), (timer.TimerDraft.Description, timer.TimerDraft.ActivityTypeId))
+
+[<Fact>]
+let ``a common duration sets a visible end from the start, and never crosses the business day`` () =
+    let none, _ = update (ctxAt start) (keyed "manualDuration" "60" "") ready
+    Assert.Equal<Diagnostic list>([ MissingField "start" ], none.Problems[ManualForm])
+    Assert.True(itemsOf "manualDurations" ready |> List.forall (fun row -> row["disabled"] = Chrona.Engine.View.Flag true))
+
+    let typed, _ = play [ start, ui "manualStartDate" "2026-10-08"; start, ui "manualStartTime" "09:30" ] ready
+    let set, _ = update (ctxAt start) (keyed "manualDuration" "90" "") typed
+    Assert.Equal(("2026-10-08", "11:00"), (set.Manual.EndDate, set.Manual.EndTime))
+    Assert.Equal("End set to 11:00 AM, 1h 30m after the start.", set.Announcement)
+
+    // A duration the deployment does not offer does nothing.
+    Assert.Equal(typed.Manual, (fst (update (ctxAt start) (keyed "manualDuration" "7" "") typed)).Manual)
+
+    let late, _ = play [ start, ui "manualStartTime" "23:30" ] typed
+    let crossing, _ = update (ctxAt start) (keyed "manualDuration" "60" "") late
+    Assert.Equal<Diagnostic list>([ CrossesBusinessDay ], crossing.Problems[ManualForm])
+    Assert.Equal("", crossing.Manual.EndTime)
+
+[<Fact>]
+let ``an earlier entry is copied as a new draft for today, its time left to the person`` () =
+    let model, _ = play (entry "2026-10-07" "09:00" "10:00" "Pairing" @ [ start, ui "manualReason" "From notes"; start, ui "saveManual" "" ]) ready
+    let id = model.Ledger.Activities |> Map.toList |> List.head |> fst
+    let opened, _ = update (ctxAt start) (LocationMoved $"#/activity/{id}") model
+    let copied, effects = update (ctxAt start) (ui "copyActivity" "") opened
+    Assert.Equal<Effect list>([ Navigate "#/track" ], effects)
+    Assert.Equal("Pairing", copied.Manual.Classification.Description)
+    Assert.Equal(("2026-10-08", "", "2026-10-08", ""), (copied.Manual.StartDate, copied.Manual.StartTime, copied.Manual.EndDate, copied.Manual.EndTime))
+
+[<Fact>]
+let ``a deployment chooses its common durations, and nothing else is accepted`` () =
+    let parse (text: string) = Deployment.parse text
+
+    match parse """{"environment":"local","environmentName":"local","quickDurations":[10,20]}""" with
+    | Ok config -> Assert.Equal<int list>([ 10; 20 ], config.QuickDurations)
+    | Error e -> failwith $"{e}"
+
+    match parse """{"environment":"local","environmentName":"local"}""" with
+    | Ok config -> Assert.Equal<int list>(Deployment.defaultQuickDurations, config.QuickDurations)
+    | Error e -> failwith $"{e}"
+
+    for bad in [ "[]"; "[0]"; "[721]"; "[1.5]"; "[15,15]"; "\"15\"" ] do
+        Assert.True(parse $$"""{"environment":"local","environmentName":"local","quickDurations":{{bad}}}""" |> Result.isError, bad)

@@ -388,6 +388,14 @@
                     <label class="ef-field__label" for="timer-description">What will you work on? <span class="ef-field__description">Optional</span></label>
                     <input id="timer-description" type="text" data-event="timerDescription" data-on="input" data-bind-value="timerDescription" />
                   </div>
+                  <template data-if="hasRecent">
+                    <div class="chrona-quick" role="group" aria-label="Recent work">
+                      <span class="chrona-quick__label">Recent</span>
+                      <template data-each="timerRecent" data-key="id">
+                        <button type="button" class="chrona-chip" data-event="timerUseRecent" data-text="label"></button>
+                      </template>
+                    </div>
+                  </template>
                   <button type="button" class="chrona-action chrona-action--light chrona-action--full" id="start-timer" data-event="startTimer">Start timer</button>
                 </div>
               </template>
@@ -489,6 +497,14 @@
 
           <form class="ef-surface chrona-card" id="manual-entry" data-event="saveManual" aria-labelledby="manual-title">
             <h2 class="chrona-section-title" id="manual-title">Add time manually</h2>
+            <template data-if="hasRecent">
+              <div class="chrona-quick" role="group" aria-label="Recent work" id="manual-recent">
+                <span class="chrona-quick__label">Recent</span>
+                <template data-each="manualRecent" data-key="id">
+                  <button type="button" class="chrona-chip" data-event="manualUseRecent" data-text="label"></button>
+                </template>
+              </div>
+            </template>
             <div class="chrona-form-grid">
               <label class="ef-select-field">
                 <span class="ef-field__label">Activity type <span aria-hidden="true">*</span></span>
@@ -520,6 +536,12 @@
                 <input type="date" id="manual-end-date" aria-label="End date" aria-required="true" data-event="manualEndDate" data-bind-value="manualEndDate" data-bind-max="manualMaxDate" />
                 <input type="time" id="manual-end-time" aria-label="End time" aria-required="true" data-event="manualEndTime" data-bind-value="manualEndTime" />
               </fieldset>
+              <div class="chrona-quick chrona-field--full" role="group" aria-label="Set the end from the start" id="manual-durations">
+                <span class="chrona-quick__label">Lasted</span>
+                <template data-each="manualDurations" data-key="id">
+                  <button type="button" class="chrona-chip" data-event="manualDuration" data-bind-disabled="disabled" data-text="label"></button>
+                </template>
+              </div>
               <div class="ef-field chrona-field--full">
                 <label class="ef-field__label" for="manual-description">What did you do? <span aria-hidden="true">*</span></label>
                 <textarea id="manual-description" rows="3" aria-required="true" data-event="manualDescription" data-on="input" data-bind-value="manualDescription"></textarea>
@@ -571,6 +593,7 @@
               <p class="chrona-eyebrow" data-text="detailState"></p>
               <h1 class="chrona-title" id="activity-title" data-text="detailTitle"></h1>
               <p class="chrona-intro" data-text="detailClassification"></p>
+              <button type="button" class="chrona-action chrona-action--secondary" id="copy-activity" data-event="copyActivity">Copy as a new entry</button>
             </div>
 
             <template data-if="detailSuperseded">

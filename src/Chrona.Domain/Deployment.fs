@@ -90,7 +90,13 @@ type DeploymentConfig =
       /// The organizations the deployment serves, the default first.
       Organizations: OrganizationConfig list
       /// What signing out does with unsent changes (`sharedDevicePolicy`).
-      SharedDevice: SharedDevicePolicy }
+      SharedDevice: SharedDevicePolicy
+      /// The common durations the manual entry form offers, in minutes
+      /// (`quickDurations`; requirement 33).
+      QuickDurations: int list }
+
+/// The durations offered when a deployment names none.
+let defaultQuickDurations = [ 15; 30; 45; 60; 90; 120 ]
 
 /// The organization a session starts in: the deployment's first, or
 /// `local` for a deployment that names none.
@@ -288,7 +294,7 @@ let parse (text': string) : Result<DeploymentConfig, Diagnostic> =
     match Json.parse text' with
     | Error error -> invalid (JsonError.describe error)
     | Ok value ->
-        closed [ "environment"; "environmentName"; "identity"; "location"; "organizations"; "sharedDevicePolicy" ] value
+        closed [ "environment"; "environmentName"; "identity"; "location"; "organizations"; "quickDurations"; "sharedDevicePolicy" ] value
         |> Result.bind (fun _ ->
             match text "environment" value |> Result.bind environmentOf, text "environmentName" value with
             | Ok _, Ok name when String.IsNullOrWhiteSpace name -> Error(MissingField "environmentName")
@@ -305,8 +311,26 @@ let parse (text': string) : Result<DeploymentConfig, Diagnostic> =
                     | Some(Json.String "discardOnSignOut") -> Ok DiscardOnSignOut
                     | Some _ -> invalid "'sharedDevicePolicy' is 'ask' or 'discardOnSignOut'"
 
-                match location, organizationsOf value, identityOf value, sharedDevice with
-                | Ok location, Ok organizations, Ok identity, Ok sharedDevice ->
+                let quickDurations =
+                    match Json.field "quickDurations" value with
+                    | None -> Ok defaultQuickDurations
+                    | Some(Json.Array items) ->
+                        let minutes =
+                            items
+                            |> List.map (function
+                                | Json.Number n when n = Math.Floor n && n >= 1m && n <= 720m -> Some(int n)
+                                | _ -> None)
+
+                        if items.IsEmpty || minutes |> List.exists Option.isNone then
+                            invalid "'quickDurations' is a list of whole minutes from 1 to 720"
+                        elif (minutes |> List.distinct).Length <> minutes.Length then
+                            invalid "'quickDurations' names a duration twice"
+                        else
+                            Ok(minutes |> List.choose id)
+                    | Some _ -> invalid "'quickDurations' is a list of whole minutes from 1 to 720"
+
+                match location, organizationsOf value, identityOf value, sharedDevice, quickDurations with
+                | Ok location, Ok organizations, Ok identity, Ok sharedDevice, Ok quickDurations ->
                     if location.IsNone && not organizations.IsEmpty then
                         invalid "'organizations' needs a 'location'"
                     elif location.IsSome && (identity.IsNone || organizations.IsEmpty) then
@@ -320,10 +344,12 @@ let parse (text': string) : Result<DeploymentConfig, Diagnostic> =
                               Location = location
                               Identity = identity
                               Organizations = organizations
-                              SharedDevice = sharedDevice }
-                | Error e, _, _, _
-                | _, Error e, _, _
-                | _, _, Error e, _
-                | _, _, _, Error e -> Error e
+                              SharedDevice = sharedDevice
+                              QuickDurations = quickDurations }
+                | Error e, _, _, _, _
+                | _, Error e, _, _, _
+                | _, _, Error e, _, _
+                | _, _, _, Error e, _
+                | _, _, _, _, Error e -> Error e
             | Error e, _
             | _, Error e -> Error e)

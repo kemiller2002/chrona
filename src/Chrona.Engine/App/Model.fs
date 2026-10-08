@@ -37,11 +37,28 @@ type StoreRequest =
       /// Memberships admitted or changed (3).
       Members: Access.Membership list
       /// Principals removed from the roster.
-      RemovedMembers: string list }
+      RemovedMembers: string list
+      /// Records edited outside Chrona that the person accepted (41), as
+      /// they reviewed them: the store trusts them again only if they are
+      /// still stored that way, and they are among `Activities` at their
+      /// next revision.
+      Accepted: Activity list }
+
+/// A request with nothing in it yet.
+let emptyRequest (commitId: string) =
+    { CommitId = commitId
+      Activities = []
+      References = []
+      Attestations = []
+      Members = []
+      RemovedMembers = []
+      Accepted = [] }
 
 type StoreOutcome =
     | Committed
-    | Conflict of detail: string
+    /// The stored records moved and the change no longer fits them, decided
+    /// again by Chrona's rules (21): what diverged, for the person.
+    | Conflict of divergences: Reconcile.Divergence list
     | Failed of detail: string
     /// The store cannot tell whether the write took effect (21, 31).
     | OutcomeUnknown of detail: string
@@ -51,10 +68,19 @@ type StoreKind =
     | InMemory
     | Durable of name: string
 
+/// A change that was not stored because the stored records moved: kept,
+/// with what diverged, until the person resolves it (23, 34). Neither side
+/// is silently discarded.
+type ConflictCase =
+    { /// The commit that was refused.
+      Id: string
+      Request: StoreRequest
+      Divergences: Reconcile.Divergence list }
+
 type StoreState =
     { Kind: StoreKind
-      /// Commits sent and not yet answered.
-      Pending: string list
+      /// Commits sent and not yet answered, oldest first.
+      Pending: StoreRequest list
       Committed: int
       /// The last answer that was not `Committed`, until the next success.
       Problem: StoreOutcome option
@@ -64,6 +90,10 @@ type StoreState =
       Failure: string option
       /// What was found wrong in the records read (39, 41).
       Integrity: Diagnostic list
+      /// The person's records edited outside Chrona, held until reviewed (41).
+      Held: Activity list
+      /// Changes not stored because the records moved, awaiting the person.
+      Conflicts: ConflictCase list
       /// The organization has no administrator the deployment lists: why,
       /// and whether this person, being listed, may confirm themselves.
       Confirmation: (string * bool) option }
@@ -77,6 +107,8 @@ type StoreContents =
       Attestations: Review.Attestation list
       /// The organization's roster as stored.
       Members: Access.Membership list
+      /// Records edited outside Chrona, held for review (41).
+      Held: Activity list
       Problems: Diagnostic list }
 
 type Screen =
@@ -256,6 +288,10 @@ type Form =
     | ExportForm
     /// The organization's members.
     | MemberForm
+    /// Changes not stored because the records moved.
+    | ConflictForm
+    /// Accepting a record edited outside Chrona.
+    | OutsideEditForm
 
 [<NoComparison>]
 type Model =
@@ -335,6 +371,8 @@ let initial (session: Session) (store: StoreKind) (now: DateTimeOffset) =
           Opening = false
           Failure = None
           Integrity = []
+          Held = []
+          Conflicts = []
           Confirmation = None }
       Zone = None
       Now = now

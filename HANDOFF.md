@@ -52,7 +52,7 @@ for the diagnosis, the evidence, and one unexercised watch item.
 - Requirement coverage per section is tracked in
   [`docs/requirements/implementation-gap-analysis.md`](docs/requirements/implementation-gap-analysis.md)
   (`CHX-NNM` ids, baseline and current columns; `GapAnalysisTests` holds the
-  counts). 28 tested, 30 partial, 5 missing of 63 (baseline 0 / 7 / 56).
+  counts). 29 tested, 29 partial, 5 missing of 63 (baseline 0 / 7 / 56).
 - `src/Chrona.Domain` is the pure time domain: `Diagnostics`, `Time`,
   `Activity`, `Overlap`, `ManualEntry` (WI-0020), `Ledger` (WI-0021),
   `Timer` (WI-0022), `Billing` and `Review` (WI-0023), `Compatibility`
@@ -98,6 +98,15 @@ for the diagnosis, the evidence, and one unexercised watch item.
   state, reloads and decides again when it moved, and holds records edited
   outside Chrona. A local deployment keeps records in the tab. Tested
   against Arca's in-memory provider; the real check is WI-0052.
+- Conflicts and outside edits (WI-0035): Chrona's rules decide a change
+  again on what is stored (`Reconcile`); what no longer fits is kept under
+  More with what diverged and a stable code, never dropped. The person keeps
+  what is stored, redoes theirs on the current version through the usual
+  forms, or tries again when the repository only kept moving. A record of
+  theirs edited outside Chrona is reviewed and accepted there, after the
+  rules of a recorded activity, and stored as Chrona's next revision.
+  Arca WI-0018 asks for namespace-scoped change tokens; until then a
+  dedicated data repository avoids needless reloads.
 - Rosters, people and organizations (WI-0031): member records in each
   organization's folder; only the configuration's listed administrators
   set an organization up or administer it first (WI-0053); only members work;
@@ -105,7 +114,9 @@ for the diagnosis, the evidence, and one unexercised watch item.
   deployment lists its organizations and a person chooses one. Publication
   staging (ReadyForPublication) and Summa's invoice report
   (InvoicedExternally) are domain transitions; their transport is WI-0037.
-- Not built: offline sync (WI-0033), derived indexes (WI-0034),
+- Not built: offline sync and the persisted timer (WI-0033), derived
+  indexes (WI-0034), browser reliability, accessibility end to end, quick
+  entry and visual regression (WI-0054),
   `Chrona.Integration` (Summa owns the contract), submission and approval screens (need actors and
   authorization, WI-0030 after Fides), and reports over stored data across
   people and organizations (WI-0039).

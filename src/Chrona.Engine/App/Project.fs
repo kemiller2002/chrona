@@ -116,6 +116,10 @@ let describe (model: Model) (diagnostic: Diagnostic) =
     | InvalidLineage(first, second) -> $"Activities {first} and {second} disagree about a split or merge."
     | IncompleteRead folder -> $"Not everything in {folder} could be read."
     | ExternalEdit path -> $"{path} was changed outside Chrona. It is held until it is reviewed."
+    | ExternalStateClaim(_, state) ->
+        $"It claims to be {state.ToLowerInvariant()}, which only Chrona's own review and publication steps give. It stays held; repair it in the repository."
+    | SemanticConflict _ -> "This was changed elsewhere first. Keep what is stored, or redo your change on it."
+    | StoreKeptChanging -> "The records kept changing elsewhere while this was being saved."
     | UnauthorizedCapability capability -> $"You do not have permission to {capabilityText capability} in this organization."
     | NotAMember _ -> "That person is not a member of this organization."
     | AlreadyAMember _ -> "That person is already a member."
@@ -147,7 +151,12 @@ let private storeLines (model: Model) =
     let store = model.Store
 
     match store.Problem, store.Kind with
-    | Some(Conflict detail), _ -> "attention", "Not saved: changed elsewhere", detail
+    | _, _ when not store.Conflicts.IsEmpty ->
+        "attention",
+        "Not saved: changed elsewhere",
+        plural store.Conflicts.Length "change waits" "changes wait"
+        + " for your decision under More. Nothing of yours was discarded."
+    | Some(Conflict _), _ -> "attention", "Not saved: changed elsewhere", "Resolve it under More."
     | Some(Failed detail), _ -> "attention", "Not saved", detail
     | Some(OutcomeUnknown detail), _ -> "attention", "Save outcome unknown", detail
     | _, _ when not store.Pending.IsEmpty -> "progress", "Saving…", plural store.Pending.Length "change" "changes"
@@ -446,6 +455,78 @@ let private more (model: Model) =
       items "referenceProblems" (problemItems model ReferenceForm) ]
 
 
+// ---- changes not stored, and records edited outside Chrona (21, 34, 41) --------------
+
+let private activityLabel (activity: Activity) =
+    let times =
+        match interval activity with
+        | Some(start, finish) -> $", {Format.clock start} – {Format.clock finish}"
+        | None -> ""
+
+    $"{quoted activity.Classification.Description} on {Format.longDate activity.Occurrence.LocalDate}{times}"
+
+/// What the change was, in a few words.
+let private conflictTitle (case: ConflictCase) =
+    match case.Request.Activities, case.Request.References, case.Request.Members, case.Request.RemovedMembers with
+    | [ activity ], [], [], [] when activity.Revision = 1 -> $"Your new entry {quoted activity.Classification.Description} was not saved"
+    | [ activity ], [], [], [] -> $"Your change to {quoted activity.Classification.Description} was not saved"
+    | [], (_ :: _), [], [] -> "Your change to the lists was not saved"
+    | [], [], _, _ -> "Your change to People was not saved"
+    | activities, _, _, _ -> "Your change to " + plural activities.Length "activity" "activities" + " was not saved"
+
+/// What diverged, for the person.
+let private divergenceText (model: Model) (divergence: Reconcile.Divergence) =
+    match divergence with
+    | Reconcile.ActivityChanged(mine, Some stored) when mine.Classification <> stored.Classification ->
+        $"{quoted stored.Classification.Description} was changed elsewhere first. Stored now: {activityLabel stored}. Yours: {activityLabel mine}."
+    | Reconcile.ActivityChanged(_, Some stored) -> $"{activityLabel stored} was changed elsewhere first."
+    | Reconcile.ActivityChanged(mine, None) -> $"{activityLabel mine} is no longer stored as Chrona's: it was moved, removed or changed outside Chrona."
+    | Reconcile.ReferenceChanged(mine, _) -> $"{quoted mine.Name} was changed elsewhere first."
+    | Reconcile.MembershipChanged(mine, _) -> $"{mine.Principal.DisplayName}'s access was changed elsewhere first."
+    | Reconcile.MemberGone principalId ->
+        let name = model.Roster.Members.TryFind principalId |> Option.map _.Principal.DisplayName |> Option.defaultValue principalId
+        $"{name} was already removed elsewhere."
+    | Reconcile.OverlapsStored(mine, stored) -> $"{activityLabel mine} overlaps {activityLabel stored}, stored since."
+    | Reconcile.KeptChanging -> "The records kept changing elsewhere while it was being saved. Nothing was found wrong with it."
+
+/// The divergence the person can redo through a form, if any.
+let private redoable (model: Model) (case: ConflictCase) =
+    case.Divergences
+    |> List.tryPick (function
+        | Reconcile.ActivityChanged(mine, Some _) ->
+            match model.Ledger.Activities.TryFind mine.ActivityId with
+            | Some current when current.Record = Recorded && mine.Record = Recorded && current.Classification <> mine.Classification ->
+                Some "Redo yours on the current version"
+            | _ -> None
+        | Reconcile.OverlapsStored(mine, _) when mine.Revision = 1 && model.Zone.IsSome -> Some "Change your entry's time"
+        | _ -> None)
+
+let private conflictView (model: Model) =
+    [ flag "hasConflicts" (not model.Store.Conflicts.IsEmpty)
+      items
+          "conflicts"
+          [ for case in model.Store.Conflicts do
+                let redo = redoable model case
+
+                [ t "id" case.Id
+                  t "title" (conflictTitle case)
+                  t "detail" (case.Divergences |> List.map (divergenceText model) |> String.concat " ")
+                  t "code" (case.Divergences |> List.map (Reconcile.diagnostic >> code) |> List.distinct |> commaList)
+                  f "noRetry" (case.Divergences <> [ Reconcile.KeptChanging ])
+                  f "noRedo" redo.IsNone
+                  t "redoLabel" (defaultArg redo "") ] ]
+      flag "hasConflictProblems" (model.Problems.ContainsKey ConflictForm)
+      items "conflictProblems" (problemItems model ConflictForm)
+      flag "hasOutsideEdits" (not model.Store.Held.IsEmpty)
+      items
+          "outsideEdits"
+          [ for held in model.Store.Held |> List.sortBy (fun a -> a.Occurrence.LocalDate, a.Occurrence.LocalTime, a.ActivityId) do
+                [ t "id" held.ActivityId
+                  t "title" (activityLabel held)
+                  t "detail" $"{Format.minutes held.Minutes}, {referenceName model Reference.Project held.Classification.ProjectId}. Purpose: {held.Classification.BusinessPurpose}" ] ]
+      flag "hasOutsideEditProblems" (model.Problems.ContainsKey OutsideEditForm)
+      items "outsideEditProblems" (problemItems model OutsideEditForm) ]
+
 // ---- obligations (34) -------------------------------------------------------------
 
 /// The latest attestation of each day, and what changed since (16).
@@ -497,8 +578,20 @@ let private obligations (model: Model) =
           | Periods.RejectedTime minutes ->
               yield "period-rejected", $"{Format.minutes minutes} was rejected and needs correcting", $"In the period {label}.", "goToday"
 
+      for case in model.Store.Conflicts do
+          yield $"conflict-{case.Id}", conflictTitle case, "It changed elsewhere first. Keep what is stored, or redo yours on it.", "goMore"
+
+      match model.Store.Held with
+      | [] -> ()
+      | held ->
+          yield
+              "outside-edits",
+              plural held.Length "record was" "records were" + " changed outside Chrona",
+              "Held until you review them.",
+              "goMore"
+
       match model.Store.Problem with
-      | Some(Conflict detail) -> yield "store", "A change was not saved: it changed elsewhere", detail, "goMore"
+      | Some(Conflict _) -> ()
       | Some(Failed detail) -> yield "store", "A change was not saved", detail, "goMore"
       | Some(OutcomeUnknown detail) -> yield "store", "Chrona cannot tell whether a change was saved", detail, "goMore"
       | _ -> () ]
@@ -707,7 +800,7 @@ let private reviewView (model: Model) =
           "overlap", "No overlapping time", true, "Clear", "Overlap"
           "explained", "Manual entries for an earlier day are explained", (historical |> List.forall (fun a -> a.Reason.IsSome)), "Included", "Missing"
           "attested", "Nothing changed since the last attestation", changed.IsEmpty, (if attested.IsEmpty then "Not yet attested" else "Unchanged"), "Changed"
-          "saved", "Every change has been stored", model.Store.Problem.IsNone && model.Store.Pending.IsEmpty, (match model.Store.Kind with InMemory -> "In this tab" | Durable _ -> "Saved"), "Attention" ]
+          "saved", "Every change has been stored", model.Store.Problem.IsNone && model.Store.Pending.IsEmpty && model.Store.Conflicts.IsEmpty, (match model.Store.Kind with InMemory -> "In this tab" | Durable _ -> "Saved"), "Attention" ]
         |> List.map (fun (id, title, ok, good, bad) ->
             [ t "id" id; t "title" title; t "status" (if ok then good else bad); t "tone" (if ok then "ok" else "attention") ])
 
@@ -1036,6 +1129,7 @@ let project (model: Model) : View =
       yield! completion model
       yield! manual model
       yield! more model
+      yield! conflictView model
       flag "hasObligations" (not (obligations model).IsEmpty)
       items "obligations" (obligations model)
       yield! detailView model

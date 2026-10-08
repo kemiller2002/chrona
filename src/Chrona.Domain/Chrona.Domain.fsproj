@@ -34,6 +34,7 @@
     <Compile Include="MemberRecord.fs" />
     <Compile Include="Persistence.fs" />
     <Compile Include="Stored.fs" />
+    <Compile Include="Reconcile.fs" />
   </ItemGroup>
 
   <ItemGroup>

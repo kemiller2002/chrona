@@ -19,9 +19,12 @@
 ///   folders and the month folders the period needs (38), validates
 ///   everything read (39) and holds records edited outside Chrona (41).
 /// - Committing turns the request into one Arca operation, one commit, every
-///   change conditioned on the revision last read. A conflict reloads the
-///   records and is surfaced; an unknown outcome is reconciled before
-///   anything is sent again (21, 31). Commits run one at a time.
+///   change conditioned on the repository state last read. When that state
+///   moved, the records are reloaded and Chrona's rules decide the change
+///   again (`Reconcile`); what no longer fits is answered as a conflict
+///   naming what diverged, for the person to resolve. An unknown outcome is
+///   reconciled before anything is sent again (21, 31). Commits run one at
+///   a time.
 module Chrona.Application.Store
 
 open System
@@ -184,85 +187,13 @@ let private operationContext (session: Session) (key: string) (at: DateTimeOffse
 let private monthOf (date: DateOnly) = date.Year, date.Month
 let private firstOf (year: int, month: int) = DateOnly(year, month, 1)
 
-/// The request's records that still need writing on top of what is stored,
-/// or why the request no longer fits what is stored (21: Chrona's rules
-/// decide again on the current state; a clean merge is not proof). A record
-/// already stored exactly as requested (an earlier attempt landed) needs
-/// nothing; one the request changed must be the next revision of the stored
-/// one; new time must not overlap stored time.
-let private revalidate (stored: Stored.Stored) (request: StoreRequest) =
-    let activities = stored.Activities.Activities
-
-    let pending =
-        request.Activities
-        |> List.filter (fun activity ->
-            match activities.TryFind activity.ActivityId with
-            | Some found -> found.Activity <> activity
-            | None -> true)
-
-    let references =
-        request.References
-        |> List.filter (fun item ->
-            match stored.References.TryFind(Stored.referenceKey item) with
-            | Some found -> found.Item <> item
-            | None -> true)
-
-    let staleActivity =
-        pending
-        |> List.tryFind (fun activity ->
-            match activities.TryFind activity.ActivityId with
-            | Some found -> found.Activity.Revision <> activity.Revision - 1
-            | None -> activity.Revision <> 1)
-
-    let members =
-        request.Members
-        |> List.filter (fun membership ->
-            match stored.Members.TryFind membership.Principal.PrincipalId with
-            | Some found -> found.Membership <> membership
-            | None -> true)
-
-    let staleMember =
-        members
-        |> List.tryFind (fun membership ->
-            match stored.Members.TryFind membership.Principal.PrincipalId with
-            | Some found -> found.Membership.Revision <> membership.Revision - 1
-            | None -> membership.Revision <> 1)
-
-    let goneMember =
-        request.RemovedMembers |> List.tryFind (stored.Members.ContainsKey >> not)
-
-    let staleReference =
-        references
-        |> List.tryFind (fun item ->
-            match stored.References.TryFind(Stored.referenceKey item) with
-            | Some found -> found.Item.Revision <> item.Revision - 1
-            | None -> item.Revision <> 1)
-
-    let others =
-        activities
-        |> Map.toList
-        |> List.map (fun (_, found) -> found.Activity)
-        |> List.filter (fun other -> not (request.Activities |> List.exists (fun a -> a.ActivityId = other.ActivityId)))
-
-    let overlapping =
-        pending
-        |> List.filter Activity.consumesTime
-        |> List.exists (fun activity -> not (Overlap.overlapping others activity).IsEmpty)
-
-    match staleActivity, staleReference, staleMember, goneMember with
-    | Some activity, _, _, _ -> Error $"Activity \"{activity.Classification.Description}\" was changed elsewhere first."
-    | _, Some item, _, _ -> Error $"\"{item.Name}\" was changed elsewhere first."
-    | _, _, Some membership, _ -> Error $"{membership.Principal.DisplayName}'s access was changed elsewhere first."
-    | _, _, _, Some principalId -> Error $"{principalId} was already removed elsewhere."
-    | None, None, None, None when overlapping -> Error "It overlaps time recorded elsewhere."
-    | None, None, None, None ->
-        Ok
-            { Stored.nothing with
-                Activities = pending
-                References = references
-                Attestations = request.Attestations
-                Members = members
-                Removed = request.RemovedMembers }
+/// The records a request asks to store.
+let private changeOf (request: StoreRequest) : Stored.Changed =
+    { Activities = request.Activities
+      References = request.References
+      Attestations = request.Attestations
+      Members = request.Members
+      Removed = request.RemovedMembers }
 
 /// The Arca store over a backend. `now` is the clock; `newKey` mints the
 /// idempotency keys of the operations the store starts itself. It keeps
@@ -380,6 +311,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
           References = state.Stored.References |> Map.toList |> List.map (fun (_, found) -> found.Item)
           Attestations = Stored.attestations state.Stored
           Members = state.Stored.Members |> Map.toList |> List.map (fun (_, found) -> found.Membership)
+          Held = state.Stored.Activities.HeldForReview |> Map.toList |> List.map (fun (_, found) -> found.Activity)
           Problems = Stored.problems state.Stored }
 
     /// Reads the state again: the same months, plus any these dates add.
@@ -615,13 +547,25 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
 
             let rec attempt (state: Opened) (tries: int) =
                 async {
-                    match revalidate state.Stored request with
-                    | Error reason -> return refreshed state @ answer (Conflict $"{reason} The stored records were reloaded.")
-                    | Ok changed when changed.Activities.IsEmpty && changed.References.IsEmpty && changed.Attestations.IsEmpty && changed.Members.IsEmpty && changed.Removed.IsEmpty ->
+                    // Records the person accepted after review are trusted
+                    // again, if they are still stored as reviewed (41).
+                    let stored =
+                        { state.Stored with Activities = Persistence.release request.Accepted state.Stored.Activities }
+
+                    // Chrona's rules decide the change again on what is stored (21).
+                    match Reconcile.decide stored (changeOf request) with
+                    | Error divergences -> return refreshed state @ answer (Conflict divergences)
+                    | Ok changed when
+                        changed.Activities.IsEmpty
+                        && changed.References.IsEmpty
+                        && changed.Attestations.IsEmpty
+                        && changed.Members.IsEmpty
+                        && changed.Removed.IsEmpty
+                        ->
                         return answer Committed
                     | Ok changed ->
                         match
-                            Stored.changes state.Stored changed,
+                            Stored.changes stored changed,
                             operationContext state.Session request.CommitId (now ())
                         with
                         | Error diagnostics, _
@@ -638,7 +582,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                                     let next =
                                         { state with
                                             Token = receipt.ChangeToken
-                                            Stored = Stored.committed changed receipt state.Stored }
+                                            Stored = Stored.committed changed receipt stored }
 
                                     opened <- Some next
                                     (if tries > 1 then refreshed next else []) @ answer Committed
@@ -648,7 +592,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                                         match! refresh state [] with
                                         | Error reason -> return answer (Failed reason)
                                         | Ok fresh when tries < attempts -> return! attempt fresh (tries + 1)
-                                        | Ok fresh -> return refreshed fresh @ answer (Conflict "The records kept changing elsewhere. They were reloaded.")
+                                        | Ok fresh -> return refreshed fresh @ answer (Conflict [ Reconcile.KeptChanging ])
                                     }
 
                                 match! state.Provider.Commit operation with

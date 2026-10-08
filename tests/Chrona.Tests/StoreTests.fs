@@ -55,8 +55,23 @@ type private Device(github: InMemoryStore, visibility: RepositoryVisibility, env
 
     let bridge = Bridge.Bridge()
 
+    /// Commits that someone else's commit to the repository beats first.
+    let mutable beaten = 0
+
+    let provider location =
+        { github.Provider with
+            Commit =
+                fun operation ->
+                    async {
+                        if beaten > 0 then
+                            beaten <- beaten - 1
+                            github.WriteExternally(location, $"other-application/{beaten}.txt", Some "another application's file")
+
+                        return! github.Provider.Commit operation
+                    } }
+
     let backend: Store.Backend =
-        { Provider = fun _ -> github.Provider
+        { Provider = provider
           Resolve = fun _ -> async.Return(Ok(snapshot visibility)) }
 
     let store =
@@ -95,6 +110,11 @@ type private Device(github: InMemoryStore, visibility: RepositoryVisibility, env
 
     member this.Ui(name: string, value: string) = this.Send(Ui(name, None, value, None))
 
+    member this.Ui(name: string, key: string, value: string) = this.Send(Ui(name, Some key, value, None))
+
+    /// The next `count` commits are each beaten by another application's commit.
+    member _.Beaten(count: int) = beaten <- count
+
     /// Opens Chrona in this deployment and signs in as octocat.
     member this.Open() =
         this.Model <- { Model.initial noOne InMemory start with Deployment = Some config }
@@ -124,6 +144,15 @@ let private record (device: Device) (startTime: string) (endTime: string) (descr
     device.Ui("manualPurpose", "Delivery")
     device.Ui("manualReason", "From notes")
     device.Ui("saveManual", "")
+
+/// A text of the first row of a projected list.
+let private rowText (list: string) (key: string) (model: Model) =
+    match Project.project model |> List.tryFind (fst >> (=) list) with
+    | Some(_, Chrona.Engine.View.Items(row :: _)) ->
+        match row |> List.tryFind (fst >> (=) key) with
+        | Some(_, Chrona.Engine.View.Text value) -> value
+        | other -> failwith $"%A{other}"
+    | other -> failwith $"%A{other}"
 
 /// Every object's path in the repository (acme/chrona-data, main).
 let private storedPaths (github: InMemoryStore) =
@@ -227,9 +256,14 @@ let ``time that overlaps what another device stored first is a conflict decided 
     record first "09:00" "10:00" "Pairing"
     record second "09:30" "10:30" "Overlap"
 
-    match second.Model.Store.Problem with
-    | Some(Conflict detail) -> Assert.Contains("overlaps time recorded elsewhere", detail)
+    // Kept for the person, with what diverged and a stable code; not dropped.
+    match second.Model.Store.Conflicts with
+    | [ { Divergences = [ Reconcile.OverlapsStored(mine, stored) ] } ] ->
+        Assert.Equal("Overlap", mine.Classification.Description)
+        Assert.Equal("Pairing", stored.Classification.Description)
     | other -> failwith $"%A{other}"
+
+    Assert.Equal("CHRONA.OVERLAP.OVERLAPS_ACTIVITY", rowText "conflicts" "code" second.Model)
 
     // It reloaded what is stored; the overlapping entry was never stored.
     let descriptions (device: Device) = device.Model.Ledger.Activities |> Map.toList |> List.map (snd >> _.Classification.Description) |> List.sort
@@ -257,9 +291,13 @@ let ``an edit made elsewhere first makes this device's stale edit a conflict, ne
     amend first "From the first device"
     amend second "From the second device"
 
-    match second.Model.Store.Problem with
-    | Some(Conflict detail) -> Assert.Contains("changed elsewhere first", detail)
+    match second.Model.Store.Conflicts with
+    | [ { Divergences = [ Reconcile.ActivityChanged(mine, Some stored) ] } ] ->
+        Assert.Equal("From the second device", mine.Classification.Description)
+        Assert.Equal("From the first device", stored.Classification.Description)
     | other -> failwith $"%A{other}"
+
+    Assert.Equal("CHRONA.CONCURRENCY.SEMANTIC_CONFLICT", rowText "conflicts" "code" second.Model)
 
     let reader = Device(github, RepositoryVisibility.Private, "production")
     reader.Open()
@@ -563,3 +601,191 @@ let ``an organization with no members at all is not founded by whoever opens it`
     Assert.False(canWork opener.Model)
     Assert.True(viewFlag "screenConfirmAdministrator" opener.Model)
     Assert.DoesNotContain(storedPaths github, fun path -> path.Contains "chrona.member/")
+
+// ---- Resolving what was not stored (WI-0035: 21, 23, 26, 34) ------------------------------
+
+/// Two devices on the same records; the first records "Pairing" 09:00-10:00.
+let private twoDevices () =
+    let github = InMemoryStore()
+    let first = Device(github, RepositoryVisibility.Private, "production")
+    first.Open()
+    record first "08:00" "08:30" "Setup"
+    let second = Device(github, RepositoryVisibility.Private, "production")
+    second.Open()
+    github, first, second
+
+let private descriptions (device: Device) =
+    device.Model.Ledger.Activities |> Map.toList |> List.map (snd >> _.Classification.Description) |> List.sort
+
+let private amendFrom (device: Device) (id: string) (text: string) =
+    device.Send(LocationMoved $"#/activity/{id}")
+    device.Ui("amendDescription", text)
+    device.Ui("amendReason", "fix")
+    device.Ui("saveAmend", "")
+
+[<Fact>]
+let ``a stale edit is redone on the current version only when the person saves it again`` () =
+    let github, first, second = twoDevices ()
+    let id = first.Model.Ledger.Activities |> Map.toList |> List.head |> fst
+    amendFrom first id "From the first device"
+    amendFrom second id "From the second device"
+    let case = second.Model.Store.Conflicts.Head
+    Assert.Equal("Redo yours on the current version", rowText "conflicts" "redoLabel" second.Model)
+
+    // Redoing puts the person's version into the correction form of the
+    // current record; nothing is written until they save it.
+    let commits = github.State.History.Length
+    second.Ui("redoChange", case.Id, id)
+    second.Send(LocationMoved $"#/activity/{id}")
+    Assert.Empty(second.Model.Store.Conflicts)
+    Assert.Equal(commits, github.State.History.Length)
+    let detail = second.Model.Detail.Value
+    Assert.Equal("From the second device", detail.Amend.Description)
+    Assert.Equal(second.Model.Ledger.Activities[id].Revision, detail.Revision)
+
+    second.Ui("amendReason", "Redone after a conflict")
+    second.Ui("saveAmend", "")
+    Assert.Empty(second.Model.Store.Conflicts)
+    Assert.Equal(None, second.Model.Store.Problem)
+
+    let reader = Device(github, RepositoryVisibility.Private, "production")
+    reader.Open()
+    Assert.Equal("From the second device", reader.Model.Ledger.Activities[id].Classification.Description)
+
+[<Fact>]
+let ``keeping what is stored sets the person's change aside, knowingly, and writes nothing`` () =
+    let github, first, second = twoDevices ()
+    let id = first.Model.Ledger.Activities |> List.ofSeq |> List.head |> _.Key
+    amendFrom first id "From the first device"
+    amendFrom second id "From the second device"
+    let commits = github.State.History.Length
+
+    // Until the person decides, it is an obligation, and the day is not saved.
+    Assert.Contains("was not saved", rowText "obligations" "title" second.Model)
+    Assert.Equal("Not saved: changed elsewhere", (Project.project second.Model |> Map.ofList)["storeHeadline"] |> function Chrona.Engine.View.Value(Chrona.Engine.View.Text t) -> t | other -> failwith $"%A{other}")
+
+    second.Ui("keepStored", second.Model.Store.Conflicts.Head.Id, "")
+    Assert.Empty(second.Model.Store.Conflicts)
+    Assert.Equal("Your change was set aside. What is stored stays.", second.Model.Announcement)
+    Assert.Equal(commits, github.State.History.Length)
+    Assert.Equal("From the first device", second.Model.Ledger.Activities[id].Classification.Description)
+
+[<Fact>]
+let ``new time that overlaps what was stored since goes back into the form, to be changed and saved`` () =
+    let github, first, second = twoDevices ()
+    record first "09:00" "10:00" "Pairing"
+    record second "09:30" "10:30" "Overlap"
+    let case = second.Model.Store.Conflicts.Head
+    let mine = match case.Divergences with [ Reconcile.OverlapsStored(mine, _) ] -> mine | other -> failwith $"%A{other}"
+
+    second.Ui("redoChange", case.Id, mine.ActivityId)
+    let draft = second.Model.Manual
+    Assert.Equal<string list>([ "2026-10-07"; "09:30"; "2026-10-07"; "10:30"; "Overlap" ], [ draft.StartDate; draft.StartTime; draft.EndDate; draft.EndTime; draft.Classification.Description ])
+
+    second.Ui("manualStartTime", "10:00")
+    second.Ui("manualEndTime", "11:00")
+    second.Ui("saveManual", "")
+    Assert.Empty(second.Model.Store.Conflicts)
+
+    let reader = Device(github, RepositoryVisibility.Private, "production")
+    reader.Open()
+    Assert.Equal<string list>([ "Overlap"; "Pairing"; "Setup" ], descriptions reader)
+
+[<Fact>]
+let ``a change refused only because the repository kept moving is tried again when the person asks`` () =
+    let github = InMemoryStore()
+    let device = Device(github, RepositoryVisibility.Private, "production")
+    device.Open()
+    record device "08:00" "08:30" "Setup"
+
+    // Another application commits to the shared repository before each of
+    // the three attempts.
+    device.Beaten 3
+    record device "09:00" "10:00" "Pairing"
+    let case = device.Model.Store.Conflicts.Head
+    Assert.Equal<Reconcile.Divergence list>([ Reconcile.KeptChanging ], case.Divergences)
+    Assert.Equal("CHRONA.CONCURRENCY.KEPT_CHANGING", rowText "conflicts" "code" device.Model)
+    Assert.Equal<string list>([ "Setup" ], descriptions device)
+
+    device.Ui("retryChange", case.Id, "")
+    Assert.Empty(device.Model.Store.Conflicts)
+    Assert.Equal(None, device.Model.Store.Problem)
+    Assert.Equal<string list>([ "Pairing"; "Setup" ], descriptions device)
+
+    let reader = Device(github, RepositoryVisibility.Private, "production")
+    reader.Open()
+    Assert.Equal<string list>([ "Pairing"; "Setup" ], descriptions reader)
+
+// ---- Reviewing records edited outside Chrona (WI-0035: 41) ----------------------------------
+
+/// A record edited on github.com, then a device that opens the records.
+let private editedOutside (change: Activity.Activity -> Activity.Activity) =
+    let github = InMemoryStore()
+    let first = Device(github, RepositoryVisibility.Private, "production")
+    first.Open()
+    record first "09:00" "10:00" "Pairing"
+    let id, activity = first.Model.Ledger.Activities |> Map.toList |> List.head
+    let path = ActivityRecord.path activity |> ok |> RelativePath.render
+    let config = configuration "production"
+    let folder = Storage.organizationNamespace config (Storage.binding config |> ok) "org_acme" |> ok
+
+    let write (edited: Activity.Activity) =
+        github.WriteExternally(folder.Location, $"deployments/chrona/datasets/org_acme/{path}", Some(ActivityRecord.encode edited |> ok))
+
+    write (change activity)
+    let second = Device(github, RepositoryVisibility.Private, "production")
+    second.Open()
+    github, second, id, activity, write
+
+let private described (text: string) (activity: Activity.Activity) =
+    { activity with
+        Classification = { activity.Classification with Description = text }
+        Revision = 2 }
+
+[<Fact>]
+let ``a record edited outside Chrona is accepted by its person after the usual rules, and is trusted again`` () =
+    let github, second, id, _, _ = editedOutside (described "Edited on github.com")
+    Assert.Equal<string list>([ id ], second.Model.Store.Held |> List.map _.ActivityId)
+    Assert.Contains("Edited on github.com", rowText "outsideEdits" "title" second.Model)
+    Assert.Contains("changed outside Chrona", rowText "obligations" "title" second.Model)
+
+    second.Ui("acceptOutsideEdit", id, "")
+    Assert.Empty(second.Model.Store.Held)
+    Assert.Empty(second.Model.Store.Integrity)
+    Assert.Equal(None, second.Model.Store.Problem)
+    Assert.Equal(3, second.Model.Ledger.Activities[id].Revision)
+
+    // Its newest commit is Chrona's now: another device trusts it.
+    let reader = Device(github, RepositoryVisibility.Private, "production")
+    reader.Open()
+    Assert.Empty(reader.Model.Store.Held)
+    Assert.Empty(reader.Model.Store.Integrity)
+    Assert.Equal("Edited on github.com", reader.Model.Ledger.Activities[id].Classification.Description)
+    Assert.Equal(3, reader.Model.Ledger.Activities[id].Revision)
+
+[<Fact>]
+let ``an outside edit that claims a state only Chrona gives is never accepted, and stays held`` () =
+    let github, second, id, _, _ =
+        editedOutside (fun activity -> { described "Approved on github.com" activity with Review = Activity.Approved })
+
+    let commits = github.State.History.Length
+    second.Ui("acceptOutsideEdit", id, "")
+    Assert.Equal<string list>([ "CHRONA.INTEGRITY.EXTERNAL_STATE_CLAIM" ], second.Model.Problems[OutsideEditForm] |> List.map code)
+    Assert.Equal<string list>([ id ], second.Model.Store.Held |> List.map _.ActivityId)
+    Assert.Equal(commits, github.State.History.Length)
+
+[<Fact>]
+let ``an outside edit changed again after it was reviewed is not accepted on the strength of the earlier review`` () =
+    let github, second, id, original, write = editedOutside (described "First outside edit")
+    write (described "Second outside edit" original)
+
+    second.Ui("acceptOutsideEdit", id, "")
+
+    match second.Model.Store.Conflicts with
+    | [ { Divergences = [ Reconcile.ActivityChanged(mine, None) ] } ] -> Assert.Equal("First outside edit", mine.Classification.Description)
+    | other -> failwith $"%A{other}"
+
+    let reader = Device(github, RepositoryVisibility.Private, "production")
+    reader.Open()
+    Assert.Equal<string list>([ id ], reader.Model.Store.Held |> List.map _.ActivityId)
+    Assert.Equal("Second outside edit", reader.Model.Store.Held.Head.Classification.Description)

@@ -235,6 +235,20 @@
             "modified"
           ],
           "reason": "Bootstrap administrators and the dedicated-repository recommendation (WI-0053)"
+        },
+        "EXE-20261008T140312075Z-5d2f78ca": {
+          "actor": {
+            "id": "anthropic/claude-code",
+            "kind": "agent",
+            "model": "unknown",
+            "provider": "anthropic",
+            "runtime": "claude-code"
+          },
+          "at": "2026-10-08T14:15:53.200Z",
+          "operations": [
+            "modified"
+          ],
+          "reason": "Conflict resolution and acceptance of outside edits (WI-0035)"
         }
       }
     },
@@ -256,7 +270,7 @@
     ],
     "title": "Records live on GitHub through Arca's provider behind the store port, every commit conditioned on the repository state and decided again when it moved",
     "updated": "2026-10-08",
-    "version": "1.0.0"
+    "version": "1.1.0"
   },
   {
     "created": "2026-10-05",

@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-08T13:53:39Z",
+  "updatedAt": "2026-10-08T14:19:15Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -1747,6 +1747,59 @@
         }
       },
       "completedAt": "2026-10-08T13:53:39Z"
+    },
+    {
+      "id": "WI-0035",
+      "type": "feature",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Domain/Reconcile.fs"
+        },
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Application/Store.fs"
+        },
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Engine/App/Update.fs"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/StoreTests.fs"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/PersistenceTests.fs"
+        }
+      ],
+      "updatedAt": "2026-10-08T14:19:15Z",
+      "telemetryExecutionIds": [
+        "EXE-20261008T140312075Z-5d2f78ca"
+      ],
+      "latestCheckpoint": {
+        "id": "e06ebf675d3e6146152fd64e",
+        "recordedAt": "2026-10-08T14:19:15Z",
+        "executionId": "EXE-20261008T140312075Z-5d2f78ca",
+        "repository": "chrona",
+        "branch": "feature/conflict-resolution",
+        "commit": "9cbab110f540fb8a9e7f42619fca2b173ee53502",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/chrona"
+        },
+        "remoteBranch": "feature/conflict-resolution",
+        "remoteCommit": "9cbab110f540fb8a9e7f42619fca2b173ee53502",
+        "summary": "Reconcile.decide in the domain with stable divergence codes; conflicts kept and resolved under More; outside edits accepted in the app; 270 .NET and 26 browser tests pass",
+        "nextAction": "Complete with evidence and open the PR",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      },
+      "completedAt": "2026-10-08T14:19:15Z"
     }
   ]
 }

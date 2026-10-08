@@ -47,7 +47,7 @@ let private fresh = initial session InMemory start
 
 /// Answers every outstanding store request, as the in-memory store does.
 let private settle (model: Model) =
-    model.Store.Pending |> List.fold (fun m id -> fst (update (ctxAt start) (StoreAnswered(id, Committed)) m)) model
+    model.Store.Pending |> List.fold (fun m request -> fst (update (ctxAt start) (StoreAnswered(request.CommitId, Committed)) m)) model
 
 /// Started in New York with a project, an activity type and a tag, all stored.
 let private ready =
@@ -209,7 +209,7 @@ let ``a stopped timer is held until completed, then recorded through the domain 
     match effects with
     | [ Store request ] ->
         Assert.Equal<Activity.Activity list>([ activity ], request.Activities)
-        Assert.Equal<string list>([ request.CommitId ], saved.Store.Pending)
+        Assert.Equal<string list>([ request.CommitId ], saved.Store.Pending |> List.map _.CommitId)
         Assert.Equal("Saving…", textOf "storeHeadline" saved)
         let answered, _ = update (ctxAt (at 34.0)) (StoreAnswered(request.CommitId, Committed)) saved
         Assert.Equal("Kept in this tab only", textOf "storeHeadline" answered)
@@ -338,10 +338,10 @@ let ``reference data is added, archived and reactivated through the domain`` () 
 [<Fact>]
 let ``store answers other than Committed stay visible until the next success`` () =
     let pending, _ = play (manualDraft "2026-10-08" @ [ start, ui "saveManual" "" ]) ready
-    let id = pending.Store.Pending.Head
+    let id = pending.Store.Pending.Head.CommitId
 
     for outcome, headline in
-        [ Conflict "changed on another device", "Not saved: changed elsewhere"
+        [ Conflict [ Reconcile.KeptChanging ], "Not saved: changed elsewhere"
           Failed "offline", "Not saved"
           OutcomeUnknown "connection lost", "Save outcome unknown" ] do
         let answered, _ = update (ctxAt start) (StoreAnswered(id, outcome)) pending

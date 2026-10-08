@@ -1178,3 +1178,41 @@ textarea.chrona-export {
     grid-template-columns: 1fr;
   }
 }
+
+/* ---- Changes not saved and records changed outside Chrona (WI-0035) ----------- */
+
+.chrona-conflicts {
+  display: grid;
+  gap: 1rem;
+  margin: 1rem 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chrona-conflicts__item {
+  display: grid;
+  gap: 0.5rem;
+  padding-block-start: 1rem;
+  border-block-start: 1px solid var(--ef-color-border-subtle);
+}
+
+.chrona-conflicts__item p {
+  margin: 0;
+}
+
+.chrona-conflicts__code {
+  color: var(--ef-color-text-secondary);
+  font-size: 0.8rem;
+  font-family: var(--ef-primitive-font-family-mono);
+  overflow-wrap: anywhere;
+}
+
+.chrona-conflicts__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.chrona-conflicts__actions [hidden] {
+  display: none;
+}

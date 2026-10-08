@@ -448,3 +448,121 @@ let ``a record edited outside Chrona is held until it passes Chrona's rules`` ()
 
     // Records Chrona wrote itself are trusted as read.
     Assert.Empty((review state).HeldForReview)
+
+// ---- Accepting an outside edit in the application (41, WI-0035) ---------------------
+
+module Access = Chrona.Domain.Access
+module Reconcile = Chrona.Domain.Reconcile
+module Stored = Chrona.Domain.Stored
+
+let private roster =
+    Access.founded
+        "ORG-1"
+        { PrincipalId = actor
+          Kind = Access.Human
+          DisplayName = "octocat" }
+
+[<Fact>]
+let ``a person accepts their own outside edit as its next revision, after the rules of a recorded activity`` () =
+    let held = { activity "A-1" (10, 7) (9, 0) 45 with Revision = 2 }
+    let accepted = Persistence.acceptance context roster [ activity "A-2" (10, 7) (10, 0) 60 ] held |> ok
+    Assert.Equal(3, accepted.Revision)
+    Assert.Equal(context.At, accepted.LastChangedAt)
+    Assert.Equal({ accepted with Revision = 2; LastChangedAt = held.LastChangedAt }, held)
+
+    let refused trusted roster held =
+        match Persistence.acceptance context roster trusted held with
+        | Error problems -> codes problems
+        | Ok accepted -> failwith $"accepted %A{accepted}"
+
+    // Someone else's record, time that overlaps, a missing purpose.
+    Assert.Equal<string list>([ "CHRONA.AUTH.ACTOR_MISMATCH" ], refused [] roster { held with ActorId = "github:hubot" })
+    Assert.Equal<string list>([ "CHRONA.OVERLAP.OVERLAPS_ACTIVITY" ], refused [ activity "A-2" (10, 7) (9, 30) 60 ] roster held)
+
+    Assert.Equal<string list>(
+        [ "CHRONA.ENTRY.MISSING_FIELD" ],
+        refused [] roster { held with Classification = { held.Classification with BusinessPurpose = "" } }
+    )
+
+    // A state only Chrona's own transitions give is never reached this way.
+    Assert.Equal<string list>([ "CHRONA.INTEGRITY.EXTERNAL_STATE_CLAIM" ], refused [] roster { held with Review = Approved })
+
+    Assert.Equal<string list>(
+        [ "CHRONA.INTEGRITY.EXTERNAL_STATE_CLAIM"; "CHRONA.INTEGRITY.EXTERNAL_STATE_CLAIM" ],
+        refused [] roster { held with Review = Submitted; Publication = Published }
+    )
+
+    // Without permission to amend one's own time, nothing is accepted.
+    let viewer =
+        { roster with
+            Members = roster.Members |> Map.map (fun _ m -> { m with Capabilities = set [ Access.ViewOwnTime ] }) }
+
+    Assert.Equal<string list>([ "CHRONA.AUTH.UNAUTHORIZED_CAPABILITY" ], refused [] viewer held)
+
+[<Fact>]
+let ``releasing a held record trusts it only as it was reviewed`` () =
+    let _, state = (Persistence.empty, InMemory.empty) |> store (Record(activity "A-1" (10, 7) (9, 0) 60))
+    let edited = { activity "A-1" (10, 7) (9, 0) 45 with Revision = 2 }
+    let target = ActivityRecord.path edited |> ok
+    let state = InMemory.writeExternally ns.Location (Namespace.resolve ns target |> ok).Path (Some(ActivityRecord.encode edited |> ok)) state
+    let loaded = readMonths [ october ] state
+
+    let histories =
+        loaded.Activities
+        |> Map.toList
+        |> List.map (fun (_, found) -> RelativePath.render found.Path, InMemory.history ns found.Path state |> fst |> ok)
+        |> Map.ofList
+
+    let held = Persistence.holdExternalEdits histories loaded
+
+    let other = Persistence.release [ { edited with Minutes = 50 } ] held
+    Assert.True(other.HeldForReview.ContainsKey "A-1")
+    Assert.Contains(ExternalEdit(RelativePath.render target), other.Problems)
+
+    let released = Persistence.release [ edited ] held
+    Assert.Empty(released.HeldForReview)
+    Assert.Equal(edited, released.Activities["A-1"].Activity)
+    Assert.DoesNotContain(ExternalEdit(RelativePath.render target), released.Problems)
+
+// ---- Deciding a change again on what is stored (21, 26, WI-0035) --------------------
+
+[<Fact>]
+let ``a change decided again keeps what still fits and names every divergence with a stable code`` () =
+    let snapshot, _ =
+        (Persistence.empty, InMemory.empty)
+        |> store (Record(activity "A-1" (10, 7) (9, 0) 60))
+        |> store (Record(activity "A-2" (10, 7) (11, 0) 60))
+
+    let stored = { Stored.empty with Activities = snapshot }
+    let decide activities = Reconcile.decide stored { Stored.nothing with Activities = activities }
+
+    // Already stored as asked (an earlier attempt landed): nothing to write.
+    let already = snapshot.Activities["A-1"].Activity
+    Assert.Equal(Ok Stored.nothing, decide [ already ])
+
+    // Independent new time, and the next revision of a stored record, fit.
+    let next = { already with Revision = 2; Classification = { already.Classification with Description = "Corrected" } }
+    let independent = activity "A-3" (10, 7) (14, 0) 30
+    Assert.Equal(Ok { Stored.nothing with Activities = [ next; independent ] }, decide [ next; independent ])
+
+    // Decided on an older revision: a semantic conflict, never last-write-wins.
+    let stale = { already with Revision = 1; Classification = { already.Classification with Description = "Stale" } }
+
+    match decide [ stale ] with
+    | Error [ Reconcile.ActivityChanged(mine, Some current) as divergence ] ->
+        Assert.Equal("Stale", mine.Classification.Description)
+        Assert.Equal(already, current)
+        Assert.Equal("CHRONA.CONCURRENCY.SEMANTIC_CONFLICT", code (Reconcile.diagnostic divergence))
+    | other -> failwith $"%A{other}"
+
+    // New time that overlaps time stored since.
+    match decide [ activity "A-4" (10, 7) (11, 30) 60 ] with
+    | Error [ Reconcile.OverlapsStored(mine, other) as divergence ] ->
+        Assert.Equal("A-4", mine.ActivityId)
+        Assert.Equal("A-2", other.ActivityId)
+        Assert.Equal("CHRONA.OVERLAP.OVERLAPS_ACTIVITY", code (Reconcile.diagnostic divergence))
+    | other -> failwith $"%A{other}"
+
+    // A member removed elsewhere already.
+    Assert.Equal(Error [ Reconcile.MemberGone "github:hubot" ], Reconcile.decide stored { Stored.nothing with Removed = [ "github:hubot" ] })
+    Assert.Equal("CHRONA.CONCURRENCY.KEPT_CHANGING", code (Reconcile.diagnostic Reconcile.KeptChanging))

@@ -1175,6 +1175,57 @@
               </template>
             </section>
 
+            <template data-if="hasConflicts">
+              <section class="ef-surface chrona-card" aria-labelledby="conflicts-title" id="conflicts">
+                <h2 class="chrona-section-title" id="conflicts-title">Changes not saved</h2>
+                <p class="chrona-intro">These changed elsewhere before yours were saved. Nothing of yours was discarded: decide what happens to each.</p>
+                <ul class="chrona-conflicts">
+                  <template data-each="conflicts" data-key="id">
+                    <li class="chrona-conflicts__item" data-bind-data-code="code">
+                      <p><strong data-text="title"></strong></p>
+                      <p class="chrona-intro" data-text="detail"></p>
+                      <p class="chrona-conflicts__code" data-text="code"></p>
+                      <div class="chrona-conflicts__actions">
+                        <button type="button" class="chrona-action chrona-action--primary" data-event="redoChange" data-bind-hidden="noRedo" data-text="redoLabel"></button>
+                        <button type="button" class="chrona-action chrona-action--primary" data-event="retryChange" data-bind-hidden="noRetry">Try again</button>
+                        <button type="button" class="chrona-action chrona-action--secondary" data-event="keepStored">Keep what is stored</button>
+                      </div>
+                    </li>
+                  </template>
+                </ul>
+                <template data-if="hasConflictProblems">
+                  <ul class="chrona-problems" role="alert" id="conflict-problems"><template data-each="conflictProblems" data-key="id"><li data-bind-data-code="code" data-text="text"></li></template></ul>
+                </template>
+              </section>
+            </template>
+
+            <template data-if="hasOutsideEdits">
+              <section class="ef-surface chrona-card" aria-labelledby="outside-edits-title" id="outside-edits">
+                <h2 class="chrona-section-title" id="outside-edits-title">Changed outside Chrona</h2>
+                <p class="chrona-intro">These records of yours were edited in the repository, not in Chrona. They are held, and count for nothing, until you review them. Accepting one checks it like any entry you record.</p>
+                <ul class="chrona-conflicts">
+                  <template data-each="outsideEdits" data-key="id">
+                    <li class="chrona-conflicts__item">
+                      <p><strong data-text="title"></strong></p>
+                      <p class="chrona-intro" data-text="detail"></p>
+                      <div class="chrona-conflicts__actions">
+                        <button type="button" class="chrona-action chrona-action--secondary" data-event="acceptOutsideEdit">Accept this version</button>
+                      </div>
+                    </li>
+                  </template>
+                </ul>
+                <template data-if="hasOutsideEditProblems">
+                  <div class="ef-alert chrona-notice" role="alert" data-tone="attention" id="outside-edit-problems">
+                    <div class="ef-alert__icon" aria-hidden="true">!</div>
+                    <div>
+                      <p class="ef-alert__title">That record was not accepted.</p>
+                      <ul class="chrona-problems"><template data-each="outsideEditProblems" data-key="id"><li data-bind-data-code="code" data-text="text"></li></template></ul>
+                    </div>
+                  </div>
+                </template>
+              </section>
+            </template>
+
             <section class="ef-surface chrona-card" aria-labelledby="session-title">
               <h2 class="chrona-section-title" id="session-title">This session</h2>
               <dl class="ef-facts chrona-facts">

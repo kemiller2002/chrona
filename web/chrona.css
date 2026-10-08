@@ -1311,3 +1311,14 @@ textarea.chrona-export {
   max-inline-size: 22rem;
   margin-block-end: 1.5rem;
 }
+
+/* An entry in a list: its title on its own line, its day and duration
+   beneath, so a long title never squeezes into a narrow column. */
+.chrona-days__item--entry {
+  grid-template-columns: minmax(0, 1fr) auto;
+  row-gap: 0.25rem;
+}
+
+.chrona-days__item--entry > .chrona-link {
+  grid-column: 1 / -1;
+}

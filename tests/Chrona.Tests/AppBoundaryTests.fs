@@ -250,6 +250,38 @@ let ``a running timer asks the schedule pack for one-second wake-ups, and a fire
     Assert.Equal("limen.schedule", (effects text).Head.["capability"].GetValue<string>())
 
 [<Fact>]
+let ``focus moves to the timer control that took the pressed one's place, through chrona.host`` () =
+    let _, aegis = collector ()
+    let env, _ = envWith committed
+    let hostOffer = $"""{{"id":"chrona.host","version":1,"fingerprint":"{AppProtocol.host.Fingerprint}"}}"""
+    let started = handle aegis env App.initial (initializeWith events (offer $"{schedule},{environment},{hostOffer}") "#/track")
+    let described = handle aegis env (fst started) (describedAs "America/New_York" started) |> fst
+
+    let state, _ =
+        List.fold
+            (fun (s, _) m -> handle aegis env s m)
+            (described, "")
+            [ event "newProjectName" None "HelixNote"
+              event "addProject" None ""
+              event "newActivityTypeName" None "Research"
+              event "addActivityType" None "" ]
+
+    let model = state.Model.Value
+    let project = (Chrona.Domain.Reference.selectable Chrona.Domain.Reference.Project model.References).Head.Id
+    let activityType = (Chrona.Domain.Reference.selectable Chrona.Domain.Reference.ActivityType model.References).Head.Id
+
+    let _, text =
+        [ event "timerProject" None project; event "timerActivityType" None activityType; event "startTimer" None "" ]
+        |> List.fold (fun (s, _) m -> handle aegis env s m) (state, "")
+
+    let focus =
+        effects text
+        |> List.find (fun e -> e.["kind"].GetValue<string>() = "Capability" && e.["capability"].GetValue<string>() = "chrona.host")
+
+    Assert.Equal("focus", focus.["request"].["operation"].GetValue<string>())
+    Assert.Equal("pause-timer", focus.["request"].["target"].GetValue<string>())
+
+[<Fact>]
 let ``every commit goes through the store port, and its answer is shown`` () =
     let _, aegis = collector ()
     let env, requests = envWith (fun _ -> Conflict [ Chrona.Domain.Reconcile.KeptChanging ])

@@ -92,12 +92,12 @@
     <p class="chrona-intro" id="offline-waiting" data-text="offlineWaiting"></p>
     <template data-if="offlineTimer">
       <section class="ef-surface chrona-card" aria-labelledby="offline-timer-title" id="offline-timer">
-        <h2 class="chrona-section-title" id="offline-timer-title">Your timer on this device</h2>
+        <h2 class="chrona-section-title" id="offline-timer-title" tabindex="-1">Your timer on this device</h2>
         <p class="chrona-intro"><span data-text="timerStateText"></span> · <strong role="timer" aria-live="off" data-text="timerElapsed"></strong></p>
         <p class="chrona-intro" data-text="offlineStoppedText"></p>
         <div class="chrona-conflicts__actions">
-          <button type="button" class="chrona-action chrona-action--secondary" data-event="pauseTimer" data-bind-hidden="timerPaused" data-bind-disabled="timerIdle">Pause</button>
-          <button type="button" class="chrona-action chrona-action--secondary" data-event="resumeTimer" data-bind-hidden="timerRunning" data-bind-disabled="timerIdle">Resume</button>
+          <button type="button" class="chrona-action chrona-action--secondary" id="offline-pause" data-event="pauseTimer" data-bind-hidden="timerPaused" data-bind-disabled="timerIdle">Pause</button>
+          <button type="button" class="chrona-action chrona-action--secondary" id="offline-resume" data-event="resumeTimer" data-bind-hidden="timerRunning" data-bind-disabled="timerIdle">Resume</button>
           <button type="button" class="chrona-action chrona-action--primary" data-event="stopTimer" data-bind-disabled="timerIdle">Stop and hold the time</button>
         </div>
       </section>
@@ -444,7 +444,7 @@
             <template data-if="hasStopped">
               <form class="ef-surface chrona-card" id="completion" data-event="saveCompletion" aria-labelledby="completion-title">
                 <p class="chrona-eyebrow">Timer stopped</p>
-                <h2 class="chrona-section-title" id="completion-title">Complete this activity.</h2>
+                <h2 class="chrona-section-title" id="completion-title" tabindex="-1">Complete this activity.</h2>
                 <p class="chrona-completion-total" data-text="stoppedTotal"></p>
                 <dl class="ef-facts chrona-facts">
                   <div class="ef-facts__item"><dt>Started</dt><dd data-text="stoppedStarted"></dd></div>

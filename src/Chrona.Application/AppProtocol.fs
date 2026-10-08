@@ -50,7 +50,7 @@ let print =
 let host =
     { Id = "chrona.host"
       Version = 1
-      Fingerprint = "chrona.host/1: tab storage, leave, replace address, broadcast, reload" }
+      Fingerprint = "chrona.host/1: tab storage, leave, replace address, broadcast, reload, focus" }
 
 /// `limen.lifecycle` v1 (sha256 from the installed package's generated
 /// contract): the page's visibility, freezing, back/forward-cache restores

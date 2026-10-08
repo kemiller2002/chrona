@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-08T17:25:49Z",
+  "updatedAt": "2026-10-08T17:45:05Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -2342,6 +2342,35 @@
         "EXE-20261008T172418702Z-f7fee975"
       ],
       "completedAt": "2026-10-08T17:25:49Z"
+    },
+    {
+      "id": "WI-0064",
+      "type": "feature",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "tests",
+          "path": "tests/browser/app-accessibility.spec.js"
+        },
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Engine/App/Update.fs"
+        },
+        {
+          "type": "implementation",
+          "path": "web-kernel/host.js"
+        },
+        {
+          "type": "documentation",
+          "path": "docs/accessibility-voiceover-checklist.md"
+        }
+      ],
+      "updatedAt": "2026-10-08T17:45:05Z",
+      "telemetryExecutionIds": [
+        "EXE-20261008T174104906Z-62d723e8"
+      ],
+      "completedAt": "2026-10-08T17:45:05Z"
     }
   ]
 }

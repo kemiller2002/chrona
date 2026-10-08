@@ -160,7 +160,11 @@ for the diagnosis, the evidence, and one unexercised watch item.
   (`chrona.host` focus), reflow at 320 CSS pixels, reduced motion, the week's
   totals and a sync problem on a phone. The iPhone VoiceOver pass needs a
   person (`docs/accessibility-voiceover-checklist.md`, WI-0068).
-- Not built: visual regression (WI-0054), the iPhone VoiceOver pass (WI-0068),
+- Visual regression (WI-0054): every screen, light and dark, desktop and
+  phone, against baselines rendered by the pinned Chromium on CI
+  (`playwright.visual.config.js`, `tests/visual/`); each screen reviewed
+  against the legacy captures in `docs/legacy/visual-comparison.md`.
+- Not built: the iPhone VoiceOver pass (WI-0068),
   the Summa transport (WI-0061), submission and approval screens (need actors and
   authorization, WI-0030 after Fides), and reports over stored data across
   people and organizations (WI-0039).
@@ -172,7 +176,7 @@ for the diagnosis, the evidence, and one unexercised watch item.
 
 ## Next action (time domain)
 
-Visual regression (WI-0054); the iPhone VoiceOver pass, by a person (WI-0068); the Summa transport once Summa chooses it (WI-0061);
+The iPhone VoiceOver pass, by a person (WI-0068); the Summa transport once Summa chooses it (WI-0061);
 the real sign-in and storage check once a deployment exists (WI-0052).
 
 ## Unresolved questions

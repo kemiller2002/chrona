@@ -55,7 +55,7 @@ and feel and its rules, rebuilt on Limen, Forma, Aegis and Folio
 ## Not yet built
 
 Real sign-in and storage
-against a deployed Fides exchange (WI-0052), the iPhone VoiceOver pass by a person (WI-0068), visual regression (WI-0054), and the Summa transport (WI-0061; the contract itself is installed and mapped, WI-0037). A deployment with a data
+against a deployed Fides exchange (WI-0052), the iPhone VoiceOver pass by a person (WI-0068), and the Summa transport (WI-0061; the contract itself is installed and mapped, WI-0037). A deployment with a data
 location keeps its records on GitHub through Arca (WI-0032); a local
 deployment keeps them in the tab.
 

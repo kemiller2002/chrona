@@ -52,7 +52,8 @@ let private envWith (answer: StoreRequest -> StoreOutcome) =
               Read = fun _ -> ()
               Rebuild = fun () -> ()
               SendNow = fun () -> ()
-              Discard = fun () -> () } }
+              Discard = fun () -> () }
+          Build = Chrona.Engine.App.Model.Development }
 
     env, requests
 
@@ -535,3 +536,62 @@ let ``the print pack is selected when offered and opens the print dialog`` () =
     let request = (effects text).Head
     Assert.Equal("chrona.print", request.["capability"].GetValue<string>())
     Assert.Equal("print", request.["request"].["action"].GetValue<string>())
+
+// ---- the page's lifecycle and a newer Chrona (WI-0063) -------------------------------------
+
+let private lifecycleOffer =
+    $"""{{"id":"limen.lifecycle","version":1,"fingerprint":"{AppProtocol.lifecycle.Fingerprint}"}}"""
+
+let private lifecycleFact (fact: string) =
+    $"""{{"kind":"CapabilityFact","capability":"limen.lifecycle","version":1,"fact":{fact}}}"""
+
+[<Fact>]
+let ``when the kernel offers the lifecycle pack, the engine subscribes, and a page coming back catches up`` () =
+    let _, aegis = collector ()
+    let env, _ = envWith committed
+    let state, text = handle aegis env App.initial (initializeWith events (offer $"{schedule},{environment},{lifecycleOffer}") "#/track")
+
+    let subscription =
+        effects text |> List.find (fun e -> e.["kind"].GetValue<string>() = "Capability" && e.["capability"].GetValue<string>() = "limen.lifecycle")
+
+    Assert.Equal("subscribe", subscription.["request"].["operation"].GetValue<string>())
+
+    Assert.Equal<string list>(
+        [ "visibility"; "pageLifecycle"; "freezing"; "connectivity" ],
+        subscription.["request"].["topics"].AsArray() |> Seq.map (fun t -> t.GetValue<string>()) |> Seq.toList
+    )
+
+    // Facts are typed; the kinds the engine does not act on change nothing,
+    // and one it does not know is a fault, never ignored.
+    let hidden, _ = App.handle aegis env state (lifecycleFact """{"kind":"VisibilityChanged","subscription":"lifecycle-1","visibility":"hidden"}""")
+    Assert.True(hidden.Fault.IsNone)
+    let back, _ = App.handle aegis env hidden (lifecycleFact """{"kind":"PageShown","subscription":"lifecycle-1","persisted":true}""")
+    Assert.True(back.Fault.IsNone)
+    let offline, text = App.handle aegis env back (lifecycleFact """{"kind":"ConnectivityChanged","subscription":"lifecycle-1","online":false}""")
+    Assert.True(offline.Model.Value.Store.Sync.Offline)
+    Assert.True(offline.Fault.IsNone)
+    let odd, _ = App.handle aegis env offline (lifecycleFact """{"kind":"Teleported","subscription":"lifecycle-1"}""")
+    Assert.True(odd.Fault.IsSome)
+
+[<Fact>]
+let ``a page built for a deployment asks which build is served, and offers a reload when it is newer`` () =
+    let _, aegis = collector ()
+    let env, _ = envWith committed
+    let env = { env with Build = "a1b2c3" }
+    let state, text = handle aegis env App.initial initialize
+
+    let check =
+        effects text
+        |> List.find (fun e -> e.["kind"].GetValue<string>() = "Http" && e.["url"].GetValue<string>().Contains "chrona-build.json")
+
+    Assert.StartsWith("http://127.0.0.1:4321/build/wasm/wwwroot/chrona-build.json?at=", check.["url"].GetValue<string>())
+    let same, text = App.handle aegis env state (httpResult (check.["correlationId"].GetValue<string>()) 200 """{"build":"a1b2c3"}""")
+    Assert.False(viewFlag "shellUpdate" text)
+    Assert.Equal(None, same.Model.Value.Shell.Newer)
+
+    // The next check finds a newer build.
+    let model = { same.Model.Value with Shell = { same.Model.Value.Shell with Newer = None } }
+    let next, effects' = Chrona.Engine.App.Update.update { Now = DateTimeOffset.UtcNow; NewId = fun p -> p } (Chrona.Engine.App.Update.ShellChecked(Some "d4e5f6")) model
+    Assert.Empty effects'
+    Assert.Equal(Some "d4e5f6", next.Shell.Newer)
+    Assert.Equal("A newer Chrona is ready. Reload to use it.", next.Announcement)

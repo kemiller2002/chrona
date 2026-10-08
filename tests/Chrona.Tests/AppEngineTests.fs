@@ -688,3 +688,43 @@ let ``a deployment chooses its common durations, and nothing else is accepted`` 
 
     for bad in [ "[]"; "[0]"; "[721]"; "[1.5]"; "[15,15]"; "\"15\"" ] do
         Assert.True(parse $$"""{"environment":"local","environmentName":"local","quickDurations":{{bad}}}""" |> Result.isError, bad)
+
+// ---- the page coming back and a newer Chrona (37, WI-0063) ------------------------------
+
+[<Fact>]
+let ``a page coming back restarts the timer's wake-ups from its timestamps and sends what waits`` () =
+    let running, _ = play (chooseForTimer @ [ start, ui "startTimer" "" ]) ready
+    let back, effects = update (ctxAt (at 30.0)) PageReturned running
+    // A new run of wake-ups; the one from before the page went away is ignored.
+    Assert.Equal<Effect list>([ Wake(running.TickGeneration + 1, TickMs) ], effects)
+    Assert.Equal<Effect list>([], snd (update (ctxAt (at 31.0)) (Ticked running.TickGeneration) back))
+    Assert.Equal("00:30:00", textOf "timerElapsed" back)
+
+    // Unsent changes are sent; the browser saying it is offline is shown.
+    let pending, _ = play (manualDraft "2026-10-08" @ [ start, ui "saveManual" "" ]) ready
+    Assert.Contains(SendUnsent, snd (update (ctxAt start) PageReturned pending))
+    Assert.Equal<Effect list>([ SendUnsent ], snd (update (ctxAt start) (ConnectionChanged true) pending))
+    let offline, _ = update (ctxAt start) (ConnectionChanged false) pending
+    Assert.True(offline.Store.Sync.Offline)
+
+[<Fact>]
+let ``only a page built for a deployment compares builds, and a reload never loses what lives only in the page`` () =
+    let dev, effects = update (ctxAt start) (BuildKnown Model.Development) ready
+    Assert.Empty effects
+    Assert.Equal(None, (fst (update (ctxAt start) (ShellChecked(Some "anything")) dev)).Shell.Newer)
+
+    let built, effects = update (ctxAt start) (BuildKnown "a1b2c3") ready
+    Assert.Equal<Effect list>([ CheckShell ], effects)
+    Assert.Contains(CheckShell, snd (update (ctxAt start) PageReturned built))
+    Assert.Equal(None, (fst (update (ctxAt start) (ShellChecked(Some "a1b2c3")) built)).Shell.Newer)
+    Assert.Equal(None, (fst (update (ctxAt start) (ShellChecked None) built)).Shell.Newer)
+
+    let newer, _ = update (ctxAt start) (ShellChecked(Some "d4e5f6")) built
+    Assert.True(flagOf "shellUpdate" newer)
+    Assert.Equal<Effect list>([ ReloadPage ], snd (update (ctxAt start) (ui "reloadShell" "") newer))
+
+    // A change kept only in this page (a conflict) holds the reload back.
+    let request = { emptyRequest "COMMIT-x" with Activities = [] }
+    let conflicted = { newer with Store = { newer.Store with Conflicts = [ { Id = "COMMIT-x"; Request = request; Divergences = [ Reconcile.KeptChanging ] } ] } }
+    Assert.True(flagOf "shellReloadBlocked" conflicted)
+    Assert.Empty(snd (update (ctxAt start) (ui "reloadShell" "") conflicted))

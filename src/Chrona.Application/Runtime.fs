@@ -28,6 +28,16 @@ let private identity =
 
 let private newId (prefix: string) = $"{prefix}-{System.Guid.NewGuid():N}"
 
+/// The Chrona build this page runs: stamped into this assembly when the
+/// WebAssembly build is published (`ChronaBuildId`; WI-0063).
+let private build =
+    typeof<App.State>.Assembly.GetCustomAttributes(typeof<System.Reflection.AssemblyMetadataAttribute>, false)
+    |> Seq.cast<System.Reflection.AssemblyMetadataAttribute>
+    |> Seq.tryFind (fun attribute -> attribute.Key = "ChronaBuildId")
+    |> Option.bind (fun attribute -> Option.ofObj attribute.Value)
+    |> Option.filter (System.String.IsNullOrWhiteSpace >> not)
+    |> Option.defaultValue Chrona.Engine.App.Model.Development
+
 let private appEnv: App.Env =
     { Now = now
       NewId = newId
@@ -36,7 +46,8 @@ let private appEnv: App.Env =
       Identity = identity
       // Arca's GitHub adapter, through the bridge, with Fides' token
       // provider; used only when the deployment configures a location.
-      Store = Store.arca bridge (Store.gitHub bridge identity.TokenProvider identity.ReportUnauthorized) now newId }
+      Store = Store.arca bridge (Store.gitHub bridge identity.TokenProvider identity.ReportUnauthorized) now newId
+      Build = build }
 
 let mutable private appState = App.initial
 

@@ -143,6 +143,16 @@
   </aside>
 
   <main class="chrona-page" id="main" tabindex="-1">
+    <template data-if="shellUpdate">
+      <aside class="ef-alert chrona-notice" role="status" data-tone="info" id="shell-update">
+        <div class="ef-alert__icon" aria-hidden="true">i</div>
+        <div class="chrona-stack">
+          <p class="ef-alert__title">A newer Chrona is ready.</p>
+          <p data-text="shellUpdateText"></p>
+          <button type="button" class="chrona-action chrona-action--secondary" id="reload-shell" data-event="reloadShell" data-bind-disabled="shellReloadBlocked">Reload now</button>
+        </div>
+      </aside>
+    </template>
     <!-- Unexpected operational failure (Aegis) is its own presentation. A
          refused entry is an ordinary problem beside its form. -->
     <template data-if="hasOperationalFault">

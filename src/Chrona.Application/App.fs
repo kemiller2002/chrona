@@ -33,7 +33,10 @@ type Env =
       /// The page's in-flight asynchronous work (sign-in and storage).
       Bridge: Bridge.Bridge
       Identity: Identity.IdentityPort
-      Store: Store.StorePort }
+      Store: Store.StorePort
+      /// The Chrona build this page runs (`development` when it was not
+      /// built for a deployment; WI-0063).
+      Build: string }
 
 /// The identity port's implementation until sign-in exists.
 let localSession =
@@ -57,6 +60,12 @@ type Purpose =
     | TimerLoad of key: string
     /// Keeping or clearing it.
     | TimerSave
+    /// The page's lifecycle subscription (WI-0063).
+    | Lifecycle
+    /// Asking which Chrona build the deployment serves now.
+    | ShellCheck
+    /// Reloading the page for a newer Chrona.
+    | Reloading
 
 [<NoComparison; NoEquality>]
 type State =
@@ -94,6 +103,15 @@ let private run (env: Env) (msg: Update.Msg) (model: Model) =
 let configurationUrl (state: State) =
     let folder = state.Path.Substring(0, state.Path.LastIndexOf '/' + 1)
     state.Origin + folder + "chrona.deployment.json"
+
+/// Where the deployment says which Chrona build it serves: written beside the
+/// WebAssembly build (`build/wasm/wwwroot/chrona-build.json`), asked for with
+/// a fresh query so no cache answers for the server (WI-0063).
+let buildUrl (state: State) (at: DateTimeOffset) =
+    let folder = state.Path.Substring(0, state.Path.LastIndexOf '/' + 1)
+    let site = folder.TrimEnd('/')
+    let parent = site.Substring(0, site.LastIndexOf '/' + 1)
+    state.Origin + parent + $"build/wasm/wwwroot/chrona-build.json?at={at.ToUnixTimeMilliseconds()}"
 
 /// How long the exchange and the configuration may take to answer.
 [<Literal>]
@@ -178,6 +196,11 @@ let private requests (env: Env) (state: State) (effects: Update.Effect list) =
                 minted (TimerLoad key), requests @ [ StorageGet(id, key) ], immediate
             | Update.SaveTimer(key, Some value) -> minted TimerSave, requests @ [ StorageSet(id, key, value) ], immediate
             | Update.SaveTimer(key, None) -> minted TimerSave, requests @ [ StorageRemove(id, key) ], immediate
+            | Update.CheckShell when List.contains "Http" state.Effects ->
+                minted ShellCheck, requests @ [ Http(id, "GET", buildUrl state (env.Now()), [], None, RequestTimeoutMs, []) ], immediate
+            | Update.CheckShell -> state, requests, immediate
+            | Update.ReloadPage when negotiated host state -> minted Reloading, requests @ [ Host(id, "reload", []) ], immediate
+            | Update.ReloadPage -> state, requests, immediate
             | Update.SendUnsent ->
                 env.Store.SendNow()
                 state, requests, immediate
@@ -247,6 +270,15 @@ let private answerBridge (env: Env) (id: string) (answer: Bridge.KernelAnswer) =
     if not (env.Bridge.Answer id answer) then
         raise (CapabilityFailed("correlation", $"A result for {id}, which no operation is waiting on"))
 
+/// The build named in the deployment's `chrona-build.json`, if it names one.
+let private buildOf (body: string) =
+    try
+        match JsonNode.Parse body |> Option.ofObj |> Option.bind (fun node -> tryField "build" node) with
+        | Some node when node.GetValueKind() = System.Text.Json.JsonValueKind.String -> Some(node.GetValue<string>())
+        | _ -> None
+    with _ ->
+        None
+
 let private scheduled (generation: int) (result: JsonNode) =
     match tryField "kind" result |> Option.map (asString "$.result.kind") with
     | Some "Fired" -> Some(Update.Ticked generation)
@@ -275,6 +307,18 @@ let step (env: Env) (state: State) (inbound: Inbound) =
                     Effects = effects }
 
             let next, sent = advance env started (Update.Started(hash, query)) []
+            let next, sent = advance env next (Update.BuildKnown env.Build) sent
+
+            // The page's comings and goings, when the kernel offers them.
+            let next, sent =
+                if negotiated lifecycle next then
+                    let id = $"app-{next.Sequence + 1}"
+
+                    { next with Sequence = next.Sequence + 1; Pending = next.Pending.Add(id, Lifecycle) },
+                    sent @ [ Subscribe(id, [ "visibility"; "pageLifecycle"; "freezing"; "connectivity" ]) ]
+                else
+                    next, sent
+
             next, encode (view next) sent [] (Some handshake)
     | other ->
         let state, msg =
@@ -303,6 +347,9 @@ let step (env: Env) (state: State) (inbound: Inbound) =
                     | _ -> answerBridge env id (hosted result)
 
                     state, None
+                // The subscription took; its facts follow.
+                | (Lifecycle, state), _ -> state, None
+                | (Reloading, state), _ -> state, None
                 | (BridgeCall, state), NotExecuted _ ->
                     answerBridge env id (Bridge.Read None)
                     state, None
@@ -311,6 +358,8 @@ let step (env: Env) (state: State) (inbound: Inbound) =
                 match take id state, result with
                 | (Configuration, state), HttpSucceeded(200, _, body) -> state, Some(Update.ConfigurationRead(Some body))
                 | (Configuration, state), _ -> state, Some(Update.ConfigurationRead None)
+                | (ShellCheck, state), HttpSucceeded(200, _, body) -> state, Some(Update.ShellChecked(buildOf body))
+                | (ShellCheck, state), _ -> state, Some(Update.ShellChecked None)
                 | (BridgeCall, state), result ->
                     answerBridge env id (Bridge.Answered result)
                     state, None
@@ -339,8 +388,22 @@ let step (env: Env) (state: State) (inbound: Inbound) =
                     env.Identity.Receive(required "message" "$.fact" asString fact)
                     state, None
                 | _ -> raise (MalformedInput("$.fact.kind", "a known chrona.host fact"))
+            | CapabilityFact(capability, fact) when capability = lifecycle.Id ->
+                let visible () = tryField "visibility" fact |> Option.map (asString "$.fact.visibility") = Some "visible"
+                let flagOf name = tryField name fact |> Option.map (fun node -> node.GetValue<bool>())
+
+                match tryField "kind" fact |> Option.map (asString "$.fact.kind") with
+                | Some "VisibilityChanged" when visible () -> state, Some Update.PageReturned
+                | Some "PageShown" when flagOf "persisted" = Some true -> state, Some Update.PageReturned
+                | Some "Resumed" -> state, Some Update.PageReturned
+                | Some "ConnectivityChanged" ->
+                    match flagOf "online" with
+                    | Some online -> state, Some(Update.ConnectionChanged online)
+                    | None -> raise (MalformedInput("$.fact.online", "true or false"))
+                | Some("VisibilityChanged" | "PageShown" | "PageHidden" | "Frozen" | "PrerenderActivated" | "ConnectionChanged") -> state, None
+                | _ -> raise (MalformedInput("$.fact.kind", "a known limen.lifecycle fact"))
             | CapabilityFact(capability, _) ->
-                raise (CapabilityFailed(capability, $"Unexpected CapabilityFact from {capability}: this engine watches only chrona.host"))
+                raise (CapabilityFailed(capability, $"Unexpected CapabilityFact from {capability}: this engine watches only chrona.host and limen.lifecycle"))
             | Initialize _ -> invalidOp "handled above"
 
         let next, sent =

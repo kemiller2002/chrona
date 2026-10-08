@@ -359,7 +359,8 @@ let private envFor (clock: DateTimeOffset ref) : App.Env =
                 Array.init count (fun _ ->
                     counter.Value <- counter.Value + 1uy
                     counter.Value))
-      Store = Store.inMemory bridge }
+      Store = Store.inMemory bridge
+      Build = Chrona.Engine.App.Model.Development }
 
 /// Signs in end to end: the page leaves for GitHub, GitHub sends it back with
 /// a code, a new page load completes the callback. Returns the signed-in page.

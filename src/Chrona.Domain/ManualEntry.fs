@@ -39,10 +39,6 @@ type EntryContext =
 
 let private blank (text: string) = String.IsNullOrWhiteSpace text
 
-let private classificationProblems (c: Classification) =
-    [ if blank c.ProjectId then MissingField "project"
-      if blank c.ActivityTypeId then MissingField "activityType"
-      if blank c.Description then MissingField "description" ]
 
 /// The resolved interval (if any), the minutes and the business date.
 let private timing (zone: Zone) (t: ManualTiming) : Result<Timing * int * DateOnly, Diagnostic list> =

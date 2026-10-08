@@ -38,6 +38,8 @@ type Approval =
 type Attestation =
     { ActorId: string
       LocalDate: DateOnly
+      /// What the actor affirmed, in their own words (R6).
+      Statement: string
       Covered: Covered
       At: DateTimeOffset }
 
@@ -182,22 +184,27 @@ let staleApprovals (workflow: Workflow) =
         | [] -> None
         | ids -> Some(approval.SubmissionId, ids))
 
-/// Daily attestation: a snapshot of the actor's recorded activities for the
-/// date, by id and revision, not just a total (16).
-let attest (context: CommandContext) (date: DateOnly) (workflow: Workflow) =
+/// Daily attestation: the actor's statement and a snapshot of their recorded
+/// activities for the date, by id and revision, not just a total (16).
+/// Attesting again adds a newer attestation; the earlier one stays on record.
+let attest (context: CommandContext) (date: DateOnly) (statement: string) (workflow: Workflow) =
     let covered =
         activities workflow
         |> List.filter (fun a -> a.ActorId = context.Performer && a.Occurrence.LocalDate = date && consumesTime a)
         |> List.map (fun a -> a.ActivityId, a.Revision)
         |> List.sortBy fst
 
-    let attestation =
-        { ActorId = context.Performer
-          LocalDate = date
-          Covered = covered
-          At = context.At }
+    if String.IsNullOrWhiteSpace statement then
+        Error [ MissingField "statement" ]
+    else
+        let attestation =
+            { ActorId = context.Performer
+              LocalDate = date
+              Statement = statement.Trim()
+              Covered = covered
+              At = context.At }
 
-    { workflow with Attestations = workflow.Attestations @ [ attestation ] }, attestation
+        Ok({ workflow with Attestations = workflow.Attestations @ [ attestation ] }, attestation)
 
 /// What changed for an attested day since the attestation: changed or
 /// removed activities and activities added afterwards (16, scenario 17).

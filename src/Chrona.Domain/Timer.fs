@@ -115,11 +115,22 @@ type Stopped =
       /// Unusually long: review before recording (10.4).
       NeedsReview: Diagnostic option }
 
-/// Clips each segment to business days in the timer's zone. Each piece is
-/// whole minutes from its own start; seconds that do not complete a minute
-/// within a piece are not recorded as worked time.
-let private pieces (zone: Zone) (timer: ActiveTimer) =
+/// Whole minutes for a number of working seconds: the nearest minute, half a
+/// minute rounding up (legacy "rounded to the nearest whole minute"). Less
+/// than thirty seconds is therefore nothing (DF-CHRONA-2026-0002 R5).
+let private nearestMinutes (seconds: float) = int (Math.Floor((seconds + 30.0) / 60.0))
+
+/// A segment clipped to one business day, at full precision.
+type private Clip =
+    { Date: DateOnly
+      DayStart: DateTimeOffset
+      DayEnd: DateTimeOffset
+      Start: DateTimeOffset
+      Finish: DateTimeOffset }
+
+let private clips (zone: Zone) (timer: ActiveTimer) =
     timer.Segments
+    |> List.sortBy _.Start
     |> List.collect (fun segment ->
         let finish = defaultArg segment.Finish segment.Start
 
@@ -128,19 +139,68 @@ let private pieces (zone: Zone) (timer: ActiveTimer) =
                 []
             else
                 let date = (occurrence zone from).LocalDate
-                let _, nextDay = dayBounds zone date
-                let until = min finish nextDay
-                let minutes = int (until - from).TotalMinutes
+                let dayStart, dayEnd = dayBounds zone date
+                let until = min finish dayEnd
 
-                let piece =
-                    { Occurrence = occurrence zone from
-                      Start = from
-                      Finish = from.AddMinutes(float minutes)
-                      Minutes = minutes }
-
-                (if minutes > 0 then [ piece ] else []) @ cut until
+                { Date = date
+                  DayStart = dayStart
+                  DayEnd = dayEnd
+                  Start = from
+                  Finish = until }
+                :: cut until
 
         cut segment.Start)
+
+/// The recorded pieces. The working total is rounded once, to the nearest
+/// minute, and shared out by cumulative rounding, so the pieces always add
+/// up to exactly that total however many pauses and midnights there were.
+/// Each piece is then placed as a whole-minute interval as close as possible
+/// to when the work happened: never overlapping another piece of the same
+/// timer and never crossing its business day (10.3).
+let private pieces (zone: Zone) (timer: ActiveTimer) =
+    let all = clips zone timer
+
+    let minutes =
+        all
+        |> List.scan (fun total clip -> total + (clip.Finish - clip.Start).TotalSeconds) 0.0
+        |> List.map nearestMinutes
+        |> List.pairwise
+        |> List.map (fun (before, after) -> after - before)
+
+    let place (day: (Clip * int) list) =
+        // Forward: from when each run began, after the previous piece.
+        let forward =
+            day
+            |> List.scan
+                (fun (_, finish: DateTimeOffset) (clip: Clip, m: int) ->
+                    let start = max clip.Start finish
+                    start, start.AddMinutes(float m))
+                (DateTimeOffset.MinValue, (fst day.Head).DayStart)
+            |> List.tail
+
+        // Backward: pulled inside the business day where rounding pushed a
+        // piece past its end.
+        let dayEnd = (fst day.Head).DayEnd
+
+        List.foldBack
+            (fun ((clip: Clip, m: int), (_, finish: DateTimeOffset)) (limit: DateTimeOffset, placed: TimedPiece list) ->
+                let finish = min finish limit
+                let start = finish.AddMinutes(-(float m))
+
+                start,
+                { Occurrence = { occurrence zone start with LocalDate = clip.Date }
+                  Start = start
+                  Finish = finish
+                  Minutes = m }
+                :: placed)
+            (List.zip day forward)
+            (dayEnd, [])
+        |> snd
+
+    List.zip all minutes
+    |> List.filter (fun (_, m) -> m > 0)
+    |> List.groupBy (fun (clip, _) -> clip.Date)
+    |> List.collect (snd >> place)
 
 let stop (zone: Zone) (at: DateTimeOffset) (state: TimerState) =
     match state with

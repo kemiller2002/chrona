@@ -116,11 +116,30 @@ let private bump (context: CommandContext) (activity: Activity) =
         Revision = activity.Revision + 1
         LastChangedAt = context.At }
 
-let private overlapFree (context: CommandContext) (ledger: Ledger) (candidate: Activity) =
+/// The creation rules a record must satisfy whenever it is recorded, amended
+/// or restored: a complete classification and no overlap (R2: amended
+/// fields are revalidated by the same rules as creation).
+let private valid (context: CommandContext) (ledger: Ledger) (candidate: Activity) =
     let others = ledger.Activities |> Map.toList |> List.map snd
-    match Overlap.check context.Zone others candidate with
+
+    match classificationProblems candidate.Classification @ Overlap.check context.Zone others candidate with
     | [] -> Ok candidate
     | problems -> Error problems
+
+/// Whether every activity has clock times and, in start order, each ends
+/// exactly where the next begins.
+let private contiguous (items: Activity list) =
+    let spans = items |> List.choose interval |> List.sortBy fst
+    spans.Length = items.Length && spans |> List.pairwise |> List.forall (fun ((_, e1), (s2, _)) -> e1 = s2)
+
+/// Evidence follows the record state (R4): a Recorded activity may link and
+/// unlink evidence; a Voided one may only gain it (it can still be
+/// restored); a Superseded one is final.
+let private evidenceAllowed (command: string) (activity: Activity) =
+    match activity.Record, command with
+    | Recorded, _
+    | Voided _, "evidence-link" -> Ok activity
+    | other, _ -> Error [ IllegalTransition(recordStateName other, command) ]
 
 let private apply (context: CommandContext) (ledger: Ledger) (command: Command) : Result<Activity list, Diagnostic list> =
     let ( >>= ) r f = Result.bind f r
@@ -128,7 +147,7 @@ let private apply (context: CommandContext) (ledger: Ledger) (command: Command) 
     match command with
     | Record activity when ledger.Activities.ContainsKey activity.ActivityId ->
         Error [ IllegalTransition("Recorded", "create") ]
-    | Record activity -> overlapFree context ledger activity >>= fun a -> Ok [ a ]
+    | Record activity -> valid context ledger activity >>= fun a -> Ok [ a ]
 
     | Amend(id, expected, amendment) ->
         find ledger id expected
@@ -152,7 +171,7 @@ let private apply (context: CommandContext) (ledger: Ledger) (command: Command) 
                     | None -> changed
                     | Some(occurrence, timing, minutes) -> { changed with Occurrence = occurrence; Timing = timing; Minutes = minutes }
 
-                overlapFree context ledger changed >>= fun a -> Ok [ a ]
+                valid context ledger changed >>= fun a -> Ok [ a ]
 
     | Void(id, expected, reason) ->
         find ledger id expected
@@ -168,7 +187,7 @@ let private apply (context: CommandContext) (ledger: Ledger) (command: Command) 
             match activity.Record with
             | Voided _ ->
                 // Restoring rechecks overlap against the ledger as it is now.
-                overlapFree context ledger { bump context activity with Record = Recorded } >>= fun a -> Ok [ a ]
+                valid context ledger { bump context activity with Record = Recorded } >>= fun a -> Ok [ a ]
             | other -> Error [ IllegalTransition(recordStateName other, "restore") ]
 
     | Split(id, expected, parts) ->
@@ -186,7 +205,8 @@ let private apply (context: CommandContext) (ledger: Ledger) (command: Command) 
                   // Evidence is assigned, never silently duplicated (13).
                   if List.distinct assigned <> assigned || not (Set.isSubset (Set.ofList assigned) evidenceIds) then
                       EvidenceAssignmentInvalid
-                  () ]
+                  // A reclassified child obeys the creation rules too.
+                  yield! parts |> List.collect (fun p -> p.Classification |> Option.map classificationProblems |> Option.defaultValue []) |> List.distinct ]
 
             if not problems.IsEmpty then
                 Error problems
@@ -253,7 +273,11 @@ let private apply (context: CommandContext) (ledger: Ledger) (command: Command) 
                   // Incompatible downstream states need an explicit decision (13).
                   if distinctBy _.Publication > 1 then PublicationStateConflict "sources have different publication states"
                   if items |> List.exists (fun a -> a.Publication = Published || a.Publication = InvoicedExternally) then
-                      PublicationStateConflict "published sources cannot be merged without reconciliation" ]
+                      PublicationStateConflict "published sources cannot be merged without reconciliation"
+                  // Merge joins time that is already adjacent (R3): every
+                  // source has clock times and each ends where the next
+                  // begins, so the result spans exactly their time.
+                  if not (contiguous items) then IncompatibleMergeSources "sources are not contiguous" ]
 
             if not problems.IsEmpty then
                 Error problems
@@ -263,12 +287,7 @@ let private apply (context: CommandContext) (ledger: Ledger) (command: Command) 
 
                 let timing =
                     let spans = ordered |> List.choose interval
-
-                    let contiguous =
-                        spans.Length = ordered.Length
-                        && spans |> List.pairwise |> List.forall (fun ((_, e1), (s2, _)) -> e1 = s2)
-
-                    if contiguous then Interval(fst spans.Head, snd (List.last spans)) else DurationOnDate minutes
+                    Interval(fst spans.Head, snd (List.last spans))
 
                 let merged =
                     { first with
@@ -284,10 +303,13 @@ let private apply (context: CommandContext) (ledger: Ledger) (command: Command) 
                         LastChangedAt = context.At
                         Review = Unsubmitted }
 
-                Ok(merged :: (items |> List.map (fun a -> { bump context a with Record = Superseded [ newId ] })))
+                match classificationProblems merged.Classification with
+                | [] -> Ok(merged :: (items |> List.map (fun a -> { bump context a with Record = Superseded [ newId ] })))
+                | problems -> Error problems
 
     | LinkEvidence(id, expected, evidence) ->
         find ledger id expected
+        >>= evidenceAllowed "evidence-link"
         >>= fun activity ->
             if activity.Evidence |> List.exists (fun e -> e.Id = evidence.Id) then
                 Error [ IllegalTransition("linked", "evidence-link") ]
@@ -296,6 +318,7 @@ let private apply (context: CommandContext) (ledger: Ledger) (command: Command) 
 
     | UnlinkEvidence(id, expected, evidenceId) ->
         find ledger id expected
+        >>= evidenceAllowed "evidence-unlink"
         >>= fun activity ->
             if activity.Evidence |> List.exists (fun e -> e.Id = evidenceId) then
                 Ok [ { bump context activity with Evidence = activity.Evidence |> List.filter (fun e -> e.Id <> evidenceId) } ]

@@ -4,6 +4,7 @@
 module Chrona.Domain.Activity
 
 open System
+open Chrona.Domain.Diagnostics
 open Chrona.Domain.Time
 
 /// 6.1 Record lifecycle.
@@ -111,3 +112,16 @@ let recordStateName =
     | Recorded -> "Recorded"
     | Voided _ -> "Voided"
     | Superseded _ -> "Superseded"
+
+/// Every classification problem, in a stable order: what the work was, why
+/// it mattered to the business, and where it belongs are all required
+/// (legacy DOMAIN-REQUIREMENTS "Creating an activity requires", kept by
+/// expansion 9; DF-CHRONA-2026-0002 R1). Applied on creation, on every
+/// amendment and to timer results alike.
+let classificationProblems (c: Classification) =
+    let blank = String.IsNullOrWhiteSpace
+
+    [ if blank c.ProjectId then MissingField "project"
+      if blank c.ActivityTypeId then MissingField "activityType"
+      if blank c.Description then MissingField "description"
+      if blank c.BusinessPurpose then MissingField "businessPurpose" ]

@@ -149,7 +149,7 @@ let ``approving a changed submission is refused, and approval can be switched of
 [<Fact>]
 let ``scenarios 16 and 17: attestation snapshots ids and revisions, and later changes show`` () =
     let wf = workflowWith [ activity "A1" (9, 0) 60; activity "A2" (11, 0) 30 ]
-    let attested, snapshot = attest actor day wf
+    let attested, snapshot = attest actor day "Complete and accurate." wf |> ok
     Assert.Equal<Covered>([ "A1", 1; "A2", 1 ], snapshot.Covered)
     Assert.Empty(attestationChanges attested snapshot)
     let amendedLedger = execute actor attested.Ledger (Amend("A2", 1, { Classification = None; Billability = None; Retime = None; Reason = "fix" })) |> ok

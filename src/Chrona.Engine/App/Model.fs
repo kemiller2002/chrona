@@ -132,7 +132,10 @@ type ReportDraft =
       /// "project", "activityType", "tag" or "day".
       Grouping: string
       /// "csv" or "json".
-      Format: string }
+      Format: string
+      /// When the export shown was generated: set when the report is opened
+      /// or changed, so the text copied is the text the person saw.
+      GeneratedAt: DateTimeOffset option }
 
 let emptyReport =
     { From = ""
@@ -145,7 +148,8 @@ let emptyReport =
       Text = ""
       IncludeRemoved = false
       Grouping = "project"
-      Format = "csv" }
+      Format = "csv"
+      GeneratedAt = None }
 
 /// Where a refusal is shown.
 type Form =

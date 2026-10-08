@@ -591,3 +591,16 @@ let ``the month reports on itself`` () =
     let next, effects = update (ctxAt start) (ui "reportMonth" "") month
     Assert.Equal<Effect list>([ Navigate "#/reports" ], effects)
     Assert.Equal(("2026-09-01", "2026-09-30"), (next.Report.From, next.Report.To))
+
+[<Fact>]
+let ``the export copied is the export shown, whatever happens between`` () =
+    let reports, _ = update (ctxAt start) (LocationMoved "#/reports") withThree
+    let shown = textOf "exportText" reports
+    // Time passes (a timer wake-up, a click a second later) before the copy.
+    let later = start.AddSeconds 1.0
+    let ticked, _ = update (ctxAt later) (Ticked 99) reports
+    let _, effects = update (ctxAt later) (ui "copyExport" "") ticked
+    Assert.Equal<Effect list>([ CopyText shown ], effects)
+    // Changing the report generates it afresh.
+    let changed, _ = update (ctxAt later) (ui "reportText" "first") reports
+    Assert.Contains("# generatedAt: 2026-10-08T18:10:01Z", textOf "exportText" changed)

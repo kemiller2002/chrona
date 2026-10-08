@@ -1301,10 +1301,10 @@
         "indexeddb"
       ],
       "priority": "medium",
-      "status": "ready",
+      "status": "complete",
       "attachments": [],
       "createdAt": "2026-10-08T15:27:10Z",
-      "updatedAt": "2026-10-08T22:28:26.000Z",
+      "updatedAt": "2026-10-08T23:52:13.000Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

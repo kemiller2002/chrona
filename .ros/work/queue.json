@@ -489,10 +489,10 @@
         "inventory"
       ],
       "priority": "high",
-      "status": "ready",
+      "status": "complete",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:45.996Z",
-      "updatedAt": "2026-10-08T08:36:18.207Z",
+      "updatedAt": "2026-10-08T08:41:37.793Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

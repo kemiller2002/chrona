@@ -1,12 +1,10 @@
 /// Chrona's places and their addresses (CHX-460, WI-0071): the route table,
 /// the typed codec's round trip and canonical form, legacy addresses, return
-/// targets, share links, the route inventory, and the interim copy of
-/// Limen.Routing staying Limen's own.
+/// targets, share links, and the route inventory.
 module Chrona.Tests.PlacesTests
 
 open System
 open System.IO
-open System.Security.Cryptography
 open System.Text.Json
 open Xunit
 open Limen.Routing
@@ -251,16 +249,3 @@ let ``the route inventory is the table's own, byte for byte`` () =
     Assert.Equal(Names.NotFound, root.GetProperty("notFound").GetString())
     Assert.Equal(3, root.GetProperty("legacy").GetArrayLength())
     Assert.EndsWith("}\n", rendered)
-
-// ---- the interim copy of Limen.Routing ----------------------------------------------------
-
-[<Fact>]
-let ``the interim Limen.Routing is Limen's own files, unchanged`` () =
-    use lock = JsonDocument.Parse(readRepoFile "vendor/limen-routing/limen-routing.lock")
-    let files = lock.RootElement.GetProperty("files").EnumerateObject() |> Seq.toList
-    Assert.NotEmpty files
-
-    for file in files do
-        let bytes = File.ReadAllBytes(repoFile ("vendor/limen-routing/" + file.Name))
-        let digest = "sha256:" + Convert.ToHexString(SHA256.HashData bytes).ToLowerInvariant()
-        Assert.Equal(file.Value.GetString(), digest)

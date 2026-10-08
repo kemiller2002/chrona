@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "repository": "chrona",
-  "nextSeq": 59,
+  "nextSeq": 61,
   "items": [
     {
       "id": "WI-0001",
@@ -662,7 +662,7 @@
     {
       "id": "WI-0033",
       "title": "Chrona 08: offline change queue - Arca's offline queue on browser storage behind the store port, sync state and reconnect reconciliation (CHX-021, CHX-230, CHX-200 remainders)",
-      "description": "Depends on WI-0032 and Arca's offline queue (ARCA-OFF, Arca 0.2.0). Every change is queued write-ahead in Arca's OfflineQueue, kept in this browser's localStorage through Arca's LocalStorageQueue over Limen Storage requests (IndexedDB waits on Limen), and sent in order. Network loss defers and retries with back-off; the queue survives refresh and restart and is synchronized when the records open, without blocking the first render. A queued change the repository moved under is decided again by Chrona's rules (Reconcile) and revised, or becomes a visible conflict; an unknown outcome is reconciled before anything else is sent. The queue holds operations, never record state, so it is never a competing authority: records are read from GitHub, and unsent changes are shown as unsent. Sync state is visible (CHX-230 sync state, CHX-320 sync state). Changes another account left in this browser are never sent with the current account's credential. Scenarios 31, 33 and 34. The persisted timer and concurrent timers are WI-0055. The CHX-260 remainder for the concurrent timer conflict is WI-0055.",
+      "description": "Depends on WI-0032 and Arca's offline queue (ARCA-OFF, Arca 0.2.0). Every change is queued write-ahead in Arca's OfflineQueue, kept in this browser's localStorage through Arca's LocalStorageQueue over Limen Storage requests (IndexedDB waits on Limen), and sent in order. Network loss defers and retries with back-off; the queue survives refresh and restart and is synchronized when the records open, without blocking the first render. A queued change the repository moved under is decided again by Chrona's rules (Reconcile) and revised, or becomes a visible conflict; an unknown outcome is reconciled before anything else is sent. The queue holds operations, never record state, so it is never a competing authority: records are read from GitHub, and unsent changes are shown as unsent. Sync state is visible (CHX-230 sync state, CHX-320 sync state). Changes another account left in this browser are never sent with the current account's credential. Scenarios 31, 33 and 34. The persisted timer and concurrent timers are WI-0055. The CHX-260 remainder for the concurrent timer conflict is WI-0055. Follow-ups (2026-10-08): the move to IndexedDB is WI-0059 and the offline-start read cache is WI-0057, specified by kemiller2002/limen docs/requirements/LIMEN-INDEXEDDB-REQUIREMENTS.md (LCP-043..087) and DF-LIMEN-2026-0005; the sign-out policy is WI-0058.",
       "tags": [
         "chrona",
         "order:08",
@@ -673,7 +673,7 @@
       "status": "complete",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:48.284Z",
-      "updatedAt": "2026-10-08T14:41:08Z",
+      "updatedAt": "2026-10-08T15:27:27Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",
@@ -1251,13 +1251,13 @@
     {
       "id": "WI-0057",
       "title": "Chrona 08c: offline start with a read cache (CHX-230 remainder)",
-      "description": "Depends on Limen's IndexedDB capability (its requirements are being written in the limen repository) and WI-0033. When GitHub cannot be reached at startup, open the organization's records from a read-only cache in IndexedDB so recording can start offline. GitHub stays the only authority: the cache is a rebuildable projection of what was last read (records with their revisions and the change token they were read at), never written to except from GitHub reads, discarded and rebuilt whenever it cannot be trusted, kept per account and organization, and cleared by the shared-device policy at sign-out. Changes made from it go through the offline queue, decided again on reconnect. No read cache on localStorage (coordinator decision 2026-10-08). Requirement 23 (CHX-230).",
+      "description": "Depends on Limen's IndexedDB capability (its requirements are being written in the limen repository) and WI-0033. When GitHub cannot be reached at startup, open the organization's records from a read-only cache in IndexedDB so recording can start offline. GitHub stays the only authority: the cache is a rebuildable projection of what was last read (records with their revisions and the change token they were read at), never written to except from GitHub reads, discarded and rebuilt whenever it cannot be trusted, kept per account and organization, and cleared by the shared-device policy at sign-out. Changes made from it go through the offline queue, decided again on reconnect. No read cache on localStorage (coordinator decision 2026-10-08). Requirement 23 (CHX-230). Requirements (2026-10-08): kemiller2002/limen docs/requirements/LIMEN-INDEXEDDB-REQUIREMENTS.md LCP-082..LCP-087; DF-LIMEN-2026-0005 section 4 places the cache in Arca: a pure read-cache port in Arca.Core (Cached and Fresh are different types, so a cached value can never condition a write) with an IndexedDB adapter in EchelonFoundry.Arca.Limen (Arca WI-0021, WI-0022). Cache per account and organization the partitions already read: activities by month, the derived activity index (WI-0034), reference data and the roster, each stamped with its change token and content hashes; show them as of that token offline; revalidate the shown partitions when GitHub is reachable (refresh or mark stale). Clearing follows WI-0058's sharedDevicePolicy: discardOnSignOut clears the account's cache at sign-out; ask clears it unless the person keeps their unsent changes on this device, in which case the account's cache is kept with them (LCP-070, LCP-086). Also depends on Arca WI-0021/WI-0022 released and WI-0059.",
       "tags": [],
       "priority": "medium",
       "status": "captured",
       "attachments": [],
       "createdAt": "2026-10-08T15:09:22Z",
-      "updatedAt": "2026-10-08T15:09:22Z",
+      "updatedAt": "2026-10-08T15:27:27Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",
@@ -1279,6 +1279,56 @@
       "attachments": [],
       "createdAt": "2026-10-08T15:09:22Z",
       "updatedAt": "2026-10-08T15:18:27Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0059",
+      "title": "Chrona 08e: move the offline change queue from localStorage to Arca's IndexedDB adapter - one queue owner across tabs, durability mode in sync state, first-run migration (CHX-021, CHX-230, CHX-370; Limen LCP-059, LCP-065, LCP-066, LCP-070, LCP-073)",
+      "description": "Follows WI-0033, which queues every change write-ahead in Arca's OfflineQueue on this browser's localStorage (Arca LocalStorageQueue over Limen Storage requests) and notes that IndexedDB waits on Limen; and WI-0058, whose sharedDevicePolicy (ask | discardOnSignOut) sign-out choices stay exactly as they are and are carried over to the IndexedDB queue (LCP-070). Requirements: kemiller2002/limen docs/requirements/LIMEN-INDEXEDDB-REQUIREMENTS.md LCP-059, LCP-065, LCP-066, LCP-070, LCP-073; decision DF-LIMEN-2026-0005. Depends on Arca WI-0016 and WI-0020 released (EchelonFoundry.Arca.Limen, installed through Conditor) and on Limen 0.8.0 (Limen WI-0166). Wire the IndexedDB queue store through the durability-mode composer (IndexedDb, then LocalStorage, then MemoryOnly) and show the mode wherever sync state is shown; in MemoryOnly warn before accepting an offline change. Register Limen's store and coordination packs. A second tab is told that another tab holds this device's unsent changes and can take over (OwnedElsewhere; OQ-LIMEN-IDB-001). Known hazard today: the queue is saved as one snapshot, so two Chrona tabs can overwrite each other's unsent entries in localStorage (last writer wins); this item removes it. Browser tests: two tabs, owner closed, sign-out under both policies against the IndexedDB queue, first-run migration from an existing localStorage queue.",
+      "tags": [
+        "chrona",
+        "offline",
+        "limen",
+        "indexeddb"
+      ],
+      "priority": "medium",
+      "status": "captured",
+      "attachments": [],
+      "createdAt": "2026-10-08T15:27:10Z",
+      "updatedAt": "2026-10-08T15:27:10Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0060",
+      "title": "Link Chrona's offline items to Limen's IndexedDB requirements (LCP-043..087): refine WI-0057 (read cache), capture WI-0059 (IndexedDB queue)",
+      "description": "Docs and queue only. backlog-plan.md lists WI-0059 and WI-0057 after WI-0033, WI-0034 and WI-0058, citing kemiller2002/limen docs/requirements/LIMEN-INDEXEDDB-REQUIREMENTS.md and DF-LIMEN-2026-0005; WI-0033 links its follow-ups.",
+      "tags": [
+        "chrona",
+        "limen"
+      ],
+      "priority": "medium",
+      "status": "ready",
+      "attachments": [],
+      "createdAt": "2026-10-08T15:27:11Z",
+      "updatedAt": "2026-10-08T15:27:28Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

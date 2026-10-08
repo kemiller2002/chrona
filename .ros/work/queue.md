@@ -46,3 +46,4 @@
 | WI-0038 | Chrona 13: observation processing - accept, modify, reject, deduplicate, receipts (CHX-190, CHX-120 import path, CHX-250 import audit) | captured | chrona, order:13, observations | medium |
 | WI-0039 | Chrona 14: search, reporting and export with Folio (CHX-270, CHX-280, CHX-290) | captured | chrona, order:14, reporting, folio | medium |
 | WI-0040 | Chrona 15: telemetry privacy, remaining scenario tests and the production completion gate (CHX-420, CHX-430, CHX-440, CHX-001, CHX-002, CHX-004 remainders) | captured | chrona, order:15, quality, gate | medium |
+| WI-0041 | Stop the Chromium install from hanging the browser-suite CI (unbounded apt-get update in playwright install --with-deps) | complete | ci, playwright, reliability | high |

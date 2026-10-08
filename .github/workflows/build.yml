@@ -10,6 +10,9 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # A normal run takes about two minutes. Anything that stalls fails
+    # here instead of holding a runner for the six-hour default.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -46,8 +49,69 @@ jobs:
       - name: Publish the WASM engine
         run: npm run build:wasm
 
-      - name: Install Chromium for the browser suite
-        run: npx playwright install --with-deps chromium
+      # Chromium used to be installed with `npx playwright install --with-deps
+      # chromium`. `--with-deps` runs `sudo apt-get update` against the
+      # runner's apt mirror list on every run, and apt has no overall
+      # deadline: when the Azure Ubuntu mirror stopped answering, the update
+      # stalled after the InRelease fetches and the step hung until the
+      # six-hour job limit (signal#21, signal#22, summa#21). The runner image
+      # already carries every shared library Chromium needs (apt reported each
+      # one "already the newest version"), so the apt run bought nothing the
+      # browser suite uses. The browser itself also re-downloaded on every
+      # run. Now: the browser is cached under the exact Playwright version
+      # pinned in package-lock.json (that version fixes the browser build),
+      # and the OS libraries are proved present offline instead of being
+      # fetched.
+      - name: Resolve the pinned Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('./package-lock.json').packages['node_modules/playwright-core'].version")" >> "$GITHUB_OUTPUT"
+
+      # A stalled cache download falls back to a fresh browser download
+      # after two minutes instead of the default ten.
+      - name: Restore the Chromium build for that version
+        id: chromium-cache
+        uses: actions/cache@v4
+        env:
+          SEGMENT_DOWNLOAD_TIMEOUT_MINS: "2"
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ runner.arch }}-${{ steps.playwright.outputs.version }}
+
+      - name: Download Chromium for the browser suite
+        if: steps.chromium-cache.outputs.cache-hit != 'true'
+        timeout-minutes: 5
+        run: npx playwright install chromium
+
+      # `ldd` proves offline that every shared library the Chromium binaries
+      # link against is on the runner. Only when a future runner image drops
+      # one does apt run at all, with per-request timeouts and retries and an
+      # overall deadline, and the result is checked again. A missing library
+      # fails the step by name; it can no longer hang.
+      - name: Verify Chromium's OS libraries
+        timeout-minutes: 8
+        run: |
+          missing_libraries() {
+            find ~/.cache/ms-playwright -type f \( -name chrome -o -name chrome-headless-shell \) -print0 \
+              | xargs -0 --no-run-if-empty ldd \
+              | awk '/not found/ { print $1 }' \
+              | sort -u
+          }
+
+          missing="$(missing_libraries)"
+          if [ -n "$missing" ]; then
+            echo "::warning::Runner image lacks Chromium libraries: $(echo $missing). Installing Chromium's OS dependencies."
+            printf '%s\n' 'Acquire::Retries "3";' 'Acquire::http::Timeout "30";' 'Acquire::https::Timeout "30";' \
+              | sudo tee /etc/apt/apt.conf.d/99-bounded-network > /dev/null
+            timeout 300 npx playwright install-deps chromium \
+              || echo "::error::Installing Chromium's OS dependencies failed or took longer than five minutes."
+          fi
+
+          still_missing="$(missing_libraries)"
+          if [ -n "$still_missing" ]; then
+            echo "::error::Chromium cannot start; missing shared libraries: $(echo $still_missing)"
+            exit 1
+          fi
+          echo "Every shared library Chromium links against is present."
 
       # The composed path: DOM event, Limen kernel, WASM shim, F# engine
       # and back, in a real browser, with Forma and Folio presenting it.

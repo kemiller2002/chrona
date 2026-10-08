@@ -38,7 +38,7 @@
 | WI-0030 | Chrona 05: actors, membership and capability-based authorization (CHX-030, CHX-260 remainder) | complete | chrona, order:05, authorization | high |
 | WI-0031 | Chrona 06: reference data on Arca - authoritative reference records, their storage and administration across devices (CHX-040 remainder, CHX-063 remainder) | complete | chrona, order:06, reference-data | high |
 | WI-0032 | Chrona 07: authoritative storage on Arca - partitioned layout, repository concurrency, integrity and manual edits (CHX-021, CHX-210, CHX-220, CHX-380, CHX-390, CHX-410, CHX-240 remainder, CHX-050 persistence) | complete | chrona, order:07, storage, depends:arca | high |
-| WI-0033 | Chrona 08: offline change queue - Arca's offline queue on browser storage behind the store port, sync state and reconnect reconciliation (CHX-021, CHX-230, CHX-200 remainders) | active | chrona, order:08, offline, depends:arca | high |
+| WI-0033 | Chrona 08: offline change queue - Arca's offline queue on browser storage behind the store port, sync state and reconnect reconciliation (CHX-021, CHX-230, CHX-200 remainders) | complete | chrona, order:08, offline, depends:arca | high |
 | WI-0034 | Chrona 09: rebuildable derived state - indexes, totals, approval and publication projections (CHX-400) | captured | chrona, order:09, derived-state | medium |
 | WI-0035 | Chrona 10: conflict resolution and review of outside edits in the application (CHX-260, CHX-410, CHX-320 remainders) | complete | chrona, order:10, ui, limen, forma | high |
 | WI-0036 | Chrona 11: timesheet periods on Arca - persisted period configuration, closed periods and their effect on submission and approval (CHX-150 remainder) | captured | chrona, order:11, periods | medium |

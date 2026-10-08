@@ -1579,6 +1579,31 @@
       },
       "source": "manual",
       "sourceReference": null
+    },
+    {
+      "id": "WI-0072",
+      "title": "Move Chrona to Limen 0.9.0 through Conditor: Limen.Routing from the attested package in place of the interim copy, @echelon-foundry/limen 0.9.0, the route inventory validated against contract/routes.schema.json (CHX-460)",
+      "description": "echelon-current 1.11.0 selects limen 0.9.0 and limen-fsharp 0.9.0 (registry#53). Replace vendor/limen-routing (DF-CHRONA-2026-0007 point 3) with EchelonFoundry.Limen.Routing 0.9.0 installed by Conditor, move the npm @echelon-foundry/limen to 0.9.0 with it, keep the byte-equal inventory check and validate .echelon/routes.json against Limen's contract/routes.schema.json.",
+      "tags": [
+        "chrona",
+        "limen",
+        "conditor"
+      ],
+      "priority": "high",
+      "status": "complete",
+      "attachments": [],
+      "createdAt": "2026-10-08T21:46:25.000Z",
+      "updatedAt": "2026-10-08T21:58:11.000Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
     }
   ]
 }

@@ -19,9 +19,12 @@
 
   <ItemGroup>
     <ProjectReference Include="../Chrona.Domain/Chrona.Domain.fsproj" />
-    <!-- Limen's routing library, an interim copy until Limen 0.9.0 ships it
-         (vendor/limen-routing/SOURCE.md, DF-CHRONA-2026-0007). -->
-    <ProjectReference Include="../../vendor/limen-routing/libraries/fsharp/Limen.Routing/Limen.Routing.fsproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Limen's URL-state semantics (CHX-460, DF-CHRONA-2026-0007): an
+         engine library, pure, depending on FSharp.Core alone. -->
+    <PackageReference Include="EchelonFoundry.Limen.Routing" />
   </ItemGroup>
 
 </Project>

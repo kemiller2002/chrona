@@ -2,7 +2,7 @@
 id: DF-CHRONA-2026-0007
 title: Deep links on Limen's URL-state semantics, through an interim copy of Limen.Routing until Limen 0.9.0 ships
 status: accepted
-version: 1.0.0
+version: 1.1.0
 created: 2026-10-08
 updated: 2026-10-08
 owners:
@@ -30,6 +30,16 @@ provenance:
         model: unknown
         runtime: claude-code
       reason: "Deep links on Limen's URL-state semantics through an interim copy (WI-0071)"
+    EXE-20261008T214626408Z-33828acf:
+      operations: [modified]
+      at: 2026-10-08T21:51:25.838Z
+      actor:
+        kind: agent
+        id: anthropic/claude-code
+        provider: anthropic
+        model: unknown
+        runtime: claude-code
+      reason: "Interim copy replaced by Limen 0.9.0 (WI-0072)"
 ---
 
 # DF-CHRONA-2026-0007 — Deep links on Limen's URL-state semantics, through an interim copy
@@ -86,6 +96,23 @@ The work on Limen's branch `urlstate/wi-0168-semantics-fsharp` (commit `e935da7`
    - one the deployment does not serve is not found;
    - the organization reaches sign-in inside the return target.
 9. **Places that do not exist yet join with their screens.** Candidate review has no screen until observation inboxes are stored (WI-0038). Its addresses join the table, the inventory and the browser tests with that screen; WI-0038's description says so.
+
+## Update (WI-0072, 2026-10-08)
+
+Limen 0.9.0 was released and selected in echelon-current 1.11.0. Point 3 was carried out:
+
+- Conditor installed `limen-fsharp` 0.9.0 (`vendor/nuget/limen-fsharp.lock`, each package proven against the Registry's SHA-256).
+- The engine references `EchelonFoundry.Limen.Routing` 0.9.0.
+- `vendor/limen-routing/`, its solution entries and its CI step were deleted.
+
+The release's `Routing.fs` is byte-identical to the interim copy at `e935da7`, so no Chrona source changed.
+
+The npm `@echelon-foundry/limen` moved to 0.9.0 with it. The tarball's SHA-256 matches the Registry's.
+
+The inventory is now checked two ways:
+
+- `PlacesTests` holds it byte-equal to the table's rendering.
+- `tools/routes/inventory.test.mjs` validates it against `contract/routes.schema.json`, the schema Limen 0.9.0 publishes.
 
 ## Consequences
 

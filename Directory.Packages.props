@@ -26,6 +26,11 @@
          summa.chrona-billing 1.0), the same way (vendor/nuget/
          summa-contracts.lock). Summa owns it; Chrona.Integration maps onto it. -->
     <PackageVersion Include="EchelonFoundry.Summa.Contracts" Version="0.1.0" />
+    <!-- Limen 0.9.0's routing library (limen-fsharp, echelon-current 1.11.0),
+         the same way (vendor/nuget/limen-fsharp.lock): the URL-state
+         semantics Chrona's places are a codec over (CHX-460,
+         DF-CHRONA-2026-0007). -->
+    <PackageVersion Include="EchelonFoundry.Limen.Routing" Version="0.9.0" />
   </ItemGroup>
 
   <ItemGroup Label="Test">

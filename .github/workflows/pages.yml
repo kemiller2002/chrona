@@ -40,6 +40,9 @@ jobs:
       - name: Install npm dependencies
         run: npm ci
 
+      - name: Test the site assembly
+        run: node --test tools/pages/assemble-site.test.mjs
+
       # The WebAssembly engine, published in Release by the repository's own
       # script, so the site is the same build the browser suite proves.
       - name: Publish the WASM engine

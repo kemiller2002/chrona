@@ -14,10 +14,14 @@ open Chrona.Engine.App.Model
 let private text key (value: string) = key, Value(Text value)
 let private flag key (value: bool) = key, Value(Flag value)
 let private items key (rows: (string * Scalar) list list) = key, Items rows
+let private n key (value: float) = key, Number value
 let private t key (value: string) = key, Text value
 let private f key (value: bool) = key, Flag value
 
 let private plural (n: int) (one: string) (many: string) = if n = 1 then $"1 {one}" else $"{n} {many}"
+let private quoted (text: string) = "\"" + text + "\""
+let private commaList (texts: string list) = String.Join(", ", texts)
+let private activities (n: int) = plural n "activity" "activities"
 
 // ---- names and words ----------------------------------------------------------
 
@@ -33,6 +37,9 @@ let private fieldName =
     | "start" -> "a start date and time"
     | "end" -> "an end date and time"
     | "name" -> "a name"
+    | "evidenceLabel" -> "a label saying what the evidence is"
+    | "evidenceKind" -> "the kind of evidence"
+    | "statement" -> "an attestation statement"
     | other -> other
 
 /// A diagnostic in words, with what to do next. The stable code stays on the
@@ -71,6 +78,14 @@ let describe (model: Model) (diagnostic: Diagnostic) =
     | DuplicateReference _ -> "That already exists."
     | ReferenceOwnedElsewhere(_, _, owner) -> $"This is managed in {owner}."
     | RevisionConflict _ -> "This changed since you opened it. Review the current version and try again."
+    | InvalidEvidenceUrl _ -> "A link must be a web address starting with https:// or http://."
+    | SplitDurationMismatch(expected, actual) -> $"The parts add up to {actual} minutes; they must add up to exactly {expected}."
+    | EvidenceAssignmentInvalid -> "Each piece of evidence can support one part at most."
+    | IncompatibleMergeSources reason -> $"These cannot be merged: {reason}."
+    | PublicationStateConflict reason -> $"These cannot be merged: {reason}."
+    | IllegalTransition(from, command) -> $"A record that is {from.ToLowerInvariant()} cannot be changed that way ({command})."
+    | OrganizationMismatch
+    | ActorMismatch -> "These belong to different people or organizations."
     | other -> $"Chrona could not do that ({code other})."
 
 let private problemItems (model: Model) (form: Form) =
@@ -81,9 +96,16 @@ let private problemItems (model: Model) (form: Form) =
 // ---- shell -------------------------------------------------------------------------
 
 let private navigation (model: Model) =
-    [ "today", "Today", "TD"; "track", "Track", "TR"; "more", "More", "MR" ]
+    // An activity's detail and a day's review belong to Today.
+    let section =
+        match model.Route.Screen with
+        | ActivityDetail _
+        | DayReview -> Today
+        | screen -> screen
+
+    [ "today", "Today", "TD"; "track", "Track", "TR"; "month", "Month", "MO"; "more", "More", "MR" ]
     |> List.map (fun (id, label, mark) ->
-        let current = Routes.ofScreenName id = Some model.Route.Screen
+        let current = Routes.ofScreenName id = Some section
         [ t "id" id; t "label" label; t "mark" mark; t "current" (if current then "page" else "false") ])
 
 let private storeLines (model: Model) =
@@ -170,6 +192,7 @@ let private record (model: Model) (activity: Activity) =
       t "method" (methodLabel activity.EntryMethod)
       t "state" (if voided then "Removed from totals" else "Recorded")
       t "stateTone" (if voided then "unknown" else "ok")
+      f "mergeSelected" (List.contains activity.ActivityId model.MergeSelection)
       f "voided" voided ]
 
 let private percent (part: int) (whole: int) =
@@ -197,7 +220,17 @@ let private today (model: Model) =
       text "dayManualTotal" (counted |> List.filter (fun a -> a.EntryMethod = Manual) |> List.sumBy _.Minutes |> Format.minutes)
       text "dayCorrections" (counted |> List.filter (fun a -> a.Revision > 1) |> List.length |> string)
       text "dayVoided" (shown |> List.filter (consumesTime >> not) |> List.length |> string)
-      text "dayEvidence" (percent (counted |> List.filter (fun a -> not a.Evidence.IsEmpty) |> List.length) counted.Length) ]
+      text "dayEvidence" (percent (counted |> List.filter (fun a -> not a.Evidence.IsEmpty) |> List.length) counted.Length)
+      flag "canMerge" (model.MergeSelection.Length >= 2)
+      text "mergeCount" (plural model.MergeSelection.Length "activity selected" "activities selected")
+      items "mergeTypeOptions" (options model Reference.ActivityType model.MergeDraft.ActivityTypeId)
+      items "mergeProjectOptions" (options model Reference.Project model.MergeDraft.ProjectId)
+      flag "mergeTypeUnset" (model.MergeDraft.ActivityTypeId = "")
+      flag "mergeProjectUnset" (model.MergeDraft.ProjectId = "")
+      text "mergeDescription" model.MergeDraft.Description
+      text "mergePurpose" model.MergeDraft.BusinessPurpose
+      flag "hasMergeProblems" (model.Problems.ContainsKey MergeForm)
+      items "mergeProblems" (problemItems model MergeForm) ]
 
 // ---- track -------------------------------------------------------------------------
 
@@ -324,6 +357,332 @@ let private more (model: Model) =
       flag "hasReferenceProblems" (model.Problems.ContainsKey ReferenceForm)
       items "referenceProblems" (problemItems model ReferenceForm) ]
 
+
+// ---- obligations (34) -------------------------------------------------------------
+
+/// The latest attestation of each day, and what changed since (16).
+let private staleAttestations (model: Model) =
+    let workflow = { Review.start model.Ledger with Attestations = model.Attestations }
+
+    model.Attestations
+    |> List.groupBy _.LocalDate
+    |> List.map (fun (date, all) -> date, List.last all)
+    |> List.choose (fun (date, latest) ->
+        match Review.attestationChanges workflow latest with
+        | [] -> None
+        | changed -> Some(date, changed))
+
+let private actionLabel =
+    function
+    | "goTrack" -> "Complete it"
+    | "openReview" -> "Review the day"
+    | _ -> "See details"
+
+/// Unresolved work, as one projection rather than scattered warnings.
+let private obligations (model: Model) =
+    [ match model.Stopped with
+      | Some stopped ->
+          yield
+              "stopped-timer",
+              "A stopped timer is waiting to be completed",
+              $"{Format.minutes stopped.TotalMinutes} is held until you add what it was for.",
+              "goTrack"
+      | None -> ()
+      for date, changed in staleAttestations model do
+          yield
+              $"attestation-{Format.isoDate date}",
+              $"{Format.longDate date} changed after you attested it",
+              $"{activities changed.Length} changed since. Review the day again.",
+              "openReview"
+      match model.Store.Problem with
+      | Some(Conflict detail) -> yield "store", "A change was not saved: it changed elsewhere", detail, "goMore"
+      | Some(Failed detail) -> yield "store", "A change was not saved", detail, "goMore"
+      | Some(OutcomeUnknown detail) -> yield "store", "Chrona cannot tell whether a change was saved", detail, "goMore"
+      | _ -> () ]
+    |> List.map (fun (id, title, detail, action) -> [ t "id" id; t "title" title; t "detail" detail; t "action" (actionLabel action) ])
+
+// ---- the activity detail -------------------------------------------------------------
+
+let private evidenceKinds =
+    [ "url", "Link"
+      "github-commit", "GitHub commit"
+      "pull-request", "Pull request"
+      "issue", "Issue"
+      "document", "Document"
+      "calendar-event", "Calendar event"
+      "screenshot", "Screenshot"
+      "linkedin-post", "LinkedIn post"
+      "other", "Other" ]
+
+let private kindLabel (kind: string) =
+    evidenceKinds |> List.tryFind (fst >> (=) kind) |> Option.map snd |> Option.defaultValue kind
+
+let private commandLabel =
+    function
+    | "create" -> "Recorded"
+    | "amend" -> "Amended"
+    | "void" -> "Removed from totals"
+    | "restore" -> "Restored"
+    | "split" -> "Split"
+    | "merge" -> "Merged"
+    | "evidence-link" -> "Evidence linked"
+    | "evidence-unlink" -> "Evidence unlinked"
+    | other -> other
+
+let private localStamp (model: Model) (instant: DateTimeOffset) =
+    match model.Zone with
+    | Some zone ->
+        let o = occurrence zone instant
+        $"{Format.longDate o.LocalDate}, {Format.clock o.LocalTime}"
+    | None -> instant.ToString("u")
+
+let private detailView (model: Model) =
+    let found =
+        model.Detail
+        |> Option.bind (fun d -> model.Ledger.Activities.TryFind d.ActivityId |> Option.map (fun a -> d, a))
+
+    let blank =
+        [ "detailTitle"; "detailClassification"; "detailTimes"; "detailDate"; "detailDuration"; "detailBilled"; "detailMethod"; "detailState"
+          "detailRevision"; "detailPurpose"; "detailReason"; "detailTags"; "detailLineage"; "detailReplacedBy"; "amendDescription"; "amendPurpose"
+          "amendReason"; "voidReason"; "splitFirst"; "splitSecond"; "splitTotal"; "evidenceUrl"; "evidenceLabel" ]
+
+    match found with
+    | None ->
+        [ flag "detailFound" false
+          flag "detailMissing" (match model.Route.Screen with ActivityDetail _ -> true | _ -> false)
+          flag "detailRecorded" false
+          flag "detailVoided" false
+          flag "detailSuperseded" false
+          flag "detailCanSplit" false
+          flag "detailHasEvidence" false
+          yield! blank |> List.map (fun key -> text key "")
+          items "amendTypeOptions" []
+          items "amendProjectOptions" []
+          items "detailEvidence" []
+          items "splitEvidence" []
+          items "evidenceKindOptions" []
+          items "detailHistory" []
+          flag "hasAmendProblems" false
+          items "amendProblems" []
+          flag "hasVoidProblems" false
+          items "voidProblems" []
+          flag "hasSplitProblems" false
+          items "splitProblems" []
+          flag "hasEvidenceProblems" false
+          items "evidenceProblems" [] ]
+    | Some(d, a) ->
+        let detailMissing = flag "detailMissing" false
+
+        let recorded, voided, superseded =
+            match a.Record with
+            | Recorded -> true, false, false
+            | Voided _ -> false, true, false
+            | Superseded _ -> false, false, true
+
+        let times =
+            match interval a with
+            | Some(start, finish) -> $"{Format.clock start} – {Format.clock finish}"
+            | None -> "No clock times"
+
+        let lineage =
+            match a.Lineage with
+            | [] -> ""
+            | [ source ] when source.StartsWith "TMR" -> "From a timer."
+            | sources ->
+                let names =
+                    sources
+                    |> List.map (fun id -> model.Ledger.Activities.TryFind id |> Option.map (fun s -> quoted s.Classification.Description) |> Option.defaultValue id)
+
+                $"From {commaList names}."
+
+        let replacedBy =
+            match a.Record with
+            | Superseded children ->
+                let names =
+                    children
+                    |> List.map (fun id -> model.Ledger.Activities.TryFind id |> Option.map (fun c -> $"{quoted c.Classification.Description} ({Format.minutes c.Minutes})") |> Option.defaultValue id)
+
+                $"Replaced by {commaList names}. It no longer counts toward totals."
+            | _ -> ""
+
+        let history =
+            model.Ledger.Audit
+            |> List.indexed
+            |> List.filter (fun (_, entry) -> List.contains a.ActivityId entry.ActivityIds)
+            |> List.rev
+            |> List.map (fun (index, entry) ->
+                let revisions =
+                    match entry.PriorRevisions |> List.tryFind (fst >> (=) a.ActivityId), entry.ResultingRevisions |> List.tryFind (fst >> (=) a.ActivityId) with
+                    | Some(_, before), Some(_, after) -> $"Revision {before} → {after}"
+                    | None, Some(_, after) -> $"Revision {after}"
+                    | _ -> ""
+
+                [ t "id" $"{index}"
+                  t "action" (commandLabel entry.Command)
+                  t "at" (localStamp model entry.At)
+                  t "revisions" revisions
+                  t "reason" (entry.Reason |> Option.filter (String.IsNullOrWhiteSpace >> not) |> Option.map (fun r -> $"Reason: {r}") |> Option.defaultValue "") ])
+
+        [ flag "detailFound" true
+          detailMissing
+          flag "detailRecorded" recorded
+          flag "detailVoided" voided
+          flag "detailSuperseded" superseded
+          flag "detailCanSplit" (recorded && a.Minutes >= 2)
+          flag "detailHasEvidence" (not a.Evidence.IsEmpty)
+          text "detailTitle" a.Classification.Description
+          text "detailClassification" $"{referenceName model Reference.ActivityType a.Classification.ActivityTypeId} · {referenceName model Reference.Project a.Classification.ProjectId}"
+          text "detailTimes" times
+          text "detailDate" (Format.longDate a.Occurrence.LocalDate)
+          text "detailDuration" (Format.minutes a.Minutes)
+          text "detailBilled" $"{Format.minutes (Billing.billableMinutes (billing model) a.Minutes)} billed"
+          text "detailMethod" (methodLabel a.EntryMethod)
+          text "detailState" (match a.Record with Recorded -> "Recorded" | Voided _ -> "Removed from totals" | Superseded _ -> "Superseded")
+          text "detailRevision" (string a.Revision)
+          text "detailPurpose" a.Classification.BusinessPurpose
+          text "detailReason" (a.Reason |> Option.defaultValue "None")
+          text "detailTags" (match a.Classification.Tags with [] -> "None" | tags -> tags |> List.map (referenceName model Reference.Tag) |> String.concat ", ")
+          text "detailLineage" lineage
+          text "detailReplacedBy" replacedBy
+          items "amendTypeOptions" (options model Reference.ActivityType d.Amend.ActivityTypeId @ (if Reference.selectable Reference.ActivityType model.References |> List.exists (fun i -> i.Id = d.Amend.ActivityTypeId) then [] else [ [ t "id" d.Amend.ActivityTypeId; t "name" $"{referenceName model Reference.ActivityType d.Amend.ActivityTypeId} (archived)"; f "selected" true ] ]))
+          items "amendProjectOptions" (options model Reference.Project d.Amend.ProjectId @ (if Reference.selectable Reference.Project model.References |> List.exists (fun i -> i.Id = d.Amend.ProjectId) then [] else [ [ t "id" d.Amend.ProjectId; t "name" $"{referenceName model Reference.Project d.Amend.ProjectId} (archived)"; f "selected" true ] ]))
+          text "amendDescription" d.Amend.Description
+          text "amendPurpose" d.Amend.BusinessPurpose
+          text "amendReason" d.AmendReason
+          text "voidReason" d.VoidReason
+          text "splitFirst" d.SplitFirst
+          text "splitSecond" d.SplitSecond
+          text "splitTotal" $"{Format.minutes a.Minutes} to share: the parts must add up to exactly {a.Minutes} minutes."
+          items
+              "detailEvidence"
+              (a.Evidence
+               |> List.map (fun e ->
+                   [ t "id" e.Id
+                     t "label" e.Label
+                     t "kind" (kindLabel e.Kind)
+                     t "url" e.Url
+                     f "hasUrl" (e.Url <> "")
+                     t "captured" (localStamp model e.CapturedAt) ]))
+          items
+              "splitEvidence"
+              (a.Evidence
+               |> List.map (fun e ->
+                   let part = d.SplitEvidence.TryFind e.Id |> Option.defaultValue 0
+                   [ t "id" e.Id; t "label" e.Label; f "toFirst" (part = 1); f "toSecond" (part = 2); f "toNeither" (part = 0) ]))
+          items "evidenceKindOptions" (evidenceKinds |> List.map (fun (id, name) -> [ t "id" id; t "name" name; f "selected" (id = d.EvidenceKind) ]))
+          text "evidenceUrl" d.EvidenceUrl
+          text "evidenceLabel" d.EvidenceLabel
+          items "detailHistory" history
+          flag "hasAmendProblems" (model.Problems.ContainsKey AmendForm)
+          items "amendProblems" (problemItems model AmendForm)
+          flag "hasVoidProblems" (model.Problems.ContainsKey VoidForm)
+          items "voidProblems" (problemItems model VoidForm)
+          flag "hasSplitProblems" (model.Problems.ContainsKey SplitForm)
+          items "splitProblems" (problemItems model SplitForm)
+          flag "hasEvidenceProblems" (model.Problems.ContainsKey EvidenceForm)
+          items "evidenceProblems" (problemItems model EvidenceForm) ]
+
+// ---- the day review ------------------------------------------------------------------
+
+let private reviewView (model: Model) =
+    let date = selectedDate model
+    let shown = dayActivities model date
+    let counted = shown |> List.filter consumesTime
+    let byMethod m = counted |> List.filter (fun a -> a.EntryMethod = m)
+    let summary (list: Activity list) = $"{list.Length} · {Format.minutes (list |> List.sumBy _.Minutes)}"
+    let attested = model.Attestations |> List.filter (fun a -> a.LocalDate = date)
+    let changed = staleAttestations model |> List.tryFind (fst >> (=) date) |> Option.map snd |> Option.defaultValue []
+    let historical = counted |> List.filter (fun a -> a.EntryMethod = Manual && date < Model.today model)
+
+    let checks =
+        [ "descriptions", "Every activity says what was done", (counted |> List.forall (fun a -> a.Classification.Description <> "")), "Complete", "Missing"
+          "purposes", "Every activity has a business purpose", (counted |> List.forall (fun a -> a.Classification.BusinessPurpose <> "")), "Complete", "Missing"
+          "overlap", "No overlapping time", true, "Clear", "Overlap"
+          "explained", "Manual entries for an earlier day are explained", (historical |> List.forall (fun a -> a.Reason.IsSome)), "Included", "Missing"
+          "attested", "Nothing changed since the last attestation", changed.IsEmpty, (if attested.IsEmpty then "Not yet attested" else "Unchanged"), "Changed"
+          "saved", "Every change has been stored", model.Store.Problem.IsNone && model.Store.Pending.IsEmpty, (match model.Store.Kind with InMemory -> "In this tab" | Durable _ -> "Saved"), "Attention" ]
+        |> List.map (fun (id, title, ok, good, bad) ->
+            [ t "id" id; t "title" title; t "status" (if ok then good else bad); t "tone" (if ok then "ok" else "attention") ])
+
+    [ flag "screenReview" (model.Route.Screen = DayReview)
+      text "reviewTitle" (Format.longDate date)
+      text "reviewTotal" (Format.minutes (counted |> List.sumBy _.Minutes))
+      text "reviewCount" (plural counted.Length "included entry" "included entries")
+      text "reviewTimer" (summary (byMethod EntryMethod.Timer))
+      text "reviewManual" (summary (byMethod Manual))
+      text "reviewEvidence" (percent (counted |> List.filter (fun a -> not a.Evidence.IsEmpty) |> List.length) counted.Length)
+      text "reviewCorrections" (counted |> List.filter (fun a -> a.Revision > 1) |> List.length |> string)
+      items "reviewChecks" checks
+      flag "hasAttestations" (not attested.IsEmpty)
+      items
+          "attestations"
+          (attested
+           |> List.rev
+           |> List.mapi (fun index a -> [ t "id" $"{index}"; t "statement" a.Statement; t "at" $"Attested {localStamp model a.At} · {activities a.Covered.Length}" ]))
+      flag "changedSinceAttestation" (not changed.IsEmpty)
+      items
+          "changedActivities"
+          (changed
+           |> List.map (fun id ->
+               [ t "id" id
+                 t "title" (model.Ledger.Activities.TryFind id |> Option.map _.Classification.Description |> Option.defaultValue id) ]))
+      text "attestStatement" model.AttestStatement
+      flag "hasAttestProblems" (model.Problems.ContainsKey AttestForm)
+      items "attestProblems" (problemItems model AttestForm) ]
+
+// ---- the month ------------------------------------------------------------------------
+
+let private monthView (model: Model) =
+    let first = selectedMonth model
+    let last = first.AddMonths(1).AddDays -1
+
+    let inMonth =
+        model.Ledger.Activities
+        |> Map.toList
+        |> List.map snd
+        |> List.filter (fun a -> a.ActorId = model.Session.ActorId && a.Occurrence.LocalDate >= first && a.Occurrence.LocalDate <= last)
+
+    let counted = inMonth |> List.filter consumesTime
+    let total = counted |> List.sumBy _.Minutes
+    let sumOf m = counted |> List.filter (fun a -> a.EntryMethod = m) |> List.sumBy _.Minutes
+
+    let byType =
+        counted
+        |> List.groupBy _.Classification.ActivityTypeId
+        |> List.map (fun (id, list) -> id, list |> List.sumBy _.Minutes)
+        |> List.sortByDescending snd
+        |> List.map (fun (id, minutes) ->
+            [ t "id" id
+              t "name" (referenceName model Reference.ActivityType id)
+              t "total" (Format.minutes minutes)
+              n "share" (if total = 0 then 0.0 else Math.Round(100.0 * float minutes / float total))
+              t "shareText" (percent minutes total) ])
+
+    let days =
+        counted
+        |> List.groupBy _.Occurrence.LocalDate
+        |> List.sortBy fst
+        |> List.map (fun (date, list) ->
+            [ t "id" (Format.isoDate date)
+              t "label" (Format.longDate date)
+              t "total" (Format.minutes (list |> List.sumBy _.Minutes))
+              t "count" (plural list.Length "entry" "entries") ])
+
+    [ flag "screenMonth" (model.Route.Screen = Month)
+      text "monthTitle" (first.ToString("MMMM yyyy", Globalization.CultureInfo.InvariantCulture))
+      text "monthIso" $"{first.Year:D4}-{first.Month:D2}"
+      text "monthTotal" (Format.minutes total)
+      text "monthBilled" (Format.minutes (counted |> List.sumBy (fun a -> Billing.billableMinutes (billing model) a.Minutes)))
+      text "monthDecimal" (Format.decimalHours total)
+      text "monthActiveDays" (string days.Length)
+      text "monthTimerManual" $"{Format.minutes (sumOf EntryMethod.Timer)} / {Format.minutes (sumOf Manual)}"
+      text "monthCorrections" (counted |> List.filter (fun a -> a.Revision > 1) |> List.length |> string)
+      text "monthVoided" (inMonth |> List.filter (fun a -> match a.Record with Voided _ -> true | _ -> false) |> List.length |> string)
+      text "monthEvidence" (percent (counted |> List.filter (fun a -> not a.Evidence.IsEmpty) |> List.length) counted.Length)
+      flag "monthEmpty" counted.IsEmpty
+      items "monthByType" byType
+      items "monthDays" days ]
+
 // ---- the whole view ---------------------------------------------------------------
 
 let project (model: Model) : View =
@@ -336,6 +695,7 @@ let project (model: Model) : View =
     [ flag "screenToday" (model.Route.Screen = Today)
       flag "screenTrack" (model.Route.Screen = Track)
       flag "screenMore" (model.Route.Screen = More)
+      flag "screenActivity" (match model.Route.Screen with ActivityDetail _ -> true | _ -> false)
       items "navigation" (navigation model)
       text "announcement" model.Announcement
       text "sessionName" model.Session.DisplayName
@@ -349,4 +709,9 @@ let project (model: Model) : View =
       yield! timer model
       yield! completion model
       yield! manual model
-      yield! more model ]
+      yield! more model
+      flag "hasObligations" (not (obligations model).IsEmpty)
+      items "obligations" (obligations model)
+      yield! detailView model
+      yield! reviewView model
+      yield! monthView model ]

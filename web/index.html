@@ -112,7 +112,7 @@
                   <p class="chrona-record__time"><span data-text="start"></span><span data-text="finish"></span></p>
                   <div class="chrona-record__body">
                     <div class="chrona-record__head">
-                      <h2 class="chrona-record__title" data-text="title"></h2>
+                      <h2 class="chrona-record__title"><button type="button" class="chrona-link" data-event="openActivity" data-text="title"></button></h2>
                       <span class="chrona-record__duration" data-text="duration"></span>
                     </div>
                     <p class="chrona-record__classification" data-text="classification"></p>
@@ -122,6 +122,7 @@
                       <span class="ef-status-lozenge" data-bind-data-state="stateTone" data-text="state"></span>
                       <span class="chrona-record__billed" data-text="billed"></span>
                     </p>
+                    <label class="ef-checkbox chrona-record__select"><input class="ef-checkbox__input" type="checkbox" data-event="mergeSelect" data-bind-checked="mergeSelected" /><span class="ef-checkbox__box" aria-hidden="true"></span><span class="ef-checkbox__text"><span class="ef-checkbox__label">Select to merge</span></span></label>
                   </div>
                 </li>
               </template>
@@ -139,7 +140,72 @@
                 <div class="ef-facts__item"><dt>Evidence coverage</dt><dd data-text="dayEvidence"></dd></div>
               </dl>
             </section>
-            <button type="button" class="chrona-action chrona-action--primary chrona-action--full" data-event="goTrack">Add time</button>
+            <button type="button" class="chrona-action chrona-action--primary chrona-action--full" id="open-review" data-event="openReview">Review this day</button>
+            <button type="button" class="chrona-action chrona-action--secondary chrona-action--full" data-event="goTrack">Add time</button>
+
+            <template data-if="hasObligations">
+              <section class="ef-alert chrona-obligations" data-tone="attention" aria-labelledby="obligations-title" id="obligations">
+                <div class="ef-alert__icon" aria-hidden="true">!</div>
+                <div>
+                  <h2 class="ef-alert__title" id="obligations-title">Needs attention</h2>
+                  <ul class="chrona-obligations__list">
+                    <template data-each="obligations" data-key="id">
+                      <li><p><strong data-text="title"></strong></p><p data-text="detail"></p><button type="button" class="chrona-action chrona-action--secondary" data-event="resolveObligation" data-text="action"></button></li>
+                    </template>
+                  </ul>
+                </div>
+              </section>
+            </template>
+
+            <template data-if="canMerge">
+              <form class="ef-surface chrona-card" id="merge" data-event="saveMerge" aria-labelledby="merge-title">
+                <h2 class="chrona-section-title" id="merge-title">Merge selected activities</h2>
+                <p class="chrona-intro" data-text="mergeCount"></p>
+                <p class="chrona-intro">Only adjacent activities on one day merge. The merged record keeps every original, superseded.</p>
+                <div class="chrona-form-grid chrona-form-grid--single">
+                  <label class="ef-select-field">
+                    <span class="ef-field__label">Activity type</span>
+                    <span class="ef-select">
+                      <select class="ef-select__input" id="merge-activity-type" data-event="mergeActivityType">
+                        <option value="" data-bind-selected="mergeTypeUnset">Keep the first one's</option>
+                        <template data-each="mergeTypeOptions" data-key="id"><option data-bind-value="id" data-bind-selected="selected" data-text="name"></option></template>
+                      </select>
+                      <span class="ef-select__indicator" aria-hidden="true"></span>
+                    </span>
+                  </label>
+                  <label class="ef-select-field">
+                    <span class="ef-field__label">Project</span>
+                    <span class="ef-select">
+                      <select class="ef-select__input" id="merge-project" data-event="mergeProject">
+                        <option value="" data-bind-selected="mergeProjectUnset">Keep the first one's</option>
+                        <template data-each="mergeProjectOptions" data-key="id"><option data-bind-value="id" data-bind-selected="selected" data-text="name"></option></template>
+                      </select>
+                      <span class="ef-select__indicator" aria-hidden="true"></span>
+                    </span>
+                  </label>
+                  <div class="ef-field">
+                    <label class="ef-field__label" for="merge-description">Description</label>
+                    <input id="merge-description" type="text" data-event="mergeDescription" data-on="input" data-bind-value="mergeDescription" />
+                  </div>
+                  <div class="ef-field">
+                    <label class="ef-field__label" for="merge-purpose">Business purpose</label>
+                    <input id="merge-purpose" type="text" data-event="mergePurpose" data-on="input" data-bind-value="mergePurpose" />
+                  </div>
+                </div>
+                <template data-if="hasMergeProblems">
+                  <div class="ef-alert chrona-notice" role="alert" data-tone="attention" id="merge-problems">
+                    <div class="ef-alert__icon" aria-hidden="true">!</div>
+                    <div>
+                      <p class="ef-alert__title">These were not merged.</p>
+                      <ul class="chrona-problems"><template data-each="mergeProblems" data-key="id"><li data-bind-data-code="code" data-text="text"></li></template></ul>
+                    </div>
+                  </div>
+                </template>
+                <div class="chrona-form-actions">
+                  <button type="submit" class="chrona-action chrona-action--primary" id="save-merge">Merge</button>
+                </div>
+              </form>
+            </template>
           </aside>
         </div>
         <footer class="chrona-footer">Exact minutes remain authoritative; the six-minute billed figure is derived and never replaces them.</footer>
@@ -371,6 +437,355 @@
           </form>
         </div>
         <footer class="chrona-footer">Manual records are labelled as manual; a reason is required for any day before today.</footer>
+      </section>
+    </template>
+
+    <!-- ======================= Activity ======================= -->
+    <template data-if="screenActivity">
+      <section class="chrona-screen" id="screen-activity" aria-labelledby="activity-title">
+        <template data-if="detailFound">
+          <div class="chrona-stack">
+            <div class="chrona-heading">
+              <button type="button" class="chrona-link" data-event="goToday">← Back to today</button>
+              <p class="chrona-eyebrow" data-text="detailState"></p>
+              <h1 class="chrona-title" id="activity-title" data-text="detailTitle"></h1>
+              <p class="chrona-intro" data-text="detailClassification"></p>
+            </div>
+
+            <template data-if="detailSuperseded">
+              <aside class="ef-alert chrona-notice" role="status" data-tone="info" id="replaced-by">
+                <div class="ef-alert__icon" aria-hidden="true">i</div>
+                <p data-text="detailReplacedBy"></p>
+              </aside>
+            </template>
+
+            <div class="chrona-layout">
+              <div class="chrona-stack">
+                <section class="ef-surface chrona-card" aria-labelledby="record-title">
+                  <h2 class="chrona-section-title" id="record-title">Current record</h2>
+                  <dl class="ef-facts chrona-facts" id="record-facts">
+                    <div class="ef-facts__item"><dt>Date</dt><dd data-text="detailDate"></dd></div>
+                    <div class="ef-facts__item"><dt>Time</dt><dd data-text="detailTimes"></dd></div>
+                    <div class="ef-facts__item"><dt>Exact</dt><dd id="detail-duration" data-text="detailDuration"></dd></div>
+                    <div class="ef-facts__item"><dt>Billed</dt><dd data-text="detailBilled"></dd></div>
+                    <div class="ef-facts__item"><dt>Method</dt><dd data-text="detailMethod"></dd></div>
+                    <div class="ef-facts__item"><dt>Revision</dt><dd id="detail-revision" data-text="detailRevision"></dd></div>
+                    <div class="ef-facts__item"><dt>Business purpose</dt><dd data-text="detailPurpose"></dd></div>
+                    <div class="ef-facts__item"><dt>Tags</dt><dd data-text="detailTags"></dd></div>
+                    <div class="ef-facts__item"><dt>Entered after the fact because</dt><dd data-text="detailReason"></dd></div>
+                  </dl>
+                  <p class="chrona-intro" data-text="detailLineage"></p>
+                </section>
+
+                <template data-if="detailRecorded">
+                  <form class="ef-surface chrona-card" id="amend" data-event="saveAmend" aria-labelledby="amend-title">
+                    <h2 class="chrona-section-title" id="amend-title">Correct this record</h2>
+                    <p class="chrona-intro">The earlier version stays in the history.</p>
+                    <div class="chrona-form-grid">
+                      <label class="ef-select-field">
+                        <span class="ef-field__label">Activity type <span aria-hidden="true">*</span></span>
+                        <span class="ef-select">
+                          <select class="ef-select__input" id="amend-activity-type" aria-required="true" data-event="amendActivityType">
+                            <template data-each="amendTypeOptions" data-key="id"><option data-bind-value="id" data-bind-selected="selected" data-text="name"></option></template>
+                          </select>
+                          <span class="ef-select__indicator" aria-hidden="true"></span>
+                        </span>
+                      </label>
+                      <label class="ef-select-field">
+                        <span class="ef-field__label">Project <span aria-hidden="true">*</span></span>
+                        <span class="ef-select">
+                          <select class="ef-select__input" id="amend-project" aria-required="true" data-event="amendProject">
+                            <template data-each="amendProjectOptions" data-key="id"><option data-bind-value="id" data-bind-selected="selected" data-text="name"></option></template>
+                          </select>
+                          <span class="ef-select__indicator" aria-hidden="true"></span>
+                        </span>
+                      </label>
+                      <div class="ef-field chrona-field--full">
+                        <label class="ef-field__label" for="amend-description">What did you do? <span aria-hidden="true">*</span></label>
+                        <textarea id="amend-description" rows="2" aria-required="true" data-event="amendDescription" data-on="input" data-bind-value="amendDescription"></textarea>
+                      </div>
+                      <div class="ef-field chrona-field--full">
+                        <label class="ef-field__label" for="amend-purpose">Business purpose <span aria-hidden="true">*</span></label>
+                        <textarea id="amend-purpose" rows="2" aria-required="true" data-event="amendPurpose" data-on="input" data-bind-value="amendPurpose"></textarea>
+                      </div>
+                      <div class="ef-field chrona-field--full">
+                        <label class="ef-field__label" for="amend-reason">Reason for the correction</label>
+                        <input id="amend-reason" type="text" data-event="amendReason" data-on="input" data-bind-value="amendReason" />
+                      </div>
+                    </div>
+                    <template data-if="hasAmendProblems">
+                      <div class="ef-alert chrona-notice" role="alert" data-tone="attention" id="amend-problems">
+                        <div class="ef-alert__icon" aria-hidden="true">!</div>
+                        <div>
+                          <p class="ef-alert__title">The correction was not saved.</p>
+                          <ul class="chrona-problems"><template data-each="amendProblems" data-key="id"><li data-bind-data-code="code" data-text="text"></li></template></ul>
+                        </div>
+                      </div>
+                    </template>
+                    <div class="chrona-form-actions">
+                      <button type="submit" class="chrona-action chrona-action--primary" id="save-amend">Save correction</button>
+                    </div>
+                  </form>
+                </template>
+
+                <template data-if="detailCanSplit">
+                  <form class="ef-surface chrona-card" id="split" data-event="saveSplit" aria-labelledby="split-title">
+                    <h2 class="chrona-section-title" id="split-title">Split into two</h2>
+                    <p class="chrona-intro" data-text="splitTotal"></p>
+                    <div class="chrona-form-grid">
+                      <div class="ef-field">
+                        <label class="ef-field__label" for="split-first">First part, minutes</label>
+                        <input id="split-first" type="number" inputmode="numeric" data-event="splitFirst" data-on="input" data-bind-value="splitFirst" />
+                      </div>
+                      <div class="ef-field">
+                        <label class="ef-field__label" for="split-second">Second part, minutes</label>
+                        <input id="split-second" type="number" inputmode="numeric" data-event="splitSecond" data-on="input" data-bind-value="splitSecond" />
+                      </div>
+                    </div>
+                    <template data-if="detailHasEvidence">
+                      <fieldset class="chrona-tags">
+                        <legend class="ef-field__label">Which part each piece of evidence supports</legend>
+                        <template data-each="splitEvidence" data-key="id">
+                          <label class="ef-select-field">
+                            <span class="ef-field__label" data-text="label"></span>
+                            <span class="ef-select">
+                              <select class="ef-select__input" data-event="splitEvidence">
+                                <option value="1" data-bind-selected="toFirst">First part</option>
+                                <option value="2" data-bind-selected="toSecond">Second part</option>
+                                <option value="0" data-bind-selected="toNeither">Neither</option>
+                              </select>
+                              <span class="ef-select__indicator" aria-hidden="true"></span>
+                            </span>
+                          </label>
+                        </template>
+                      </fieldset>
+                    </template>
+                    <template data-if="hasSplitProblems">
+                      <div class="ef-alert chrona-notice" role="alert" data-tone="attention" id="split-problems">
+                        <div class="ef-alert__icon" aria-hidden="true">!</div>
+                        <div>
+                          <p class="ef-alert__title">The split was not saved.</p>
+                          <ul class="chrona-problems"><template data-each="splitProblems" data-key="id"><li data-bind-data-code="code" data-text="text"></li></template></ul>
+                        </div>
+                      </div>
+                    </template>
+                    <div class="chrona-form-actions">
+                      <button type="submit" class="chrona-action chrona-action--primary" id="save-split">Split</button>
+                    </div>
+                  </form>
+                </template>
+              </div>
+
+              <aside class="chrona-stack" aria-label="Record actions">
+                <section class="ef-surface chrona-card" aria-labelledby="totals-title">
+                  <h2 class="chrona-section-title" id="totals-title">Totals</h2>
+                  <template data-if="detailRecorded">
+                    <div class="chrona-stack">
+                      <p class="chrona-intro">Removing keeps the record and its history; only the time leaves the totals.</p>
+                      <div class="ef-field">
+                        <label class="ef-field__label" for="void-reason">Reason</label>
+                        <input id="void-reason" type="text" data-event="voidReason" data-on="input" data-bind-value="voidReason" />
+                      </div>
+                      <button type="button" class="chrona-action chrona-action--secondary" id="void" data-event="voidActivity">Remove from totals</button>
+                    </div>
+                  </template>
+                  <template data-if="detailVoided">
+                    <div class="chrona-stack">
+                      <p class="chrona-intro">Restoring checks the day again, so it cannot bring back an overlap.</p>
+                      <button type="button" class="chrona-action chrona-action--primary" id="restore" data-event="restoreActivity">Restore to totals</button>
+                    </div>
+                  </template>
+                  <template data-if="detailSuperseded">
+                    <p class="chrona-intro">A superseded record cannot change; its replacements can.</p>
+                  </template>
+                  <template data-if="hasVoidProblems">
+                    <ul class="chrona-problems" role="alert" id="void-problems"><template data-each="voidProblems" data-key="id"><li data-bind-data-code="code" data-text="text"></li></template></ul>
+                  </template>
+                </section>
+
+                <section class="ef-surface chrona-card" aria-labelledby="evidence-title">
+                  <h2 class="chrona-section-title" id="evidence-title">Evidence</h2>
+                  <ul class="chrona-evidence" id="evidence-list">
+                    <template data-each="detailEvidence" data-key="id">
+                      <li class="chrona-evidence__item">
+                        <p class="chrona-evidence__title"><strong data-text="label"></strong> <span class="ef-status-lozenge" data-state="ok" data-text="kind"></span></p>
+                        <p class="chrona-evidence__meta"><span data-text="url"></span> · <span data-text="captured"></span></p>
+                        <template data-if="detailRecorded"><button type="button" class="chrona-link" data-event="unlinkEvidence">Unlink</button></template>
+                      </li>
+                    </template>
+                  </ul>
+                  <form class="chrona-stack" id="attach-evidence" data-event="attachEvidence" aria-label="Attach evidence">
+                    <label class="ef-select-field">
+                      <span class="ef-field__label">Type</span>
+                      <span class="ef-select">
+                        <select class="ef-select__input" id="evidence-kind" data-event="evidenceKind">
+                          <template data-each="evidenceKindOptions" data-key="id"><option data-bind-value="id" data-bind-selected="selected" data-text="name"></option></template>
+                        </select>
+                        <span class="ef-select__indicator" aria-hidden="true"></span>
+                      </span>
+                    </label>
+                    <div class="ef-field">
+                      <label class="ef-field__label" for="evidence-label">Label <span aria-hidden="true">*</span></label>
+                      <input id="evidence-label" type="text" aria-required="true" data-event="evidenceLabel" data-on="input" data-bind-value="evidenceLabel" />
+                    </div>
+                    <div class="ef-field">
+                      <label class="ef-field__label" for="evidence-url">Link <span class="ef-field__description">Optional</span></label>
+                      <input id="evidence-url" type="text" inputmode="url" autocomplete="url" data-event="evidenceUrl" data-on="input" data-bind-value="evidenceUrl" />
+                    </div>
+                    <template data-if="hasEvidenceProblems">
+                      <ul class="chrona-problems" role="alert" id="evidence-problems"><template data-each="evidenceProblems" data-key="id"><li data-bind-data-code="code" data-text="text"></li></template></ul>
+                    </template>
+                    <button type="submit" class="chrona-action chrona-action--secondary" id="attach">Attach evidence</button>
+                  </form>
+                </section>
+
+                <section class="ef-surface chrona-card" aria-labelledby="history-title">
+                  <h2 class="chrona-section-title" id="history-title">History</h2>
+                  <ol class="chrona-history" id="history">
+                    <template data-each="detailHistory" data-key="id">
+                      <li><p><strong data-text="action"></strong> <span data-text="revisions"></span></p><p class="chrona-history__meta"><span data-text="at"></span></p><p class="chrona-history__meta" data-text="reason"></p></li>
+                    </template>
+                  </ol>
+                </section>
+              </aside>
+            </div>
+          </div>
+        </template>
+        <template data-if="detailMissing">
+          <div class="ef-empty-state chrona-empty" id="activity-missing">
+            <div class="ef-empty-state__symbol" aria-hidden="true">□</div>
+            <h1 id="activity-title">That activity is not in this session.</h1>
+            <p>Records are kept in this tab only until storage exists.</p>
+            <button type="button" class="chrona-action chrona-action--primary" data-event="goToday">Back to today</button>
+          </div>
+        </template>
+      </section>
+    </template>
+
+    <!-- ======================= Review ======================= -->
+    <template data-if="screenReview">
+      <section class="chrona-screen" id="screen-review" aria-labelledby="review-title">
+        <div class="chrona-heading">
+          <button type="button" class="chrona-link" data-event="goToday">← Back to today</button>
+          <p class="chrona-eyebrow">Daily review</p>
+          <h1 class="chrona-title" id="review-title">Is the record complete?</h1>
+          <p class="chrona-intro">Review the effective entries for <span data-text="reviewTitle"></span>, then attest to them, or come back later.</p>
+        </div>
+        <div class="chrona-layout">
+          <div class="chrona-stack">
+            <section class="ef-surface chrona-card" aria-labelledby="review-total-title">
+              <div class="chrona-day-summary">
+                <div>
+                  <p class="chrona-summary-label" id="review-total-title">Effective total</p>
+                  <p class="chrona-summary-value" data-text="reviewTotal"></p>
+                </div>
+                <p class="chrona-summary-count" data-text="reviewCount"></p>
+              </div>
+              <dl class="ef-facts chrona-facts">
+                <div class="ef-facts__item"><dt>Timer records</dt><dd data-text="reviewTimer"></dd></div>
+                <div class="ef-facts__item"><dt>Manual records</dt><dd data-text="reviewManual"></dd></div>
+                <div class="ef-facts__item"><dt>Evidence coverage</dt><dd data-text="reviewEvidence"></dd></div>
+                <div class="ef-facts__item"><dt>Corrections</dt><dd data-text="reviewCorrections"></dd></div>
+              </dl>
+            </section>
+            <section class="ef-surface chrona-card" aria-labelledby="checks-title">
+              <h2 class="chrona-section-title" id="checks-title">Review checks</h2>
+              <ul class="chrona-checks" id="review-checks">
+                <template data-each="reviewChecks" data-key="id">
+                  <li class="chrona-check" data-bind-data-tone="tone"><span class="chrona-check__mark" aria-hidden="true"></span><span class="chrona-check__title" data-text="title"></span><span class="chrona-check__status" data-text="status"></span></li>
+                </template>
+              </ul>
+            </section>
+          </div>
+          <aside class="chrona-stack" aria-label="Attestation">
+            <form class="ef-surface chrona-card" id="attest" data-event="attestDay" aria-labelledby="attest-title">
+              <h2 class="chrona-section-title" id="attest-title">Attestation</h2>
+              <p class="chrona-intro">Confirm that, to the best of your knowledge, this is a complete and accurate record of the day's business activity.</p>
+              <div class="ef-field">
+                <label class="ef-field__label" for="attest-statement">Attestation statement <span aria-hidden="true">*</span></label>
+                <textarea id="attest-statement" rows="3" aria-required="true" data-event="attestStatement" data-on="input" data-bind-value="attestStatement"></textarea>
+              </div>
+              <template data-if="hasAttestProblems">
+                <ul class="chrona-problems" role="alert" id="attest-problems"><template data-each="attestProblems" data-key="id"><li data-bind-data-code="code" data-text="text"></li></template></ul>
+              </template>
+              <div class="chrona-form-actions">
+                <button type="submit" class="chrona-action chrona-action--primary chrona-action--full" id="attest-day">Attest to this day</button>
+              </div>
+            </form>
+            <template data-if="changedSinceAttestation">
+              <aside class="ef-alert chrona-notice" role="status" data-tone="attention" id="changed-since">
+                <div class="ef-alert__icon" aria-hidden="true">!</div>
+                <div>
+                  <p class="ef-alert__title">Changed after the last attestation</p>
+                  <ul class="chrona-problems"><template data-each="changedActivities" data-key="id"><li data-text="title"></li></template></ul>
+                </div>
+              </aside>
+            </template>
+            <template data-if="hasAttestations">
+              <section class="ef-surface chrona-card" aria-labelledby="attestations-title">
+                <h2 class="chrona-section-title" id="attestations-title">Earlier attestations</h2>
+                <ol class="chrona-history" id="attestations">
+                  <template data-each="attestations" data-key="id"><li><p data-text="statement"></p><p class="chrona-history__meta" data-text="at"></p></li></template>
+                </ol>
+              </section>
+            </template>
+            <p class="ef-alert chrona-notice" data-tone="info">Attestation is a checkpoint, not a lock. You may still correct the day; Chrona keeps this attestation and shows what changed.</p>
+          </aside>
+        </div>
+        <footer class="chrona-footer">Attestation records the activities and their exact revisions at the time, not just a total.</footer>
+      </section>
+    </template>
+
+    <!-- ======================= Month ======================= -->
+    <template data-if="screenMonth">
+      <section class="chrona-screen" id="screen-month" aria-labelledby="month-title">
+        <div class="chrona-heading">
+          <p class="chrona-eyebrow">Monthly record</p>
+          <h1 class="chrona-title" id="month-title" data-text="monthTitle"></h1>
+          <p class="chrona-intro">A factual summary of recorded business activity for the month. Voided and superseded records are excluded from totals.</p>
+        </div>
+        <div class="chrona-day-nav">
+          <button type="button" class="chrona-action chrona-action--quiet" data-event="previousMonth" aria-label="Previous month"><span aria-hidden="true">←</span></button>
+          <label class="chrona-day-nav__date"><span class="ef-visually-hidden">Jump to month</span>
+            <input type="month" id="month-picker" data-event="showMonth" data-bind-value="monthIso" />
+          </label>
+          <button type="button" class="chrona-action chrona-action--quiet" data-event="nextMonth" aria-label="Next month"><span aria-hidden="true">→</span></button>
+        </div>
+        <div class="chrona-metrics">
+          <article class="ef-metric-card"><div class="ef-metric-card__label">Recorded</div><div class="ef-metric-card__value" id="month-total" data-text="monthTotal"></div></article>
+          <article class="ef-metric-card"><div class="ef-metric-card__label">Billed</div><div class="ef-metric-card__value" data-text="monthBilled"></div></article>
+          <article class="ef-metric-card"><div class="ef-metric-card__label">Decimal hours</div><div class="ef-metric-card__value" data-text="monthDecimal"></div></article>
+          <article class="ef-metric-card"><div class="ef-metric-card__label">Active days</div><div class="ef-metric-card__value" data-text="monthActiveDays"></div></article>
+          <article class="ef-metric-card"><div class="ef-metric-card__label">Timer / manual</div><div class="ef-metric-card__value" data-text="monthTimerManual"></div></article>
+          <article class="ef-metric-card"><div class="ef-metric-card__label">Evidence coverage</div><div class="ef-metric-card__value" data-text="monthEvidence"></div></article>
+          <article class="ef-metric-card"><div class="ef-metric-card__label">Corrections</div><div class="ef-metric-card__value" data-text="monthCorrections"></div></article>
+          <article class="ef-metric-card"><div class="ef-metric-card__label">Voided</div><div class="ef-metric-card__value" data-text="monthVoided"></div></article>
+        </div>
+        <template data-if="monthEmpty">
+          <div class="ef-empty-state chrona-empty">
+            <div class="ef-empty-state__symbol" aria-hidden="true">□</div>
+            <h2>No activity recorded this month.</h2>
+          </div>
+        </template>
+        <div class="chrona-layout">
+          <section class="ef-surface chrona-card" aria-labelledby="month-days-title">
+            <h2 class="chrona-section-title" id="month-days-title">Days</h2>
+            <ul class="chrona-days" id="month-days">
+              <template data-each="monthDays" data-key="id">
+                <li class="chrona-days__item"><span data-text="label"></span><span data-text="count"></span><strong data-text="total"></strong></li>
+              </template>
+            </ul>
+          </section>
+          <section class="ef-surface chrona-card" aria-labelledby="by-activity-title">
+            <h2 class="chrona-section-title" id="by-activity-title">By activity</h2>
+            <ul class="chrona-bars" id="month-by-type">
+              <template data-each="monthByType" data-key="id">
+                <li class="chrona-bars__item"><span class="chrona-bars__head"><strong data-text="name"></strong><span data-text="total"></span></span><meter class="chrona-bars__meter" min="0" max="100" data-bind-value="share" data-bind-aria-valuetext="shareText"></meter></li>
+              </template>
+            </ul>
+          </section>
+        </div>
+        <footer class="chrona-footer">All totals use effective records and exact stored minutes.</footer>
       </section>
     </template>
 

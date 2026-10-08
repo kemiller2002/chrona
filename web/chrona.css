@@ -694,6 +694,133 @@ button.chrona-action--full {
   grid-column: 1 / -1;
 }
 
+
+/* ---- lifecycle, review and month ---------------------------------------------- */
+
+button.chrona-link {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--ef-color-accent-primary);
+  font: inherit;
+  font-weight: 700;
+  text-align: start;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+.chrona-record__title button.chrona-link {
+  color: inherit;
+  font-weight: inherit;
+}
+
+.chrona-heading button.chrona-link {
+  margin-block-end: 1.5rem;
+}
+
+.chrona-record__select {
+  margin-block-start: 0.5rem;
+}
+
+.chrona-form-grid--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.chrona-obligations__list,
+.chrona-evidence,
+.chrona-history,
+.chrona-checks,
+.chrona-days,
+.chrona-bars {
+  display: grid;
+  gap: 0.9rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chrona-obligations__list p,
+.chrona-evidence p,
+.chrona-history p {
+  margin: 0;
+}
+
+.chrona-evidence__item,
+.chrona-history > li {
+  border-block-end: 1px solid var(--ef-color-border-subtle);
+  padding-block-end: 0.75rem;
+}
+
+.chrona-evidence__meta,
+.chrona-history__meta {
+  color: var(--ef-color-text-secondary);
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+
+.chrona-check {
+  display: grid;
+  align-items: center;
+  gap: 0.75rem;
+  grid-template-columns: 1.6rem minmax(0, 1fr) auto;
+  border-block-end: 1px solid var(--ef-color-border-subtle);
+  padding-block: 0.75rem;
+}
+
+.chrona-check__mark {
+  display: grid;
+  inline-size: 1.4rem;
+  block-size: 1.4rem;
+  place-items: center;
+  border: 1px solid var(--ef-color-border-functional);
+  border-radius: 50%;
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+/* The mark and the status word both carry the state. */
+.chrona-check[data-tone="ok"] .chrona-check__mark::before {
+  content: "✓";
+}
+
+.chrona-check[data-tone="attention"] .chrona-check__mark::before {
+  content: "!";
+}
+
+.chrona-check__status {
+  font-family: var(--ef-primitive-font-family-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.chrona-metrics {
+  display: grid;
+  gap: 1rem;
+  margin-block-end: 2.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+}
+
+.chrona-days__item {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  border-block-end: 1px solid var(--ef-color-border-subtle);
+  padding-block-end: 0.6rem;
+}
+
+.chrona-bars__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-family: var(--ef-primitive-font-family-mono);
+}
+
+.chrona-bars__meter {
+  inline-size: 100%;
+  block-size: 0.6rem;
+}
+
 /* ---- mobile (G1) ---------------------------------------------------------- */
 
 .chrona-tabbar {
@@ -725,7 +852,7 @@ button.chrona-action--full {
     inset-inline: 0;
     inset-block-end: 0;
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     border-block-start: 1px solid var(--ef-color-border-functional);
     padding: 0.35rem max(0.4rem, env(safe-area-inset-right)) max(0.35rem, env(safe-area-inset-bottom)) max(0.4rem, env(safe-area-inset-left));
     background: var(--ef-color-surface-secondary);

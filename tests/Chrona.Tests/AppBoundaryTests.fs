@@ -255,13 +255,22 @@ let private boundKeys (html: string) =
     |> Set.unionMany
     |> Set.union bindings
 
-/// Every list the page repeats, non-empty: a record today, reference data,
-/// problems on every form and a stopped timer awaiting completion.
-let private richView () =
+let private locationChanged (hash: string) =
+    $"""{{"kind":"LocationChanged","location":{{"origin":"http://127.0.0.1:4321","path":"/web/index.html","query":"","hash":"{hash}"}}}}"""
+
+let private toggled (name: string) (key: string) (on: bool) =
+    $"""{{"kind":"Event","event":{{"kind":"Event","name":"{name}","key":"{key}","value":"","checked":{(if on then "true" else "false")}}}}}"""
+
+/// Views of every screen in states where every list the page repeats is
+/// non-empty somewhere: records, a merge selection, reference data, problems
+/// on every form, a held timer, an attested and then changed day, an
+/// activity with evidence and history, and a month.
+let private richViews () =
     let _, aegis = collector ()
     let env, _ = envWith App.inMemoryStore
     let started = App.handle aegis env App.initial initialize
     let send (state: App.State) message = fst (App.handle aegis env state message)
+    let view (state: App.State) = Chrona.Engine.App.Project.project state.Model.Value
     let state = send (fst started) (describedAs "America/New_York" started)
 
     let state =
@@ -278,17 +287,35 @@ let private richView () =
     let project = (Chrona.Domain.Reference.selectable Chrona.Domain.Reference.Project model.References).Head.Id
     let activityType = (Chrona.Domain.Reference.selectable Chrona.Domain.Reference.ActivityType model.References).Head.Id
 
-    let state =
+    let manual (start: string) (finish: string) (description: string) =
         [ event "manualActivityType" None activityType
           event "manualProject" None project
           event "manualStartDate" None "2026-10-08"
-          event "manualStartTime" None "09:00"
-          event "manualEndTime" None "10:00"
-          event "manualDescription" None "Research"
+          event "manualStartTime" None start
+          event "manualEndTime" None finish
+          event "manualDescription" None description
           event "manualPurpose" None "Delivery"
-          event "saveManual" None ""
-          event "saveManual" None ""
-          event "startTimer" None ""
+          event "saveManual" None "" ]
+
+    let state = manual "09:00" "10:00" "First" @ manual "10:00" "10:30" "Second" @ manual "11:00" "11:30" "Third" |> List.fold send state
+    let idOf (description: string) (state: App.State) =
+        state.Model.Value.Ledger.Activities |> Map.toList |> List.map snd |> List.find (fun a -> a.Classification.Description = description) |> _.ActivityId
+
+    let first, third = idOf "First" state, idOf "Third" state
+
+    // Problems on every Track and More form, a merge refused as not
+    // contiguous, an attested day, and a timer held for completion.
+    let state =
+        [ event "saveManual" None ""
+          event "pauseTimer" None ""
+          toggled "mergeSelect" first true
+          toggled "mergeSelect" third true
+          event "saveMerge" None ""
+          locationChanged "#/review/2026-10-08"
+          event "attestDay" None ""
+          event "attestStatement" None "Complete and accurate."
+          event "attestDay" None ""
+          event "attestDay" None ""
           event "timerActivityType" None activityType
           event "timerProject" None project
           event "startTimer" None "" ]
@@ -296,20 +323,49 @@ let private richView () =
 
     clock.Value <- now.AddMinutes 30.0
     let state = [ event "stopTimer" None ""; event "saveCompletion" None ""; event "pauseTimer" None "" ] |> List.fold send state
-    Chrona.Engine.App.Project.project state.Model.Value
+
+    // An activity with evidence, history and a refusal on each of its forms;
+    // the correction also makes the attested day stale.
+    let state =
+        [ locationChanged $"#/activity/{first}"
+          event "evidenceLabel" None "Commit"
+          event "evidenceUrl" None "https://example.test/commit/1"
+          event "attachEvidence" None ""
+          event "evidenceLabel" None "Bad"
+          event "evidenceUrl" None "not a link"
+          event "attachEvidence" None ""
+          event "amendDescription" None "First, corrected"
+          event "saveAmend" None ""
+          event "amendPurpose" None ""
+          event "saveAmend" None ""
+          event "restoreActivity" None ""
+          event "splitFirst" None "10"
+          event "splitSecond" None "10"
+          event "saveSplit" None "" ]
+        |> List.fold send state
+
+    let activity = view state
+    let review = view (send state (locationChanged "#/review/2026-10-08"))
+    let month = view (send state (locationChanged "#/month/2026-10"))
+    let today = view (send state (locationChanged "#/today/2026-10-08"))
+    [ activity; review; month; today ]
 
 [<Fact>]
 let ``the application page binds only what its engine projects and sends only what it handles`` () =
     let html = readRepoFile "web/index.html"
-    let view = richView ()
+    let views = richViews ()
 
-    for name, value in view do
-        match value with
-        | Chrona.Engine.View.Items [] -> failwith $"{name} is empty, so its item fields are not checked"
-        | _ -> ()
+    let lists =
+        views
+        |> List.collect (List.choose (fun (name, value) -> match value with Chrona.Engine.View.Items items -> Some(name, items) | _ -> None))
+
+    for name in lists |> List.map fst |> List.distinct do
+        let everyEmpty = lists |> List.filter (fst >> (=) name) |> List.forall (snd >> List.isEmpty)
+        Assert.False(everyEmpty, $"{name} is empty in every view, so its item fields are not checked")
 
     let names =
-        view
+        views
+        |> List.concat
         |> List.collect (fun (name, value) ->
             match value with
             | Chrona.Engine.View.Value _ -> [ name ]

@@ -51,6 +51,24 @@ type Evidence =
       CapturedAt: DateTimeOffset
       Hash: string option }
 
+/// Every problem with an evidence reference (24): it needs a label saying
+/// what it is; a URL, when given, must be an absolute http or https address
+/// (a pointer to the artifact, never the artifact).
+let evidenceProblems (evidence: Evidence) =
+    let blank = String.IsNullOrWhiteSpace
+
+    let webAddress =
+        match Uri.TryCreate(evidence.Url.Trim(), UriKind.Absolute) with
+        | true, uri ->
+            uri
+            |> Option.ofObj
+            |> Option.exists (fun u -> u.Scheme = Uri.UriSchemeHttps || u.Scheme = Uri.UriSchemeHttp)
+        | _ -> false
+
+    [ if blank evidence.Label then MissingField "evidenceLabel"
+      if blank evidence.Kind then MissingField "evidenceKind"
+      if not (blank evidence.Url) && not webAddress then InvalidEvidenceUrl evidence.Url ]
+
 /// What the time was spent on (4 reference data by id).
 type Classification =
     { ProjectId: string

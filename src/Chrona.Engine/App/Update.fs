@@ -55,7 +55,14 @@ let eventNames =
       "completeActivityType"; "completeProject"; "completeDescription"; "completePurpose"; "completeTag"; "confirmLongTimer"; "saveCompletion"
       "manualActivityType"; "manualProject"; "manualStartDate"; "manualStartTime"; "manualEndDate"; "manualEndTime"
       "manualDescription"; "manualPurpose"; "manualReason"; "manualTag"; "saveManual"
-      "newProjectName"; "newActivityTypeName"; "newTagName"; "addProject"; "addActivityType"; "addTag"; "referenceActive" ]
+      "newProjectName"; "newActivityTypeName"; "newTagName"; "addProject"; "addActivityType"; "addTag"; "referenceActive"
+      "openActivity"; "openReview"; "previousMonth"; "nextMonth"; "showMonth"
+      "amendActivityType"; "amendProject"; "amendDescription"; "amendPurpose"; "amendReason"; "saveAmend"
+      "voidReason"; "voidActivity"; "restoreActivity"
+      "splitFirst"; "splitSecond"; "splitEvidence"; "saveSplit"
+      "evidenceKind"; "evidenceUrl"; "evidenceLabel"; "attachEvidence"; "unlinkEvidence"
+      "mergeSelect"; "mergeActivityType"; "mergeProject"; "mergeDescription"; "mergePurpose"; "saveMerge"
+      "attestStatement"; "attestDay"; "resolveObligation" ]
 
 // ---- helpers ----------------------------------------------------------------
 
@@ -73,11 +80,18 @@ let private commandContext (ctx: Ctx) (model: Model) (zone: Zone) : Ledger.Comma
       CorrelationId = None }
 
 /// Sends what became authoritative to the store.
-let private commit (ctx: Ctx) (activities: Activity list) (references: Reference.Item list) (model: Model) =
+let private commitWith (ctx: Ctx) (activities: Activity list) (references: Reference.Item list) (attestations: Review.Attestation list) (model: Model) =
     let id = ctx.NewId "COMMIT"
 
     { model with Store = { model.Store with Pending = model.Store.Pending @ [ id ] } },
-    [ Store { CommitId = id; Activities = activities; References = references } ]
+    [ Store
+          { CommitId = id
+            Activities = activities
+            References = references
+            Attestations = attestations } ]
+
+let private commit (ctx: Ctx) (activities: Activity list) (references: Reference.Item list) (model: Model) =
+    commitWith ctx activities references [] model
 
 let private toClassification (draft: ClassificationDraft) : Classification =
     { ProjectId = draft.ProjectId.Trim()
@@ -314,6 +328,168 @@ let private setActive (ctx: Ctx) (key: string) (active: bool) (model: Model) =
             referenceCommand ctx command (k, id) model
     | _ -> invalidArg (nameof key) $"Malformed reference key: {key}"
 
+// ---- the activity detail: amend, void, restore, split, evidence ------------------
+
+/// The detail drafts for an activity, at the revision it has now.
+let openDetail (model: Model) (activityId: string) : Detail option =
+    model.Ledger.Activities.TryFind activityId
+    |> Option.map (fun a ->
+        { ActivityId = activityId
+          Revision = a.Revision
+          Amend = ofClassification a.Classification
+          AmendReason = ""
+          VoidReason = ""
+          SplitFirst = ""
+          SplitSecond = ""
+          SplitEvidence = a.Evidence |> List.map (fun e -> e.Id, 1) |> Map.ofList
+          EvidenceKind = "url"
+          EvidenceUrl = ""
+          EvidenceLabel = "" })
+
+/// Keeps the detail drafts in step with the route: opened when an activity
+/// screen is entered, dropped when it is left.
+let private followRoute (model: Model) =
+    match model.Route.Screen, model.Detail with
+    | ActivityDetail id, Some detail when detail.ActivityId = id -> model
+    | ActivityDetail id, _ -> { model with Detail = openDetail model id }
+    | _ -> { model with Detail = None }
+
+let private detail (f: Detail -> Detail) (model: Model) =
+    { model with Detail = model.Detail |> Option.map f }, []
+
+/// Runs a ledger command for the detail screen: on success the ledger moves,
+/// what changed is committed and the detail reopens at the new revision.
+let private ledgerCommand (ctx: Ctx) (form: Form) (announcement: string) (command: Detail -> Ledger.Command) (model: Model) =
+    match model.Detail, zoneOrProblem model with
+    | None, _ -> model, []
+    | _, Error problems -> withProblems form problems model, []
+    | Some d, Ok zone ->
+        match Ledger.execute (commandContext ctx model zone) model.Ledger (command d) with
+        | Error problems -> withProblems form problems model, []
+        | Ok ledger ->
+            let next = { clear form model with Ledger = ledger; Announcement = announcement }
+            commit ctx (changed model.Ledger ledger) [] { next with Detail = openDetail next d.ActivityId }
+
+let private saveAmend (ctx: Ctx) (model: Model) =
+    ledgerCommand
+        ctx
+        AmendForm
+        "Amended. The earlier version stays in the history."
+        (fun d ->
+            Ledger.Amend(
+                d.ActivityId,
+                d.Revision,
+                { Classification = Some(toClassification d.Amend)
+                  Billability = None
+                  BillingReference = None
+                  Retime = None
+                  Reason = d.AmendReason.Trim() }
+            ))
+        model
+
+let private voidActivity ctx model =
+    ledgerCommand ctx VoidForm "Removed from totals. The record and its history are kept." (fun d -> Ledger.Void(d.ActivityId, d.Revision, d.VoidReason.Trim())) model
+
+let private restoreActivity ctx model =
+    ledgerCommand ctx VoidForm "Restored to totals." (fun d -> Ledger.Restore(d.ActivityId, d.Revision)) model
+
+let private minutesOf (text: string) =
+    match Int32.TryParse(text.Trim()) with
+    | true, n -> n
+    | _ -> 0
+
+let private saveSplit (ctx: Ctx) (model: Model) =
+    let part (d: Detail) (index: int) (minutes: string) : Ledger.SplitPart =
+        { ActivityId = ctx.NewId "ACT"
+          Minutes = minutesOf minutes
+          Classification = None
+          EvidenceIds = d.SplitEvidence |> Map.toList |> List.filter (fun (_, p) -> p = index) |> List.map fst }
+
+    ledgerCommand
+        ctx
+        SplitForm
+        "Split into two activities. The original is kept, superseded."
+        (fun d -> Ledger.Split(d.ActivityId, d.Revision, [ part d 1 d.SplitFirst; part d 2 d.SplitSecond ]))
+        model
+
+let private attachEvidence (ctx: Ctx) (model: Model) =
+    ledgerCommand
+        ctx
+        EvidenceForm
+        "Evidence linked."
+        (fun d ->
+            Ledger.LinkEvidence(
+                d.ActivityId,
+                d.Revision,
+                { Id = ctx.NewId "EVD"
+                  Url = d.EvidenceUrl.Trim()
+                  Kind = d.EvidenceKind.Trim()
+                  Label = d.EvidenceLabel.Trim()
+                  CapturedAt = ctx.Now
+                  Hash = None }
+            ))
+        model
+
+let private unlinkEvidence (ctx: Ctx) (evidenceId: string) (model: Model) =
+    ledgerCommand ctx EvidenceForm "Evidence unlinked. The link stays in the history." (fun d -> Ledger.UnlinkEvidence(d.ActivityId, d.Revision, evidenceId)) model
+
+// ---- merge and attestation --------------------------------------------------------
+
+let private saveMerge (ctx: Ctx) (model: Model) =
+    match zoneOrProblem model with
+    | Error problems -> withProblems MergeForm problems model, []
+    | Ok zone ->
+        let sources =
+            model.MergeSelection
+            |> List.choose (fun id -> model.Ledger.Activities.TryFind id |> Option.map (fun a -> id, a.Revision))
+
+        let draft = toClassification model.MergeDraft
+
+        // The merged record keeps the earliest source's classification,
+        // except for what the person changed in the merge form.
+        let classification =
+            sources
+            |> List.choose (fun (id, _) -> model.Ledger.Activities.TryFind id)
+            |> List.sortBy (fun a -> a.Occurrence.LocalDate, a.Occurrence.LocalTime)
+            |> List.tryHead
+            |> Option.map (fun earliest ->
+                let pick (typed: string) (kept: string) = if typed = "" then kept else typed
+                let kept = earliest.Classification
+
+                { kept with
+                    ActivityTypeId = pick draft.ActivityTypeId kept.ActivityTypeId
+                    ProjectId = pick draft.ProjectId kept.ProjectId
+                    Description = pick draft.Description kept.Description
+                    BusinessPurpose = pick draft.BusinessPurpose kept.BusinessPurpose })
+
+        let newId = ctx.NewId "ACT"
+
+        match Ledger.execute (commandContext ctx model zone) model.Ledger (Ledger.Merge(sources, newId, classification)) with
+        | Error problems -> withProblems MergeForm (List.distinct problems) model, []
+        | Ok ledger ->
+            { clear MergeForm model with
+                Ledger = ledger
+                MergeSelection = []
+                MergeDraft = emptyClassification
+                Announcement = $"Merged {sources.Length} activities into one. The originals are kept, superseded." }
+            |> commit ctx (changed model.Ledger ledger) []
+
+let private attestDay (ctx: Ctx) (model: Model) =
+    match zoneOrProblem model with
+    | Error problems -> withProblems AttestForm problems model, []
+    | Ok zone ->
+        let workflow = { Review.start model.Ledger with Attestations = model.Attestations }
+        let date = selectedDate model
+
+        match Review.attest (commandContext ctx model zone) date model.AttestStatement workflow with
+        | Error problems -> withProblems AttestForm problems model, []
+        | Ok(next, attestation) ->
+            { clear AttestForm model with
+                Attestations = next.Attestations
+                AttestStatement = ""
+                Announcement = $"Attested {Format.longDate date}." }
+            |> commitWith ctx [] [] [ attestation ]
+
 // ---- the dispatcher -----------------------------------------------------------
 
 let private draft (f: ClassificationDraft -> ClassificationDraft) (field: Model -> ClassificationDraft) (set: Model -> ClassificationDraft -> Model) (model: Model) =
@@ -327,6 +503,14 @@ let private manualDraft f = draft f _.Manual.Classification (fun m d -> { m with
 let private manual (f: ManualDraft -> ManualDraft) (model: Model) = { model with Manual = f model.Manual }, []
 
 let private navigate (route: Route) (model: Model) = model, [ Navigate(Routes.hash route) ]
+
+let private mergeDraft f = draft f _.MergeDraft (fun m d -> { m with MergeDraft = d })
+
+let private amendDraft (f: ClassificationDraft -> ClassificationDraft) =
+    detail (fun d -> { d with Amend = f d.Amend })
+
+let private month (offset: int) (model: Model) =
+    navigate { Screen = Month; Date = Some((selectedMonth model).AddMonths offset) } model
 
 let private onEvent (ctx: Ctx) (name: string) (key: string option) (value: string) (isChecked: bool option) (model: Model) =
     let checkedOn = isChecked |> Option.defaultValue false
@@ -382,6 +566,51 @@ let private onEvent (ctx: Ctx) (name: string) (key: string option) (value: strin
     | "addTag" -> addReference ctx Reference.Tag model
     | "referenceActive" -> setActive ctx (defaultArg key "") checkedOn model
 
+    | "openActivity" -> navigate { Screen = ActivityDetail(defaultArg key value); Date = None } model
+    | "openReview" -> navigate { Screen = DayReview; Date = Some(selectedDate model) } model
+    | "previousMonth" -> month -1 model
+    | "nextMonth" -> month 1 model
+    | "showMonth" ->
+        match Format.parseIsoDate $"{value}-01" with
+        | Some first -> navigate { Screen = Month; Date = Some first } model
+        | None -> model, []
+
+    | "amendActivityType" -> amendDraft (fun d -> { d with ActivityTypeId = value }) model
+    | "amendProject" -> amendDraft (fun d -> { d with ProjectId = value }) model
+    | "amendDescription" -> amendDraft (fun d -> { d with Description = value }) model
+    | "amendPurpose" -> amendDraft (fun d -> { d with BusinessPurpose = value }) model
+    | "amendReason" -> detail (fun d -> { d with AmendReason = value }) model
+    | "saveAmend" -> saveAmend ctx model
+    | "voidReason" -> detail (fun d -> { d with VoidReason = value }) model
+    | "voidActivity" -> voidActivity ctx model
+    | "restoreActivity" -> restoreActivity ctx model
+    | "splitFirst" -> detail (fun d -> { d with SplitFirst = value }) model
+    | "splitSecond" -> detail (fun d -> { d with SplitSecond = value }) model
+    | "splitEvidence" -> detail (fun d -> { d with SplitEvidence = d.SplitEvidence.Add(defaultArg key "", minutesOf value) }) model
+    | "saveSplit" -> saveSplit ctx model
+    | "evidenceKind" -> detail (fun d -> { d with EvidenceKind = value }) model
+    | "evidenceUrl" -> detail (fun d -> { d with EvidenceUrl = value }) model
+    | "evidenceLabel" -> detail (fun d -> { d with EvidenceLabel = value }) model
+    | "attachEvidence" -> attachEvidence ctx model
+    | "unlinkEvidence" -> unlinkEvidence ctx (defaultArg key "") model
+
+    | "mergeSelect" -> { model with MergeSelection = toggle (defaultArg key "") checkedOn model.MergeSelection }, []
+    | "mergeActivityType" -> mergeDraft (fun d -> { d with ActivityTypeId = value }) model
+    | "mergeProject" -> mergeDraft (fun d -> { d with ProjectId = value }) model
+    | "mergeDescription" -> mergeDraft (fun d -> { d with Description = value }) model
+    | "mergePurpose" -> mergeDraft (fun d -> { d with BusinessPurpose = value }) model
+    | "saveMerge" -> saveMerge ctx model
+
+    | "resolveObligation" ->
+        // The obligation's id says where it is resolved (Project.obligations).
+        match (defaultArg key "").Split('-', 2) with
+        | [| "stopped"; _ |] -> navigate { Screen = Track; Date = None } model
+        | [| "attestation"; date |] -> navigate { Screen = DayReview; Date = Format.parseIsoDate date } model
+        | [| "store" |] -> navigate { Screen = More; Date = None } model
+        | _ -> invalidArg (nameof key) $"Unknown obligation: {key}"
+    | "attestStatement" -> { model with AttestStatement = value }, []
+    | "attestDay" -> attestDay ctx model
+
     // The page and the engine disagree: a defect, not an operational failure.
     | other -> invalidArg (nameof name) $"Unknown event name: {other}"
 
@@ -394,14 +623,14 @@ let update (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
         | _ -> { model with Now = ctx.Now }
 
     match msg with
-    | Started hash -> { model with Route = Routes.parse hash }, [ DescribeEnvironment ]
+    | Started hash -> followRoute { model with Route = Routes.parse hash }, [ DescribeEnvironment ]
     | EnvironmentDescribed timeZone ->
         // An unknown zone falls back to UTC, visibly: the More screen says
         // which zone is in use.
         let zone = tryZone timeZone |> Result.toOption |> Option.orElse (tryZone "UTC" |> Result.toOption)
         { model with Zone = zone }, []
     | EnvironmentUnavailable -> { model with Zone = tryZone "UTC" |> Result.toOption }, []
-    | LocationMoved hash -> { model with Route = Routes.parse hash }, []
+    | LocationMoved hash -> followRoute { model with Route = Routes.parse hash }, []
     | Ticked generation ->
         match model.Timer with
         | Timer.Running _ when generation = model.TickGeneration -> model, [ Wake(generation, TickMs) ]

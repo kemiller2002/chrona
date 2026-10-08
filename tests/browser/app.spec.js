@@ -2,30 +2,11 @@
 // WASM shim -> F# engine (Chrona.Domain decides) -> view, in a real browser,
 // with Forma and the Chrona brand presenting it. Every check observes live
 // behaviour.
-import { test, expect } from "./support.js";
+import { test, expect, setUp, yesterday } from "./support.js";
 
 test.use({ timezoneId: "America/New_York" });
 
 const announcement = (page) => page.locator("p[role=status][aria-live=polite]");
-
-// Reference data every record needs, added through the More screen.
-async function setUp(page) {
-  await page.fill("#new-project-name", "HelixNote");
-  await page.click("#add-project");
-  await page.fill("#new-activity-type-name", "Research");
-  await page.click("#add-activity-type");
-  await page.fill("#new-tag-name", "Backend");
-  await page.click("#add-tag");
-  await expect(page.locator("#projects .ef-checkbox__label")).toHaveText(["HelixNote"]);
-  await expect(page.locator("#activity-types .ef-checkbox__label")).toHaveText(["Research"]);
-}
-
-// Yesterday in New York: a whole past day, so a fixed time of day is never in
-// the future whenever the suite runs.
-const yesterday = () => {
-  const date = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
-};
 
 test("the page runs on Limen with the schedule and environment packs, in the Chrona brand", async ({ app: page }) => {
   await expect(page.locator("html")).toHaveAttribute("data-protocol", "1.4");

@@ -333,6 +333,8 @@ let private apply (context: CommandContext) (ledger: Ledger) (command: Command) 
         >>= fun activity ->
             if activity.Evidence |> List.exists (fun e -> e.Id = evidence.Id) then
                 Error [ IllegalTransition("linked", "evidence-link") ]
+            elif not (evidenceProblems evidence).IsEmpty then
+                Error(evidenceProblems evidence)
             else
                 Ok [ { bump context activity with Evidence = activity.Evidence @ [ evidence ] } ]
 

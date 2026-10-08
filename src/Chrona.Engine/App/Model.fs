@@ -31,7 +31,8 @@ type Session =
 type StoreRequest =
     { CommitId: string
       Activities: Activity list
-      References: Reference.Item list }
+      References: Reference.Item list
+      Attestations: Review.Attestation list }
 
 type StoreOutcome =
     | Committed
@@ -56,7 +57,12 @@ type StoreState =
 type Screen =
     | Today
     | Track
+    | Month
     | More
+    /// One activity's detail: amend, void, restore, split, evidence, history.
+    | ActivityDetail of activityId: string
+    /// One day's review and attestation.
+    | DayReview
 
 type Route = { Screen: Screen; Date: DateOnly option }
 
@@ -91,12 +97,35 @@ let emptyManual =
       EndTime = ""
       Reason = "" }
 
+/// The activity detail screen's drafts, opened at the revision the person
+/// saw: every command they send names that revision, so a change made
+/// elsewhere in between is a conflict, never overwritten (21).
+type Detail =
+    { ActivityId: string
+      Revision: int
+      Amend: ClassificationDraft
+      AmendReason: string
+      VoidReason: string
+      SplitFirst: string
+      SplitSecond: string
+      /// Which split part (1 or 2) carries each evidence id; 0 is neither.
+      SplitEvidence: Map<string, int>
+      EvidenceKind: string
+      EvidenceUrl: string
+      EvidenceLabel: string }
+
 /// Where a refusal is shown.
 type Form =
     | TimerForm
     | CompletionForm
     | ManualForm
     | ReferenceForm
+    | AmendForm
+    | VoidForm
+    | SplitForm
+    | EvidenceForm
+    | MergeForm
+    | AttestForm
 
 [<NoComparison>]
 type Model =
@@ -120,6 +149,13 @@ type Model =
       TimerDraft: ClassificationDraft
       CompletionDraft: ClassificationDraft
       Manual: ManualDraft
+      Detail: Detail option
+      /// Activities chosen on Today to merge, and the merged record's details.
+      MergeSelection: string list
+      MergeDraft: ClassificationDraft
+      /// Daily attestations, newest last; earlier ones are never replaced (16).
+      Attestations: Review.Attestation list
+      AttestStatement: string
       NewNames: Map<Reference.Kind, string>
       Problems: Map<Form, Diagnostic list>
       /// Polite, one-off status text for screen readers: transitions only,
@@ -148,6 +184,11 @@ let initial (session: Session) (store: StoreKind) (now: DateTimeOffset) =
       TimerDraft = emptyClassification
       CompletionDraft = emptyClassification
       Manual = emptyManual
+      Detail = None
+      MergeSelection = []
+      MergeDraft = emptyClassification
+      Attestations = []
+      AttestStatement = ""
       NewNames = Map.empty
       Problems = Map.empty
       Announcement = ""
@@ -159,5 +200,10 @@ let today (model: Model) =
     | Some zone -> (occurrence zone model.Now).LocalDate
     | None -> DateOnly.FromDateTime model.Now.UtcDateTime
 
-/// The date the Today screen shows.
+/// The date the Today and review screens show.
 let selectedDate (model: Model) = model.Route.Date |> Option.defaultWith (fun () -> today model)
+
+/// The first day of the month the Month screen shows.
+let selectedMonth (model: Model) =
+    let date = selectedDate model
+    DateOnly(date.Year, date.Month, 1)

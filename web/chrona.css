@@ -582,7 +582,9 @@ button.chrona-timer-chip {
 .chrona-form-grid {
   display: grid;
   gap: 1rem;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* Two columns where two fields fit (12rem each), one where they do not
+     (a side panel), so a choice is never cut off. Never more than two. */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, max(12rem, calc((100% - 1rem) / 2))), 1fr));
 }
 
 .chrona-field--full {
@@ -1264,4 +1266,20 @@ textarea.chrona-export {
 .chrona-chip:disabled {
   cursor: not-allowed;
   opacity: 0.6;
+}
+
+/* On the dark tracker, recent work takes the inverse colours (light on
+   dark, like the tracker's own actions) and the full width of its form. */
+.chrona-tracker__form .chrona-quick {
+  grid-column: 1 / -1;
+}
+
+.chrona-tracker .chrona-quick__label {
+  color: var(--ef-color-text-inverse);
+}
+
+.chrona-tracker .chrona-chip {
+  border-color: var(--ef-color-text-inverse);
+  background: transparent;
+  color: var(--ef-color-text-inverse);
 }

@@ -1191,10 +1191,10 @@
       "description": "After WI-0062 (quick entry), WI-0063 (browser reliability) and WI-0064 (accessibility and mobile end to end), split from this item. Visual regression of Chrona's screens against the legacy time-tracking-application's look and feel as inventoried in docs/legacy (WI-0026): baseline images of each screen in light and dark, at desktop and phone width, held by the browser suite so an unintended visual change fails it.",
       "tags": [],
       "priority": "medium",
-      "status": "captured",
+      "status": "ready",
       "attachments": [],
       "createdAt": "2026-10-08T14:03:05Z",
-      "updatedAt": "2026-10-08T16:25:43Z",
+      "updatedAt": "2026-10-08T18:02:47Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

@@ -53,6 +53,16 @@ provenance:
         model: unknown
         runtime: claude-code
       reason: "Bootstrap administrators and the dedicated-repository recommendation (WI-0053)"
+    EXE-20261008T170251044Z-ea692e3e:
+      operations: [modified]
+      at: 2026-10-08T17:06:10.093Z
+      actor:
+        kind: unknown
+        id: anthropic/claude-code
+        provider: anthropic
+        model: claude-opus-5-5
+        runtime: claude-code
+      reason: "Deployment: GitHub Pages in local demo mode (WI-0066)"
 ---
 
 # Configuring a Chrona deployment
@@ -183,3 +193,63 @@ organizations, a person chooses which to work in under More.
 To make it work for real, a deployment needs a Fides exchange (see Fides'
 `docs/hosting/AWS.md`) with this application registered (its origin and
 redirect URI), and a GitHub App whose client id is `identity.clientId`.
+
+## Deployment: GitHub Pages
+
+Chrona is published to GitHub Pages by `.github/workflows/pages.yml` on
+every push to `main` (and on demand, with *Run workflow*):
+
+- **Address:** <https://chrona.echelonfoundry.com/> (the custom domain set
+  in the repository's Pages settings;
+  `https://kemiller2002.github.io/chrona/` redirects there). The site root
+  sends the browser to the page at `web/`.
+- **What is published:** the repository's layout (`web/`, `web-kernel/`,
+  `build/wasm/wwwroot/` from `npm run build:wasm` in Release, and the
+  `dist`/`src` folders of the Limen, Forma and Folio packages), assembled by
+  `tools/pages/assemble-site.mjs`. Every address in the page is relative,
+  so the site works at a domain's root or under `/chrona/` alike; no
+  `<base href>` is set. Navigation is by `#` fragment, so no `404.html`
+  fallback is needed. `.nojekyll` is added. The `.br`/`.gz` copies are left
+  out: Pages compresses on its own and serves `.wasm` as `application/wasm`.
+- **Demo mode.** No Fides exchange or GitHub App exists yet, so the Pages
+  deployment is a local session: `deploy/pages/chrona.deployment.json` has
+  no `identity` and no `location`. Nobody signs in, nothing is sent
+  anywhere, and records are kept in the browser tab only (gone on reload).
+  The page shows the banner "Demo — data stays in this browser; GitHub
+  sign-in not configured". The repository holds no secret for Pages, and
+  needs none: the site is public.
+- **Configuration is file-driven.** `deploy/pages/site.json` names the
+  deployment configuration that replaces `web/chrona.deployment.json`, the
+  banner, and the Content-Security-Policy. The repository's own
+  `web/chrona.deployment.json` is untouched and still serves local
+  development.
+
+**Turning on real sign-in later** changes `deploy/pages/` only:
+
+1. Add `identity` (and, for stored records, `location` and
+   `organizations`) to `deploy/pages/chrona.deployment.json`, as described
+   above, with `redirectUri` the page's address,
+   `https://chrona.echelonfoundry.com/web/`, registered with the Fides
+   exchange and the GitHub App. The client id is public; the client secret
+   stays with the exchange and never enters this repository.
+2. In `deploy/pages/site.json`, add the exchange's origin and
+   `https://api.github.com` to the policy's `connect-src`, and remove
+   `banner` (or reword it).
+3. Push to `main`; the workflow republishes.
+
+**Security on Pages.** Pages cannot set response headers, so the policy is
+a `<meta http-equiv="Content-Security-Policy">` that the assembly inserts
+first in `<head>`: scripts, styles and connections from the site's own
+origin only, `'wasm-unsafe-eval'` for the .NET WebAssembly runtime, no
+inline script or style, `object-src 'none'`, `base-uri 'self'`.
+Known deviation: `frame-ancestors` (and `X-Frame-Options`) cannot be
+delivered by a meta element, so on Pages another site can frame the page.
+In demo mode there is no session or data worth a clickjacking attack;
+before real sign-in, host where `frame-ancestors 'none'` can be sent as a
+header, or accept the risk with a recorded decision.
+
+**Enabling Pages.** The deploy job runs `actions/configure-pages` with
+`enablement: true`. If Pages is not enabled and the workflow's token may not
+enable it, the job fails saying so; a repository admin then opens
+**Settings → Pages → Build and deployment → Source → GitHub Actions** once
+and re-runs the workflow.

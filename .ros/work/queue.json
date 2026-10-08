@@ -895,7 +895,7 @@
     {
       "id": "WI-0042",
       "title": "Raise Forma contract gaps G1-G6 from the legacy look-and-feel inventory (sidebar/tab bar, surface radius, display title scale, inverse hero, time-column timeline, filled primary action and control radius) so Chrona's chrona-* composition can retire",
-      "description": "docs/legacy/look-and-feel-inventory.md section 7. Forma 0.4.1 cannot express these through its Brand Manifest; Chrona composes chrona-* classes on --ef-* tokens until Forma extends its public contract. File the gaps in kemiller2002/forma. Also G7 (found in WI-0046): .ef-skip-link positions itself with marketing spacing tokens (--ef-space-2) that an application page does not load, so it renders in flow; Chrona keeps the legacy skip link (chrona-skip-link) until Forma fixes it.",
+      "description": "docs/legacy/look-and-feel-inventory.md section 7. Forma 0.4.1 cannot express these through its Brand Manifest, so Chrona composes chrona-* classes on --ef-* tokens until Forma extends its public contract. The seven gaps G1-G7 are filed in Forma's backlog as Forma WI-0022 (kemiller2002/forma#113). G7 (found in WI-0046): .ef-skip-link positions itself with marketing spacing tokens (--ef-space-2) that an application page does not load, so it renders in flow; Chrona keeps the legacy skip link (chrona-skip-link) until Forma fixes it. Keep web/chrona.css as it is until Forma ships the contract; then retire the matching chrona-* classes.",
       "tags": [
         "forma",
         "ui",
@@ -905,7 +905,7 @@
       "status": "captured",
       "attachments": [],
       "createdAt": "2026-10-08T08:41:17.009Z",
-      "updatedAt": "2026-10-08T09:35:28.065Z",
+      "updatedAt": "2026-10-08T11:19:14Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

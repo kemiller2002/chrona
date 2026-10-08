@@ -245,3 +245,38 @@ test("someone who is not an administrator is refused the administrators' parts o
   await expect(member.locator("#screen-more")).toBeVisible();
   await expect(member.locator("#screen-problem")).toHaveCount(0);
 });
+
+// ---- the organization in the address (CHX-460, WI-0071) -----------------------
+
+test.describe("a deployment of two organizations", () => {
+  const two = {
+    ...configuration,
+    organizations: [
+      ...configuration.organizations,
+      { id: "org_eu", displayName: "Acme Europe", slug: "acme-eu", timeZone: "Europe/Berlin", administrators: ["583231"] }
+    ]
+  };
+
+  test("a link names its organization, and opens it cold through sign-in", async ({ context }) => {
+    await fakeDeployment(context, two);
+    await serveGitHub(context, repository({ owner: "acme", name: "chrona-data" }));
+
+    // Signing in at home names the first organization in the address.
+    const page = await signedIn(context);
+    await expect(page).toHaveURL(`${PAGE}#/?org=org_acme`);
+    await page.click(".chrona-nav__link:has-text('More')");
+    await expect(page).toHaveURL(`${PAGE}#/more?org=org_acme`);
+
+    // A link into the other organization, opened in a new tab.
+    const other = await context.newPage();
+    await other.goto("/web/index.html#/more?org=org_eu");
+    await other.click("#sign-in-button");
+    await expect(other.locator(".chrona-shell")).toBeVisible({ timeout: 20_000 });
+    await expect(other).toHaveURL(`${PAGE}#/more?org=org_eu`);
+    await expect(other.locator("#organization")).toHaveValue("org_eu");
+
+    // An organization the deployment does not serve is not found.
+    await other.goto("/web/index.html#/more?org=org_none");
+    await expect(other.locator("#problem-title")).toHaveText("Not found");
+  });
+});

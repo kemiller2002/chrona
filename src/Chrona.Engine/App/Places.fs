@@ -94,6 +94,16 @@ type Place =
     /// Sign-in, with the relative address to return to afterwards.
     | SignIn of returnTo: string option
 
+/// A place in one of the deployment's organizations: what an address names.
+/// The organization is named only where a deployment serves several, so a
+/// link opens the same organization's view; with one, it is omitted.
+type Address =
+    { Place: Place
+      Organization: string option }
+
+/// A place, in no organization in particular (a deployment of one).
+let at (place: Place) = { Place = place; Organization = None }
+
 // ---- the route table --------------------------------------------------------------
 
 /// Route names, as the inventory lists them.
@@ -213,9 +223,14 @@ let private openSections = sectionNames |> List.map fst |> List.filter (administ
 
 let private groupings = [ "project", "project"; "activityType", "type"; "tag", "tag"; "day", "day" ]
 
-let private guarded (route: Route) = { route with Guard = Some Guards.SignedIn }
-
 let private optional name kind = QueryParam.optional name kind
+
+/// A place people work in: behind sign-in, and in an organization, named
+/// last among its parameters.
+let private guarded (route: Route) =
+    { route with
+        Guard = Some Guards.SignedIn
+        Query = route.Query @ [ optional "org" ParamType.String ] }
 
 let private routes: Route list =
     [ guarded (Route.create Names.Today "")
@@ -294,7 +309,7 @@ let private text = Option.map Value.Text
 let private date (on: DateOnly) = Value.Date on
 
 /// A place's route and typed values.
-let toTarget (place: Place) : Target =
+let private placeTarget (place: Place) : Target =
     match place with
     | Today -> target Names.Today [] []
     | Day(on, project) -> target Names.Day [ "on", date on ] [ "project", text project ]
@@ -347,10 +362,20 @@ let private dateOf (values: Map<string, Value>) key =
 let private required what (value: 'a option) =
     value |> Option.map Ok |> Option.defaultValue (Error $"{what} is missing")
 
+/// An address's route and typed values: its place's, and its organization.
+let toTarget (address: Address) : Target =
+    let target = placeTarget address.Place
+
+    match address.Organization, address.Place with
+    // Sign-in is in no organization; its return target holds one.
+    | _, SignIn _
+    | None, _ -> target
+    | Some organization, _ -> { target with Query = target.Query.Add("org", Value.Text organization) }
+
 /// A resolved route as a place. Every route of the table maps; a match this
 /// cannot map is a defect, reported as Limen's `Unmapped`. The not-found
 /// route never reaches here: the codec reports it as `RouteError.NotFound`.
-let ofMatch (matched: Match) : Result<Place, string> =
+let private placeOf (matched: Match) : Result<Place, string> =
     let path = parameters matched
     let query = matched.Query
 
@@ -399,19 +424,26 @@ let ofMatch (matched: Match) : Result<Place, string> =
     // The not-found route is Limen's NotFound outcome, never a place.
     | other -> Error $"no place for the route {other}"
 
-/// Chrona's typed codec: a place to its canonical address and back.
+/// A resolved route as an address: its place, and its organization.
+let ofMatch (matched: Match) : Result<Address, string> =
+    placeOf matched
+    |> Result.map (fun place ->
+        { Place = place
+          Organization = textOf matched.Query "org" })
+
+/// Chrona's typed codec: an address to its canonical location and back.
 let codec = RouteCodec.create table toTarget ofMatch
 
-/// A place's canonical address: "/day/2026-10-08?project=helix".
-let format (place: Place) = RouteCodec.format codec place
+/// An address's canonical location: "/day/2026-10-08?project=helix".
+let format (address: Address) = RouteCodec.format codec address
 
-/// An address as a place, under the engine's guard decisions.
+/// A location as an address, under the engine's guard decisions.
 let parse guard (location: string) = RouteCodec.parse codec guard location
 
-/// The `href` an in-page link to a place carries: relative, in the fragment
-/// ("#/day/2026-10-08").
-let href (place: Place) =
-    format place |> Result.map (Location.href mode)
+/// The `href` an in-page link to an address carries: relative, in the
+/// fragment ("#/day/2026-10-08").
+let href (address: Address) =
+    format address |> Result.map (Location.href mode)
 
 /// The relative address a sign-in returns to for this address: its canonical
 /// form, or None when it may not be returned to (the sign-in or not-found

@@ -139,8 +139,8 @@ let private problemItems (model: Model) (form: Form) =
 let private shows (model: Model) (screen: Places.Place -> bool) = model.RouteProblem.IsNone && screen model.Place
 
 /// A place's relative link ("#/track"), for an `href`.
-let private hrefOf (place: Places.Place) =
-    match Places.href place with
+let private hrefOf (model: Model) (place: Places.Place) =
+    match Places.href (addressOf model place) with
     | Ok href -> href
     // Every place has an address (PlacesTests); one without is a defect.
     | Error error -> invalidOp $"No address for {place}: %A{error}"
@@ -178,7 +178,7 @@ let private navigation (model: Model) =
         [ t "id" id
           t "label" label
           t "mark" mark
-          t "href" (hrefOf place)
+          t "href" (hrefOf model place)
           t "current" (if id = section then "page" else "false") ])
 
 /// Where unsent changes are kept, for the person (23).
@@ -284,7 +284,7 @@ let private record (model: Model) (activity: Activity) =
 
     [ t "id" activity.ActivityId
       // The activity's own address, with its day so only that month is read.
-      t "href" (hrefOf (Places.Entry(activity.ActivityId, Some activity.Occurrence.LocalDate)))
+      t "href" (hrefOf model (Places.Entry(activity.ActivityId, Some activity.Occurrence.LocalDate)))
       t "start" (fst times)
       t "finish" (snd times)
       t "title" activity.Classification.Description
@@ -328,7 +328,7 @@ let private today (model: Model) =
                |> List.map (fun item -> [ t "id" item.Id; t "name" item.Name; f "selected" (Some item.Id = project) ])))
       flag "dayFiltered" project.IsSome
       // The week this day is in, with the same filter (CHX-460).
-      text "weekHref" (hrefOf (Places.Week((weekOf model date).Start, project)))
+      text "weekHref" (hrefOf model (Places.Week((weekOf model date).Start, project)))
       text "dayFilterName" (project |> Option.map (referenceName model Reference.Project) |> Option.defaultValue "")
       text "dayTitle" (Format.longDate date)
       text "dayIso" (Format.isoDate date)
@@ -538,7 +538,7 @@ let private periodView (model: Model) =
 
     [ text "periodLabel" (periodLabel summary.Period)
       // The period's own page (CHX-460).
-      text "periodHref" (hrefOf (Places.Period summary.Period.Start))
+      text "periodHref" (hrefOf model (Places.Period summary.Period.Start))
       text "periodExact" (Format.minutes summary.ExactMinutes)
       text "periodBillable" (Format.minutes summary.BillableMinutes)
       text "periodNonBillable" (Format.minutes summary.NonBillableMinutes)
@@ -1150,7 +1150,7 @@ let private mine (model: Model) =
 
 /// One row per day from `first` to `last`: its counted time, linked to the
 /// day's ledger (with the same project filter).
-let private dayRows (project: string option) (first: DateOnly) (last: DateOnly) (counted: Activity list) =
+let private dayRows (model: Model) (project: string option) (first: DateOnly) (last: DateOnly) (counted: Activity list) =
     [ for offset in 0 .. last.DayNumber - first.DayNumber do
           let date = first.AddDays offset
           let onDay = counted |> List.filter (fun a -> a.Occurrence.LocalDate = date)
@@ -1159,7 +1159,7 @@ let private dayRows (project: string option) (first: DateOnly) (last: DateOnly) 
             t "label" (Format.longDate date)
             t "total" (Format.minutes (onDay |> List.sumBy _.Minutes))
             t "count" (plural onDay.Length "entry" "entries")
-            t "href" (hrefOf (Places.Day(date, project))) ] ]
+            t "href" (hrefOf model (Places.Day(date, project))) ] ]
 
 let private projectOptions (model: Model) (project: string option) =
     [ t "id" ""; t "name" "All projects"; f "selected" project.IsNone ]
@@ -1187,7 +1187,7 @@ let private weekView (model: Model) =
       text "weekBilled" $"{Format.minutes billed} billed"
       text "weekDecimal" (Format.decimalHours total)
       text "weekEntryCount" (plural counted.Length "entry" "entries")
-      items "weekDays" (dayRows project week.Start week.Finish counted)
+      items "weekDays" (dayRows model project week.Start week.Finish counted)
       items "weekProjectOptions" (projectOptions model project)
       flag "weekFiltered" project.IsSome
       text "weekFilterName" (project |> Option.map (referenceName model Reference.Project) |> Option.defaultValue "") ]
@@ -1220,7 +1220,7 @@ let private periodPage (model: Model) =
       text "periodPageUnclassified" (Format.minutes summary.UnclassifiedMinutes)
       text "periodPageSubmission" (submissionText summary.Submission)
       text "periodPageApproval" (approvalText summary.Approval)
-      items "periodDays" (dayRows None period.Start period.Finish counted) ]
+      items "periodDays" (dayRows model None period.Start period.Finish counted) ]
 
 let private projectState (item: Reference.Item) =
     if item.Status = Reference.Active then "Offered for new work" else "Archived: kept on past records"
@@ -1233,7 +1233,7 @@ let private projectsView (model: Model) =
       items
           "projectList"
           (projects
-           |> List.map (fun item -> [ t "id" item.Id; t "name" item.Name; t "state" (projectState item); t "href" (hrefOf (Places.Project item.Id)) ])) ]
+           |> List.map (fun item -> [ t "id" item.Id; t "name" item.Name; t "state" (projectState item); t "href" (hrefOf model (Places.Project item.Id)) ])) ]
 
 /// One project: the person's time on it, and where to look further.
 let private projectView (model: Model) =
@@ -1271,10 +1271,10 @@ let private projectView (model: Model) =
                  t "title" a.Classification.Description
                  t "duration" (Format.minutes a.Minutes)
                  t "state" (match a.Record with Voided _ -> "Removed from totals" | _ -> "Recorded")
-                 t "href" (hrefOf (Places.Entry(a.ActivityId, Some a.Occurrence.LocalDate))) ]))
-      text "projectTodayHref" (hrefOf (Places.Day(today, Some id)))
-      text "projectWeekHref" (hrefOf (Places.Week((weekOf model today).Start, Some id)))
-      text "projectReportHref" (hrefOf (Places.Reports { Places.allReports with ProjectId = Some id })) ]
+                 t "href" (hrefOf model (Places.Entry(a.ActivityId, Some a.Occurrence.LocalDate))) ]))
+      text "projectTodayHref" (hrefOf model (Places.Day(today, Some id)))
+      text "projectWeekHref" (hrefOf model (Places.Week((weekOf model today).Start, Some id)))
+      text "projectReportHref" (hrefOf model (Places.Reports { Places.allReports with ProjectId = Some id })) ]
 
 // ---- addresses: not found, not permitted, copy link (CHX-460) -----------------------
 

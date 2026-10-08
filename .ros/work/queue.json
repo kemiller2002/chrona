@@ -593,10 +593,10 @@
         "authorization"
       ],
       "priority": "high",
-      "status": "ready",
+      "status": "complete",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:47.325Z",
-      "updatedAt": "2026-10-08T12:40:28Z",
+      "updatedAt": "2026-10-08T12:47:20Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

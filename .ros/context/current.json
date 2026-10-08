@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-08T12:40:28Z",
+  "updatedAt": "2026-10-08T12:47:20Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -1559,13 +1559,47 @@
     {
       "id": "WI-0030",
       "type": "feature",
-      "state": "active",
-      "semanticState": "active",
-      "evidence": [],
-      "updatedAt": "2026-10-08T12:40:28Z",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Domain/Access.fs"
+        },
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Engine/App/Update.fs"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/AccessTests.fs"
+        }
+      ],
+      "updatedAt": "2026-10-08T12:47:20Z",
       "telemetryExecutionIds": [
         "EXE-20261008T124028919Z-f1c96d25"
-      ]
+      ],
+      "latestCheckpoint": {
+        "id": "c300d37b4516aba5896e799e",
+        "recordedAt": "2026-10-08T12:47:18Z",
+        "executionId": "EXE-20261008T124028919Z-f1c96d25",
+        "repository": "chrona",
+        "branch": "feat/wi-0030-authorization",
+        "commit": "6cdafa7fa33bb49934138105bb46ac76d2d1fa94",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/chrona"
+        },
+        "remoteBranch": "feat/wi-0030-authorization",
+        "remoteCommit": "6cdafa7fa33bb49934138105bb46ac76d2d1fa94",
+        "summary": "Access domain, AUTH diagnostics, engine capability checks, access view; AccessTests (commit 6cdafa7)",
+        "nextAction": "Open the PR; merge once every check on its head is green; then WI-0032",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      },
+      "completedAt": "2026-10-08T12:47:20Z"
     }
   ]
 }

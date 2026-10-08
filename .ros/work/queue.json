@@ -1325,10 +1325,10 @@
         "limen"
       ],
       "priority": "medium",
-      "status": "ready",
+      "status": "complete",
       "attachments": [],
       "createdAt": "2026-10-08T15:27:11Z",
-      "updatedAt": "2026-10-08T15:27:28Z",
+      "updatedAt": "2026-10-08T15:27:50Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

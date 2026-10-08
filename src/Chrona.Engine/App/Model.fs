@@ -214,6 +214,10 @@ type Form =
     | EvidenceForm
     | MergeForm
     | AttestForm
+    /// The organization's period settings.
+    | PeriodForm
+    /// Copying or printing a report.
+    | ExportForm
 
 [<NoComparison>]
 type Model =
@@ -223,6 +227,9 @@ type Model =
       Identity: IdentityState
       /// The deployment's configuration, once read.
       Deployment: Deployment.DeploymentConfig option
+      /// The organization's members and what each may do (3). Every command
+      /// is checked against it.
+      Roster: Access.Roster
       Store: StoreState
       /// The business time zone; unknown until the browser describes it.
       Zone: Zone option
@@ -262,11 +269,24 @@ type Model =
       /// reason. The legacy rule is 0: any date that is not today.
       HistoricalAfterDays: int }
 
+/// The principal a session acts as. A local session and a GitHub sign-in are
+/// both a person; agents, services and integrations reach Chrona through
+/// their own channels (observations, integrations), never this page.
+let principalOf (session: Session) : Access.Principal =
+    { PrincipalId = session.ActorId
+      Kind = Access.Human
+      DisplayName = session.DisplayName }
+
+/// Whether the session's person holds the capability in its organization.
+let permits (model: Model) (capability: Access.Capability) =
+    Access.permits model.Roster model.Session.ActorId capability
+
 let initial (session: Session) (store: StoreKind) (now: DateTimeOffset) =
     { Route = { Screen = Today; Date = None }
       Session = session
       Identity = initialIdentity
       Deployment = None
+      Roster = Access.founded session.OrganizationId (principalOf session)
       Store =
         { Kind = store
           Pending = []

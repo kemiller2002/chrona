@@ -44,6 +44,26 @@ let private fieldName =
 
 /// A diagnostic in words, with what to do next. The stable code stays on the
 /// item for support and tests.
+/// What a capability lets someone do, in words.
+let capabilityText =
+    function
+    | "RecordOwnTime" -> "record your time"
+    | "AmendOwnTime" -> "correct your time"
+    | "SubmitOwnTime" -> "submit your time"
+    | "AttestOwnDay" -> "attest your days"
+    | "ViewOwnTime" -> "see your time"
+    | "ViewOrganizationTime" -> "see the organization's time"
+    | "ApproveTime" -> "approve time"
+    | "RejectTime" -> "reject time"
+    | "ReopenTime" -> "reopen time"
+    | "ManageProjects" -> "manage projects"
+    | "ManageActivityTypes" -> "manage activity types"
+    | "ManageTags" -> "manage tags"
+    | "ManageOrganizationSettings" -> "change the organization's settings"
+    | "ExportTime" -> "export time"
+    | "PublishBillableTime" -> "publish billable time"
+    | other -> other
+
 let describe (model: Model) (diagnostic: Diagnostic) =
     match diagnostic with
     | MissingField field -> $"Add {fieldName field}."
@@ -86,6 +106,8 @@ let describe (model: Model) (diagnostic: Diagnostic) =
     | IllegalTransition(from, command) -> $"A record that is {from.ToLowerInvariant()} cannot be changed that way ({command})."
     | OrganizationMismatch
     | ActorMismatch -> "These belong to different people or organizations."
+    | UnauthorizedCapability capability -> $"You do not have permission to {capabilityText capability} in this organization."
+    | NotAMember _ -> "You are not a member of this organization."
     | other -> $"Chrona could not do that ({code other})."
 
 let private problemItems (model: Model) (form: Form) =
@@ -828,6 +850,8 @@ let private reportView (model: Model) =
       items "reportGroups" groups
       text "exportText" (Update.exportText model)
       text "copyStatus" model.CopyStatus
+      flag "hasExportProblems" (model.Problems.ContainsKey ExportForm)
+      items "exportProblems" (problemItems model ExportForm)
       text "printTitle" "Time report"
       text "printSubtitle" $"{model.Session.DisplayName} · {range}"
       text "printGenerated" $"Generated {localStamp model model.Now} · {Reports.Schema}" ]
@@ -878,7 +902,32 @@ let private identityView (model: Model) =
       text "accountProvider" (match model.Session.Kind with SignedIn provider -> provider | LocalSession -> "")
       text "accountRetention" (retentionText identity.Retention) ]
 
+/// What the session's person may do in the organization (3).
+let private accessView (model: Model) =
+    let held = Access.capabilitiesOf model.Roster model.Session.ActorId
+
+    [ text "accessOrganization" model.Roster.OrganizationId
+      items
+          "accessCapabilities"
+          [ for capability in Access.allCapabilities do
+                if held.Contains capability then
+                    let name = Access.capabilityName capability
+                    [ t "id" name; t "name" (capabilityText name) ] ]
+      flag "hasPeriodProblems" (model.Problems.ContainsKey PeriodForm)
+      items "periodProblems" (problemItems model PeriodForm) ]
+
 let project (model: Model) : View =
+    // Without ViewOwnTime nothing of the person's time is shown.
+    let model =
+        if permits model Access.ViewOwnTime then
+            model
+        else
+            { model with
+                Ledger = Ledger.empty
+                Attestations = []
+                Timer = Timer.Idle
+                Stopped = None }
+
     let tone, headline, detail = storeLines model
 
     let needsReferences =
@@ -892,6 +941,7 @@ let project (model: Model) : View =
       items "navigation" (navigation model)
       text "announcement" model.Announcement
       yield! identityView model
+      yield! accessView model
       text "sessionName" model.Session.DisplayName
       text "sessionInitials" (Format.initials model.Session.DisplayName)
       text "storeTone" tone

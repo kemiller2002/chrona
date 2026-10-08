@@ -23,6 +23,11 @@ test("the page runs on Limen with the schedule, environment, print and host pack
   // The store says where records live: this tab only, until storage exists.
   await expect(page.locator(".chrona-sidebar__status")).toContainText("Kept in this tab only");
   await expect(page.locator(".chrona-identity")).toHaveText("LS");
+
+  // The local person founded this in-memory organization, so they may do
+  // everything in it; every command is still checked by capability.
+  await expect(page.locator("#access li")).toHaveCount(15);
+  await expect(page.locator("#access li[data-capability=ManageProjects]")).toHaveText("manage projects");
 });
 
 test("manual entry reports every problem, then records exact time on Today", async ({ app: page }) => {

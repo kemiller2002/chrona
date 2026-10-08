@@ -52,7 +52,7 @@ for the diagnosis, the evidence, and one unexercised watch item.
 - Requirement coverage per section is tracked in
   [`docs/requirements/implementation-gap-analysis.md`](docs/requirements/implementation-gap-analysis.md)
   (`CHX-NNM` ids, baseline and current columns; `GapAnalysisTests` holds the
-  counts). 18 tested, 38 partial, 7 missing of 63 (baseline 0 / 7 / 56).
+  counts). 18 tested, 39 partial, 6 missing of 63 (baseline 0 / 7 / 56).
 - `src/Chrona.Domain` is the pure time domain: `Diagnostics`, `Time`,
   `Activity`, `Overlap`, `ManualEntry` (WI-0020), `Ledger` (WI-0021),
   `Timer` (WI-0022), `Billing` and `Review` (WI-0023), `Compatibility`
@@ -87,8 +87,12 @@ for the diagnosis, the evidence, and one unexercised watch item.
   (`docs/deployment-configuration.md`) names the exchange and client id;
   the repository's copy is a local session. Tested against a fake exchange
   and GitHub; the real check waits on a deployment (WI-0052).
+- Authorization (WI-0030): `Access` principals, the fifteen capabilities
+  and per-organization rosters; the engine checks every command by
+  capability (`Update.requirement`). The session's person founds and
+  administers the in-memory organization until rosters are stored (WI-0031).
 - Not built: driving storage through Arca's GitHub adapter (WI-0032),
-  authorization (WI-0030), offline sync,
+  stored rosters and member administration (WI-0031), offline sync,
   `Chrona.Integration` (Summa owns the contract), submission and approval screens (need actors and
   authorization, WI-0030 after Fides), and reports over stored data across
   people and organizations (WI-0039).
@@ -100,9 +104,9 @@ for the diagnosis, the evidence, and one unexercised watch item.
 
 ## Next action (time domain)
 
-Actors, membership and authorization (WI-0030), then storage through
-Arca's GitHub adapter with Fides' token provider (WI-0032), then reference
-data on Arca (WI-0031); then Summa's contract package (WI-0037).
+Storage through Arca's GitHub adapter with Fides' token provider (WI-0032),
+then reference data and rosters on Arca (WI-0031); then Summa's contract
+package (WI-0037).
 
 ## Unresolved questions
 

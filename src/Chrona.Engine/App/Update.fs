@@ -586,6 +586,48 @@ let private amendDraft (f: ClassificationDraft -> ClassificationDraft) =
 let private month (offset: int) (model: Model) =
     navigate { Screen = Month; Date = Some((selectedMonth model).AddMonths offset) } model
 
+/// The capability each command needs (3), and where a refusal is shown.
+/// Typing into a draft or moving between screens needs none.
+let requirement (name: string) (key: string option) : (Access.Capability * Form) option =
+    match name with
+    | "startTimer"
+    | "pauseTimer"
+    | "resumeTimer"
+    | "stopTimer" -> Some(Access.RecordOwnTime, TimerForm)
+    | "saveCompletion" -> Some(Access.RecordOwnTime, CompletionForm)
+    | "saveManual" -> Some(Access.RecordOwnTime, ManualForm)
+    | "addProject" -> Some(Access.ManageProjects, ReferenceForm)
+    | "addActivityType" -> Some(Access.ManageActivityTypes, ReferenceForm)
+    | "addTag" -> Some(Access.ManageTags, ReferenceForm)
+    | "referenceActive" ->
+        match (defaultArg key "").Split(':', 2) |> Array.tryHead |> Option.bind kindOf with
+        | Some Reference.ActivityType -> Some(Access.ManageActivityTypes, ReferenceForm)
+        | Some Reference.Tag -> Some(Access.ManageTags, ReferenceForm)
+        | _ -> Some(Access.ManageProjects, ReferenceForm)
+    | "saveAmend" -> Some(Access.AmendOwnTime, AmendForm)
+    | "voidActivity"
+    | "restoreActivity" -> Some(Access.AmendOwnTime, VoidForm)
+    | "saveSplit" -> Some(Access.AmendOwnTime, SplitForm)
+    | "attachEvidence"
+    | "unlinkEvidence" -> Some(Access.AmendOwnTime, EvidenceForm)
+    | "saveMerge" -> Some(Access.AmendOwnTime, MergeForm)
+    | "attestDay" -> Some(Access.AttestOwnDay, AttestForm)
+    | "periodCadence"
+    | "periodWeekStart" -> Some(Access.ManageOrganizationSettings, PeriodForm)
+    | "copyExport"
+    | "printReport" -> Some(Access.ExportTime, ExportForm)
+    | _ -> None
+
+/// Runs a command only when the person holds what it needs; otherwise the
+/// stable refusal is shown where the command was made, and nothing changes.
+let private authorized (name: string) (key: string option) (model: Model) (run: unit -> Model * Effect list) =
+    match requirement name key with
+    | None -> run ()
+    | Some(capability, form) ->
+        match Access.authorize model.Roster model.Session.OrganizationId model.Session.ActorId capability with
+        | Ok() -> run ()
+        | Error refusal -> withProblems form [ refusal ] model, []
+
 let private onEvent (ctx: Ctx) (name: string) (key: string option) (value: string) (isChecked: bool option) (model: Model) =
     let checkedOn = isChecked |> Option.defaultValue false
 
@@ -694,10 +736,10 @@ let private onEvent (ctx: Ctx) (name: string) (key: string option) (value: strin
             | "monthly" -> Periods.Monthly
             | other -> invalidArg (nameof value) $"Unknown cadence: {other}"
 
-        { model with PeriodConfig = { model.PeriodConfig with Cadence = cadence } }, []
+        { clear PeriodForm model with PeriodConfig = { model.PeriodConfig with Cadence = cadence } }, []
     | "periodWeekStart" ->
         match Enum.TryParse<DayOfWeek>(value) with
-        | true, day -> { model with PeriodConfig = { model.PeriodConfig with WeekStart = day } }, []
+        | true, day -> { clear PeriodForm model with PeriodConfig = { model.PeriodConfig with WeekStart = day } }, []
         | _ -> invalidArg (nameof value) $"Unknown day: {value}"
     | "reportFrom" -> { model with Report = { model.Report with From = value; GeneratedAt = Some ctx.Now } }, []
     | "reportTo" -> { model with Report = { model.Report with To = value; GeneratedAt = Some ctx.Now } }, []
@@ -710,8 +752,8 @@ let private onEvent (ctx: Ctx) (name: string) (key: string option) (value: strin
     | "reportIncludeRemoved" -> { model with Report = { model.Report with IncludeRemoved = checkedOn; GeneratedAt = Some ctx.Now } }, []
     | "reportGrouping" -> { model with Report = { model.Report with Grouping = value; GeneratedAt = Some ctx.Now } }, []
     | "reportFormat" -> { model with Report = { model.Report with Format = value; GeneratedAt = Some ctx.Now }; CopyStatus = "" }, []
-    | "copyExport" -> { model with CopyStatus = "" }, [ CopyText(exportText model) ]
-    | "printReport" -> model, [ Print ]
+    | "copyExport" -> { clear ExportForm model with CopyStatus = "" }, [ CopyText(exportText model) ]
+    | "printReport" -> clear ExportForm model, [ Print ]
     | "goReports" -> navigate { Screen = ReportsScreen; Date = None } model
     | "reportMonth" ->
         let first = selectedMonth model
@@ -845,4 +887,4 @@ let update (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
     | Ui(("signIn" | "signInRetention" | "signOut") as name, _, value, _) -> onIdentityEvent name value model
     // Nothing is recorded or shown for anyone until they may work.
     | Ui _ when not (canWork model) -> model, []
-    | Ui(name, key, value, isChecked) -> onEvent ctx name key value isChecked model
+    | Ui(name, key, value, isChecked) -> authorized name key model (fun () -> onEvent ctx name key value isChecked model)

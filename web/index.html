@@ -1009,6 +1009,15 @@
               <textarea id="export-text" class="chrona-export" rows="10" readonly data-bind-value="exportText"></textarea>
               <button type="button" class="chrona-action chrona-action--primary chrona-action--full" id="copy-export" data-event="copyExport">Copy export</button>
               <p class="chrona-intro" id="copy-status" data-text="copyStatus"></p>
+              <template data-if="hasExportProblems">
+                <div class="ef-alert chrona-notice" role="alert" data-tone="attention" id="export-problems">
+                  <div class="ef-alert__icon" aria-hidden="true">!</div>
+                  <div>
+                    <p class="ef-alert__title">That was not done.</p>
+                    <ul class="chrona-problems"><template data-each="exportProblems" data-key="id"><li data-bind-data-code="code" data-text="text"></li></template></ul>
+                  </div>
+                </div>
+              </template>
             </section>
           </aside>
         </div>
@@ -1108,6 +1117,15 @@
                   <span class="ef-select__indicator" aria-hidden="true"></span>
                 </span>
               </label>
+              <template data-if="hasPeriodProblems">
+                <div class="ef-alert chrona-notice" role="alert" data-tone="attention" id="period-problems">
+                  <div class="ef-alert__icon" aria-hidden="true">!</div>
+                  <div>
+                    <p class="ef-alert__title">That was not done.</p>
+                    <ul class="chrona-problems"><template data-each="periodProblems" data-key="id"><li data-bind-data-code="code" data-text="text"></li></template></ul>
+                  </div>
+                </div>
+              </template>
             </section>
 
             <section class="ef-surface chrona-card" aria-labelledby="session-title">
@@ -1124,6 +1142,10 @@
                   <button type="button" class="chrona-action chrona-action--secondary" id="sign-out" data-event="signOut">Sign out and clear the token</button>
                 </div>
               </template>
+              <div class="chrona-access" id="access">
+                <p class="chrona-intro">In <strong data-text="accessOrganization"></strong> you can:</p>
+                <ul class="chrona-access__list"><template data-each="accessCapabilities" data-key="id"><li data-bind-data-capability="id" data-text="name"></li></template></ul>
+              </div>
               <template data-if="accountLocal">
                 <p class="chrona-intro" id="account-local">This deployment has no sign-in: you are working in a local session in this browser tab.</p>
               </template>

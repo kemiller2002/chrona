@@ -63,4 +63,4 @@
 | WI-0055 | Chrona 08b: the active timer persisted across refresh and restart, recovered at startup, and concurrent timers across devices as obligations (CHX-101, CHX-102, CHX-105, CHX-260 remainder) | captured |  | high |
 | WI-0056 | Chrona 07b: store the audit trail - each command's audit entry as an immutable Arca record, read back with the activities (CHX-250, CHX-400 remainders) | captured |  | high |
 | WI-0057 | Chrona 08c: offline start with a read cache (CHX-230 remainder) | captured |  | medium |
-| WI-0058 | Chrona 08d: shared-device sign-out - unsent changes are never left behind unknowingly (CHX-230, CHX-023 remainders) | active |  | high |
+| WI-0058 | Chrona 08d: shared-device sign-out - unsent changes are never left behind unknowingly (CHX-230, CHX-023 remainders) | complete |  | high |

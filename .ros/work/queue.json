@@ -1275,10 +1275,10 @@
       "description": "Coordinator decision 2026-10-08. Signing out while this account has unsent changes in this browser asks the person to choose: send them now (when GitHub can be reached), keep them on this device for this account, or discard them after a confirmation that names how many. Nothing is lost silently and nothing is left behind unknowingly. The queue stays per account. A deployment setting sharedDevicePolicy chooses ask (the default) or discardOnSignOut, which offers only sending now or discarding. Tests for every path.",
       "tags": [],
       "priority": "high",
-      "status": "ready",
+      "status": "complete",
       "attachments": [],
       "createdAt": "2026-10-08T15:09:22Z",
-      "updatedAt": "2026-10-08T15:09:26Z",
+      "updatedAt": "2026-10-08T15:18:27Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

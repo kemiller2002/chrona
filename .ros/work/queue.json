@@ -1477,10 +1477,10 @@
       "description": "Coordinator priority, data integrity (2026-10-08), closing WI-0059's interim gap after WI-0065 (Arca 0.2.1). Chrona selects Limen's coordination pack and takes the queue through LocalStorageQueue.own before any load, save or send. Owned: the normal path. OwnedElsewhere: the page says another tab is holding your unsent changes, keeps its own changes in the page and sends them directly while online (OQ-001), and offers to take over: a waiting lock that hands ownership off when the other tab closes, then loads and sends what that tab kept. OwnershipUnsupported: falls back to Arca's fenced store, visibly, with the mode shown, never losing data silently. A save refused because another tab wrote is said as that, not as storage the browser refuses. Tests: two tabs where only the owner sends, hand-off on close, no double send, a refused stale save. The IndexedDB move stays in WI-0059 and WI-0057, after Limen 0.8.0.",
       "tags": [],
       "priority": "high",
-      "status": "ready",
+      "status": "complete",
       "attachments": [],
       "createdAt": "2026-10-08T17:24:02Z",
-      "updatedAt": "2026-10-08T17:24:17Z",
+      "updatedAt": "2026-10-08T17:25:49Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

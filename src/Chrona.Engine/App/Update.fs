@@ -574,7 +574,7 @@ let private readNeeded (model: Model) =
 /// follow (CHX-460). The place itself is settled from the new address after
 /// every message (`settle`).
 let private move operation (place: Places.Place) (model: Model) =
-    match operation Places.codec model.Router place with
+    match operation Places.codec model.Router (addressOf model place) with
     | Ok(router, effect) -> { model with Router = router }, effect |> Option.map Navigate |> Option.toList
     // Every place has an address (PlacesTests); one without is a defect.
     | Error error -> invalidOp $"No address for {place}: %A{error}"
@@ -1225,7 +1225,7 @@ let private onEvent (ctx: Ctx) (name: string) (key: string option) (value: strin
     | "copyLink" ->
         let place = Places.explicit (Model.today model) model.Place |> normalize model
 
-        match model.RouteProblem, Places.format place with
+        match model.RouteProblem, Places.format (addressOf model place) with
         | None, Ok location ->
             let link = Places.share model.Page.Origin model.Page.Path location
             { model with LinkStatus = ""; LinkText = link }, [ CopyText(LinkCopy, link) ]
@@ -1604,6 +1604,50 @@ let private storeOpened (contents: StoreContents) (model: Model) =
         TimerNote = None },
     []
 
+/// What an address's organization asks of the engine.
+type private OrganizationStep =
+    | StayHere
+    | SwitchTo of organization: string
+    | MissingOrganization of organization: string
+
+/// Whether the engine knows which organizations the person may work in:
+/// someone may work, under a deployment it has read.
+let private knowsOrganizations (model: Model) =
+    model.Deployment.IsSome
+    && (match model.Identity.Mode with
+        | LocalOnly
+        | SignedInMode -> true
+        | _ -> false)
+
+let private organizationStep (model: Model) (address: Places.Address) =
+    match address.Organization with
+    | Some organization when knowsOrganizations model ->
+        let known =
+            if namesOrganization model then
+                model.Deployment |> Option.bind (fun config -> Deployment.organization config organization) |> Option.isSome
+            else
+                organization = model.Session.OrganizationId
+
+        if not known then MissingOrganization organization
+        elif organization <> model.Session.OrganizationId then SwitchTo organization
+        else StayHere
+    | _ -> StayHere
+
+/// The organization an address should name: the person's, where addresses
+/// name one; none where they do not; and, until that is known (before
+/// sign-in), whatever the address named, so a sign-in keeps it.
+let private wantedOrganization (model: Model) (address: Places.Address) =
+    if knowsOrganizations model then (addressOf model address.Place).Organization else address.Organization
+
+/// The organization the page's address names, if the deployment serves it:
+/// a sign-in opens that one rather than the first.
+let private addressedOrganization (model: Model) (config: Deployment.DeploymentConfig) =
+    model.Router.Current
+    |> Option.bind (fun location -> Places.parse Limen.Routing.Router.allowAll location |> Result.toOption)
+    |> Option.bind _.Organization
+    |> Option.bind (Deployment.organization config)
+    |> Option.map _.Id
+
 let private identityChanged (change: IdentityChange) (model: Model) =
     let identity = model.Identity
 
@@ -1612,7 +1656,10 @@ let private identityChanged (change: IdentityChange) (model: Model) =
         // The person works in the organization the deployment serves.
         let session =
             { session with
-                OrganizationId = model.Deployment |> Option.map Deployment.organizationId |> Option.defaultValue session.OrganizationId }
+                OrganizationId =
+                    model.Deployment
+                    |> Option.map (fun config -> addressedOrganization model config |> Option.defaultValue (Deployment.organizationId config))
+                    |> Option.defaultValue session.OrganizationId }
 
         let model = fresh session { identity with Mode = SignedInMode; Notice = None } model
         let opened, effects = openStore { model with Announcement = $"Signed in as {session.DisplayName}." }
@@ -1712,11 +1759,15 @@ let private onIdentityEvent (name: string) (value: string) (model: Model) =
         match model.Deployment |> Option.bind (fun config -> Deployment.organization config value) with
         | Some organization ->
             let session = { model.Session with OrganizationId = organization.Id }
-            openStore (fresh session identity model)
+            let opened, effects = openStore (fresh session identity model)
+            // Its home, named by the organization (CHX-460).
+            let moved, more = navigate Places.Today opened
+            moved, effects @ more
         | None -> model, []
     | _ -> model, []
 
 // ---- where the person is (CHX-460) -----------------------------------------------
+
 
 /// What the guards need to know about the person now.
 let private standing (model: Model) : Places.Standing =
@@ -1801,18 +1852,31 @@ let rec private settle (resumed: bool) (model: Model) : Model * Effect list =
         let corrected = correction |> Option.map Navigate |> Option.toList
 
         match result with
-        | Ok(Places.SignIn returnTo) when mayResume model && not resumed ->
+        | Ok { Place = Places.SignIn returnTo } when mayResume model && not resumed ->
             resumeAt (Places.resume (guardOf model) (returnTo |> Option.orElse model.Identity.ReturnTo)) model
         | Ok _ when model.Identity.ReturnTo.IsSome && mayResume model && not resumed ->
             resumeAt (Places.resume (guardOf model) model.Identity.ReturnTo) model
-        // A week or period named by another of its days is named by its first.
-        | Ok place when normalize model place <> place && not resumed ->
-            match Places.format (normalize model place) with
-            | Ok canonical -> resumeAt canonical model
-            | Error error -> invalidOp $"No address for {place}: %A{error}"
-        | Ok place ->
-            let arrived, effects = arrive place model
-            { arrived with RouteProblem = recordProblem arrived }, corrected @ effects
+        | Ok address ->
+            match organizationStep model address with
+            | MissingOrganization organization -> { model with RouteProblem = Some(RecordMissing("organization", organization)) }, corrected
+            // A link into another of the deployment's organizations: nothing of
+            // this one stays in the page, and the other's records are opened.
+            | SwitchTo organization ->
+                let switched, opening = openStore (fresh { model.Session with OrganizationId = organization } model.Identity model)
+                let settled, effects = settle resumed switched
+                settled, corrected @ opening @ effects
+            | StayHere ->
+                // A week or period named by another of its days is named by its
+                // first; the organization is named exactly when it must be.
+                let wanted = { addressOf model (normalize model address.Place) with Organization = wantedOrganization model address }
+
+                if wanted <> address && not resumed then
+                    match Places.format wanted with
+                    | Ok canonical -> resumeAt canonical model
+                    | Error error -> invalidOp $"No address for {wanted}: %A{error}"
+                else
+                    let arrived, effects = arrive address.Place model
+                    { arrived with RouteProblem = recordProblem arrived }, corrected @ effects
         | Error problem -> { model with RouteProblem = Some(AddressProblem problem) }, corrected
 
 and private resumeAt (target: string) (model: Model) =

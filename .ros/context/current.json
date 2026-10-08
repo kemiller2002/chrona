@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-08T21:58:11.000Z",
+  "updatedAt": "2026-10-08T22:21:43.000Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -2458,33 +2458,63 @@
     {
       "id": "WI-0071",
       "type": "task",
-      "state": "active",
-      "semanticState": "active",
-      "evidence": [],
-      "updatedAt": "2026-10-08T19:45:53.000Z",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Engine/App/Places.fs"
+        },
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Engine/App/Update.fs"
+        },
+        {
+          "type": "inventory",
+          "path": ".echelon/routes.json"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/DeepLinkTests.fs"
+        },
+        {
+          "type": "tests",
+          "path": "tests/browser/app-deep-links.spec.js"
+        },
+        {
+          "type": "tests",
+          "path": "tests/pages/deep-links.spec.js"
+        },
+        {
+          "type": "documentation",
+          "path": "research/decisions/DF-CHRONA-2026-0007--deep-links-on-limen-url-state-semantics-through-an-interim-copy.md"
+        }
+      ],
+      "updatedAt": "2026-10-08T22:21:43.000Z",
       "telemetryExecutionIds": [
         "EXE-20261008T194553879Z-750991d9"
       ],
       "latestCheckpoint": {
-        "id": "a557732f44dd7cb1a6ae4d38",
-        "recordedAt": "2026-10-08T20:51:41.000Z",
+        "id": "184142fcbec7cd6e768f67b6",
+        "recordedAt": "2026-10-08T22:21:42.000Z",
         "executionId": "EXE-20261008T194553879Z-750991d9",
         "repository": "chrona",
-        "branch": "feature/deep-links-app",
-        "commit": "537c52b34bee5397a81403d8ebb51bd6b4467c28",
+        "branch": "feature/deep-links-organization",
+        "commit": "e8165c3fd5a4acccc066de1a825f3243ca686605",
         "remote": {
           "name": "origin",
           "url": "https://github.com/kemiller2002/chrona"
         },
-        "remoteBranch": "feature/deep-links-app",
-        "remoteCommit": "537c52b34bee5397a81403d8ebb51bd6b4467c28",
-        "summary": "PR #64 merged (54d2d67): route model, codec, inventory. PR #65 open: engine adopts addresses, not-found/not-permitted, Copy link, returnTo through sign-in, Pages forward, cold deep-link tests incl. Pages build; baselines re-rendering",
-        "nextAction": "Review the re-rendered baselines PR into feature/deep-links-app, merge #65 when every check passes, then week/period/project views and the organization in the address",
+        "remoteBranch": "feature/deep-links-organization",
+        "remoteCommit": "e8165c3fd5a4acccc066de1a825f3243ca686605",
+        "summary": "Deep links complete: #64 route model, #65 app adoption, #70 week/period/projects, this PR the organization in the address; candidate review's addresses are WI-0038's",
+        "nextAction": "Merge the organization PR on a full pass; then WI-0059 and WI-0057 on Arca 0.3.0",
         "verification": {
           "status": "verified",
           "mechanism": "git-remote-observation"
         }
-      }
+      },
+      "completedAt": "2026-10-08T22:21:43.000Z"
     },
     {
       "id": "WI-0072",

@@ -32,7 +32,16 @@
         "signedIn"
       ],
       "name": "today",
-      "params": [],
+      "params": [
+        {
+          "default": null,
+          "in": "query",
+          "name": "org",
+          "required": false,
+          "type": "string",
+          "values": null
+        }
+      ],
       "pattern": "/",
       "requires": [],
       "returnTarget": true
@@ -58,6 +67,14 @@
           "required": false,
           "type": "string",
           "values": null
+        },
+        {
+          "default": null,
+          "in": "query",
+          "name": "org",
+          "required": false,
+          "type": "string",
+          "values": null
         }
       ],
       "pattern": "/day/{on:date}",
@@ -69,7 +86,16 @@
         "signedIn"
       ],
       "name": "thisWeek",
-      "params": [],
+      "params": [
+        {
+          "default": null,
+          "in": "query",
+          "name": "org",
+          "required": false,
+          "type": "string",
+          "values": null
+        }
+      ],
       "pattern": "/week",
       "requires": [],
       "returnTarget": true
@@ -95,6 +121,14 @@
           "required": false,
           "type": "string",
           "values": null
+        },
+        {
+          "default": null,
+          "in": "query",
+          "name": "org",
+          "required": false,
+          "type": "string",
+          "values": null
         }
       ],
       "pattern": "/week/{on:date}",
@@ -106,7 +140,16 @@
         "signedIn"
       ],
       "name": "thisMonth",
-      "params": [],
+      "params": [
+        {
+          "default": null,
+          "in": "query",
+          "name": "org",
+          "required": false,
+          "type": "string",
+          "values": null
+        }
+      ],
       "pattern": "/month",
       "requires": [],
       "returnTarget": true
@@ -124,6 +167,14 @@
           "required": true,
           "type": "month",
           "values": null
+        },
+        {
+          "default": null,
+          "in": "query",
+          "name": "org",
+          "required": false,
+          "type": "string",
+          "values": null
         }
       ],
       "pattern": "/month/{period:month}",
@@ -135,7 +186,16 @@
         "signedIn"
       ],
       "name": "thisPeriod",
-      "params": [],
+      "params": [
+        {
+          "default": null,
+          "in": "query",
+          "name": "org",
+          "required": false,
+          "type": "string",
+          "values": null
+        }
+      ],
       "pattern": "/periods",
       "requires": [],
       "returnTarget": true
@@ -153,6 +213,14 @@
           "required": true,
           "type": "date",
           "values": null
+        },
+        {
+          "default": null,
+          "in": "query",
+          "name": "org",
+          "required": false,
+          "type": "string",
+          "values": null
         }
       ],
       "pattern": "/periods/{on:date}",
@@ -164,7 +232,16 @@
         "signedIn"
       ],
       "name": "projects",
-      "params": [],
+      "params": [
+        {
+          "default": null,
+          "in": "query",
+          "name": "org",
+          "required": false,
+          "type": "string",
+          "values": null
+        }
+      ],
       "pattern": "/projects",
       "requires": [],
       "returnTarget": true
@@ -182,6 +259,14 @@
           "required": true,
           "type": "string",
           "values": null
+        },
+        {
+          "default": null,
+          "in": "query",
+          "name": "org",
+          "required": false,
+          "type": "string",
+          "values": null
         }
       ],
       "pattern": "/projects/{id:string}",
@@ -195,7 +280,16 @@
         "signedIn"
       ],
       "name": "track",
-      "params": [],
+      "params": [
+        {
+          "default": null,
+          "in": "query",
+          "name": "org",
+          "required": false,
+          "type": "string",
+          "values": null
+        }
+      ],
       "pattern": "/track",
       "requires": [],
       "returnTarget": true
@@ -221,6 +315,14 @@
           "required": false,
           "type": "date",
           "values": null
+        },
+        {
+          "default": null,
+          "in": "query",
+          "name": "org",
+          "required": false,
+          "type": "string",
+          "values": null
         }
       ],
       "pattern": "/entries/{id:string}",
@@ -234,7 +336,16 @@
         "signedIn"
       ],
       "name": "reviewToday",
-      "params": [],
+      "params": [
+        {
+          "default": null,
+          "in": "query",
+          "name": "org",
+          "required": false,
+          "type": "string",
+          "values": null
+        }
+      ],
       "pattern": "/review",
       "requires": [],
       "returnTarget": true
@@ -251,6 +362,14 @@
           "name": "on",
           "required": true,
           "type": "date",
+          "values": null
+        },
+        {
+          "default": null,
+          "in": "query",
+          "name": "org",
+          "required": false,
+          "type": "string",
           "values": null
         }
       ],
@@ -366,6 +485,14 @@
             "csv",
             "json"
           ]
+        },
+        {
+          "default": null,
+          "in": "query",
+          "name": "org",
+          "required": false,
+          "type": "string",
+          "values": null
         }
       ],
       "pattern": "/reports",
@@ -377,7 +504,16 @@
         "signedIn"
       ],
       "name": "settings.all",
-      "params": [],
+      "params": [
+        {
+          "default": null,
+          "in": "query",
+          "name": "org",
+          "required": false,
+          "type": "string",
+          "values": null
+        }
+      ],
       "pattern": "/more",
       "requires": [],
       "returnTarget": true
@@ -388,7 +524,16 @@
         "administrator"
       ],
       "name": "settings.people",
-      "params": [],
+      "params": [
+        {
+          "default": null,
+          "in": "query",
+          "name": "org",
+          "required": false,
+          "type": "string",
+          "values": null
+        }
+      ],
       "pattern": "/more/people",
       "requires": [],
       "returnTarget": true
@@ -399,7 +544,16 @@
         "administrator"
       ],
       "name": "settings.index",
-      "params": [],
+      "params": [
+        {
+          "default": null,
+          "in": "query",
+          "name": "org",
+          "required": false,
+          "type": "string",
+          "values": null
+        }
+      ],
       "pattern": "/more/index",
       "requires": [],
       "returnTarget": true
@@ -422,6 +576,14 @@
             "changes",
             "account"
           ]
+        },
+        {
+          "default": null,
+          "in": "query",
+          "name": "org",
+          "required": false,
+          "type": "string",
+          "values": null
         }
       ],
       "pattern": "/more/{section:enum}",

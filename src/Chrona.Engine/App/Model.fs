@@ -574,3 +574,14 @@ let selectedMonth (model: Model) =
 /// The week that contains a date, by the organization's first day of the week.
 let weekOf (model: Model) (date: DateOnly) =
     Periods.containing { model.PeriodConfig with Cadence = Periods.Weekly } date
+
+/// Whether addresses name the organization (CHX-460): someone signed in to a
+/// deployment that serves several, so a link opens the same organization.
+let namesOrganization (model: Model) =
+    model.Identity.Mode = SignedInMode
+    && (model.Deployment |> Option.exists (fun config -> config.Organizations.Length > 1))
+
+/// The address of a place in the organization the person works in now.
+let addressOf (model: Model) (place: Places.Place) : Places.Address =
+    { Place = place
+      Organization = if namesOrganization model then Some model.Session.OrganizationId else None }

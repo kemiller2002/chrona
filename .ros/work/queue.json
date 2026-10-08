@@ -1565,10 +1565,10 @@
         "limen"
       ],
       "priority": "high",
-      "status": "ready",
+      "status": "complete",
       "attachments": [],
       "createdAt": "2026-10-08T19:45:50.000Z",
-      "updatedAt": "2026-10-08T19:45:52.000Z",
+      "updatedAt": "2026-10-08T22:21:43.000Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

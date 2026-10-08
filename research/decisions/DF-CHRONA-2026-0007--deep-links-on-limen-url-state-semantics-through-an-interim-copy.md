@@ -2,7 +2,7 @@
 id: DF-CHRONA-2026-0007
 title: Deep links on Limen's URL-state semantics, through an interim copy of Limen.Routing until Limen 0.9.0 ships
 status: accepted
-version: 1.1.0
+version: 1.2.0
 created: 2026-10-08
 updated: 2026-10-08
 owners:
@@ -20,8 +20,9 @@ derived_from: [DF-CHRONA-2026-0003, DF-CHRONA-2026-0004]
 provenance:
   contributions:
     EXE-20261008T194553879Z-750991d9:
-      operations: [created]
+      operations: [created, modified]
       at: 2026-10-08T19:57:49.374Z
+      last: 2026-10-08T22:05:04.815Z
       actor:
         kind: agent
         id: anthropic/claude-code
@@ -88,7 +89,13 @@ The work on Limen's branch `urlstate/wi-0168-semantics-fsharp` (commit `e935da7`
    - A shared link is the page's origin and path plus the canonical fragment (`Link.share` with an empty query).
    - The callback's `code` and `state` are in the page's query, and Fides removes them from the address before anything else. Even so, no link Chrona makes can copy them.
    - The table cannot declare a credential-like parameter (`RouteTable.define` refuses them).
-8. **Places that do not exist yet join with their screens.** Candidate review has no screen until observation inboxes are stored (WI-0038). Its addresses join the table, the inventory and the browser tests with that screen; WI-0038's description says so.
+8. **The organization is in the address where it is a choice.** A deployment can serve several organizations. There, the one a person works in is navigable state: a link copied in one must not open another's view. So:
+   - every guarded route declares an `org` parameter, last;
+   - addresses name the organization when someone is signed in to a deployment of several, and never otherwise;
+   - opening a link into another of the deployment's organizations switches to it, as choosing it does;
+   - one the deployment does not serve is not found;
+   - the organization reaches sign-in inside the return target.
+9. **Places that do not exist yet join with their screens.** Candidate review has no screen until observation inboxes are stored (WI-0038). Its addresses join the table, the inventory and the browser tests with that screen; WI-0038's description says so.
 
 ## Update (WI-0072, 2026-10-08)
 

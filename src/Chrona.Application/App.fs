@@ -163,6 +163,12 @@ let private requests (env: Env) (state: State) (effects: Update.Effect list) =
                 state, requests, immediate
             | Update.ConfirmAdministrator ->
                 env.Store.Confirm()
+                state, requests, immediate
+            | Update.ReadMonths dates ->
+                env.Store.Read dates
+                state, requests, immediate
+            | Update.RebuildIndex ->
+                env.Store.Rebuild()
                 state, requests, immediate)
         (state, [], [])
 

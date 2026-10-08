@@ -43,6 +43,14 @@ type Msg =
     | StoreResumed of StoreRequest list
     /// Where the unsent changes stand now.
     | SyncChanged of SyncState
+    /// The activity index was rebuilt from the records, or could not be: what
+    /// happened, for the person.
+    | IndexRebuilt of summary: string
+    /// A month asked for could not be read, and why.
+    | StoreReadFailed of reason: string
+    /// The activity index changed with a commit: each person's months, and
+    /// what it covers.
+    | IndexChanged of history: ActivityIndex.MonthTotal list * summary: string
     /// Whether the browser took the text onto its clipboard.
     | Copied of succeeded: bool
     /// A page event: its name, the enclosing item's key, the control's value
@@ -75,6 +83,10 @@ type Effect =
     | OpenStore of Deployment.DeploymentConfig * Session * dates: DateOnly list
     /// Make this listed person the organization's administrator, then open it.
     | ConfirmAdministrator
+    /// Read the month folders these dates need (a month not read yet).
+    | ReadMonths of dates: DateOnly list
+    /// Rebuild the activity index from the stored records (40).
+    | RebuildIndex
 
 /// The timer display refreshes once a second while running (the label is
 /// whole seconds); the engine computes it, never a client-side counter.
@@ -90,7 +102,7 @@ let ThisDevice = "this-browser"
 let eventNames =
     [ "signIn"; "signInRetention"; "signOut"; "retryStore"; "chooseOrganization"; "confirmAdministrator"
       "memberId"; "memberName"; "memberAccess"; "admitMember"; "changeMemberAccess"; "removeMember"
-      "keepStored"; "retryChange"; "redoChange"; "acceptOutsideEdit"
+      "keepStored"; "retryChange"; "redoChange"; "acceptOutsideEdit"; "rebuildIndex"
       "navigate"; "goToday"; "goTrack"; "goMore"; "showDate"; "previousDay"; "nextDay"
       "timerActivityType"; "timerProject"; "timerDescription"; "startTimer"; "pauseTimer"; "resumeTimer"; "stopTimer"
       "completeActivityType"; "completeProject"; "completeDescription"; "completePurpose"; "completeTag"; "confirmLongTimer"; "saveCompletion"
@@ -403,6 +415,24 @@ let private followRoute (model: Model) =
     | ActivityDetail id, Some detail when detail.ActivityId = id -> model
     | ActivityDetail id, _ -> { model with Detail = openDetail model id }
     | _ -> { model with Detail = None }
+
+/// The month a screen shows, when it shows stored time.
+let private shownMonth (model: Model) =
+    match model.Route.Screen, model.Route.Date with
+    | (Today | DayReview | Month), Some date -> Some(date.Year, date.Month)
+    | _ -> None
+
+/// A month the person goes to that was not read yet is read now: one month
+/// folder, on demand, never the whole history (38).
+let private readNeeded (model: Model) =
+    match shownMonth model, model.Store.Kind with
+    | Some month, Durable _ when
+        canWork model
+        && not (List.contains month model.Store.Months)
+        && not (List.contains month model.Store.Reading)
+        ->
+        { model with Store = { model.Store with Reading = model.Store.Reading @ [ month ] } }, [ ReadMonths [ DateOnly(fst month, snd month, 1) ] ]
+    | _ -> model, []
 
 let private detail (f: Detail -> Detail) (model: Model) =
     { model with Detail = model.Detail |> Option.map f }, []
@@ -897,6 +927,7 @@ let requirement (name: string) (key: string option) : (Access.Capability * Form)
     | "copyExport"
     | "printReport" -> Some(Access.ExportTime, ExportForm)
     | "acceptOutsideEdit" -> Some(Access.AmendOwnTime, OutsideEditForm)
+    | "rebuildIndex" -> Some(Access.ManageOrganizationSettings, IndexForm)
     | _ -> None
 
 /// Runs a command only when the person holds what it needs; otherwise the
@@ -924,6 +955,13 @@ let private onEvent (ctx: Ctx) (name: string) (key: string option) (value: strin
     | "retryChange" -> retryChange ctx (defaultArg key value) model
     | "redoChange" -> redoChange (defaultArg key "") value model
     | "acceptOutsideEdit" -> acceptOutsideEdit ctx (defaultArg key value) model
+    | "rebuildIndex" ->
+        match model.Store.Kind with
+        | Durable _ ->
+            { clear IndexForm model with
+                Store = { model.Store with Index = "Rebuilding the activity index from the records…" } },
+            [ RebuildIndex ]
+        | InMemory -> model, []
     | "showDate" ->
         match Format.parseIsoDate value with
         | Some date -> navigate { Screen = Today; Date = Some date } model
@@ -972,7 +1010,10 @@ let private onEvent (ctx: Ctx) (name: string) (key: string option) (value: strin
     | "previousMonth" -> month -1 model
     | "nextMonth" -> month 1 model
     | "showMonth" ->
-        match Format.parseIsoDate $"{value}-01" with
+        // From the month picker (its value) or a month in the history (its key).
+        let month = if String.IsNullOrEmpty value then defaultArg key "" else value
+
+        match Format.parseIsoDate $"{month}-01" with
         | Some first -> navigate { Screen = Month; Date = Some first } model
         | None -> model, []
 
@@ -1140,8 +1181,13 @@ let private storeOpened (contents: StoreContents) (model: Model) =
                 Failure = None
                 Confirmation = None
                 Integrity = contents.Problems
-                Held = contents.Held }
-        Announcement = "Your records are open." },
+                Held = contents.Held
+                Months = contents.Months
+                Reading = model.Store.Reading |> List.filter (fun month -> not (List.contains month contents.Months))
+                History = contents.History
+                Index = contents.Index }
+        // Said once, when they first open; reading a further month is quiet.
+        Announcement = if model.Store.Opening then "Your records are open." else model.Announcement },
     []
 
 let private identityChanged (change: IdentityChange) (model: Model) =
@@ -1206,7 +1252,10 @@ let update (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
         [ DescribeEnvironment; ReadConfiguration ]
     | ConfigurationRead text -> configurationRead text model
     | IdentityChanged change -> identityChanged change model
-    | StoreOpened contents -> storeOpened contents model
+    | StoreOpened contents ->
+        let opened, effects = storeOpened contents model
+        let read, more = readNeeded opened
+        read, effects @ more
     | StoreUnavailable reason ->
         { model with Store = { model.Store with Opening = false; Failure = Some reason } }, []
     | StoreNeedsConfirmation(reason, canConfirm) ->
@@ -1221,7 +1270,7 @@ let update (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
             PeriodConfig = { model.PeriodConfig with ZoneId = zone |> Option.map _.Id |> Option.defaultValue "UTC" } },
         []
     | EnvironmentUnavailable -> { model with Zone = tryZone "UTC" |> Result.toOption }, []
-    | LocationMoved hash -> followRoute { model with Route = Routes.parse hash }, []
+    | LocationMoved hash -> readNeeded (followRoute { model with Route = Routes.parse hash })
     | Ticked generation ->
         match model.Timer with
         | Timer.Running _ when generation = model.TickGeneration -> model, [ Wake(generation, TickMs) ]
@@ -1255,6 +1304,13 @@ let update (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
         let resumed = requests |> List.filter (fun request -> not (known.Contains request.CommitId))
         { model with Store = { model.Store with Pending = model.Store.Pending @ resumed } }, []
     | SyncChanged sync -> { model with Store = { model.Store with Sync = sync } }, []
+    | IndexRebuilt summary -> { model with Store = { model.Store with Index = summary }; Announcement = summary }, []
+    | IndexChanged(history, summary) -> { model with Store = { model.Store with History = history; Index = summary } }, []
+    | StoreReadFailed reason ->
+        { model with
+            Store = { model.Store with Reading = [] }
+            Announcement = $"That month could not be read. {reason}" },
+        []
     | Copied true -> { model with CopyStatus = "Copied to the clipboard."; Announcement = "Copied to the clipboard." }, []
     | Copied false ->
         let text = "This browser did not allow copying. Select the text and copy it yourself."

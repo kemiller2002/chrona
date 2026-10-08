@@ -54,7 +54,11 @@ type StorePort =
       Open: Deployment.DeploymentConfig -> Session -> DateOnly list -> unit
       /// A listed administrator confirms an organization that has none.
       Confirm: unit -> unit
-      Commit: StoreRequest -> unit }
+      Commit: StoreRequest -> unit
+      /// Read the month folders these dates need.
+      Read: DateOnly list -> unit
+      /// Rebuild the activity index from the stored records.
+      Rebuild: unit -> unit }
 
 /// A store that keeps nothing: every commit is acknowledged at once. For a
 /// deployment that configures no location.
@@ -62,7 +66,9 @@ let inMemory (bridge: Bridge) : StorePort =
     { Kind = InMemory
       Open = fun _ _ _ -> bridge.Start(async { return [ Update.StoreUnavailable "This deployment stores nothing." ] })
       Confirm = fun () -> ()
-      Commit = fun request -> bridge.Start(async { return [ Update.StoreAnswered(request.CommitId, Committed) ] }) }
+      Commit = fun request -> bridge.Start(async { return [ Update.StoreAnswered(request.CommitId, Committed) ] })
+      Read = fun _ -> ()
+      Rebuild = fun () -> () }
 
 // ---- GitHub, through the bridge ----------------------------------------------------
 
@@ -139,6 +145,18 @@ let gitHub (bridge: Bridge) (tokens: unit -> TokenProvider option) (unauthorized
 
 // ---- The Arca store -----------------------------------------------------------------
 
+/// The activity index as the store keeps it (WI-0034): derived state,
+/// written in the same commit as the records it covers.
+[<NoComparison; NoEquality>]
+type private Indexed =
+    { /// The index, when it is kept: None until it is built, or once it
+      /// could not be kept.
+      Index: DerivedIndex option
+      /// Its stored revision; None when it is not stored yet.
+      Revision: Revision option
+      /// Why it is not kept, or where it is known to differ from the records.
+      Note: string option }
+
 /// The organization's records as opened.
 [<NoComparison; NoEquality>]
 type private Opened =
@@ -158,7 +176,9 @@ type private Opened =
       /// Where the queue is kept in this browser, when it can be.
       Keeper: QueueStore option
       /// Why the queue is not kept in this browser, for the person.
-      Note: string option }
+      Note: string option
+      /// The activity index as last read or written (WI-0034).
+      Index: Indexed }
 
 let private describeFailure =
     function
@@ -251,6 +271,59 @@ let private requestOf (folder: Namespace) (entry: QueueEntry) : StoreRequest opt
             Attestations = changed.Attestations
             Members = changed.Members
             RemovedMembers = changed.Removed })
+
+/// The most text the activity index may take; past it, the index is no
+/// longer kept with each change, and is rebuilt on request.
+[<Literal>]
+let IndexBudget = 512000
+
+/// The change that keeps the activity index current with `changes`, when it
+/// is kept and they change it.
+let private indexChange (indexed: Indexed) (changes: Change list) =
+    match indexed.Index with
+    | None -> []
+    | Some index ->
+        let next = ActivityIndex.apply changes index
+
+        if next.Entries = index.Entries && indexed.Revision.IsSome then
+            []
+        else
+            let text = Derived.encode next
+
+            if text.Length > IndexBudget then
+                []
+            else
+                match indexed.Revision with
+                | Some revision -> [ Change.Update(ActivityIndex.path, text, revision) ]
+                | None -> [ Change.Create(ActivityIndex.path, text) ]
+
+/// The index after an operation landed: what it wrote, or, when it changed
+/// activities without writing the index, no longer kept.
+let private indexAfter (indexed: Indexed) (operation: Operation) (receipt: CommitReceipt) =
+    let written =
+        operation.Changes
+        |> List.tryPick (function
+            | Change.Create(path, content)
+            | Change.Update(path, content, _) when path = ActivityIndex.path -> Some content
+            | _ -> None)
+
+    let touchesActivities =
+        operation.Changes
+        |> List.exists (function
+            | Change.Create(path, _)
+            | Change.Update(path, _, _)
+            | Change.Delete(path, _) -> Layout.keyOf path |> Option.exists (fun key -> key.Type = ActivityRecord.recordType))
+
+    match written |> Option.map Derived.decode, receipt.Revisions.TryFind(RelativePath.render ActivityIndex.path) with
+    | Some(Ok index), Some(Some revision) ->
+        { indexed with
+            Index = Some index
+            Revision = Some revision }
+    | _ when touchesActivities && indexed.Index.IsSome ->
+        { Index = None
+          Revision = None
+          Note = Some "The activity index grew too large to keep with every change. Rebuild it to bring it up to date." }
+    | _ -> indexed
 
 /// The longest wait between attempts to reach GitHub.
 [<Literal>]
@@ -370,6 +443,21 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                             )
         }
 
+    /// Each person's months that hold time, from the index.
+    let history (indexed: Indexed) =
+        indexed.Index |> Option.map ActivityIndex.totals |> Option.defaultValue []
+
+    /// What the index covers, or why it is not kept, for the person.
+    let indexText (indexed: Indexed) =
+        match indexed with
+        | { Note = Some note } -> note
+        | { Index = Some index } ->
+            let months = ActivityIndex.totals index |> List.length
+            let monthsText = if months = 1 then "1 month" else $"{months} months"
+            let recordsText = if index.Source.Count = 1 then "1 record" else $"{index.Source.Count} records"
+            $"Kept with every change: {recordsText} in {monthsText} of time."
+        | _ -> ""
+
     /// What is stored with this page's unsent changes laid over it.
     let shown (state: Opened) =
         state.Queue.Entries
@@ -386,7 +474,61 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
           Attestations = Stored.attestations state.Stored
           Members = state.Stored.Members |> Map.toList |> List.map (fun (_, found) -> found.Membership)
           Held = state.Stored.Activities.HeldForReview |> Map.toList |> List.map (fun (_, found) -> found.Activity)
-          Problems = Stored.problems state.Stored }
+          Problems = Stored.problems state.Stored
+          Months = state.Months |> Set.toList
+          History = history state.Index
+          Index = indexText state.Index }
+
+    /// The stored activity index, checked against the month folders read:
+    /// where it disagrees with them (a record changed outside Chrona, for
+    /// example), it is said to be out of date there until it is rebuilt.
+    let readIndex (provider: StorageProvider) (folder: Namespace) (actorId: string) (months: Set<int * int>) (stored: Stored.Stored) (previous: Indexed) =
+        async {
+            match! Derived.read provider folder ActivityIndex.definition with
+            | Ok(Some(index, revision)) when index.Version = ActivityIndex.definition.Version && index.Name = ActivityIndex.empty.Name ->
+                let snapshot = stored.Activities
+
+                let read =
+                    (snapshot.Activities |> Map.toList |> List.map snd)
+                    @ (snapshot.HeldForReview |> Map.toList |> List.map snd)
+                    |> List.map (fun found -> RelativePath.render found.Path, found.ContentHash)
+
+                let differing =
+                    months
+                    |> Set.toList
+                    |> List.choose (fun month -> ActivityRecord.monthFolder actorId (firstOf month) |> Result.toOption)
+                    |> List.collect (fun monthFolder ->
+                        let prefix = RelativePath.render monthFolder
+                        let inFolder = read |> List.filter (fun (path, _) -> path.StartsWith(prefix + "/", StringComparison.Ordinal))
+                        ActivityIndex.disagreements index prefix inFolder)
+
+                return
+                    { Index = Some index
+                      Revision = Some revision
+                      Note =
+                        match differing with
+                        | [] -> None
+                        | paths ->
+                            let places = if paths.Length = 1 then "1 place" else $"{paths.Length} places"
+                            Some $"The activity index differs from the records in {places} (changed outside Chrona?). Rebuild it from the records." }
+            | Ok(Some _) ->
+                return
+                    { Index = None
+                      Revision = None
+                      Note = Some "The activity index was built by another version of Chrona. Rebuild it from the records." }
+            // A new organization's index starts empty, and is written with its first activity.
+            | Ok None when previous.Index.IsSome && previous.Revision.IsNone -> return previous
+            | Ok None ->
+                return
+                    { Index = None
+                      Revision = None
+                      Note = Some "The activity index has not been built yet. An administrator can build it from the records under More." }
+            | Error _ ->
+                return
+                    { Index = None
+                      Revision = None
+                      Note = Some "The activity index cannot be read. An administrator can rebuild it from the records under More." }
+        }
 
     /// Reads the state again: the same months, plus any these dates add.
     let refresh (state: Opened) (dates: DateOnly list) =
@@ -396,11 +538,14 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
             match! load state.Provider state.Folder state.Session.ActorId months with
             | Error reason -> return Error reason
             | Ok(token, stored) ->
+                let! indexed = readIndex state.Provider state.Folder state.Session.ActorId months stored state.Index
+
                 let next =
                     { state with
                         Token = token
                         Stored = stored
-                        Months = months }
+                        Months = months
+                        Index = indexed }
 
                 opened <- Some next
                 return Ok next
@@ -526,10 +671,18 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                                     let next =
                                         { state with
                                             Token = receipt.ChangeToken
-                                            Stored = Stored.committed changed receipt (Stored.overlay changed state.Stored) }
+                                            Stored = Stored.committed changed receipt (Stored.overlay changed state.Stored)
+                                            Index =
+                                                match OfflineQueue.operationOf state.Folder entry.Operation with
+                                                | Ok operation -> indexAfter state.Index operation receipt
+                                                | Error _ -> state.Index }
 
                                     let again = decided.ContainsKey entry.Sequence
-                                    return! finish next (Ok queue) (fun saved -> (if again then refreshed saved else []) @ [ answer Committed ])
+
+                                    return!
+                                        finish next (Ok queue) (fun saved ->
+                                            (if again then refreshed saved else [])
+                                            @ [ Update.IndexChanged(history saved.Index, indexText saved.Index); answer Committed ])
                             }
 
                         match entry.State, OfflineQueue.operationOf state.Folder entry.Operation with
@@ -610,6 +763,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                                     | Ok again ->
                                         let revised =
                                             Stored.changes fresh.Stored again
+                                            |> Result.map (fun changes -> changes @ indexChange fresh.Index changes)
                                             |> Result.bind (fun changes ->
                                                 Operation.create fresh.Folder operation.Metadata changes
                                                 |> Result.mapError (fun _ -> [ StorageOperationRefused "the revised change does not validate" ]))
@@ -858,7 +1012,20 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                                               Organization = organization
                                               Queue = OfflineQueue.create OfflinePolicy.QueueWrites
                                               Keeper = None
-                                              Note = None }
+                                              Note = None
+                                              Index = { Index = None; Revision = None; Note = None } }
+
+                                        // A new organization's activity index starts empty.
+                                        let! indexed =
+                                            readIndex
+                                                provider
+                                                folder
+                                                session.ActorId
+                                                months
+                                                stored
+                                                { state.Index with Index = (if isExisting then None else Some ActivityIndex.empty) }
+
+                                        let state = { state with Index = indexed }
 
                                         let roster = Stored.roster organization.Id stored
 
@@ -939,6 +1106,9 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                         | _, Error diagnostics -> return answer (Failed $"This change cannot be stored ({describeAll diagnostics}).")
                         | Ok [], _ -> return answer Committed
                         | Ok changes, Ok context ->
+                            // The activity index is kept current in the same commit.
+                            let changes = changes @ indexChange state.Index changes
+
                             match Storage.operation state.Folder context "save changes" changes with
                             | Error diagnostics -> return answer (Failed $"This change cannot be stored ({describeAll diagnostics}).")
                             | Ok operation ->
@@ -952,7 +1122,63 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                                     return! drain ()
         }
 
-    // Until the engine opens storage (a deployment that configures a
+    /// Reads further month folders, when the person goes to a month not
+    /// read yet (38: one folder, on demand).
+    let readJob (dates: DateOnly list) () =
+        async {
+            match opened with
+            | None -> return []
+            | Some state ->
+                match! refresh state dates with
+                | Ok next -> return [ Update.StoreOpened(contents next) ]
+                | Error reason ->
+                    // The month is asked for again when the person returns to it.
+                    return [ Update.StoreReadFailed reason ]
+        }
+
+    let describeDerived =
+        function
+        | DerivedError.Corrupt _ -> "The stored activity index could not be read."
+        | DerivedError.Snapshot _ -> "The records kept changing while they were read. Try again."
+        | DerivedError.InvalidSource(path, _) -> $"{path} is not a valid record, so the index cannot be built until it is repaired."
+        | DerivedError.Provider failure -> describeFailure failure
+        | DerivedError.InvalidDefinition reason -> $"The activity index is not defined correctly ({reason})."
+
+    /// Rebuilds the activity index from every stored record (40): the
+    /// recovery path, and how an index from before WI-0034 is first built.
+    /// Arca writes it only when it differs from what is stored, and only
+    /// while the records are still as read.
+    let rebuildJob () =
+        async {
+            match opened with
+            | None -> return [ Update.IndexRebuilt "The records are not open." ]
+            | Some state ->
+                match operationContext state.Session (newKey "index") (now ()) with
+                | Error _ -> return [ Update.IndexRebuilt "The activity index could not be rebuilt." ]
+                | Ok context ->
+                    match! Derived.rebuild state.Provider state.Folder (Storage.metadata context "rebuild the activity index") ActivityIndex.definition with
+                    | Error error -> return [ Update.IndexRebuilt(describeDerived error) ]
+                    | Ok(index, receipt) ->
+                        let differed =
+                            state.Index.Index
+                            |> Option.map (fun previous ->
+                                let difference = Derived.compare previous index
+                                difference.Removed.Length + difference.Added.Length)
+
+                        let records = if index.Source.Count = 1 then "1 record" else $"{index.Source.Count} records"
+
+                        let summary =
+                            match receipt, differed with
+                            | None, _ -> $"The activity index already matched the records ({records})."
+                            | Some _, None -> $"The activity index was built from {records}."
+                            | Some _, Some 0 -> $"The activity index was rewritten from {records}; its entries were already right."
+                            | Some _, Some count -> $"The activity index was rebuilt from {records}; {count} entries had differed."
+
+                        match! refresh state [] with
+                        | Error reason -> return [ Update.IndexRebuilt reason ]
+                        | Ok next -> return refreshed next @ [ Update.IndexRebuilt summary ]
+        }
+
     // Until the engine opens storage (a deployment that configures a
     // location), commits are kept in memory and acknowledged at once.
     let memory = inMemory bridge
@@ -969,4 +1195,6 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
             if requested then
                 serial (commitJob request)
             else
-                memory.Commit request }
+                memory.Commit request
+      Read = fun dates -> if requested then serial (readJob dates)
+      Rebuild = fun () -> if requested then serial rebuildJob }

@@ -119,7 +119,8 @@ type OperationContext =
       IdempotencyKey: IdempotencyKey
       At: DateTimeOffset }
 
-let private metadata (context: OperationContext) (summary: string) : OperationMetadata =
+/// The Arca metadata of an operation made in this context.
+let metadata (context: OperationContext) (summary: string) : OperationMetadata =
     { Summary = summary
       Actor = context.Actor
       ProviderIdentity = context.ProviderIdentity

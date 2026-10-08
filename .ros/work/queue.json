@@ -515,10 +515,10 @@
         "decision"
       ],
       "priority": "high",
-      "status": "ready",
+      "status": "complete",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:46.334Z",
-      "updatedAt": "2026-10-08T08:48:01.184Z",
+      "updatedAt": "2026-10-08T08:51:10.553Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

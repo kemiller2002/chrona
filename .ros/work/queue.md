@@ -32,7 +32,7 @@
 | WI-0024 | Move chrona to Ordo 1.5.0 via echelon-current 1.2.0 (conditor upgrade --current) | complete |  | medium |
 | WI-0025 | Capture the remaining Chrona requirements as dependency-ordered backlog slices; add CHX-DATALOC-001 and record the 2026-10-08 decisions | complete | planning, requirements | high |
 | WI-0026 | Chrona 01: look-and-feel inventory of the legacy time-tracking-application (screens, layout, styles, interactions) | complete | chrona, order:01, legacy, ui, inventory | high |
-| WI-0027 | Chrona 02: decide reconstruction versus migration, record legacy data status and rewrite the charter for the time-tracking product (CHX-011, CHX-012, CHX-300, CHX-310) | active | chrona, order:02, legacy, decision | high |
+| WI-0027 | Chrona 02: decide reconstruction versus migration, record legacy data status and rewrite the charter for the time-tracking product (CHX-011, CHX-012, CHX-300, CHX-310) | complete | chrona, order:02, legacy, decision | high |
 | WI-0028 | Chrona 03: configurable data location and Chrona-owned namespace with organization manifests (CHX-DATALOC-001, CHX-024..027) | captured | chrona, order:03, data-location, depends:arca | high |
 | WI-0029 | Chrona 04: GitHub sign-in through Fides and token safety (CHX-022, CHX-023) | captured | chrona, order:04, auth, depends:fides, depends:arca | high |
 | WI-0030 | Chrona 05: actors, membership and capability-based authorization (CHX-030, CHX-260 remainder) | captured | chrona, order:05, authorization | high |

@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-08T14:47:44Z",
+  "updatedAt": "2026-10-08T15:03:41Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -1853,13 +1853,51 @@
     {
       "id": "WI-0034",
       "type": "feature",
-      "state": "active",
-      "semanticState": "active",
-      "evidence": [],
-      "updatedAt": "2026-10-08T14:47:44Z",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Domain/ActivityIndex.fs"
+        },
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Application/Store.fs"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/StoreTests.fs"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/PersistenceTests.fs"
+        }
+      ],
+      "updatedAt": "2026-10-08T15:03:41Z",
       "telemetryExecutionIds": [
         "EXE-20261008T144745237Z-69fb3f15"
-      ]
+      ],
+      "latestCheckpoint": {
+        "id": "231543fcf8ac9886d373e242",
+        "recordedAt": "2026-10-08T15:03:41Z",
+        "executionId": "EXE-20261008T144745237Z-69fb3f15",
+        "repository": "chrona",
+        "branch": "feature/derived-index",
+        "commit": "de1adc4b6e8eaeb29b40a57564b86282fe339cfc",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/chrona"
+        },
+        "remoteBranch": "feature/derived-index",
+        "remoteCommit": "de1adc4b6e8eaeb29b40a57564b86282fe339cfc",
+        "summary": "Activity index as an Arca derived index kept per commit and rebuildable; months read on demand; projections rebuilt from stored records; 287 .NET and 26 browser tests pass",
+        "nextAction": "Complete with evidence and open the PR",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      },
+      "completedAt": "2026-10-08T15:03:41Z"
     }
   ]
 }

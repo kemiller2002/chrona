@@ -695,10 +695,10 @@
         "derived-state"
       ],
       "priority": "medium",
-      "status": "ready",
+      "status": "complete",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:48.598Z",
-      "updatedAt": "2026-10-08T14:47:44Z",
+      "updatedAt": "2026-10-08T15:03:41Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

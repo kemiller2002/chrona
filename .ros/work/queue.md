@@ -70,3 +70,4 @@
 | WI-0062 | Chrona 16a: quick entry - recent combinations, configurable common durations and copying an entry as a draft (CHX-330) | complete |  | medium |
 | WI-0063 | Chrona 16b: browser reliability - suspension, shell updates, stale cached shell and intermittent connectivity (CHX-370) | ready |  | medium |
 | WI-0064 | Chrona 16c: accessibility and mobile end to end - scenarios 42-44, zoom and reflow, reduced motion, weekly totals and sync problems on a phone (CHX-350, CHX-360) | captured |  | medium |
+| WI-0065 | Move Chrona to Arca 0.2.1 through Conditor: the interim fix for the two-tab offline-queue loss (arca WI-0024, DF-ARCA-2026-0009) | complete | chrona, offline, arca, conditor | high |

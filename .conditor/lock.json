@@ -1,14 +1,14 @@
 {
   "schemaVersion": 4,
   "project": "chrona",
-  "manifestSha256": "3b04ec37b344e29d6116895419ed6509455e5839dbbaf5f6610d8fae5b4d6100",
+  "manifestSha256": "c87af026a923bbd4c56be2799abbfb542acba9895fed22a27d8c6c6a3dd794fe",
   "manifest": {
     "schemaVersion": 1,
     "name": "chrona",
     "registryAuthority": {
       "kind": "resolved-release-set",
       "path": ".conditor/authority/resolved-release-set.json",
-      "sha256": "50623c2ba4ec58324fe261d64ebc3eb3cc5c87b1a5d781810f47c9d50b1ddcdd"
+      "sha256": "06a2faf6c0c4cfadcf7b91929cc027aa1af065b66d4c0c910a3cdd595d6754e9"
     },
     "components": [
       {
@@ -28,7 +28,7 @@
       },
       {
         "id": "arca",
-        "version": "0.2.0",
+        "version": "0.2.1",
         "required": true
       },
       {
@@ -77,11 +77,11 @@
     },
     {
       "id": "arca",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "distribution": "nuget",
       "package": "EchelonFoundry.Arca.Core,EchelonFoundry.Arca.GitHub",
       "authority": "registry-resolved-set",
-      "sourceReference": "nuget-feed:kemiller2002/arca@v0.2.0#sha256:38bd3c8ebb6e968d3ead49a0c71fc3f1f8621e56746ea792e3f20cb13fd241f6"
+      "sourceReference": "nuget-feed:kemiller2002/arca@v0.2.1#sha256:89896a65cf9d21bcfe871a62cfcc8d40558c4832c4cf933c5485ad4e5523b77e"
     },
     {
       "id": "fides",
@@ -105,51 +105,30 @@
     {
       "component": "ordo",
       "code": "SDE-STRUCT-001",
-      "band": "conformance-concern",
-      "path": "src/Chrona.Wasm/bin/Debug/net10.0/wwwroot/_framework/dotnet.native.h6oessx48v.js",
-      "lineCount": 7747
-    },
-    {
-      "component": "ordo",
-      "code": "SDE-STRUCT-001",
       "band": "strong-review",
       "path": "tests/Chrona.Tests/StoreTests.fs",
-      "lineCount": 1475
+      "lineCount": 1645
     },
     {
       "component": "ordo",
       "code": "SDE-STRUCT-001",
       "band": "strong-review",
       "path": "src/Chrona.Engine/App/Update.fs",
-      "lineCount": 1445
-    },
-    {
-      "component": "ordo",
-      "code": "SDE-STRUCT-001",
-      "band": "strong-review",
-      "path": "src/Chrona.Application/Store.fs",
-      "lineCount": 1232
+      "lineCount": 1562
     },
     {
       "component": "ordo",
       "code": "SDE-STRUCT-001",
       "band": "strong-review",
       "path": "src/Chrona.Engine/App/Project.fs",
-      "lineCount": 1225
+      "lineCount": 1268
     },
     {
       "component": "ordo",
       "code": "SDE-STRUCT-001",
       "band": "strong-review",
-      "path": "src/Chrona.Wasm/bin/Debug/net10.0/wwwroot/_framework/dotnet.js",
-      "lineCount": 1213
-    },
-    {
-      "component": "ordo",
-      "code": "SDE-STRUCT-001",
-      "band": "strong-review",
-      "path": "src/Chrona.Wasm/bin/Release/net10.0/wwwroot/_framework/dotnet.js",
-      "lineCount": 1198
+      "path": "src/Chrona.Application/Store.fs",
+      "lineCount": 1260
     },
     {
       "component": "ordo",
@@ -163,7 +142,7 @@
       "code": "SDE-STRUCT-001",
       "band": "review",
       "path": "tests/Chrona.Tests/AppEngineTests.fs",
-      "lineCount": 611
+      "lineCount": 618
     },
     {
       "component": "ordo",
@@ -177,7 +156,14 @@
       "code": "SDE-STRUCT-001",
       "band": "review",
       "path": "src/Chrona.Domain/ActivityRecord.fs",
-      "lineCount": 530
+      "lineCount": 534
+    },
+    {
+      "component": "ordo",
+      "code": "SDE-STRUCT-001",
+      "band": "review",
+      "path": "src/Chrona.Engine/App/Model.fs",
+      "lineCount": 505
     }
   ]
 }

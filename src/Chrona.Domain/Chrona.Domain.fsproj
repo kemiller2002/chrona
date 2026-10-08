@@ -4,8 +4,8 @@
        activity record, its separate state dimensions, entry and overlap
        rules, legal transitions and their diagnostics. Pure F#: no clock,
        storage, network, browser or file-system access (the current instant
-       and time-zone rules arrive as arguments), and no package dependencies
-       beyond FSharp.Core. -->
+       and time-zone rules arrive as arguments). Its one package dependency
+       beyond FSharp.Core is Arca.Core, which is pure in the same sense. -->
 
   <ItemGroup>
     <Compile Include="Diagnostics.fs" />
@@ -22,6 +22,15 @@
     <Compile Include="Reports.fs" />
     <Compile Include="Observations.fs" />
     <Compile Include="Compatibility.fs" />
+    <Compile Include="Organization.fs" />
+    <Compile Include="Storage.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Arca's pure storage domain (locations, namespaces, records,
+         operations): no I/O, clock or randomness, so the domain stays pure.
+         Restored from vendor/nuget (NuGet.config, installed by Conditor). -->
+    <PackageReference Include="EchelonFoundry.Arca.Core" />
   </ItemGroup>
 
 </Project>

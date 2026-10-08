@@ -52,12 +52,17 @@ for the diagnosis, the evidence, and one unexercised watch item.
 - Requirement coverage per section is tracked in
   [`docs/requirements/implementation-gap-analysis.md`](docs/requirements/implementation-gap-analysis.md)
   (`CHX-NNM` ids, baseline and current columns; `GapAnalysisTests` holds the
-  counts). 18 tested, 28 partial, 17 missing of 63 (baseline 0 / 7 / 56).
+  counts). 18 tested, 32 partial, 13 missing of 63 (baseline 0 / 7 / 56).
 - `src/Chrona.Domain` is the pure time domain: `Diagnostics`, `Time`,
   `Activity`, `Overlap`, `ManualEntry` (WI-0020), `Ledger` (WI-0021),
   `Timer` (WI-0022), `Billing` and `Review` (WI-0023), `Compatibility`
-  (WI-0027), the legacy rules R1-R6 (WI-0043) and `Reference` (WI-0045).
-  29 of the 44 section-43 scenarios are tested.
+  (WI-0027), the legacy rules R1-R6 (WI-0043), `Reference` (WI-0045),
+  `Periods` (WI-0048), `Reports` (WI-0049), `Observations` (WI-0050), and,
+  on Arca 0.2.0, `Organization` and `Storage` (WI-0028): the configured data
+  location, Chrona's namespace, per-organization folders and repositories,
+  the organization manifest and the public-production refusal, tested
+  against Arca's in-memory provider (which passes Arca's conformance suite).
+  35 of the 44 section-43 scenarios are tested.
 - The product UI (`web/index.html`, DF-CHRONA-2026-0003) runs on Limen and
   Forma in memory: the pure engine `src/Chrona.Engine/App`, the effectful
   `Chrona.Application.Runtime`, identity and store ports with local and
@@ -68,9 +73,13 @@ for the diagnosis, the evidence, and one unexercised watch item.
   periods (WI-0048) and search, reports, deterministic CSV/JSON export and a
   Folio print document (WI-0049). The kernel
   verification slice moved to `web/kernel-slice.html`.
-- Not built: GitHub storage (Arca) and sign-in (Fides), organizations and
-  authorization, offline sync, observations and `Chrona.Integration` (Summa
-  owns the contract), submission and approval screens (need actors and
+- Arca 0.2.0 is a Conditor-installed project binding: attested release
+  assets in `vendor/nuget` (`arca.lock`), mapped in `NuGet.config`, pinned
+  in `Directory.Packages.props`, with the echelon-current 1.7.0 authority in
+  `.conditor/`.
+- Not built: driving storage through Arca's GitHub adapter (WI-0032),
+  sign-in (Fides, WI-0029) and authorization (WI-0030), offline sync,
+  `Chrona.Integration` (Summa owns the contract), submission and approval screens (need actors and
   authorization, WI-0030 after Fides), and reports over stored data across
   people and organizations (WI-0039).
 - The legacy `time-tracking-application` is reconstructed, not migrated
@@ -81,8 +90,9 @@ for the diagnosis, the evidence, and one unexercised watch item.
 
 ## Next action (time domain)
 
-Storage on Arca and sign-in through Fides once their minimal slices exist
-(WI-0028, WI-0029, WI-0032), then Summa's contract package (WI-0037).
+Storage through Arca's GitHub adapter (WI-0032), then reference data on
+Arca (WI-0031); sign-in through Fides (WI-0029, WI-0030) once Fides
+publishes its WASM client; then Summa's contract package (WI-0037).
 
 ## Unresolved questions
 

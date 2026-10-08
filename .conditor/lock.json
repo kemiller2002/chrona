@@ -1,14 +1,14 @@
 {
   "schemaVersion": 4,
   "project": "chrona",
-  "manifestSha256": "058c4d27e424833ecc62b7d1c02ad9c4c269bad0cbf3d307022da47c3eadfa42",
+  "manifestSha256": "a6d179674e9d1c8f1a847b1b8df4eb64053a541b648e17fc0488ceaa030d6ced",
   "manifest": {
     "schemaVersion": 1,
     "name": "chrona",
     "registryAuthority": {
       "kind": "resolved-release-set",
       "path": ".conditor/authority/resolved-release-set.json",
-      "sha256": "ea1b39a003d3f2f41c4fb6e979694ec82fd03964854e5dd268e38df51cd22931"
+      "sha256": "a7e2806fc6069a72f94fef2c1b73e3b7bfb4e01b7c8366739fe847b385fee3ab"
     },
     "components": [
       {
@@ -24,6 +24,11 @@
       {
         "id": "visual-engineering",
         "version": "1.0.1",
+        "required": true
+      },
+      {
+        "id": "arca",
+        "version": "0.2.0",
         "required": true
       }
     ],
@@ -59,6 +64,14 @@
       "descriptorSha256": "c352c4457b3a0bf08894c6b667eaee83ec4e8f7c993537eddb6d4f175a3cffad",
       "authority": "embedded-component-descriptor",
       "sourceReference": "@echelon-foundry/visual-engineering@1.0.1"
+    },
+    {
+      "id": "arca",
+      "version": "0.2.0",
+      "distribution": "nuget",
+      "package": "EchelonFoundry.Arca.Core,EchelonFoundry.Arca.GitHub",
+      "authority": "registry-resolved-set",
+      "sourceReference": "nuget-feed:kemiller2002/arca@v0.2.0#sha256:38bd3c8ebb6e968d3ead49a0c71fc3f1f8621e56746ea792e3f20cb13fd241f6"
     }
   ],
   "requirements": [],
@@ -68,7 +81,28 @@
       "code": "SDE-STRUCT-001",
       "band": "strong-review",
       "path": "src/Chrona.Wasm/bin/Release/net10.0/wwwroot/_framework/dotnet.js",
-      "lineCount": 1150
+      "lineCount": 1162
+    },
+    {
+      "component": "ordo",
+      "code": "SDE-STRUCT-001",
+      "band": "review",
+      "path": "src/Chrona.Engine/App/Project.fs",
+      "lineCount": 868
+    },
+    {
+      "component": "ordo",
+      "code": "SDE-STRUCT-001",
+      "band": "review",
+      "path": "src/Chrona.Engine/App/Update.fs",
+      "lineCount": 758
+    },
+    {
+      "component": "ordo",
+      "code": "SDE-STRUCT-001",
+      "band": "review",
+      "path": "tests/Chrona.Tests/AppEngineTests.fs",
+      "lineCount": 606
     }
   ]
 }

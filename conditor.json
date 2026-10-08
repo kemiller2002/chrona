@@ -4,7 +4,7 @@
   "registryAuthority": {
     "kind": "resolved-release-set",
     "path": ".conditor/authority/resolved-release-set.json",
-    "sha256": "ea1b39a003d3f2f41c4fb6e979694ec82fd03964854e5dd268e38df51cd22931"
+    "sha256": "a7e2806fc6069a72f94fef2c1b73e3b7bfb4e01b7c8366739fe847b385fee3ab"
   },
   "components": [
     {
@@ -20,6 +20,11 @@
     {
       "id": "visual-engineering",
       "version": "1.0.1",
+      "required": true
+    },
+    {
+      "id": "arca",
+      "version": "0.2.0",
       "required": true
     }
   ],

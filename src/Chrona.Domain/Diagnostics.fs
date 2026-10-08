@@ -53,6 +53,20 @@ type Diagnostic =
     // Legacy compatibility (WI-0027).
     | UnknownLegacySource of name: string
     | UnknownLegacyFormat of schemaName: string * schemaVersion: string
+    // Storage location, namespaces and organizations (WI-0028).
+    | InvalidDeploymentConfig of detail: string
+    | InvalidDataLocation of detail: string
+    | InvalidOrganizationId of id: string
+    | InvalidSlug of slug: string
+    | InvalidOrganizationManifest of detail: string
+    | UnsupportedStorageVersion of found: int * supported: int
+    | PublicProductionRepository
+    | OverrideWithoutReason
+    | NamespaceNotInitialized of root: string
+    | OrganizationNotInitialized of id: string
+    | NamespaceUnusable of root: string * detail: string
+    | InvalidStoredRecord of path: string * detail: string
+    | StorageOperationRefused of detail: string
 
 /// The stable code: `CHRONA.<AREA>.<NAME>`.
 let code =
@@ -96,3 +110,16 @@ let code =
     | ReferenceOwnedElsewhere _ -> "CHRONA.REFERENCE.OWNED_ELSEWHERE"
     | UnknownLegacySource _ -> "CHRONA.LEGACY.UNKNOWN_SOURCE"
     | UnknownLegacyFormat _ -> "CHRONA.LEGACY.UNKNOWN_FORMAT"
+    | InvalidDeploymentConfig _ -> "CHRONA.STORAGE.INVALID_CONFIGURATION"
+    | InvalidDataLocation _ -> "CHRONA.STORAGE.INVALID_LOCATION"
+    | InvalidOrganizationId _ -> "CHRONA.STORAGE.INVALID_ORGANIZATION_ID"
+    | InvalidSlug _ -> "CHRONA.STORAGE.INVALID_SLUG"
+    | InvalidOrganizationManifest _ -> "CHRONA.STORAGE.INVALID_ORGANIZATION_MANIFEST"
+    | UnsupportedStorageVersion _ -> "CHRONA.STORAGE.UNSUPPORTED_VERSION"
+    | PublicProductionRepository -> "CHRONA.STORAGE.PUBLIC_PRODUCTION_REPOSITORY"
+    | OverrideWithoutReason -> "CHRONA.STORAGE.OVERRIDE_WITHOUT_REASON"
+    | NamespaceNotInitialized _ -> "CHRONA.STORAGE.NAMESPACE_NOT_INITIALIZED"
+    | OrganizationNotInitialized _ -> "CHRONA.STORAGE.ORGANIZATION_NOT_INITIALIZED"
+    | NamespaceUnusable _ -> "CHRONA.STORAGE.NAMESPACE_UNUSABLE"
+    | InvalidStoredRecord _ -> "CHRONA.STORAGE.INVALID_RECORD"
+    | StorageOperationRefused _ -> "CHRONA.STORAGE.OPERATION_REFUSED"

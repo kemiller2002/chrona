@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-08T10:57:27.862Z",
+  "updatedAt": "2026-10-08T11:47:30Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -1416,6 +1416,51 @@
         }
       },
       "completedAt": "2026-10-08T10:57:27.862Z"
+    },
+    {
+      "id": "WI-0028",
+      "type": "feature",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Domain/Storage.fs"
+        },
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Domain/Organization.fs"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/StorageTests.fs"
+        }
+      ],
+      "updatedAt": "2026-10-08T11:47:30Z",
+      "telemetryExecutionIds": [
+        "EXE-20261008T113453772Z-e8d02669"
+      ],
+      "latestCheckpoint": {
+        "id": "120b0efbd07ffe322a25642e",
+        "recordedAt": "2026-10-08T11:47:29Z",
+        "executionId": "EXE-20261008T113453772Z-e8d02669",
+        "repository": "chrona",
+        "branch": "feat/wi-0028-data-location",
+        "commit": "331b82b4d55af05134a21d9da2df152eb7d66305",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/chrona"
+        },
+        "remoteBranch": "feat/wi-0028-data-location",
+        "remoteCommit": "331b82b4d55af05134a21d9da2df152eb7d66305",
+        "summary": "Arca 0.2.0 added via Conditor; Storage and Organization modules with 15 StorageTests on Arca's in-memory provider (commit 331b82b)",
+        "nextAction": "Open the PR; merge once every check on its head is green; then WI-0032",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      },
+      "completedAt": "2026-10-08T11:47:30Z"
     }
   ]
 }

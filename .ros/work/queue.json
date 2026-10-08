@@ -1233,10 +1233,10 @@
       "description": "Found while proving WI-0034 (every projection rebuilt from stored records): the ledger's audit trail (performer, time, source, command, prior and resulting revisions, reason, correlation id; WI-0021, WI-0023) lives only in the page's memory, so after a reload the activity screen's history is empty and nothing but Git history (supporting evidence only, requirement 40) says who changed what. Store each command's audit entry as an immutable record in the same commit as the records it audits, partitioned like the activities (actor, year, month), read with the month, and rebuild the history view from it. Revisions written before this have no stored audit entry; the view says so.",
       "tags": [],
       "priority": "high",
-      "status": "ready",
+      "status": "complete",
       "attachments": [],
       "createdAt": "2026-10-08T14:59:18Z",
-      "updatedAt": "2026-10-08T15:23:58Z",
+      "updatedAt": "2026-10-08T15:34:08Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

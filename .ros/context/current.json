@@ -1992,6 +1992,44 @@
         }
       },
       "completedAt": "2026-10-08T15:34:08Z"
+    },
+    {
+      "id": "WI-0060",
+      "type": "research",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "research-record",
+          "path": "docs/requirements/backlog-plan.md"
+        }
+      ],
+      "updatedAt": "2026-10-08T15:27:50Z",
+      "telemetryExecutionIds": [
+        "EXE-20261008T152729099Z-2c6189c4"
+      ],
+      "latestCheckpoint": {
+        "id": "af297066b0b5af4feedc07d4",
+        "recordedAt": "2026-10-08T15:27:48Z",
+        "executionId": "EXE-20261008T152729099Z-2c6189c4",
+        "repository": "chrona",
+        "branch": "backlog/limen-indexeddb-offline",
+        "commit": "21d7d2115e2caab0fb7d14110a0aaacc5024204c",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/chrona"
+        },
+        "remoteBranch": "backlog/limen-indexeddb-offline",
+        "remoteCommit": "21d7d2115e2caab0fb7d14110a0aaacc5024204c",
+        "summary": "Chrona backlog links WI-0033/WI-0057/WI-0059 to Limen LCP-043..087",
+        "nextAction": "complete WI-0060 and update the PR",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      },
+      "completedAt": "2026-10-08T15:27:50Z",
+      "conclusion": "inconclusive"
     }
   ]
 }

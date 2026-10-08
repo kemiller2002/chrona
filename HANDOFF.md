@@ -52,7 +52,7 @@ for the diagnosis, the evidence, and one unexercised watch item.
 - Requirement coverage per section is tracked in
   [`docs/requirements/implementation-gap-analysis.md`](docs/requirements/implementation-gap-analysis.md)
   (`CHX-NNM` ids, baseline and current columns; `GapAnalysisTests` holds the
-  counts). 18 tested, 36 partial, 9 missing of 63 (baseline 0 / 7 / 56).
+  counts). 18 tested, 38 partial, 7 missing of 63 (baseline 0 / 7 / 56).
 - `src/Chrona.Domain` is the pure time domain: `Diagnostics`, `Time`,
   `Activity`, `Overlap`, `ManualEntry` (WI-0020), `Ledger` (WI-0021),
   `Timer` (WI-0022), `Billing` and `Review` (WI-0023), `Compatibility`
@@ -80,8 +80,15 @@ for the diagnosis, the evidence, and one unexercised watch item.
   assets in `vendor/nuget` (`arca.lock`), mapped in `NuGet.config`, pinned
   in `Directory.Packages.props`, with the echelon-current 1.7.0 authority in
   `.conditor/`.
+- Sign-in (WI-0029, DF-CHRONA-2026-0004): Fides 0.2.0's own client runs in
+  `Chrona.Application.Identity`, every browser service it needs a Limen
+  request (core Http and Storage, and Chrona's `chrona.host` pack). The
+  deployment's document `web/chrona.deployment.json`
+  (`docs/deployment-configuration.md`) names the exchange and client id;
+  the repository's copy is a local session. Tested against a fake exchange
+  and GitHub; the real check waits on a deployment (WI-0052).
 - Not built: driving storage through Arca's GitHub adapter (WI-0032),
-  sign-in (Fides, WI-0029) and authorization (WI-0030), offline sync,
+  authorization (WI-0030), offline sync,
   `Chrona.Integration` (Summa owns the contract), submission and approval screens (need actors and
   authorization, WI-0030 after Fides), and reports over stored data across
   people and organizations (WI-0039).
@@ -93,9 +100,9 @@ for the diagnosis, the evidence, and one unexercised watch item.
 
 ## Next action (time domain)
 
-Storage through Arca's GitHub adapter (WI-0032), then reference data on
-Arca (WI-0031); sign-in through Fides (WI-0029, WI-0030) once Fides
-publishes its WASM client; then Summa's contract package (WI-0037).
+Actors, membership and authorization (WI-0030), then storage through
+Arca's GitHub adapter with Fides' token provider (WI-0032), then reference
+data on Arca (WI-0031); then Summa's contract package (WI-0037).
 
 ## Unresolved questions
 

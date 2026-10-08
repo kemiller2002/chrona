@@ -3,7 +3,8 @@
   <!-- Limen engine, application tier: Limen's protocol (JSON in, view and effects out)
        and the Aegis boundary every kernel message crosses. Deterministic
        apart from the Aegis fault ids and timestamps; no browser, network or
-       file access. -->
+       file access: Fides' sign-in client runs here, and every browser
+       service it needs is a Limen request (Identity.fs). -->
 
   <ItemGroup>
     <Compile Include="Json.fs" />
@@ -11,12 +12,16 @@
     <Compile Include="Boundary.fs" />
     <Compile Include="Wire.fs" />
     <Compile Include="AppProtocol.fs" />
+    <Compile Include="Identity.fs" />
     <Compile Include="App.fs" />
     <Compile Include="Runtime.fs" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="EchelonFoundry.Aegis.Core" />
+    <PackageReference Include="EchelonFoundry.Fides" />
+    <PackageReference Include="EchelonFoundry.Fides.Client" />
+    <PackageReference Include="EchelonFoundry.Fides.Arca" />
   </ItemGroup>
 
   <ItemGroup>

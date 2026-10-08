@@ -23,6 +23,61 @@
 <!-- Transitions only (started, paused, saved): never the ticking timer. -->
 <p class="ef-visually-hidden" role="status" aria-live="polite" data-text="announcement"></p>
 
+<!-- Before anyone may work: reading the deployment's configuration, a
+     configuration that cannot be used, or signing in (CHX-022). -->
+<template data-if="screenConfiguring">
+  <main class="chrona-gate" id="configuring" aria-busy="true">
+    <p class="chrona-brand"><span class="chrona-brand__mark" aria-hidden="true">C</span><span class="chrona-brand__name">Chrona</span></p>
+    <p class="chrona-intro">Opening Chrona…</p>
+  </main>
+</template>
+
+<template data-if="screenMisconfigured">
+  <main class="chrona-gate" id="misconfigured">
+    <p class="chrona-brand"><span class="chrona-brand__mark" aria-hidden="true">C</span><span class="chrona-brand__name">Chrona</span></p>
+    <h1 class="chrona-title">This deployment is not set up correctly.</h1>
+    <p class="chrona-intro" role="alert" data-text="misconfiguredDetail"></p>
+  </main>
+</template>
+
+<template data-if="screenSignIn">
+  <div class="chrona-signin">
+    <section class="chrona-signin__story" aria-label="Chrona">
+      <p class="chrona-brand"><span class="chrona-brand__mark" aria-hidden="true">C</span><span class="chrona-brand__name">Chrona</span></p>
+      <div class="chrona-signin__pitch">
+        <p class="chrona-eyebrow">A record you can explain</p>
+        <p class="chrona-signin__headline">Work, kept in context.</p>
+        <p>Record the time, purpose, evidence, and history behind your business activity, without turning everyday work into paperwork.</p>
+      </div>
+      <p class="chrona-signin__footnote">Private business ledger · Echelon Foundry</p>
+    </section>
+    <main class="chrona-signin__panel" id="main" tabindex="-1">
+      <form class="chrona-signin__form" id="sign-in" data-event="signIn" aria-labelledby="sign-in-title">
+        <p class="chrona-eyebrow">Welcome back</p>
+        <h1 class="chrona-title" id="sign-in-title">Sign in to your ledger</h1>
+        <p class="chrona-intro">Chrona signs you in with your GitHub account. Your password never reaches Chrona, and your token is never written to your records.</p>
+        <fieldset class="ef-choice-group chrona-signin__retention">
+          <legend class="ef-choice-group__legend">Keep me signed in</legend>
+          <label class="ef-choice">
+            <input type="radio" name="retention" value="page" id="retention-page" data-event="signInRetention" data-bind-checked="retentionPage" />
+            <span class="ef-choice__content"><strong>For this page only</strong><span>Reloading or closing the page signs you out.</span></span>
+          </label>
+          <label class="ef-choice">
+            <input type="radio" name="retention" value="tab" id="retention-tab" data-event="signInRetention" data-bind-checked="retentionTab" />
+            <span class="ef-choice__content"><strong>Until I close this tab</strong><span>Your token is kept in this tab's session storage.</span></span>
+          </label>
+        </fieldset>
+        <button type="submit" class="chrona-action chrona-action--primary chrona-action--full" id="sign-in-button" data-bind-disabled="signInBusy" data-text="signInButton"></button>
+        <template data-if="hasSignInNotice">
+          <p class="chrona-signin__notice" id="sign-in-notice" role="status" data-bind-data-code="signInNoticeCode" data-text="signInNotice"></p>
+        </template>
+        <p class="chrona-signin__footnote">By continuing, you are opening a private business record. Sign out when using a shared device.</p>
+      </form>
+    </main>
+  </div>
+</template>
+
+<template data-if="shellVisible">
 <div class="chrona-shell">
   <aside class="chrona-sidebar" aria-label="Chrona">
     <p class="chrona-brand"><span class="chrona-brand__mark" aria-hidden="true">C</span><span class="chrona-brand__name">Chrona</span></p>
@@ -54,6 +109,10 @@
           </div>
         </div>
       </ef-fault-inline>
+    </template>
+
+    <template data-if="hasSessionNotice">
+      <p class="chrona-session-notice" id="session-notice" role="status" data-bind-data-code="signInNoticeCode" data-text="signInNotice"></p>
     </template>
 
     <header class="chrona-topbar">
@@ -1059,6 +1118,15 @@
                 <div class="ef-facts__item"><dt>Records</dt><dd data-text="storeHeadline"></dd></div>
               </dl>
               <p class="chrona-intro" data-text="storeDetail"></p>
+              <template data-if="accountSignedIn">
+                <div class="chrona-account" id="account">
+                  <p class="chrona-intro">Signed in with <span data-text="accountProvider"></span> as <strong id="account-login" data-text="accountLogin"></strong>. <span data-text="accountRetention"></span></p>
+                  <button type="button" class="chrona-action chrona-action--secondary" id="sign-out" data-event="signOut">Sign out and clear the token</button>
+                </div>
+              </template>
+              <template data-if="accountLocal">
+                <p class="chrona-intro" id="account-local">This deployment has no sign-in: you are working in a local session in this browser tab.</p>
+              </template>
             </section>
           </aside>
         </div>
@@ -1067,6 +1135,7 @@
     </template>
   </main>
 </div>
+</template>
 
 <template data-if="screenReports">
   <!-- Folio's print surface: the same report as a document. It adds no

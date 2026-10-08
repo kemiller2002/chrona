@@ -1,5 +1,6 @@
 /// The composition root the WebAssembly shim calls into: the one place with
-/// effects (the clock, fresh ids, the mutable page state).
+/// effects (the clock, fresh ids, the browser's cryptographic random source,
+/// the mutable page state and the identity port's in-flight sign-in work).
 ///
 /// The shim cannot thread state between calls, so the page's state lives
 /// here, behind one string-in/string-out function. Aegis is configured once,
@@ -22,6 +23,10 @@ let private appEnv: App.Env =
     { Now = fun () -> System.DateTimeOffset.UtcNow
       NewId = fun prefix -> $"{prefix}-{System.Guid.NewGuid():N}"
       Session = App.localSession
+      Identity =
+        Identity.create
+            (fun () -> System.DateTimeOffset.UtcNow)
+            System.Security.Cryptography.RandomNumberGenerator.GetBytes
       StoreKind = Chrona.Engine.App.Model.InMemory
       Store = App.inMemoryStore }
 

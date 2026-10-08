@@ -1005,3 +1005,114 @@ textarea.chrona-export {
     display: grid;
   }
 }
+
+/* ---- Sign-in and the gate before it (CHX-022) -------------------------------
+   The legacy sign-in page (docs/legacy/screenshots/sign-in-desktop.jpg): a
+   dark story panel beside the form. Tokens only. */
+
+.chrona-gate {
+  display: grid;
+  min-block-size: 100vh;
+  align-content: center;
+  justify-items: start;
+  gap: 1rem;
+  inline-size: min(100%, 46rem);
+  margin-inline: auto;
+  padding: 2rem var(--chrona-gutter);
+}
+
+.chrona-signin {
+  display: grid;
+  min-block-size: 100vh;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+}
+
+.chrona-signin__story {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 3rem;
+  padding: 3rem clamp(1.5rem, 5vw, 5rem);
+  background: var(--ef-color-surface-inverse);
+  color: var(--ef-color-text-inverse);
+}
+
+.chrona-signin__story :where(p, span, strong) {
+  color: inherit;
+}
+
+.chrona-signin__headline {
+  margin: 1rem 0;
+  font-family: var(--ef-primitive-font-family-display);
+  font-size: clamp(2.6rem, 6vw, 5.4rem);
+  font-weight: 400;
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+}
+
+.chrona-signin__panel {
+  display: grid;
+  align-content: center;
+  padding: 3rem clamp(1.5rem, 6vw, 6rem);
+}
+
+.chrona-signin__panel:focus {
+  outline: none;
+}
+
+.chrona-signin__form {
+  display: grid;
+  gap: 1.25rem;
+  inline-size: min(100%, 30rem);
+}
+
+.chrona-signin__form .chrona-intro {
+  margin: 0;
+}
+
+.chrona-signin__notice,
+.chrona-session-notice {
+  margin: 0;
+  padding: 0.85rem 1rem;
+  border-inline-start: 4px solid var(--ef-color-accent-primary);
+  border-radius: var(--ef-primitive-radius-small);
+  background: var(--ef-color-surface-secondary);
+  color: var(--ef-color-text-primary);
+}
+
+.chrona-session-notice {
+  margin-block-end: 1rem;
+}
+
+.chrona-signin__footnote {
+  margin: 0;
+  color: var(--ef-color-text-secondary);
+  font-size: 0.8rem;
+}
+
+.chrona-signin__story .chrona-signin__footnote {
+  color: inherit;
+  opacity: 0.8;
+}
+
+.chrona-account {
+  display: grid;
+  justify-items: start;
+  gap: 0.75rem;
+  margin-block-start: 1rem;
+}
+
+@media (max-width: 52rem) {
+  .chrona-signin {
+    grid-template-columns: 1fr;
+  }
+
+  .chrona-signin__story {
+    gap: 1.5rem;
+    padding-block: 2rem;
+  }
+
+  .chrona-signin__headline {
+    font-size: clamp(2.2rem, 10vw, 3.4rem);
+  }
+}

@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "repository": "chrona",
-  "nextSeq": 52,
+  "nextSeq": 53,
   "items": [
     {
       "id": "WI-0001",
@@ -568,10 +568,10 @@
         "depends:arca"
       ],
       "priority": "high",
-      "status": "captured",
+      "status": "ready",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:46.988Z",
-      "updatedAt": "2026-10-08T07:43:46.988Z",
+      "updatedAt": "2026-10-08T12:11:35Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",
@@ -636,7 +636,7 @@
     {
       "id": "WI-0032",
       "title": "Chrona 07: authoritative storage on Arca - partitioned layout, repository concurrency, integrity and manual edits (CHX-021, CHX-210, CHX-220, CHX-380, CHX-390, CHX-410, CHX-240 remainder, CHX-050 persistence)",
-      "description": "Depends on WI-0028, WI-0030, arca slice 6 (GitHub adapter, ARCA-API/OUT) (GitHub adapter) and arca slice 8 (integrity, ARCA-INT) (integrity). Persist Chrona.Domain records through Arca: deterministic partitioned paths (organization/actor/year-month), bounded reads and writes, one operation as one commit, repository-state optimistic concurrency with reload, revalidation and surfaced semantic conflicts (a clean Git merge is not proof), validation of everything loaded, detection of manual edits, and an API-efficient today view. Covers scenarios 10, 31 and 32 end to end. Also the remaining evidence-reference fields (source, notes) of CHX-240. Includes persisting the full CHX-050 activity record. Also the WI-0028 remainders (CHX-024..027): read the deployment configuration and drive Storage.initializeApplication/initializeOrganization/openNamespace and Organization.read/renameOrganization through Arca's GitHub adapter from the Limen engine, store activities in each organization's folder (chrona/datasets/<OrganizationId>, its own repository when configured), and detect repository visibility from GitHub (Arca repository identity) before initializing production data. The pure persistence core (record codec, partitioned layout, change sets, integrity on load, manual-edit review, reload-and-rerun) is WI-0051; this item drives it through Arca's GitHub adapter from the Limen engine and covers the remaining API-efficiency (conditional requests, cached derived indexes, paging, rate limits, backoff) and integrity checks (receipts, publications).",
+      "description": "Depends on WI-0028, WI-0030, arca slice 6 (GitHub adapter, ARCA-API/OUT) (GitHub adapter) and arca slice 8 (integrity, ARCA-INT) (integrity). Persist Chrona.Domain records through Arca: deterministic partitioned paths (organization/actor/year-month), bounded reads and writes, one operation as one commit, repository-state optimistic concurrency with reload, revalidation and surfaced semantic conflicts (a clean Git merge is not proof), validation of everything loaded, detection of manual edits, and an API-efficient today view. Covers scenarios 10, 31 and 32 end to end. Also the remaining evidence-reference fields (source, notes) of CHX-240. Includes persisting the full CHX-050 activity record. Also the WI-0028 remainders (CHX-024..027): read the deployment configuration and drive Storage.initializeApplication/initializeOrganization/openNamespace and Organization.read/renameOrganization through Arca's GitHub adapter from the Limen engine, store activities in each organization's folder (chrona/datasets/<OrganizationId>, its own repository when configured), and detect repository visibility from GitHub (Arca repository identity) before initializing production data. The pure persistence core (record codec, partitioned layout, change sets, integrity on load, manual-edit review, reload-and-rerun) is WI-0051; this item drives it through Arca's GitHub adapter from the Limen engine and covers the remaining API-efficiency (conditional requests, cached derived indexes, paging, rate limits, backoff) and integrity checks (receipts, publications). Token safety on the storage path (CHX-023 remainder): the GitHub adapter gets its token only from Fides' token provider (Identity.TokenProvider), reports a 401 to Fides, and no token reaches a commit, record, log or fault.",
       "tags": [
         "chrona",
         "order:07",
@@ -647,7 +647,7 @@
       "status": "captured",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:47.968Z",
-      "updatedAt": "2026-10-08T12:00:56Z",
+      "updatedAt": "2026-10-08T12:33:31Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",
@@ -1132,6 +1132,27 @@
       "attachments": [],
       "createdAt": "2026-10-08T11:53:12Z",
       "updatedAt": "2026-10-08T12:03:16Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0052",
+      "title": "Chrona 04b: real end-to-end sign-in against a deployed Fides exchange and GitHub App (CHX-022 remainder)",
+      "description": "Waits on the user's deployment: Fides is not deployed anywhere yet (no AWS account, domain or GitHub App). When a Fides exchange is hosted (Fides docs/hosting/AWS.md) with Chrona registered (origin and redirect URI) and a GitHub App exists, write that deployment's chrona.deployment.json (docs/deployment-configuration.md), sign in with a real GitHub account, check the identity Chrona shows is GitHub's, that the token is kept as chosen and revoked on sign-out, that a refresh after eight hours works, and that the exchange's CORS allows exactly the deployment's origin. WI-0029 built and tested all of it against a fake exchange and GitHub; this is the check against the real ones.",
+      "tags": [],
+      "priority": "medium",
+      "status": "captured",
+      "attachments": [],
+      "createdAt": "2026-10-08T12:33:30Z",
+      "updatedAt": "2026-10-08T12:33:30Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

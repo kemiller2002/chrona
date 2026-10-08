@@ -40,6 +40,9 @@ let private ui name value = Ui(name, None, value, None)
 let private keyed name key value = Ui(name, Some key, value, None)
 let private check name key on = Ui(name, Some key, "", Some on)
 
+/// A deployment that configures neither storage nor sign-in: a local session.
+let private localConfiguration = """{"environment":"local","environmentName":"local"}"""
+
 let private fresh = initial session InMemory start
 
 /// Answers every outstanding store request, as the in-memory store does.
@@ -49,7 +52,8 @@ let private settle (model: Model) =
 /// Started in New York with a project, an activity type and a tag, all stored.
 let private ready =
     play
-        [ start, Started "#/track"
+        [ start, Started("#/track", [])
+          start, ConfigurationRead(Some localConfiguration)
           start, EnvironmentDescribed "America/New_York"
           start, ui "newProjectName" "HelixNote"
           start, ui "addProject" ""
@@ -100,9 +104,10 @@ let private chooseForTimer =
 
 [<Fact>]
 let ``startup routes from the fragment and asks the browser for its time zone`` () =
-    let model, effects = update (ctxAt start) (Started "#/more") fresh
+    let model, effects = update (ctxAt start) (Started("#/more", [])) fresh
     Assert.Equal(More, model.Route.Screen)
-    Assert.Equal<Effect list>([ DescribeEnvironment ], effects)
+    Assert.Equal<Effect list>([ DescribeEnvironment; ReadConfiguration ], effects)
+    let model, _ = update (ctxAt start) (ConfigurationRead(Some localConfiguration)) model
     let described, _ = update (ctxAt start) (EnvironmentDescribed "America/New_York") model
     Assert.Equal("America/New_York", textOf "zoneId" described)
     // An unknown zone falls back to UTC, visibly.

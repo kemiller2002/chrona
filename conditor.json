@@ -26,6 +26,11 @@
       "id": "arca",
       "version": "0.2.0",
       "required": true
+    },
+    {
+      "id": "fides",
+      "version": "0.2.0",
+      "required": true
     }
   ],
   "requirements": [],

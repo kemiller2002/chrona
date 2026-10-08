@@ -13,6 +13,7 @@ module Chrona.Domain.Storage
 open System
 open Arca
 open Chrona.Domain.Diagnostics
+open Chrona.Domain.Deployment
 
 /// Chrona's application identifier, which is also the folder it owns under
 /// the configured base path (CHX-DATALOC-002). It is the application's name,
@@ -22,35 +23,16 @@ let application =
     | Ok id -> id
     | Error error -> invalidOp ("internal: Chrona's application id is invalid: " + LocationError.describe error)
 
-/// One configured data location, as deployment configuration states it.
-type LocationConfig =
-    { Owner: string
-      Repository: string
-      Branch: string
-      /// The folder application namespaces live under; empty for the repository root.
-      BasePath: string }
-
-/// A deployment's storage configuration (CHX-DATALOC-001). An organization
-/// may keep its data in another repository (requirements expansion 2.5), for
-/// example to give it its own permissions (CHX-DATALOC-004).
-type DeploymentConfig =
-    { Location: LocationConfig
-      Environment: EnvironmentKind
-      /// A display name for the environment, for example "production".
-      EnvironmentName: string
-      /// Organizations whose data lives somewhere other than `Location`, by OrganizationId.
-      OrganizationLocations: Map<string, LocationConfig> }
-
 let private locationOf (config: LocationConfig) =
-    DataLocation.create config.Owner config.Repository config.Branch config.BasePath
-    |> Result.mapError (LocationError.describe >> InvalidDataLocation)
+    Deployment.dataLocation config |> Result.mapError (LocationError.describe >> InvalidDataLocation)
 
 /// Chrona's storage binding for a deployment, or why its configuration is refused.
 let binding (config: DeploymentConfig) : Result<ApplicationBinding, Diagnostic> =
-    if String.IsNullOrWhiteSpace config.EnvironmentName then
-        Error(MissingField "environmentName")
-    else
-        locationOf config.Location
+    match config.Location with
+    | None -> Error(MissingField "location")
+    | Some _ when String.IsNullOrWhiteSpace config.EnvironmentName -> Error(MissingField "environmentName")
+    | Some configured ->
+        locationOf configured
         |> Result.map (fun location ->
             { Application = application
               Environment =
@@ -251,95 +233,3 @@ let renameOrganization
         |> Result.mapError List.singleton
         |> Result.bind (fun path ->
             operation ns context $"rename organization {manifest.OrganizationId}" [ Change.Update(path, content, revision) ]))
-
-// ---------------------------------------------------------------------------
-// Deployment configuration text (CHX-DATALOC-001)
-// ---------------------------------------------------------------------------
-
-let private configInvalid detail = Error(InvalidDeploymentConfig detail)
-
-let private configText name value =
-    match Json.field name value with
-    | Some(Json.String found) -> Ok found
-    | Some _ -> configInvalid $"'{name}' is not text"
-    | None -> configInvalid $"'{name}' is missing"
-
-let private configClosed (names: string list) value =
-    match value with
-    | Json.Object members ->
-        match members |> List.tryFind (fun (key, _) -> not (List.contains key names)) with
-        | Some(key, _) -> configInvalid $"'{key}' is not a configuration field"
-        | None -> Ok members
-    | _ -> configInvalid "expected an object"
-
-let private locationConfigOf value =
-    configClosed [ "basePath"; "branch"; "owner"; "repository" ] value
-    |> Result.bind (fun _ ->
-        match configText "owner" value, configText "repository" value, configText "branch" value, configText "basePath" value with
-        | Ok owner, Ok repository, Ok branch, Ok basePath ->
-            let config =
-                { Owner = owner
-                  Repository = repository
-                  Branch = branch
-                  BasePath = basePath }
-
-            locationOf config |> Result.map (fun _ -> config)
-        | Error e, _, _, _
-        | _, Error e, _, _
-        | _, _, Error e, _
-        | _, _, _, Error e -> Error e)
-
-let private environmentOf =
-    function
-    | "local" -> Ok EnvironmentKind.Local
-    | "test" -> Ok EnvironmentKind.Test
-    | "staging" -> Ok EnvironmentKind.Staging
-    | "production" -> Ok EnvironmentKind.Production
-    | other -> configInvalid $"'{other}' is not local, test, staging or production"
-
-let private organizationsOf value =
-    match Json.field "organizations" value with
-    | None -> Ok Map.empty
-    | Some(Json.Object members) ->
-        members
-        |> List.fold
-            (fun state (organizationId, entry) ->
-                state
-                |> Result.bind (fun found ->
-                    Organization.dataset organizationId
-                    |> Result.bind (fun _ -> locationConfigOf entry)
-                    |> Result.map (fun entry -> Map.add organizationId entry found)))
-            (Ok Map.empty)
-    | Some _ -> configInvalid "'organizations' is not an object"
-
-/// A deployment's storage configuration from its JSON text:
-///
-/// ```json
-/// {"environment":"production","environmentName":"production",
-///  "location":{"owner":"acme","repository":"chrona-data","branch":"main","basePath":"deployments/prod"},
-///  "organizations":{"org_2":{"owner":"acme-eu","repository":"chrona-eu","branch":"main","basePath":""}}}
-/// ```
-///
-/// Every location is validated; `organizations` is optional.
-let parseDeploymentConfig (text: string) : Result<DeploymentConfig, Diagnostic> =
-    match Json.parse text with
-    | Error error -> configInvalid (JsonError.describe error)
-    | Ok value ->
-        configClosed [ "environment"; "environmentName"; "location"; "organizations" ] value
-        |> Result.bind (fun _ ->
-            match configText "environment" value |> Result.bind environmentOf, configText "environmentName" value with
-            | Ok environment, Ok environmentName ->
-                match Json.field "location" value with
-                | None -> configInvalid "'location' is missing"
-                | Some location ->
-                    locationConfigOf location
-                    |> Result.bind (fun location ->
-                        organizationsOf value
-                        |> Result.map (fun organizations ->
-                            { Location = location
-                              Environment = environment
-                              EnvironmentName = environmentName
-                              OrganizationLocations = organizations }))
-            | Error e, _
-            | _, Error e -> Error e)
-        |> Result.bind (fun config -> binding config |> Result.map (fun _ -> config))

@@ -1,8 +1,9 @@
 /// The Chrona application's state: plain, immutable data. Pure.
 ///
 /// Two ports keep the later slices pluggable (DF-CHRONA-2026-0003):
-/// - **Identity.** `Session` says who is working. Today it is a local
-///   session; Fides sign-in (WI-0029) supplies a signed-in one.
+/// - **Identity.** `Session` says who is working: a local session when the
+///   deployment configures no sign-in, otherwise the identity Fides resolved
+///   from GitHub (WI-0029).
 /// - **Store.** The engine asks for what became authoritative to be made
 ///   durable (`StoreRequest`) and hears back (`StoreOutcome`). Today the
 ///   in-memory store acknowledges at once and keeps nothing beyond this tab;
@@ -151,6 +152,56 @@ let emptyReport =
       Format = "csv"
       GeneratedAt = None }
 
+/// Where a signed-in session's tokens are kept (CHX-023). Session-only
+/// retention is the default; neither survives closing the tab.
+type Retention =
+    /// In memory: gone when the page reloads or closes.
+    | ThisPage
+    /// In this tab's session storage: gone when the tab closes.
+    | ThisTab
+
+/// Where this tab is with sign-in (CHX-022).
+type IdentityMode =
+    /// Reading the deployment's configuration.
+    | Configuring
+    /// The deployment configures no sign-in: one person, in this tab.
+    | LocalOnly
+    /// The deployment's configuration cannot be used; nothing else can run.
+    | Misconfigured of detail: string
+    /// Sign-in is configured and no one is signed in. `Busy` while a sign-in
+    /// or a callback is under way.
+    | SignInRequired of busy: bool
+    /// Someone signed in: `Model.Session` is their identity, resolved by the
+    /// provider, never typed.
+    | SignedInMode
+
+type IdentityState =
+    { Mode: IdentityMode
+      Retention: Retention
+      /// The code of the last sign-in outcome to tell the person about, for
+      /// example `state_expired` or `signed_out`.
+      Notice: string option
+      /// The provider's callback parameters this page was opened with, until
+      /// the configuration is read and the sign-in can be completed.
+      Callback: (string * string) list }
+
+/// What the edge reports about sign-in.
+type IdentityChange =
+    | SignedInAs of Session
+    | SigningIn
+    /// No one is signed in now, and why (a callback failure, a sign-out, an
+    /// expired or revoked session), when there is something to say.
+    | SignedOutWith of notice: string option
+    /// Signed in, but the provider or exchange could not be reached; the
+    /// session is kept and the next attempt retries.
+    | ProviderUnavailable
+
+let initialIdentity =
+    { Mode = Configuring
+      Retention = ThisPage
+      Notice = None
+      Callback = [] }
+
 /// Where a refusal is shown.
 type Form =
     | TimerForm
@@ -168,6 +219,10 @@ type Form =
 type Model =
     { Route: Route
       Session: Session
+      /// Sign-in (CHX-022): whether it is configured and who is signed in.
+      Identity: IdentityState
+      /// The deployment's configuration, once read.
+      Deployment: Deployment.DeploymentConfig option
       Store: StoreState
       /// The business time zone; unknown until the browser describes it.
       Zone: Zone option
@@ -210,6 +265,8 @@ type Model =
 let initial (session: Session) (store: StoreKind) (now: DateTimeOffset) =
     { Route = { Screen = Today; Date = None }
       Session = session
+      Identity = initialIdentity
+      Deployment = None
       Store =
         { Kind = store
           Pending = []
@@ -238,6 +295,16 @@ let initial (session: Session) (store: StoreKind) (now: DateTimeOffset) =
       Problems = Map.empty
       Announcement = ""
       HistoricalAfterDays = 0 }
+
+/// Whether the person may work: the deployment runs locally, or someone is
+/// signed in. Nothing is recorded, shown or stored for anyone else.
+let canWork (model: Model) =
+    match model.Identity.Mode with
+    | LocalOnly
+    | SignedInMode -> true
+    | Configuring
+    | Misconfigured _
+    | SignInRequired _ -> false
 
 /// Today's business date in the model's zone (or UTC before it is known).
 let today (model: Model) =

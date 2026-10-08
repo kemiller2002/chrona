@@ -1,0 +1,12 @@
+# conditor.nuget-feed-lock/v1. Written by Conditor; do not edit. The packages beside this
+# file are the unmodified release assets named here, each proven against the
+# Registry SHA-256. NuGet restores these ids only from this folder (NuGet.config).
+system fides
+version 0.2.0
+repository kemiller2002/fides
+tag v0.2.0
+release-manifest sha256:0ef2204d8ec298e6d930ce11d66629794486a5e31367959d7f9dbd39468b6a2a
+package EchelonFoundry.Fides 0.2.0 EchelonFoundry.Fides.0.2.0.nupkg sha256:ee557e9285894d898f6a727b8ced968fc08c6f73bc8b3cc86bc5f5c669a31863 https://github.com/kemiller2002/fides/releases/download/v0.2.0/EchelonFoundry.Fides.0.2.0.nupkg
+package EchelonFoundry.Fides.Arca 0.2.0 EchelonFoundry.Fides.Arca.0.2.0.nupkg sha256:c7c8df26a47d49f0385d39f1614d03837671e7b6c071baa399cab910bb42b84b https://github.com/kemiller2002/fides/releases/download/v0.2.0/EchelonFoundry.Fides.Arca.0.2.0.nupkg
+package EchelonFoundry.Fides.Client 0.2.0 EchelonFoundry.Fides.Client.0.2.0.nupkg sha256:b65efb1357cd10fcf2d9a2e2080e24cb2f488c470ba8802e6d4a578628936e95 https://github.com/kemiller2002/fides/releases/download/v0.2.0/EchelonFoundry.Fides.Client.0.2.0.nupkg
+package EchelonFoundry.Fides.Hosting 0.2.0 EchelonFoundry.Fides.Hosting.0.2.0.nupkg sha256:53f8126e8b74002d71bd2ae539640951c5a103bcf2c6e17d33a527d75128f944 https://github.com/kemiller2002/fides/releases/download/v0.2.0/EchelonFoundry.Fides.Hosting.0.2.0.nupkg

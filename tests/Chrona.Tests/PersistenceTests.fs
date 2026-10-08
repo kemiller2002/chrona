@@ -70,7 +70,7 @@ let private activity id (month, day) (startH, startM) minutes =
 
 let private config =
     """{"environment":"production","environmentName":"production","location":{"owner":"acme","repository":"chrona-data","branch":"main","basePath":""}}"""
-    |> Storage.parseDeploymentConfig
+    |> Chrona.Domain.Deployment.parse
     |> ok
 
 let private ns = Storage.organizationNamespace config (Storage.binding config |> ok) "ORG-1" |> ok

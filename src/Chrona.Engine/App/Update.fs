@@ -20,7 +20,12 @@ type Ctx =
       NewId: string -> string }
 
 type Msg =
-    | Started of hash: string
+    /// The page started at this route, with the query it was opened with
+    /// (the provider's sign-in callback carries `code` and `state` there).
+    | Started of hash: string * query: (string * string) list
+    /// The deployment's configuration document, or None when it could not be read.
+    | ConfigurationRead of text: string option
+    | IdentityChanged of IdentityChange
     | EnvironmentDescribed of timeZone: string
     | EnvironmentUnavailable
     | LocationMoved of hash: string
@@ -43,6 +48,16 @@ type Effect =
     | CopyText of text: string
     /// Open the browser's print dialog for the page's printable document.
     | Print
+    /// Read the deployment's configuration document.
+    | ReadConfiguration
+    /// Set up sign-in from the deployment's configuration: complete the
+    /// provider's callback when the page was opened with one, otherwise
+    /// restore a session kept in this tab.
+    | BeginIdentity of Deployment.IdentityConfig * callback: (string * string) list
+    /// Send the person to the provider to sign in.
+    | SignIn of Retention
+    /// Clear every token this tab holds and revoke it at the provider.
+    | SignOut
 
 /// The timer display refreshes once a second while running (the label is
 /// whole seconds); the engine computes it, never a client-side counter.
@@ -56,7 +71,8 @@ let ThisDevice = "this-browser"
 
 /// Every `data-event` name the page may send; anything else is a defect.
 let eventNames =
-    [ "navigate"; "goToday"; "goTrack"; "goMore"; "showDate"; "previousDay"; "nextDay"
+    [ "signIn"; "signInRetention"; "signOut"
+      "navigate"; "goToday"; "goTrack"; "goMore"; "showDate"; "previousDay"; "nextDay"
       "timerActivityType"; "timerProject"; "timerDescription"; "startTimer"; "pauseTimer"; "resumeTimer"; "stopTimer"
       "completeActivityType"; "completeProject"; "completeDescription"; "completePurpose"; "completeTag"; "confirmLongTimer"; "saveCompletion"
       "manualActivityType"; "manualProject"; "manualStartDate"; "manualStartTime"; "manualEndDate"; "manualEndTime"
@@ -713,6 +729,70 @@ let private onEvent (ctx: Ctx) (name: string) (key: string option) (value: strin
     // The page and the engine disagree: a defect, not an operational failure.
     | other -> invalidArg (nameof name) $"Unknown event name: {other}"
 
+// ---- sign-in (CHX-022, CHX-023) -------------------------------------------------
+
+/// The session a page has before anyone signs in; it can do no work.
+let noOne =
+    { ActorId = "no-one"
+      OrganizationId = "local"
+      DisplayName = ""
+      Kind = LocalSession }
+
+/// The model a new session starts from: nothing of the previous person's
+/// remains in memory. The route, the zone and the deployment carry over.
+let private fresh (session: Session) (identity: IdentityState) (model: Model) =
+    { Model.initial session model.Store.Kind model.Now with
+        Route = model.Route
+        Zone = model.Zone
+        PeriodConfig = model.PeriodConfig
+        Deployment = model.Deployment
+        Identity = identity }
+
+let private configurationRead (text: string option) (model: Model) =
+    let misconfigured detail =
+        { model with Identity = { model.Identity with Mode = Misconfigured detail } }, []
+
+    match text |> Option.map Deployment.parse with
+    | None -> misconfigured "The deployment's configuration could not be read."
+    | Some(Error diagnostic) -> misconfigured $"The deployment's configuration is not valid ({code diagnostic})."
+    | Some(Ok config) ->
+        let model = { model with Deployment = Some config }
+
+        match config.Identity with
+        | None -> { model with Identity = { model.Identity with Mode = LocalOnly; Callback = [] } }, []
+        | Some identity ->
+            { model with Identity = { model.Identity with Mode = SignInRequired true; Callback = [] } },
+            [ BeginIdentity(identity, model.Identity.Callback) ]
+
+let private identityChanged (change: IdentityChange) (model: Model) =
+    let identity = model.Identity
+
+    match change with
+    | SignedInAs session ->
+        let model = fresh session { identity with Mode = SignedInMode; Notice = None } model
+        { model with Announcement = $"Signed in as {session.DisplayName}." }, []
+    | SigningIn -> { model with Identity = { identity with Mode = SignInRequired true } }, []
+    | SignedOutWith notice ->
+        let signedOut = { identity with Mode = SignInRequired false; Notice = notice }
+
+        match identity.Mode with
+        // Whoever was signed in leaves nothing behind in this page.
+        | SignedInMode -> { fresh noOne signedOut model with Announcement = "Signed out." }, []
+        | _ -> { model with Identity = signedOut }, []
+    | ProviderUnavailable -> { model with Identity = { identity with Notice = Some "provider_unavailable" } }, []
+
+let private onIdentityEvent (name: string) (value: string) (model: Model) =
+    let identity = model.Identity
+
+    match name, identity.Mode with
+    | "signInRetention", _ ->
+        let retention = if value = "tab" then ThisTab else ThisPage
+        { model with Identity = { identity with Retention = retention } }, []
+    | "signIn", SignInRequired false ->
+        { model with Identity = { identity with Mode = SignInRequired true; Notice = None } }, [ SignIn identity.Retention ]
+    | "signOut", SignedInMode -> model, [ SignOut ]
+    | _ -> model, []
+
 let update (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
     // An announcement is spoken once: a person's next action replaces it;
     // wake-ups and store answers leave it alone.
@@ -722,7 +802,14 @@ let update (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
         | _ -> { model with Now = ctx.Now }
 
     match msg with
-    | Started hash -> followRoute { model with Route = Routes.parse hash }, [ DescribeEnvironment ]
+    | Started(hash, query) ->
+        followRoute
+            { model with
+                Route = Routes.parse hash
+                Identity = { model.Identity with Callback = query } },
+        [ DescribeEnvironment; ReadConfiguration ]
+    | ConfigurationRead text -> configurationRead text model
+    | IdentityChanged change -> identityChanged change model
     | EnvironmentDescribed timeZone ->
         // An unknown zone falls back to UTC, visibly: the More screen says
         // which zone is in use.
@@ -755,4 +842,7 @@ let update (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
     | Copied false ->
         let text = "This browser did not allow copying. Select the text and copy it yourself."
         { model with CopyStatus = text; Announcement = text }, []
+    | Ui(("signIn" | "signInRetention" | "signOut") as name, _, value, _) -> onIdentityEvent name value model
+    // Nothing is recorded or shown for anyone until they may work.
+    | Ui _ when not (canWork model) -> model, []
     | Ui(name, key, value, isChecked) -> onEvent ctx name key value isChecked model

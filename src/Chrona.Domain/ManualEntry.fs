@@ -25,6 +25,7 @@ type ManualEntry =
       Timing: ManualTiming
       Classification: Classification
       Billability: Billability
+      BillingReference: BillingReference
       Reason: string option
       WorkItemRef: string option
       Evidence: Evidence list }
@@ -33,6 +34,8 @@ type ManualEntry =
 /// historical-entry window.
 type EntryContext =
     { Now: DateTimeOffset
+      /// The organization's reference data: new work names active items.
+      References: Reference.Catalogue
       /// Entries for business dates more than this many days before today
       /// need an explanatory reason.
       HistoricalAfterDays: int }
@@ -112,6 +115,7 @@ let create (context: EntryContext) (existing: Activity list) (entry: ManualEntry
               Classification = entry.Classification
               EntryMethod = Manual
               Billability = entry.Billability
+              BillingReference = entry.BillingReference
               Record = Recorded
               Review = Unsubmitted
               Publication = if entry.Billability = NonBillable then NotBillable else Unpublished
@@ -124,7 +128,13 @@ let create (context: EntryContext) (existing: Activity list) (entry: ManualEntry
               Evidence = entry.Evidence
               Lineage = [] }
 
-        match future @ historical @ classificationProblems entry.Classification @ Overlap.check entry.Zone existing activity with
+        match
+            future
+            @ historical
+            @ classificationProblems entry.Classification
+            @ Reference.assignmentProblems context.References [] entry.Classification
+            @ Overlap.check entry.Zone existing activity
+        with
         | [] -> Ok activity
         | problems -> Error problems
 
@@ -138,6 +148,7 @@ let copyAsDraft (newId: string) (zone: Zone) (date: DateOnly) (minutes: int) (so
       Timing = DurationOnly(date, minutes)
       Classification = source.Classification
       Billability = source.Billability
+      BillingReference = source.BillingReference
       Reason = None
       WorkItemRef = source.WorkItemRef
       Evidence = [] }

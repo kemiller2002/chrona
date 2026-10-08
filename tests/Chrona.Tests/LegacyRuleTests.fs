@@ -4,6 +4,7 @@ module Chrona.Tests.LegacyRuleTests
 
 open System
 open Xunit
+open Chrona.Tests.Support
 open Chrona.Domain.Diagnostics
 open Chrona.Domain.Time
 open Chrona.Domain.Activity
@@ -21,7 +22,7 @@ let private zone =
 /// New York wall-clock instants in October 2026 (EDT, -04:00).
 let private local (day: int) (h: int) (m: int) (s: int) = DateTimeOffset(2026, 10, day, h, m, s, TimeSpan.FromHours -4.0)
 let private at h m = local 7 h m 0
-let private context = { Performer = "ACTOR-1"; At = local 7 22 0 0; Source = "chrona-web"; Zone = zone; CorrelationId = None }
+let private context = { Performer = "ACTOR-1"; At = local 7 22 0 0; Source = "chrona-web"; Zone = zone; References = references; CorrelationId = None }
 
 let private work =
     { ProjectId = "PRJ-1"; ClientId = None; EngagementId = None; ActivityTypeId = "ACT-DEV"; Tags = []; Description = "Work"; BusinessPurpose = "Delivery" }
@@ -38,6 +39,7 @@ let private activity id (h, m) minutes =
       Classification = work
       EntryMethod = Manual
       Billability = Billable
+      BillingReference = noBillingReference
       Record = Recorded
       Review = Unsubmitted
       Publication = Unpublished
@@ -76,11 +78,12 @@ let ``R1: a business purpose is required, on manual entry and on any recorded ac
           Timing = Entry.StartAndEnd(DateOnly(2026, 10, 7), TimeOnly(9, 0), TimeOnly(10, 0), None, None)
           Classification = { work with BusinessPurpose = "  " }
           Billability = Billable
+          BillingReference = noBillingReference
           Reason = None
           WorkItemRef = None
           Evidence = [] }
 
-    Assert.Equal<Diagnostic list>([ MissingField "businessPurpose" ], Entry.create { Now = at 21 0; HistoricalAfterDays = 7 } [] entry |> refused)
+    Assert.Equal<Diagnostic list>([ MissingField "businessPurpose" ], Entry.create { Now = at 21 0; HistoricalAfterDays = 7; References = references } [] entry |> refused)
 
     // A timer result is recorded through the same rule.
     let timerResult = { activity "T1" (9, 0) 60 with EntryMethod = Timer; Classification = { work with BusinessPurpose = "" } }
@@ -91,7 +94,7 @@ let ``R1: a business purpose is required, on manual entry and on any recorded ac
 [<Fact>]
 let ``R2: an amendment is revalidated by the creation rules`` () =
     let ledger = run [ Record(activity "A1" (9, 0) 60) ]
-    let blanked = { Classification = Some { work with Description = ""; BusinessPurpose = "" }; Billability = None; Retime = None; Reason = "tidy" }
+    let blanked = { Classification = Some { work with Description = ""; BusinessPurpose = "" }; Billability = None; BillingReference = None; Retime = None; Reason = "tidy" }
     Assert.Equal<Diagnostic list>([ MissingField "description"; MissingField "businessPurpose" ], execute context ledger (Amend("A1", 1, blanked)) |> refused)
 
     // Split children and merge results that are reclassified obey them too.

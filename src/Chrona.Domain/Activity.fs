@@ -61,6 +61,18 @@ type Classification =
       Description: string
       BusinessPurpose: string }
 
+/// 8 The billing references Chrona may retain beside billability. They
+/// are identifiers only: rates, amounts and invoices belong to Summa.
+type BillingReference =
+    { RateReference: string option
+      BillingClass: string option
+      ContractReference: string option }
+
+let noBillingReference =
+    { RateReference = None
+      BillingClass = None
+      ContractReference = None }
+
 /// When: an exact interval, or a duration on a business date when the
 /// entry has no clock times.
 type Timing =
@@ -79,6 +91,7 @@ type Activity =
       Classification: Classification
       EntryMethod: EntryMethod
       Billability: Billability
+      BillingReference: BillingReference
       Record: RecordState
       Review: ReviewState
       Publication: PublicationState

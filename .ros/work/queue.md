@@ -36,7 +36,7 @@
 | WI-0028 | Chrona 03: configurable data location and Chrona-owned namespace with organization manifests (CHX-DATALOC-001, CHX-024..027) | captured | chrona, order:03, data-location, depends:arca | high |
 | WI-0029 | Chrona 04: GitHub sign-in through Fides and token safety (CHX-022, CHX-023) | captured | chrona, order:04, auth, depends:fides, depends:arca | high |
 | WI-0030 | Chrona 05: actors, membership and capability-based authorization (CHX-030, CHX-260 remainder) | captured | chrona, order:05, authorization | high |
-| WI-0031 | Chrona 06: reference data - clients, projects, activity types, tags, rate references and billing class (CHX-040, CHX-080 remainder, CHX-063 remainder) | captured | chrona, order:06, reference-data | high |
+| WI-0031 | Chrona 06: reference data on Arca - authoritative reference records, their storage and administration across devices (CHX-040 remainder, CHX-063 remainder) | captured | chrona, order:06, reference-data | high |
 | WI-0032 | Chrona 07: authoritative storage on Arca - partitioned layout, repository concurrency, integrity and manual edits (CHX-021, CHX-210, CHX-220, CHX-380, CHX-390, CHX-410, CHX-240 remainder, CHX-050 persistence) | captured | chrona, order:07, storage, depends:arca | high |
 | WI-0033 | Chrona 08: offline use, persisted timer and sync reconciliation (CHX-101, CHX-102, CHX-105, CHX-200, CHX-230) | captured | chrona, order:08, offline, depends:arca | high |
 | WI-0034 | Chrona 09: rebuildable derived state - indexes, totals, approval and publication projections (CHX-400) | captured | chrona, order:09, derived-state | medium |
@@ -50,3 +50,4 @@
 | WI-0042 | Raise Forma contract gaps G1-G6 from the legacy look-and-feel inventory (sidebar/tab bar, surface radius, display title scale, inverse hero, time-column timeline, filled primary action and control radius) so Chrona's chrona-* composition can retire | captured | forma, ui, order:10 | medium |
 | WI-0043 | Chrona.Domain: close the legacy rule gaps found reconciling DOMAIN-REQUIREMENTS.md (business purpose required, amendments revalidated, contiguous merge, timer nearest-minute and 30-second rule, evidence by record state, attestation statement) (CHX-012, CHX-090, CHX-103, CHX-130, CHX-160) | complete | chrona, domain, legacy, order:02b | high |
 | WI-0044 | Chrona: import legacy time-tracking-application records on Arca if production records appear (CHX-300 remainder) | captured | chrona, legacy, migration, depends:arca | low |
+| WI-0045 | Chrona 06a: reference data domain - clients, projects, engagements, activity types and tags with archive semantics, assignment rules, and billing references (CHX-040, CHX-080 remainder, scenario 15), in memory | complete | chrona, order:06a, reference-data, domain | high |

@@ -5,6 +5,7 @@ module Chrona.Tests.TimeDomainTests
 
 open System
 open Xunit
+open Chrona.Tests.Support
 open Chrona.Domain.Diagnostics
 open Chrona.Domain.Time
 open Chrona.Domain.Activity
@@ -22,7 +23,7 @@ let private time (h, m) = TimeOnly(h, m)
 
 /// 2026-10-07 17:00 New York (EDT, -04:00).
 let private now = DateTimeOffset(2026, 10, 7, 21, 0, 0, TimeSpan.Zero)
-let private context = { Now = now; HistoricalAfterDays = 7 }
+let private context = { Now = now; HistoricalAfterDays = 7; References = references }
 
 let private work =
     { ProjectId = "PRJ-1"
@@ -41,6 +42,7 @@ let private entry id timing =
       Timing = timing
       Classification = work
       Billability = Billable
+      BillingReference = noBillingReference
       Reason = None
       WorkItemRef = None
       Evidence = [] }

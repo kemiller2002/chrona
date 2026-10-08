@@ -5,6 +5,7 @@ module Chrona.Tests.ReviewBillingTests
 
 open System
 open Xunit
+open Chrona.Tests.Support
 open Chrona.Domain.Diagnostics
 open Chrona.Domain.Time
 open Chrona.Domain.Activity
@@ -19,7 +20,7 @@ let private zone =
 
 let private day = DateOnly(2026, 10, 7)
 let private at (h: int) (m: int) = DateTimeOffset(2026, 10, 7, h + 4, m, 0, TimeSpan.Zero)
-let private ctx performer = { Performer = performer; At = DateTimeOffset(2026, 10, 7, 22, 0, 0, TimeSpan.Zero); Source = "chrona-web"; Zone = zone; CorrelationId = None }
+let private ctx performer = { Performer = performer; At = DateTimeOffset(2026, 10, 7, 22, 0, 0, TimeSpan.Zero); Source = "chrona-web"; Zone = zone; References = references; CorrelationId = None }
 let private actor = ctx "ACTOR-1"
 let private approver = ctx "MANAGER-1"
 let private approval = { ApprovalRequired = true }
@@ -36,6 +37,7 @@ let private activity id (h, m) minutes =
       Classification = { ProjectId = "PRJ-1"; ClientId = Some "CLI-1"; EngagementId = None; ActivityTypeId = "ACT-DEV"; Tags = []; Description = "Work"; BusinessPurpose = "Delivery" }
       EntryMethod = Manual
       Billability = Billable
+      BillingReference = noBillingReference
       Record = Recorded
       Review = Unsubmitted
       Publication = Unpublished
@@ -130,7 +132,7 @@ let ``scenarios 20 and 21: rejection and reopening are explicit transitions`` ()
 let ``scenario 22: an amendment after approval makes the approval stale, never silently valid`` () =
     let approved = workflowWith [ activity "A1" (9, 0) 60 ] |> submit actor "S1" (day, day) [ "A1" ] |> ok |> approve approval approver "S1" None |> ok
     Assert.Empty(staleApprovals approved)
-    let ledger = execute actor approved.Ledger (Amend("A1", 1, { Classification = None; Billability = None; Retime = None; Reason = "forgot a meeting" })) |> ok
+    let ledger = execute actor approved.Ledger (Amend("A1", 1, { Classification = None; Billability = None; BillingReference = None; Retime = None; Reason = "forgot a meeting" })) |> ok
     let amended = { approved with Ledger = ledger }
     Assert.Equal(Reopened, review "A1" amended)
     Assert.Equal<(string * string list) list>([ "S1", [ "A1" ] ], staleApprovals amended)
@@ -152,7 +154,7 @@ let ``scenarios 16 and 17: attestation snapshots ids and revisions, and later ch
     let attested, snapshot = attest actor day "Complete and accurate." wf |> ok
     Assert.Equal<Covered>([ "A1", 1; "A2", 1 ], snapshot.Covered)
     Assert.Empty(attestationChanges attested snapshot)
-    let amendedLedger = execute actor attested.Ledger (Amend("A2", 1, { Classification = None; Billability = None; Retime = None; Reason = "fix" })) |> ok
+    let amendedLedger = execute actor attested.Ledger (Amend("A2", 1, { Classification = None; Billability = None; BillingReference = None; Retime = None; Reason = "fix" })) |> ok
     let addedLedger = execute actor amendedLedger (Record(activity "A3" (13, 0) 15)) |> ok
     Assert.Equal<string list>([ "A2"; "A3" ], attestationChanges { attested with Ledger = addedLedger } snapshot)
 

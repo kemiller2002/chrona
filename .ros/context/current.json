@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-08T08:59:36.236Z",
+  "updatedAt": "2026-10-08T09:06:47.757Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -1142,6 +1142,47 @@
         }
       },
       "completedAt": "2026-10-08T08:59:36.236Z"
+    },
+    {
+      "id": "WI-0045",
+      "type": "feature",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Domain/Reference.fs"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/ReferenceTests.fs"
+        }
+      ],
+      "updatedAt": "2026-10-08T09:06:47.757Z",
+      "telemetryExecutionIds": [
+        "EXE-20261008T090326818Z-9480c4cb"
+      ],
+      "latestCheckpoint": {
+        "id": "43a731a2bd3825ae166efec3",
+        "recordedAt": "2026-10-08T09:06:46.497Z",
+        "executionId": "EXE-20261008T090326818Z-9480c4cb",
+        "repository": "chrona",
+        "branch": "feat/reference-data",
+        "commit": "6b76528f070e4fb4073ec049bd5e9b97f7a3e411",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/chrona"
+        },
+        "remoteBranch": "feat/reference-data",
+        "remoteCommit": "6b76528f070e4fb4073ec049bd5e9b97f7a3e411",
+        "summary": "Reference data domain with tests pushed",
+        "nextAction": "Complete WI-0045, PR, then the Limen/Forma UI slice",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      },
+      "completedAt": "2026-10-08T09:06:47.757Z"
     }
   ]
 }

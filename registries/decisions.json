@@ -357,6 +357,52 @@
     "version": "1.7.0"
   },
   {
+    "created": "2026-10-08",
+    "derived_from": [
+      "DF-CHRONA-2026-0001"
+    ],
+    "id": "DF-CHRONA-2026-0006",
+    "owners": [
+      "chrona"
+    ],
+    "path": "research/decisions/DF-CHRONA-2026-0006--visual-baselines-rendered-by-ci-and-re-rendered-by-a-workflow.md",
+    "provenance": {
+      "contributions": {
+        "EXE-20261008T190112021Z-53a6293f": {
+          "actor": {
+            "id": "anthropic/claude-code",
+            "kind": "agent",
+            "model": "unknown",
+            "provider": "anthropic",
+            "runtime": "claude-code"
+          },
+          "at": "2026-10-08T19:01:12.470Z",
+          "operations": [
+            "created"
+          ],
+          "reason": "Visual baselines rendered by CI, re-rendered by a workflow (WI-0070)"
+        }
+      }
+    },
+    "related_documents": [
+      "research/decisions/DF-CHRONA-2026-0001--reconstruct-on-limen-forma-keeping-legacy-look-and-feel.md",
+      "docs/legacy/visual-comparison.md"
+    ],
+    "review_cycle": "on-trigger",
+    "status": "accepted",
+    "superseded_by": [],
+    "supersedes": [],
+    "tags": [
+      "testing",
+      "visual-regression",
+      "ci",
+      "look-and-feel"
+    ],
+    "title": "Visual baselines are rendered by CI's pinned Chromium and re-rendered by a workflow that opens a pull request",
+    "updated": "2026-10-08",
+    "version": "1.0.0"
+  },
+  {
     "created": "2026-10-05",
     "id": "DF-CHRONA-FND-2026-0001",
     "owners": [

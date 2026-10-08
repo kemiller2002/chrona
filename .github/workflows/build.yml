@@ -3,6 +3,9 @@ name: Build
 on:
   pull_request:
   push:
+  # Started by the baseline workflow on the branch it opens a pull request
+  # from, whose push alone starts nothing (visual-baselines.yml).
+  workflow_dispatch:
 
 permissions:
   contents: read

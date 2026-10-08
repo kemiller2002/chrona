@@ -1,0 +1,107 @@
+name: Re-render the visual baselines
+
+# Run by hand (Actions > "Re-render the visual baselines" > Run workflow, or
+# `gh workflow run visual-baselines.yml --ref <branch>`) when a screen changed
+# on purpose, or when the runner image's fonts changed every screen
+# (DF-CHRONA-2026-0006). It renders every baseline again with the pinned
+# Chromium on this runner, the only browser the baselines are compared in,
+# commits the images to a new branch from the chosen ref, opens a pull
+# request for review, and starts the Build workflow on that branch so the
+# pull request's head has its checks (a push made with this workflow's token
+# starts no workflow by itself). The new images are reviewed against
+# docs/legacy/visual-comparison.md before merging, like any change.
+
+on:
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: Why the baselines change (put in the commit and the pull request)
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+concurrency:
+  group: visual-baselines-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Publish the WASM engine
+        run: npm run build:wasm
+
+      - name: Resolve the pinned Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('./package-lock.json').packages['node_modules/playwright-core'].version")" >> "$GITHUB_OUTPUT"
+
+      - name: Restore the Chromium build for that version
+        id: chromium-cache
+        uses: actions/cache@v4
+        env:
+          SEGMENT_DOWNLOAD_TIMEOUT_MINS: "2"
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ runner.arch }}-${{ steps.playwright.outputs.version }}
+
+      - name: Download Chromium for the visual suite
+        if: steps.chromium-cache.outputs.cache-hit != 'true'
+        timeout-minutes: 5
+        run: npx playwright install chromium
+
+      # Every baseline is rendered again; the run then compares against what it
+      # just wrote, so a render that is not stable fails here, not later.
+      - name: Render every baseline
+        run: |
+          npx playwright test -c playwright.visual.config.js --update-snapshots=all
+          npx playwright test -c playwright.visual.config.js
+
+      - name: Commit the images to a new branch and open a pull request
+        id: publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REASON: ${{ inputs.reason }}
+          BASE: ${{ github.ref_name }}
+        run: |
+          if git diff --quiet -- tests/visual/baselines; then
+            echo "The baselines are unchanged; nothing to propose." >> "$GITHUB_STEP_SUMMARY"
+            echo "branch=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          branch="visual/rebaseline-${GITHUB_RUN_ID}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add tests/visual/baselines
+          git commit -m "Re-render the visual baselines: ${REASON}" -m "Rendered by the pinned Chromium on CI's runner (workflow run ${GITHUB_RUN_ID})."
+          git push origin "$branch"
+          changed="$(git diff --name-only HEAD~1 -- tests/visual/baselines | sed 's/^/- /')"
+          body="$(printf 'Re-rendered by run %s with the pinned Chromium.\n\nReason: %s\n\nChanged baselines:\n%s\n\nReview each image against docs/legacy/visual-comparison.md before merging.' "$GITHUB_RUN_ID" "$REASON" "$changed")"
+          if ! gh pr create --base "$BASE" --head "$branch" --title "Re-render the visual baselines: ${REASON}" --body "$body"; then
+            echo "::error::The images are on branch $branch, but the pull request could not be opened. Allow GitHub Actions to create pull requests (Settings > Actions > General), or open it from $branch."
+            exit 1
+          fi
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+
+      # The pull request's head needs its checks before it can be merged.
+      - name: Start the Build workflow on the new branch
+        if: steps.publish.outputs.branch != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run build.yml --ref "${{ steps.publish.outputs.branch }}"

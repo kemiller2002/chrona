@@ -8,11 +8,9 @@
 // therefore never substitutes another Chromium (unlike playwright.config.js),
 // and CI runs it as its own step after the browser suite.
 //
-// To change a baseline on purpose: push the change. CI's comparison fails
-// and uploads the rendered images in the playwright-traces artifact
-// (`*-actual.png` for a changed screen; a removed baseline comes back
-// rendered under tests/visual/baselines/). Review them against
-// docs/legacy/visual-comparison.md and commit them over the baselines.
+// To change baselines on purpose, run the "Re-render the visual baselines"
+// workflow (.github/workflows/visual-baselines.yml, DF-CHRONA-2026-0006): it
+// renders them with that browser and opens a pull request with the images.
 // With CHRONA_VISUAL_PREVIEW=1, the screens are
 // rendered locally into test-results/visual-preview/ for a look, compared
 // with nothing.

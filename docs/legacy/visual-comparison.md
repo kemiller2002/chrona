@@ -48,9 +48,21 @@ Forma cannot yet express some of the legacy presentation: the dark sidebar, the 
 
 ## Changing a baseline
 
-1. Push the change.
-2. CI's "Compare the screens with their baselines" step fails and uploads the rendered images in the `playwright-traces` artifact: `*-actual.png` for a changed screen, and a removed baseline rendered under `tests/visual/baselines/`.
-3. Check them against this page.
-4. Copy them over `tests/visual/baselines/` and push again.
+The baselines are re-rendered by a workflow (DF-CHRONA-2026-0006):
+
+```
+gh workflow run visual-baselines.yml --ref <branch> -f reason="<why the screens change>"
+```
+
+You can also run "Re-render the visual baselines" from the Actions tab. The workflow:
+
+1. renders every screen with CI's pinned Chromium and checks the render is stable;
+2. commits the images to `visual/rebaseline-<run>`;
+3. opens a pull request that lists each changed image;
+4. starts the Build workflow on that branch.
+
+Review each image against this page, then merge under the usual gate.
+
+A screen that has no baseline yet fails CI. Its first render is uploaded in the failure's `playwright-traces` artifact, under `tests/visual/baselines/`. Running the workflow on the branch proposes it.
 
 `CHRONA_VISUAL_PREVIEW=1 npm run test:visual` renders the screens locally into `test-results/visual-preview/` for a look. That render is compared with nothing, because a local browser and its fonts differ from CI's.

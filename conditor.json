@@ -4,12 +4,12 @@
   "registryAuthority": {
     "kind": "resolved-release-set",
     "path": ".conditor/authority/resolved-release-set.json",
-    "sha256": "cd8d8d0482c5c4750f4bb31d28bc79e9597d3be4f6264955691e3aebd86cb6d2"
+    "sha256": "ea1b39a003d3f2f41c4fb6e979694ec82fd03964854e5dd268e38df51cd22931"
   },
   "components": [
     {
       "id": "ordo",
-      "version": "1.4.2",
+      "version": "1.5.0",
       "required": true
     },
     {

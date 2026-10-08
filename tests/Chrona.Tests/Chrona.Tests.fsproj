@@ -28,6 +28,7 @@
     <Compile Include="ReportTests.fs" />
     <Compile Include="ObservationTests.fs" />
     <Compile Include="StorageTests.fs" />
+    <Compile Include="PersistenceTests.fs" />
     <Compile Include="AppEngineTests.fs" />
     <Compile Include="AppBoundaryTests.fs" />
   </ItemGroup>

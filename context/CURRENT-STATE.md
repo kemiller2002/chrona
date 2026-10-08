@@ -16,7 +16,9 @@ and feel and its rules, rebuilt on Limen, Forma, Aegis and Folio
   reports, inbound observations, legacy compatibility) and, on Arca 0.2.0,
   where data lives: the configured data location, Chrona's own namespace,
   one folder per organization, the organization manifest and the
-  public-production refusal (`Storage`, `Organization`, WI-0028).
+  public-production refusal (`Storage`, `Organization`, WI-0028), and
+  activities as partitioned Arca records with integrity on load
+  (`ActivityRecord`, `Persistence`, WI-0051).
 - Arca 0.2.0 comes from attested release assets in `vendor/nuget`,
   installed and proven by Conditor (`conditor.json`, `NuGet.config`).
 - `Chrona.Engine` and `Chrona.Application`: the Limen engine and its Aegis

@@ -22,8 +22,11 @@
     <Compile Include="Reports.fs" />
     <Compile Include="Observations.fs" />
     <Compile Include="Compatibility.fs" />
+    <Compile Include="Codec.fs" />
     <Compile Include="Organization.fs" />
     <Compile Include="Storage.fs" />
+    <Compile Include="ActivityRecord.fs" />
+    <Compile Include="Persistence.fs" />
   </ItemGroup>
 
   <ItemGroup>

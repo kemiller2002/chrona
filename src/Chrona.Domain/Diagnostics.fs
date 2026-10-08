@@ -67,6 +67,15 @@ type Diagnostic =
     | NamespaceUnusable of root: string * detail: string
     | InvalidStoredRecord of path: string * detail: string
     | StorageOperationRefused of detail: string
+    | UnstorableActivity of id: string * detail: string
+    // Integrity of stored activities (WI-0051, expansion 39 and 41).
+    | MisplacedRecord of path: string
+    | ImpossibleRevision of id: string
+    | DuplicateActivityId of id: string
+    | StoredOverlap of id: string * other: string
+    | InvalidLineage of id: string * other: string
+    | IncompleteRead of folder: string
+    | ExternalEdit of path: string
 
 /// The stable code: `CHRONA.<AREA>.<NAME>`.
 let code =
@@ -123,3 +132,11 @@ let code =
     | NamespaceUnusable _ -> "CHRONA.STORAGE.NAMESPACE_UNUSABLE"
     | InvalidStoredRecord _ -> "CHRONA.STORAGE.INVALID_RECORD"
     | StorageOperationRefused _ -> "CHRONA.STORAGE.OPERATION_REFUSED"
+    | UnstorableActivity _ -> "CHRONA.STORAGE.UNSTORABLE_ACTIVITY"
+    | MisplacedRecord _ -> "CHRONA.INTEGRITY.MISPLACED_RECORD"
+    | ImpossibleRevision _ -> "CHRONA.INTEGRITY.IMPOSSIBLE_REVISION"
+    | DuplicateActivityId _ -> "CHRONA.INTEGRITY.DUPLICATE_ID"
+    | StoredOverlap _ -> "CHRONA.INTEGRITY.OVERLAPPING_TIME"
+    | InvalidLineage _ -> "CHRONA.INTEGRITY.INVALID_LINEAGE"
+    | IncompleteRead _ -> "CHRONA.INTEGRITY.INCOMPLETE_READ"
+    | ExternalEdit _ -> "CHRONA.INTEGRITY.EXTERNAL_EDIT"

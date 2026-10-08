@@ -17,22 +17,28 @@ let private sameScope (a: Activity) (b: Activity) =
 
 let private intersects (s1, e1) (s2, e2) = s1 < e2 && s2 < e1
 
+let private peersOf (existing: Activity list) (candidate: Activity) =
+    existing
+    |> List.filter (fun other -> other.ActivityId <> candidate.ActivityId && sameScope other candidate && consumesTime other)
+
+/// The ids of the activities in `existing` whose clock times overlap
+/// `candidate`'s, in order: same organization and actor, time-consuming
+/// records only, half-open intervals. Needs no zone rules.
+let overlapping (existing: Activity list) (candidate: Activity) : string list =
+    match interval candidate with
+    | None -> []
+    | Some span ->
+        peersOf existing candidate
+        |> List.filter (fun other -> interval other |> Option.exists (intersects span))
+        |> List.map _.ActivityId
+        |> List.sort
+
 /// Everything that stops `candidate` from being recorded alongside
 /// `existing`, in a stable order. `zone` is the candidate's business zone.
 let check (zone: Zone) (existing: Activity list) (candidate: Activity) : Diagnostic list =
-    let peers =
-        existing
-        |> List.filter (fun other ->
-            other.ActivityId <> candidate.ActivityId && sameScope other candidate && consumesTime other)
+    let peers = peersOf existing candidate
 
-    let overlaps =
-        match interval candidate with
-        | None -> []
-        | Some span ->
-            peers
-            |> List.filter (fun other -> interval other |> Option.exists (intersects span))
-            |> List.map (fun other -> OverlapsActivity other.ActivityId)
-            |> List.sortBy string
+    let overlaps = overlapping existing candidate |> List.map OverlapsActivity
 
     let capacity =
         let date = candidate.Occurrence.LocalDate

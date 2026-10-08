@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-08T11:47:30Z",
+  "updatedAt": "2026-10-08T12:03:16Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -1461,6 +1461,51 @@
         }
       },
       "completedAt": "2026-10-08T11:47:30Z"
+    },
+    {
+      "id": "WI-0051",
+      "type": "feature",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Domain/Persistence.fs"
+        },
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Domain/ActivityRecord.fs"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/PersistenceTests.fs"
+        }
+      ],
+      "updatedAt": "2026-10-08T12:03:16Z",
+      "telemetryExecutionIds": [
+        "EXE-20261008T115316576Z-676121a7"
+      ],
+      "latestCheckpoint": {
+        "id": "d0a56cac3110088011b80284",
+        "recordedAt": "2026-10-08T12:03:15Z",
+        "executionId": "EXE-20261008T115316576Z-676121a7",
+        "repository": "chrona",
+        "branch": "feat/activity-persistence-core",
+        "commit": "277f2c740fb62959d151bec2a9b06c2d87b0e92c",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/chrona"
+        },
+        "remoteBranch": "feat/activity-persistence-core",
+        "remoteCommit": "277f2c740fb62959d151bec2a9b06c2d87b0e92c",
+        "summary": "ActivityRecord, Persistence, Codec and 10 PersistenceTests on Arca's in-memory provider (commit 277f2c7)",
+        "nextAction": "Open the PR; merge once every check on its head is green; then WI-0032",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      },
+      "completedAt": "2026-10-08T12:03:16Z"
     }
   ]
 }

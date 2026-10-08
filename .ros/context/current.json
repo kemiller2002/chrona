@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-08T21:46:25.000Z",
+  "updatedAt": "2026-10-08T21:58:11.000Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -2489,13 +2489,51 @@
     {
       "id": "WI-0072",
       "type": "task",
-      "state": "active",
-      "semanticState": "active",
-      "evidence": [],
-      "updatedAt": "2026-10-08T21:46:25.000Z",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Engine/Chrona.Engine.fsproj"
+        },
+        {
+          "type": "implementation",
+          "path": "vendor/nuget/limen-fsharp.lock"
+        },
+        {
+          "type": "tests",
+          "path": "tools/routes/inventory.test.mjs"
+        },
+        {
+          "type": "documentation",
+          "path": "research/decisions/DF-CHRONA-2026-0007--deep-links-on-limen-url-state-semantics-through-an-interim-copy.md"
+        }
+      ],
+      "updatedAt": "2026-10-08T21:58:11.000Z",
       "telemetryExecutionIds": [
         "EXE-20261008T214626408Z-33828acf"
-      ]
+      ],
+      "latestCheckpoint": {
+        "id": "ccba255043ed4c487e90bd33",
+        "recordedAt": "2026-10-08T21:58:09.000Z",
+        "executionId": "EXE-20261008T214626408Z-33828acf",
+        "repository": "chrona",
+        "branch": "chore/limen-0.9.0",
+        "commit": "c986f34d0ad954865068cf5df8bb2d9d488dc5dc",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/chrona"
+        },
+        "remoteBranch": "chore/limen-0.9.0",
+        "remoteCommit": "c986f34d0ad954865068cf5df8bb2d9d488dc5dc",
+        "summary": "Limen 0.9.0: limen-fsharp via Conditor, Limen.Routing package, npm limen 0.9.0, interim copy removed, inventory schema-validated; all local suites green",
+        "nextAction": "Open the PR once the branch Build is green, merge on a full pass, then WI-0059 and WI-0057 on Arca 0.3.0",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      },
+      "completedAt": "2026-10-08T21:58:11.000Z"
     }
   ]
 }

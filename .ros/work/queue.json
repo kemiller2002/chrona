@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "repository": "chrona",
-  "nextSeq": 42,
+  "nextSeq": 43,
   "items": [
     {
       "id": "WI-0001",
@@ -489,10 +489,10 @@
         "inventory"
       ],
       "priority": "high",
-      "status": "captured",
+      "status": "complete",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:45.996Z",
-      "updatedAt": "2026-10-08T07:43:45.996Z",
+      "updatedAt": "2026-10-08T08:41:37.793Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",
@@ -506,8 +506,8 @@
     },
     {
       "id": "WI-0027",
-      "title": "Chrona 02: decide reconstruction versus migration and record legacy data status (CHX-012, CHX-300, CHX-310)",
-      "description": "Depends on WI-0026. Record the decision (the user expects reconstruction, not migration) as a Praxis decision record. Reconcile the expansion's restatement against the legacy docs/DOMAIN-REQUIREMENTS.md in time-tracking-application (an open item in the gap analysis). Record the legacy data status: kemiller2002/time-tracking-data holds an append-only JSON event ledger (ledger/YYYY/MM/activities, evidence-links, derived indexes, integrity manifests), and at 2026-10-08 it contains only DEMO records (ACT-20260802-DEMO-*, EVL-20260802-DEMO-001). No production data needs migrating today. If real records appear, an import is a Chrona application-level migration on top of Arca's migration workflow (ARCA OQ-ARCA-005). Cover rename and source compatibility (CHX-310).",
+      "title": "Chrona 02: decide reconstruction versus migration, record legacy data status and rewrite the charter for the time-tracking product (CHX-011, CHX-012, CHX-300, CHX-310)",
+      "description": "Depends on WI-0026. Record the decision (the user expects reconstruction, not migration) as a Praxis decision record. Reconcile the expansion's restatement against the legacy docs/DOMAIN-REQUIREMENTS.md in time-tracking-application (an open item in the gap analysis). Record the legacy data status: kemiller2002/time-tracking-data holds an append-only JSON event ledger (ledger/YYYY/MM/activities, evidence-links, derived indexes, integrity manifests), and at 2026-10-08 it contains only DEMO records (ACT-20260802-DEMO-*, EVL-20260802-DEMO-001). No production data needs migrating today. If real records appear, an import is a Chrona application-level migration on top of Arca's migration workflow (ARCA OQ-ARCA-005). Cover rename and source compatibility (CHX-310). Replace the generic PROJECT-CHARTER.md and context/CURRENT-STATE.md with the actual time-tracking product (CHX-011).",
       "tags": [
         "chrona",
         "order:02",
@@ -518,7 +518,7 @@
       "status": "captured",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:46.334Z",
-      "updatedAt": "2026-10-08T07:43:46.334Z",
+      "updatedAt": "2026-10-08T08:44:25.223Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",
@@ -881,6 +881,31 @@
       "attachments": [],
       "createdAt": "2026-10-08T08:04:55.527Z",
       "updatedAt": "2026-10-08T08:13:49.000Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0042",
+      "title": "Raise Forma contract gaps G1-G6 from the legacy look-and-feel inventory (sidebar/tab bar, surface radius, display title scale, inverse hero, time-column timeline, filled primary action and control radius) so Chrona's chrona-* composition can retire",
+      "description": "docs/legacy/look-and-feel-inventory.md section 7. Forma 0.4.1 cannot express these through its Brand Manifest; Chrona composes chrona-* classes on --ef-* tokens until Forma extends its public contract. File the gaps in kemiller2002/forma.",
+      "tags": [
+        "forma",
+        "ui",
+        "order:10"
+      ],
+      "priority": "medium",
+      "status": "captured",
+      "attachments": [],
+      "createdAt": "2026-10-08T08:41:17.009Z",
+      "updatedAt": "2026-10-08T08:41:17.009Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

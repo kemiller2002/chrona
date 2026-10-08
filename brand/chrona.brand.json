@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "1.0",
+  "id": "chrona",
+  "identity": {
+    "name": "Chrona",
+    "shortName": "Chrona"
+  },
+  "presentation": {
+    "fontFamily": {
+      "display": ["Iowan Old Style", "Baskerville", "Times New Roman", "serif"],
+      "sans": ["Inter", "ui-sans-serif", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
+      "mono": ["SFMono-Regular", "Consolas", "Liberation Mono", "monospace"]
+    },
+    "radius": {
+      "small": "0.55rem",
+      "medium": "0.9rem",
+      "pill": "999px"
+    }
+  },
+  "themes": {
+    "light": {
+      "color": {
+        "text": {"primary": "#1f2826", "heading": "#1f2826", "secondary": "#53605c", "on-secondary-surface": "#1f2826", "inverse": "#f8f5ee", "muted": "#53605c"},
+        "surface": {"primary": "#e8e4dc", "secondary": "#f8f5ee", "inverse": "#23312e", "inverse-secondary": "#243a36", "elevated": "#fffdf8"},
+        "accent": {"primary": "#215d57", "secondary": "#9a4d32", "hover": "#17443f"},
+        "status": {"success": "#215d57", "warning": "#775819", "danger": "#8c3529", "info": "#0b5f9e"},
+        "border": {"subtle": "#d2cdc2", "functional": "#6e6a62"},
+        "focus": {"ring": "#0b6fb8", "gap": "#f8f5ee"},
+        "control": {"track": "#53605c", "thumb": "#fffdf8", "active": "#215d57"}
+      }
+    },
+    "dark": {
+      "color": {
+        "text": {"primary": "#f1eee6", "heading": "#f1eee6", "secondary": "#b5c0bb", "on-secondary-surface": "#f1eee6", "inverse": "#f1eee6", "muted": "#b5c0bb"},
+        "surface": {"primary": "#141b19", "secondary": "#1b2421", "inverse": "#192824", "inverse-secondary": "#213531", "elevated": "#222d29"},
+        "accent": {"primary": "#84bdb0", "secondary": "#d5896f", "hover": "#b6ded5"},
+        "status": {"success": "#84bdb0", "warning": "#d2ad60", "danger": "#f1a18f", "info": "#78c8ff"},
+        "border": {"subtle": "#3b4944", "functional": "#8a9893"},
+        "focus": {"ring": "#78c8ff", "gap": "#141b19"},
+        "control": {"track": "#8a9893", "thumb": "#141b19", "active": "#84bdb0"}
+      }
+    }
+  },
+  "terms": {
+    "organization": "Organization",
+    "user": "Person",
+    "project": "Project",
+    "activity": "Activity"
+  }
+}

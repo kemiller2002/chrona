@@ -1,0 +1,119 @@
+/* Generated from chrona.brand.json. Do not edit directly. */
+@layer echelon.brand {
+  [data-ef-brand="chrona"] {
+  --ef-primitive-font-family-display: "Iowan Old Style", Baskerville, "Times New Roman", serif;
+  --ef-primitive-font-family-sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --ef-primitive-font-family-mono: SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  --ef-primitive-radius-small: 0.55rem;
+  --ef-primitive-radius-medium: 0.9rem;
+  --ef-primitive-radius-pill: 999px;
+  --ef-color-text-primary: #1f2826;
+  --ef-color-text-heading: #1f2826;
+  --ef-color-text-secondary: #53605c;
+  --ef-color-text-on-secondary-surface: #1f2826;
+  --ef-color-text-inverse: #f8f5ee;
+  --ef-color-surface-primary: #e8e4dc;
+  --ef-color-surface-secondary: #f8f5ee;
+  --ef-color-surface-inverse: #23312e;
+  --ef-color-surface-inverse-secondary: #243a36;
+  --ef-color-accent-primary: #215d57;
+  --ef-color-accent-secondary: #9a4d32;
+  --ef-color-border-subtle: #d2cdc2;
+  --ef-color-border-functional: #6e6a62;
+  --ef-color-focus-ring: #0b6fb8;
+  --ef-color-focus-gap: #f8f5ee;
+  --ef-color-control-track: #53605c;
+  --ef-color-control-thumb: #fffdf8;
+  --ef-color-control-active: #215d57;
+  --ef-color-surface-elevated: #fffdf8;
+  --ef-color-text-muted: #53605c;
+  --ef-color-accent-hover: #17443f;
+  --ef-color-status-success: #215d57;
+  --ef-color-status-warning: #775819;
+  --ef-color-status-danger: #8c3529;
+  --ef-color-status-info: #0b5f9e;
+}
+  [data-ef-theme="light"] [data-ef-brand="chrona"], [data-ef-brand="chrona"][data-ef-theme="light"] {
+  --ef-color-text-primary: #1f2826;
+  --ef-color-text-heading: #1f2826;
+  --ef-color-text-secondary: #53605c;
+  --ef-color-text-on-secondary-surface: #1f2826;
+  --ef-color-text-inverse: #f8f5ee;
+  --ef-color-surface-primary: #e8e4dc;
+  --ef-color-surface-secondary: #f8f5ee;
+  --ef-color-surface-inverse: #23312e;
+  --ef-color-surface-inverse-secondary: #243a36;
+  --ef-color-accent-primary: #215d57;
+  --ef-color-accent-secondary: #9a4d32;
+  --ef-color-border-subtle: #d2cdc2;
+  --ef-color-border-functional: #6e6a62;
+  --ef-color-focus-ring: #0b6fb8;
+  --ef-color-focus-gap: #f8f5ee;
+  --ef-color-control-track: #53605c;
+  --ef-color-control-thumb: #fffdf8;
+  --ef-color-control-active: #215d57;
+  --ef-color-surface-elevated: #fffdf8;
+  --ef-color-text-muted: #53605c;
+  --ef-color-accent-hover: #17443f;
+  --ef-color-status-success: #215d57;
+  --ef-color-status-warning: #775819;
+  --ef-color-status-danger: #8c3529;
+  --ef-color-status-info: #0b5f9e;
+}
+  [data-ef-theme="dark"] [data-ef-brand="chrona"], [data-ef-brand="chrona"][data-ef-theme="dark"] {
+  --ef-color-text-primary: #f1eee6;
+  --ef-color-text-heading: #f1eee6;
+  --ef-color-text-secondary: #b5c0bb;
+  --ef-color-text-on-secondary-surface: #f1eee6;
+  --ef-color-text-inverse: #f1eee6;
+  --ef-color-surface-primary: #141b19;
+  --ef-color-surface-secondary: #1b2421;
+  --ef-color-surface-inverse: #192824;
+  --ef-color-surface-inverse-secondary: #213531;
+  --ef-color-accent-primary: #84bdb0;
+  --ef-color-accent-secondary: #d5896f;
+  --ef-color-border-subtle: #3b4944;
+  --ef-color-border-functional: #8a9893;
+  --ef-color-focus-ring: #78c8ff;
+  --ef-color-focus-gap: #141b19;
+  --ef-color-control-track: #8a9893;
+  --ef-color-control-thumb: #141b19;
+  --ef-color-control-active: #84bdb0;
+  --ef-color-surface-elevated: #222d29;
+  --ef-color-text-muted: #b5c0bb;
+  --ef-color-accent-hover: #b6ded5;
+  --ef-color-status-success: #84bdb0;
+  --ef-color-status-warning: #d2ad60;
+  --ef-color-status-danger: #f1a18f;
+  --ef-color-status-info: #78c8ff;
+}
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-ef-theme]) [data-ef-brand="chrona"]:not([data-ef-theme]), :root[data-ef-brand="chrona"]:not([data-ef-theme]) {
+  --ef-color-text-primary: #f1eee6;
+  --ef-color-text-heading: #f1eee6;
+  --ef-color-text-secondary: #b5c0bb;
+  --ef-color-text-on-secondary-surface: #f1eee6;
+  --ef-color-text-inverse: #f1eee6;
+  --ef-color-surface-primary: #141b19;
+  --ef-color-surface-secondary: #1b2421;
+  --ef-color-surface-inverse: #192824;
+  --ef-color-surface-inverse-secondary: #213531;
+  --ef-color-accent-primary: #84bdb0;
+  --ef-color-accent-secondary: #d5896f;
+  --ef-color-border-subtle: #3b4944;
+  --ef-color-border-functional: #8a9893;
+  --ef-color-focus-ring: #78c8ff;
+  --ef-color-focus-gap: #141b19;
+  --ef-color-control-track: #8a9893;
+  --ef-color-control-thumb: #141b19;
+  --ef-color-control-active: #84bdb0;
+  --ef-color-surface-elevated: #222d29;
+  --ef-color-text-muted: #b5c0bb;
+  --ef-color-accent-hover: #b6ded5;
+  --ef-color-status-success: #84bdb0;
+  --ef-color-status-warning: #d2ad60;
+  --ef-color-status-danger: #f1a18f;
+  --ef-color-status-info: #78c8ff;
+}
+  }
+}

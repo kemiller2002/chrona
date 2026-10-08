@@ -36,7 +36,7 @@
 | WI-0028 | Chrona 03: configurable data location and Chrona-owned namespace with organization manifests (CHX-DATALOC-001, CHX-024..027) | complete | chrona, order:03, data-location, depends:arca | high |
 | WI-0029 | Chrona 04: GitHub sign-in through Fides and token safety (CHX-022, CHX-023) | complete | chrona, order:04, auth, depends:fides, depends:arca | high |
 | WI-0030 | Chrona 05: actors, membership and capability-based authorization (CHX-030, CHX-260 remainder) | complete | chrona, order:05, authorization | high |
-| WI-0031 | Chrona 06: reference data on Arca - authoritative reference records, their storage and administration across devices (CHX-040 remainder, CHX-063 remainder) | captured | chrona, order:06, reference-data | high |
+| WI-0031 | Chrona 06: reference data on Arca - authoritative reference records, their storage and administration across devices (CHX-040 remainder, CHX-063 remainder) | complete | chrona, order:06, reference-data | high |
 | WI-0032 | Chrona 07: authoritative storage on Arca - partitioned layout, repository concurrency, integrity and manual edits (CHX-021, CHX-210, CHX-220, CHX-380, CHX-390, CHX-410, CHX-240 remainder, CHX-050 persistence) | complete | chrona, order:07, storage, depends:arca | high |
 | WI-0033 | Chrona 08: offline use, persisted timer and sync reconciliation (CHX-101, CHX-102, CHX-105, CHX-200, CHX-230) | captured | chrona, order:08, offline, depends:arca | high |
 | WI-0034 | Chrona 09: rebuildable derived state - indexes, totals, approval and publication projections (CHX-400) | captured | chrona, order:09, derived-state | medium |

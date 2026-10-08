@@ -618,10 +618,10 @@
         "reference-data"
       ],
       "priority": "high",
-      "status": "captured",
+      "status": "complete",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:47.656Z",
-      "updatedAt": "2026-10-08T13:15:26Z",
+      "updatedAt": "2026-10-08T13:35:55Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

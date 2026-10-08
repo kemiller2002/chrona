@@ -1145,3 +1145,36 @@ textarea.chrona-export {
 .chrona-evidence__notes:empty {
   display: none;
 }
+
+/* ---- The organization's people (WI-0031) ------------------------------------ */
+
+.chrona-members {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1rem 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chrona-members__item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.chrona-members__item p {
+  margin: 0;
+}
+
+.chrona-members__account {
+  display: block;
+  color: var(--ef-color-text-secondary);
+  font-size: 0.85rem;
+}
+
+@media (max-width: 40rem) {
+  .chrona-members__item {
+    grid-template-columns: 1fr;
+  }
+}

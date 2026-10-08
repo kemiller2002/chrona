@@ -21,7 +21,7 @@ let private ok =
     | Error error -> failwith $"%A{error}"
 
 let private configuration (environment: string) =
-    """{"environment":"ENV","environmentName":"ENV","location":{"owner":"acme","repository":"chrona-data","branch":"main","basePath":"deployments"},"identity":{"exchange":"https://fides.test","application":"chrona-test","provider":"github","clientId":"Iv23liTEST","redirectUri":"https://chrona.test/"},"organization":{"id":"org_acme","displayName":"Acme Consulting","slug":"acme","timeZone":"America/New_York"}}"""
+    """{"environment":"ENV","environmentName":"ENV","location":{"owner":"acme","repository":"chrona-data","branch":"main","basePath":"deployments"},"identity":{"exchange":"https://fides.test","application":"chrona-test","provider":"github","clientId":"Iv23liTEST","redirectUri":"https://chrona.test/"},"organizations":[{"id":"org_acme","displayName":"Acme Consulting","slug":"acme","timeZone":"America/New_York"}]}"""
         .Replace("ENV", environment)
     |> Deployment.parse
     |> ok
@@ -51,7 +51,8 @@ let private snapshot (visibility: RepositoryVisibility) : CapabilitySnapshot =
 let private keys = ref 0
 
 /// One device: a page's bridge and store over the shared in-memory GitHub.
-type private Device(github: InMemoryStore, visibility: RepositoryVisibility, environment: string) =
+type private Device(github: InMemoryStore, visibility: RepositoryVisibility, environment: string, person: Session, config: Deployment.DeploymentConfig) =
+
     let bridge = Bridge.Bridge()
 
     let backend: Store.Backend =
@@ -66,6 +67,8 @@ type private Device(github: InMemoryStore, visibility: RepositoryVisibility, env
     let ctx =
         { Now = start
           NewId = fun prefix -> $"{prefix}-{environment}-{Threading.Interlocked.Increment ids:D6}-{Guid.NewGuid():N}" }
+
+    new(github, visibility, environment) = Device(github, visibility, environment, octocat, configuration environment)
 
     member val Model = Model.initial noOne InMemory start with get, set
 
@@ -93,10 +96,10 @@ type private Device(github: InMemoryStore, visibility: RepositoryVisibility, env
 
     /// Opens Chrona in this deployment and signs in as octocat.
     member this.Open() =
-        this.Model <- { Model.initial noOne InMemory start with Deployment = Some(configuration environment) }
+        this.Model <- { Model.initial noOne InMemory start with Deployment = Some config }
         this.Send(EnvironmentDescribed "America/New_York")
         this.Model <- { this.Model with Identity = { this.Model.Identity with Mode = SignInRequired false } }
-        this.Send(IdentityChanged(SignedInAs octocat))
+        this.Send(IdentityChanged(SignedInAs person))
 
 let private project (model: Model) = (Reference.selectable Reference.Project model.References).Head.Id
 let private activityType (model: Model) = (Reference.selectable Reference.ActivityType model.References).Head.Id
@@ -140,6 +143,8 @@ let ``a new repository is set up on first sign-in, and the records open empty`` 
     Assert.Equal<string list>(
         [ "deployments/chrona/arca-manifest.json"
           "deployments/chrona/datasets/org_acme/arca-manifest.json"
+          // The person who set it up founded it: they administer it.
+          "deployments/chrona/datasets/org_acme/records/chrona.member/github_3a583231.json"
           "deployments/chrona/datasets/org_acme/records/chrona.organization/org_acme.json" ],
         storedPaths github |> List.sort
     )
@@ -366,3 +371,101 @@ let ``the GitHub backend sends its requests through the bridge with Fides' token
     )
 
     Assert.Equal(0, unauthorized)
+
+// ---- Rosters, people and organizations (WI-0031) -------------------------------------
+
+let private hubot =
+    { ActorId = "github:1001"
+      OrganizationId = "local"
+      DisplayName = "hubot"
+      Kind = SignedIn "github" }
+
+[<Fact>]
+let ``only members work in an organization; an administrator adds people, and the roster is shared across devices`` () =
+    let github = InMemoryStore()
+    let founder = Device(github, RepositoryVisibility.Private, "production")
+    founder.Open()
+
+    // Someone else signs in: they are not a member, so nothing opens for them.
+    let config = configuration "production"
+    let stranger = Device(github, RepositoryVisibility.Private, "production", hubot, config)
+    stranger.Open()
+    Assert.False(canWork stranger.Model)
+    let view = Project.project stranger.Model |> Map.ofList
+    Assert.Equal(Chrona.Engine.View.Value(Chrona.Engine.View.Flag true), view["screenNotMember"])
+    Assert.True(stranger.Model.Ledger.Activities.IsEmpty)
+
+    // The founder adds them, to keep their own time.
+    founder.Ui("memberId", "1001")
+    founder.Ui("memberName", "hubot")
+    founder.Ui("memberAccess", "ownTime")
+    founder.Ui("admitMember", "")
+    Assert.Equal(None, founder.Model.Store.Problem)
+
+    let colleague = Device(github, RepositoryVisibility.Private, "production", hubot, config)
+    colleague.Open()
+    Assert.True(canWork colleague.Model)
+    Assert.Equal<Access.Capability Set>(Access.Grants.ownTime, Access.capabilitiesOf colleague.Model.Roster "github:1001")
+
+    // A member who may not manage the organization cannot change the roster.
+    colleague.Send(Ui("changeMemberAccess", Some "github:1001", "administrator", None))
+    Assert.Equal<Access.Capability Set>(Access.Grants.ownTime, Access.capabilitiesOf colleague.Model.Roster "github:1001")
+
+    // The founder makes them a reviewer; the change is stored and read elsewhere.
+    founder.Send(Ui("changeMemberAccess", Some "github:1001", "reviewer", None))
+    let again = Device(github, RepositoryVisibility.Private, "production", hubot, config)
+    again.Open()
+    Assert.Equal<Access.Capability Set>(Access.Grants.reviewer, Access.capabilitiesOf again.Model.Roster "github:1001")
+
+    // The only administrator cannot remove themselves.
+    founder.Send(Ui("removeMember", Some "github:583231", "", None))
+    Assert.True(founder.Model.Roster.Members.ContainsKey "github:583231")
+
+    // Removing the colleague takes effect on their next opening.
+    founder.Send(Ui("removeMember", Some "github:1001", "", None))
+    let removed = Device(github, RepositoryVisibility.Private, "production", hubot, config)
+    removed.Open()
+    Assert.False(canWork removed.Model)
+
+[<Fact>]
+let ``reference data changed on one device is what another device opens`` () =
+    let github = InMemoryStore()
+    let first = Device(github, RepositoryVisibility.Private, "production")
+    first.Open()
+    record first "09:00" "10:00" "Pairing"
+    let project = (Reference.selectable Reference.Project first.Model.References).Head
+    first.Send(Ui("referenceActive", Some $"project:{project.Id}", "", Some false))
+
+    let second = Device(github, RepositoryVisibility.Private, "production")
+    second.Open()
+    Assert.Equal(Reference.Archived, second.Model.References.Items[(Reference.Project, project.Id)].Status)
+    // Archived, so no longer offered, but still valid on the record that carries it.
+    Assert.Empty(Reference.selectable Reference.Project second.Model.References)
+    Assert.Equal(project.Id, (second.Model.Ledger.Activities |> Map.toList |> List.head |> snd).Classification.ProjectId)
+
+[<Fact>]
+let ``a person works in one of the deployment's organizations at a time, each in its own folder`` () =
+    let github = InMemoryStore()
+
+    let config =
+        """{"environment":"production","environmentName":"production","location":{"owner":"acme","repository":"chrona-data","branch":"main","basePath":"deployments"},"identity":{"exchange":"https://fides.test","application":"chrona-test","provider":"github","clientId":"Iv23liTEST","redirectUri":"https://chrona.test/"},"organizations":[{"id":"org_acme","displayName":"Acme Consulting","slug":"acme","timeZone":"America/New_York"},{"id":"org_eu","displayName":"Acme Europe","slug":"acme-eu","timeZone":"Europe/Berlin"}]}"""
+        |> Deployment.parse
+        |> ok
+
+    let device = Device(github, RepositoryVisibility.Private, "production", octocat, config)
+    device.Open()
+    Assert.Equal("org_acme", device.Model.Session.OrganizationId)
+    record device "09:00" "10:00" "Acme work"
+
+    device.Ui("chooseOrganization", "org_eu")
+    Assert.Equal("org_eu", device.Model.Session.OrganizationId)
+    Assert.True(canWork device.Model)
+    Assert.True(device.Model.Ledger.Activities.IsEmpty)
+    record device "11:00" "12:00" "Europe work"
+
+    let paths = storedPaths github
+    Assert.Contains(paths, fun path -> path.StartsWith "deployments/chrona/datasets/org_eu/records/chrona.activity/")
+    Assert.Contains(paths, fun path -> path.StartsWith "deployments/chrona/datasets/org_acme/records/chrona.activity/")
+
+    device.Ui("chooseOrganization", "org_acme")
+    Assert.Equal<string list>([ "Acme work" ], device.Model.Ledger.Activities |> Map.toList |> List.map (snd >> _.Classification.Description))

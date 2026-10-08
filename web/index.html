@@ -93,6 +93,15 @@
   </main>
 </template>
 
+<template data-if="screenNotMember">
+  <main class="chrona-gate" id="not-member">
+    <p class="chrona-brand"><span class="chrona-brand__mark" aria-hidden="true">C</span><span class="chrona-brand__name">Chrona</span></p>
+    <h1 class="chrona-title">You are not a member here yet.</h1>
+    <p class="chrona-intro" id="not-member-detail" data-text="notMemberDetail"></p>
+    <button type="button" class="chrona-action chrona-action--secondary" id="not-member-sign-out" data-event="signOut">Sign out</button>
+  </main>
+</template>
+
 <template data-if="shellVisible">
 <div class="chrona-shell">
   <aside class="chrona-sidebar" aria-label="Chrona">
@@ -1177,14 +1186,74 @@
                   </div>
                 </div>
               </template>
+              <template data-if="canChooseOrganization">
+                <label class="ef-select-field" id="organization-choice">
+                  <span class="ef-field__label">Organization</span>
+                  <span class="ef-select">
+                    <select class="ef-select__input" id="organization" data-event="chooseOrganization">
+                      <template data-each="organizationOptions" data-key="id"><option data-bind-value="id" data-bind-selected="selected" data-text="name"></option></template>
+                    </select>
+                    <span class="ef-select__indicator" aria-hidden="true"></span>
+                  </span>
+                </label>
+              </template>
               <div class="chrona-access" id="access">
-                <p class="chrona-intro">In <strong data-text="accessOrganization"></strong> you can:</p>
+                <p class="chrona-intro">In <strong data-text="organizationName"></strong> you can:</p>
                 <ul class="chrona-access__list"><template data-each="accessCapabilities" data-key="id"><li data-bind-data-capability="id" data-text="name"></li></template></ul>
               </div>
               <template data-if="accountLocal">
                 <p class="chrona-intro" id="account-local">This deployment has no sign-in: you are working in a local session in this browser tab.</p>
               </template>
             </section>
+
+            <template data-if="canManageMembers">
+              <section class="ef-surface chrona-card" aria-labelledby="people-title" id="people">
+                <h2 class="chrona-section-title" id="people-title">People</h2>
+                <p class="chrona-intro">Who works in <span data-text="organizationName"></span>, and what each may do. Everyone signs in with GitHub.</p>
+                <ul class="chrona-members" id="members">
+                  <template data-each="members" data-key="id">
+                    <li class="chrona-members__item">
+                      <p><strong data-text="name"></strong> <span class="chrona-members__account">GitHub account <span data-text="account"></span></span></p>
+                      <span class="ef-select">
+                        <select class="ef-select__input" aria-label="Access" data-event="changeMemberAccess" data-bind-value="access">
+                          <option value="ownTime">Keeps their own time</option>
+                          <option value="reviewer">Reviews the organization's time</option>
+                          <option value="administrator">Administers the organization</option>
+                          <option value="custom" disabled>Custom</option>
+                        </select>
+                        <span class="ef-select__indicator" aria-hidden="true"></span>
+                      </span>
+                      <button type="button" class="chrona-link" data-event="removeMember">Remove</button>
+                    </li>
+                  </template>
+                </ul>
+                <form class="chrona-stack" id="admit-member" data-event="admitMember" aria-label="Add a member">
+                  <div class="ef-field">
+                    <label class="ef-field__label" for="member-id">GitHub account number <span aria-hidden="true">*</span></label>
+                    <input id="member-id" type="text" inputmode="numeric" aria-required="true" data-event="memberId" data-on="input" data-bind-value="memberId" />
+                  </div>
+                  <div class="ef-field">
+                    <label class="ef-field__label" for="member-name">Name <span aria-hidden="true">*</span></label>
+                    <input id="member-name" type="text" aria-required="true" data-event="memberName" data-on="input" data-bind-value="memberName" />
+                  </div>
+                  <label class="ef-select-field">
+                    <span class="ef-field__label">Access</span>
+                    <span class="ef-select">
+                      <select class="ef-select__input" id="member-access" data-event="memberAccess" data-bind-value="memberAccess">
+                        <option value="ownTime">Keeps their own time</option>
+                        <option value="reviewer">Reviews the organization's time</option>
+                        <option value="administrator">Administers the organization</option>
+                      </select>
+                      <span class="ef-select__indicator" aria-hidden="true"></span>
+                    </span>
+                  </label>
+                  <template data-if="hasMemberProblems">
+                    <ul class="chrona-problems" role="alert" id="member-problems"><template data-each="memberProblems" data-key="id"><li data-bind-data-code="code" data-text="text"></li></template></ul>
+                  </template>
+                  <button type="submit" class="chrona-action chrona-action--secondary" id="admit">Add member</button>
+                </form>
+              </section>
+            </template>
           </aside>
         </div>
         <footer class="chrona-footer">Chrona preserves original records and records later changes separately.</footer>

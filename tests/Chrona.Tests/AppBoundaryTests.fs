@@ -412,7 +412,26 @@ let private richViews () =
         let model = state.Model.Value
         { state with Model = Some { model with Store = { model.Store with Integrity = [ Chrona.Domain.Diagnostics.ExternalEdit "records/chrona.activity/a/2026/10/A-1.json" ] } } }
 
-    [ activity; review; month; today; view restricted; view troubled ]
+    // Signed in to a deployment of two organizations, as their administrator,
+    // with a refused attempt to add a member.
+    let administering =
+        let model = state.Model.Value
+
+        let config =
+            """{"environment":"test","environmentName":"test","location":{"owner":"acme","repository":"chrona-data","branch":"main","basePath":""},"identity":{"exchange":"https://fides.test","application":"chrona-test","provider":"github","clientId":"Iv23li","redirectUri":"https://chrona.test/"},"organizations":[{"id":"org_a","displayName":"A","slug":"a","timeZone":"UTC"},{"id":"org_b","displayName":"B","slug":"b","timeZone":"UTC"}]}"""
+            |> Chrona.Domain.Deployment.parse
+            |> function
+                | Ok config -> config
+                | Error error -> failwith $"{error}"
+
+        let signedIn =
+            { model with
+                Deployment = Some config
+                Identity = { model.Identity with Mode = SignedInMode } }
+
+        send { state with Model = Some signedIn } (event "admitMember" None "")
+
+    [ activity; review; month; today; view restricted; view troubled; view administering ]
 
 [<Fact>]
 let ``the application page binds only what its engine projects and sends only what it handles`` () =

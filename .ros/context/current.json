@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-08T13:18:08Z",
+  "updatedAt": "2026-10-08T13:35:55Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -1645,6 +1645,59 @@
         }
       },
       "completedAt": "2026-10-08T13:18:08Z"
+    },
+    {
+      "id": "WI-0031",
+      "type": "feature",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Domain/MemberRecord.fs"
+        },
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Application/Store.fs"
+        },
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Domain/Review.fs"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/StoreTests.fs"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/ReviewBillingTests.fs"
+        }
+      ],
+      "updatedAt": "2026-10-08T13:35:55Z",
+      "telemetryExecutionIds": [
+        "EXE-20261008T132359552Z-11bd758b"
+      ],
+      "latestCheckpoint": {
+        "id": "2508640f8030223ab5154209",
+        "recordedAt": "2026-10-08T13:35:53Z",
+        "executionId": "EXE-20261008T132359552Z-11bd758b",
+        "repository": "chrona",
+        "branch": "feat/wi-0031-rosters-organizations",
+        "commit": "7bac74a61a14589b6996333aa714cf9c64ff4b9e",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/chrona"
+        },
+        "remoteBranch": "feat/wi-0031-rosters-organizations",
+        "remoteCommit": "7bac74a61a14589b6996333aa714cf9c64ff4b9e",
+        "summary": "Stored rosters and member administration, organization lists and choice, references across devices, publication staging and invoice report (commit 7bac74a)",
+        "nextAction": "Open the PR; merge once every check on its head is green; then report",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      },
+      "completedAt": "2026-10-08T13:35:55Z"
     }
   ]
 }

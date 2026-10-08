@@ -13,6 +13,16 @@ open Chrona.Domain.Diagnostics
 open Chrona.Domain.Activity
 open Chrona.Domain.Ledger
 
+/// What Summa reports when it has invoiced published time (6.3): which
+/// publication, of which activity revision, under which of its invoices.
+/// Identifiers only; money stays with Summa.
+type InvoiceReport =
+    { PublicationId: string
+      ActivityId: string
+      Revision: int
+      InvoiceReference: string
+      At: DateTimeOffset }
+
 type ReviewConfig =
     { /// Approval is organization-configurable (6.2, 14).
       ApprovalRequired: bool }
@@ -59,14 +69,18 @@ type Workflow =
       Approvals: Approval list
       Attestations: Attestation list
       /// The latest publication of each activity.
-      Publications: Map<string, PublicationRecord> }
+      Publications: Map<string, PublicationRecord>
+      /// Invoices Summa reported for published time, by activity id: Summa's
+      /// identifiers only, never amounts (6.3).
+      Invoices: Map<string, InvoiceReport> }
 
 let start (ledger: Ledger) =
     { Ledger = ledger
       Submissions = Map.empty
       Approvals = []
       Attestations = []
-      Publications = Map.empty }
+      Publications = Map.empty
+      Invoices = Map.empty }
 
 let private activities (workflow: Workflow) = workflow.Ledger.Activities |> Map.toList |> List.map snd
 
@@ -261,3 +275,37 @@ let publish (config: ReviewConfig) (policies: Billing.BillingPolicy list) (conte
             { (transition context "publish" None [ activity ] workflow) with
                 Publications = workflow.Publications.Add(id, record) },
             record)
+
+/// Stages approved billable time for publication (6.3): Unpublished becomes
+/// ReadyForPublication when every publication gate passes. Staged time that
+/// changes falls back to Unpublished (Ledger).
+let stage (config: ReviewConfig) (policies: Billing.BillingPolicy list) (context: CommandContext) (ids: string list) (workflow: Workflow) =
+    ids
+    |> List.map (fun id ->
+        candidate config policies workflow id
+        |> Result.bind (fun _ ->
+            let a = workflow.Ledger.Activities[id]
+
+            match a.Publication with
+            | Unpublished
+            | AdjustmentRequired -> Ok { a with Publication = ReadyForPublication }
+            | other -> Error [ PublicationStateConflict $"{id} is {other}, not ready to stage" ]))
+    |> all
+    |> Result.map (fun staged -> transition context "stage" None staged workflow)
+
+/// Records Summa's report that published time was invoiced (6.3): the
+/// publication must be the one recorded for that activity, at that revision.
+/// The same report again is a no-op; a report for another publication or
+/// revision is refused, never applied.
+let recordInvoiced (context: CommandContext) (report: InvoiceReport) (workflow: Workflow) =
+    match workflow.Publications.TryFind report.ActivityId, workflow.Ledger.Activities.TryFind report.ActivityId with
+    | _, None -> Error [ UnknownActivity report.ActivityId ]
+    | Some publication, Some a when publication.PublicationId = report.PublicationId && publication.Revision = report.Revision ->
+        match a.Publication with
+        | InvoicedExternally when workflow.Invoices.TryFind report.ActivityId = Some report -> Ok workflow
+        | Published ->
+            Ok
+                { (transition context "invoiced-externally" None [ { a with Publication = InvoicedExternally } ] workflow) with
+                    Invoices = workflow.Invoices.Add(report.ActivityId, report) }
+        | other -> Error [ PublicationStateConflict $"{report.ActivityId} is {other}, not published" ]
+    | _ -> Error [ PublicationStateConflict $"{report.PublicationId} is not the publication of {report.ActivityId} at revision {report.Revision}" ]

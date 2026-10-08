@@ -39,6 +39,8 @@ let private fieldName =
     | "name" -> "a name"
     | "evidenceLabel" -> "a label saying what the evidence is"
     | "evidenceKind" -> "the kind of evidence"
+    | "memberId" -> "the person's GitHub account number"
+    | "memberName" -> "the person's name"
     | "statement" -> "an attestation statement"
     | other -> other
 
@@ -115,7 +117,10 @@ let describe (model: Model) (diagnostic: Diagnostic) =
     | IncompleteRead folder -> $"Not everything in {folder} could be read."
     | ExternalEdit path -> $"{path} was changed outside Chrona. It is held until it is reviewed."
     | UnauthorizedCapability capability -> $"You do not have permission to {capabilityText capability} in this organization."
-    | NotAMember _ -> "You are not a member of this organization."
+    | NotAMember _ -> "That person is not a member of this organization."
+    | AlreadyAMember _ -> "That person is already a member."
+    | LastAdministrator _ -> "Someone else must be able to manage the organization first."
+    | CapabilityNotForKind(capability, _) -> $"Only a person can {capabilityText capability}."
     | other -> $"Chrona could not do that ({code other})."
 
 let private problemItems (model: Model) (form: Form) =
@@ -923,6 +928,57 @@ let private identityView (model: Model) =
           (model.Store.Integrity
            |> List.mapi (fun index d -> [ t "id" $"{index}"; t "code" (code d); t "text" (describe model d) ])) ]
 
+let private accessName (capabilities: Set<Access.Capability>) =
+    if capabilities = Access.Grants.administrator then "administrator"
+    elif capabilities = Access.Grants.reviewer then "reviewer"
+    elif capabilities = Access.Grants.ownTime then "ownTime"
+    else "custom"
+
+let private organizationName (model: Model) (organizationId: string) =
+    model.Deployment
+    |> Option.bind (fun config -> Deployment.organization config organizationId)
+    |> Option.map _.DisplayName
+    |> Option.defaultValue organizationId
+
+/// The organizations of the deployment, the members of the current one,
+/// and the gate for someone who is not a member (3, 2.5).
+let private membershipView (model: Model) =
+    let organizations = model.Deployment |> Option.map _.Organizations |> Option.defaultValue []
+    let me = model.Session.ActorId
+    let subject = (me.Split(':', 2) |> Array.last)
+
+    let notMember =
+        model.Identity.Mode = SignedInMode
+        && not model.Store.Opening
+        && model.Store.Failure.IsNone
+        && not (model.Roster.Members.ContainsKey me)
+
+    [ flag "screenNotMember" notMember
+      text
+          "notMemberDetail"
+          $"You signed in as {model.Session.DisplayName}. GitHub account {subject} is not a member of {organizationName model model.Session.OrganizationId}. Ask one of its administrators to add GitHub account {subject}."
+      text "organizationName" (organizationName model model.Session.OrganizationId)
+      flag "canChooseOrganization" (model.Identity.Mode = SignedInMode && organizations.Length > 1)
+      items
+          "organizationOptions"
+          [ for organization in organizations ->
+                [ t "id" organization.Id; t "name" organization.DisplayName; f "selected" (organization.Id = model.Session.OrganizationId) ] ]
+      // A local session has no one else to add.
+      flag "canManageMembers" (model.Identity.Mode = SignedInMode && permits model Access.ManageOrganizationSettings)
+      items
+          "members"
+          [ for KeyValue(id, membership) in model.Roster.Members ->
+                [ t "id" id
+                  t "name" membership.Principal.DisplayName
+                  t "account" (id.Split(':', 2) |> Array.last)
+                  t "access" (accessName membership.Capabilities)
+                  f "isYou" (id = me) ] ]
+      text "memberId" model.MemberDraft.Id
+      text "memberName" model.MemberDraft.Name
+      text "memberAccess" model.MemberDraft.Access
+      flag "hasMemberProblems" (model.Problems.ContainsKey MemberForm)
+      items "memberProblems" (problemItems model MemberForm) ]
+
 /// What the session's person may do in the organization (3).
 let private accessView (model: Model) =
     let held = Access.capabilitiesOf model.Roster model.Session.ActorId
@@ -963,6 +1019,7 @@ let project (model: Model) : View =
       text "announcement" model.Announcement
       yield! identityView model
       yield! accessView model
+      yield! membershipView model
       text "sessionName" model.Session.DisplayName
       text "sessionInitials" (Format.initials model.Session.DisplayName)
       text "storeTone" tone

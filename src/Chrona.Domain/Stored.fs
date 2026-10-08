@@ -15,6 +15,12 @@ type StoredReference =
       Path: RelativePath
       Revision: Revision }
 
+/// A membership as read from storage.
+type StoredMember =
+    { Membership: Access.Membership
+      Path: RelativePath
+      Revision: Revision }
+
 [<NoComparison>]
 type Stored =
     { Activities: Persistence.Snapshot
@@ -22,6 +28,8 @@ type Stored =
       References: Map<string, StoredReference>
       /// Attestations, by namespace-relative path. They are immutable.
       Attestations: Map<string, Review.Attestation>
+      /// The organization's members, by principal id.
+      Members: Map<string, StoredMember>
       /// Integrity problems of reference items and attestations.
       Problems: Diagnostic list }
 
@@ -29,6 +37,7 @@ let empty =
     { Activities = Persistence.empty
       References = Map.empty
       Attestations = Map.empty
+      Members = Map.empty
       Problems = [] }
 
 /// The key a reference item is tracked by.
@@ -86,6 +95,21 @@ let load (objects: StoredObject list) : Stored =
                 | Error diagnostic -> Error diagnostic))
         |> List.partition Result.isOk
 
+    let members, memberProblems =
+        ofType MemberRecord.recordType
+        |> List.map (fun (key, stored) ->
+            decodeWith MemberRecord.schema MemberRecord.ofBody key stored
+            |> Result.bind (fun membership ->
+                match MemberRecord.path membership.Principal.PrincipalId with
+                | Ok expected when expected = stored.Path ->
+                    Ok
+                        { Membership = membership
+                          Path = stored.Path
+                          Revision = stored.Revision }
+                | Ok _ -> Error(MisplacedRecord(RelativePath.render stored.Path))
+                | Error diagnostic -> Error diagnostic))
+        |> List.partition Result.isOk
+
     let foreign =
         objects
         |> List.filter (fun stored ->
@@ -94,6 +118,7 @@ let load (objects: StoredObject list) : Stored =
                 key.Type <> ActivityRecord.recordType
                 && key.Type <> ReferenceRecord.recordType
                 && key.Type <> AttestationRecord.recordType
+                && key.Type <> MemberRecord.recordType
             | None -> true)
         |> List.map (fun stored -> InvalidStoredRecord(RelativePath.render stored.Path, "not a record Chrona keeps here"))
 
@@ -112,7 +137,13 @@ let load (objects: StoredObject list) : Stored =
     { Activities = Persistence.load activities
       References = oks references |> List.map (fun found -> referenceKey found.Item, found) |> Map.ofList
       Attestations = oks attestations |> Map.ofList
-      Problems = errors referenceProblems @ errors attestationProblems @ foreign }
+      Members = oks members |> List.map (fun found -> found.Membership.Principal.PrincipalId, found) |> Map.ofList
+      Problems = errors referenceProblems @ errors attestationProblems @ errors memberProblems @ foreign }
+
+/// The organization's roster, from what was read.
+let roster (organizationId: string) (stored: Stored) : Access.Roster =
+    { OrganizationId = organizationId
+      Members = stored.Members |> Map.map (fun _ found -> found.Membership) }
 
 /// The organization's reference catalogue, from what was read.
 let catalogue (organizationId: string) (stored: Stored) : Reference.Catalogue =
@@ -123,16 +154,30 @@ let catalogue (organizationId: string) (stored: Stored) : Reference.Catalogue =
 let attestations (stored: Stored) =
     stored.Attestations |> Map.toList |> List.map snd |> List.sortBy _.At
 
+/// The records one command changes.
+type Changed =
+    { Activities: Activity.Activity list
+      References: Reference.Item list
+      Attestations: Review.Attestation list
+      /// Memberships admitted or changed.
+      Members: Access.Membership list
+      /// Principals removed from the roster.
+      Removed: string list }
+
+/// Nothing changed.
+let nothing =
+    { Activities = []
+      References = []
+      Attestations = []
+      Members = []
+      Removed = [] }
+
 /// The Arca changes that store a command's records on top of what was read:
-/// activities as `Persistence.changes`, reference items created or updated
-/// at the revision last read, and attestations created once (an attestation
-/// already stored is never written again).
-let changes
-    (stored: Stored)
-    (activities: Activity.Activity list)
-    (references: Reference.Item list)
-    (attestations: Review.Attestation list)
-    : Result<Change list, Diagnostic list> =
+/// activities as `Persistence.changes`, reference items and memberships
+/// created or updated at the revision last read, removed members deleted
+/// at it, and attestations created once (an attestation already stored is
+/// never written again).
+let changes (stored: Stored) (changed: Changed) : Result<Change list, Diagnostic list> =
     let referenceChange (item: Reference.Item) =
         match ReferenceRecord.path item, ReferenceRecord.encode item with
         | Ok target, Ok content ->
@@ -149,28 +194,38 @@ let changes
         | Error diagnostic, _
         | _, Error diagnostic -> Error [ diagnostic ]
 
+    let memberChange (membership: Access.Membership) =
+        match MemberRecord.path membership.Principal.PrincipalId, MemberRecord.encode membership with
+        | Ok target, Ok content ->
+            match stored.Members.TryFind membership.Principal.PrincipalId with
+            | Some found -> Ok [ Change.Update(found.Path, content, found.Revision) ]
+            | None -> Ok [ Change.Create(target, content) ]
+        | Error diagnostic, _
+        | _, Error diagnostic -> Error [ diagnostic ]
+
+    let removal (principalId: string) =
+        match stored.Members.TryFind principalId with
+        | Some found -> Ok [ Change.Delete(found.Path, found.Revision) ]
+        | None -> Error [ NotAMember(principalId, "") ]
+
     let results =
-        [ Persistence.changes stored.Activities activities ]
-        @ (references |> List.map referenceChange)
-        @ (attestations |> List.map attestationChange)
+        [ Persistence.changes stored.Activities changed.Activities ]
+        @ (changed.References |> List.map referenceChange)
+        @ (changed.Attestations |> List.map attestationChange)
+        @ (changed.Members |> List.map memberChange)
+        @ (changed.Removed |> List.map removal)
 
     match results |> List.collect (function Error problems -> problems | Ok _ -> []) with
     | [] -> Ok(results |> List.collect (function Ok found -> found | Error _ -> []))
     | problems -> Error problems
 
 /// What was stored after a commit of these records landed with `receipt`.
-let committed
-    (activities: Activity.Activity list)
-    (references: Reference.Item list)
-    (attestations: Review.Attestation list)
-    (receipt: CommitReceipt)
-    (stored: Stored)
-    =
+let committed (changed: Changed) (receipt: CommitReceipt) (stored: Stored) =
     let revisionOf path =
         receipt.Revisions.TryFind(RelativePath.render path) |> Option.flatten
 
     let references' =
-        references
+        changed.References
         |> List.fold
             (fun map (item: Reference.Item) ->
                 match ReferenceRecord.path item with
@@ -182,7 +237,7 @@ let committed
             stored.References
 
     let attestations' =
-        attestations
+        changed.Attestations
         |> List.fold
             (fun map (attestation: Review.Attestation) ->
                 match AttestationRecord.path attestation with
@@ -190,18 +245,40 @@ let committed
                 | Error _ -> map)
             stored.Attestations
 
+    let members' =
+        changed.Members
+        |> List.fold
+            (fun map (membership: Access.Membership) ->
+                match MemberRecord.path membership.Principal.PrincipalId with
+                | Ok target ->
+                    match revisionOf target with
+                    | Some revision ->
+                        Map.add
+                            membership.Principal.PrincipalId
+                            { Membership = membership
+                              Path = target
+                              Revision = revision }
+                            map
+                    | None -> map
+                | Error _ -> map)
+            stored.Members
+        |> fun map -> changed.Removed |> List.fold (fun map principalId -> Map.remove principalId map) map
+
     { stored with
-        Activities = Persistence.committed activities receipt stored.Activities
+        Activities = Persistence.committed changed.Activities receipt stored.Activities
         References = references'
-        Attestations = attestations' }
+        Attestations = attestations'
+        Members = members' }
 
 /// The folders the application reads for an actor and a set of dates: the
-/// reference folders, and the activity and attestation month folders.
+/// members, the reference folders, and the activity and attestation month
+/// folders.
 let folders (actorId: string) (dates: System.DateOnly list) : Result<RelativePath list, Diagnostic> =
     let months = dates |> List.distinctBy (fun date -> date.Year, date.Month) |> List.sort
 
     let all =
-        ReferenceRecord.folders ()
+        [ MemberRecord.folder () ]
+        @ ReferenceRecord.folders ()
         @ (months |> List.map (ActivityRecord.monthFolder actorId))
         @ (months |> List.map (AttestationRecord.monthFolder actorId))
 

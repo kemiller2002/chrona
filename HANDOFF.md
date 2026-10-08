@@ -52,7 +52,7 @@ for the diagnosis, the evidence, and one unexercised watch item.
 - Requirement coverage per section is tracked in
   [`docs/requirements/implementation-gap-analysis.md`](docs/requirements/implementation-gap-analysis.md)
   (`CHX-NNM` ids, baseline and current columns; `GapAnalysisTests` holds the
-  counts). 25 tested, 33 partial, 5 missing of 63 (baseline 0 / 7 / 56).
+  counts). 28 tested, 30 partial, 5 missing of 63 (baseline 0 / 7 / 56).
 - `src/Chrona.Domain` is the pure time domain: `Diagnostics`, `Time`,
   `Activity`, `Overlap`, `ManualEntry` (WI-0020), `Ledger` (WI-0021),
   `Timer` (WI-0022), `Billing` and `Review` (WI-0023), `Compatibility`
@@ -98,8 +98,13 @@ for the diagnosis, the evidence, and one unexercised watch item.
   state, reloads and decides again when it moved, and holds records edited
   outside Chrona. A local deployment keeps records in the tab. Tested
   against Arca's in-memory provider; the real check is WI-0052.
-- Not built: stored rosters, member administration and choosing an
-  organization (WI-0031), offline sync (WI-0033), derived indexes (WI-0034),
+- Rosters, people and organizations (WI-0031): member records in each
+  organization's folder; the founder administers; only members work;
+  administrators add people and change their access under More; a
+  deployment lists its organizations and a person chooses one. Publication
+  staging (ReadyForPublication) and Summa's invoice report
+  (InvoicedExternally) are domain transitions; their transport is WI-0037.
+- Not built: offline sync (WI-0033), derived indexes (WI-0034),
   `Chrona.Integration` (Summa owns the contract), submission and approval screens (need actors and
   authorization, WI-0030 after Fides), and reports over stored data across
   people and organizations (WI-0039).
@@ -111,8 +116,9 @@ for the diagnosis, the evidence, and one unexercised watch item.
 
 ## Next action (time domain)
 
-Reference data administration and rosters on Arca (WI-0031); then Summa's
-contract package (WI-0037).
+Summa's contract package (WI-0037) once Summa publishes it; offline use
+(WI-0033); the real sign-in and storage check once a deployment exists
+(WI-0052).
 
 ## Unresolved questions
 

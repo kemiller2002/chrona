@@ -53,7 +53,7 @@ let applicationNamespace (binding: ApplicationBinding) : Result<Namespace, Diagn
 let organizationNamespace (config: DeploymentConfig) (binding: ApplicationBinding) (organizationId: string) : Result<Namespace, Diagnostic> =
     Organization.dataset organizationId
     |> Result.bind (fun dataset ->
-        match Map.tryFind organizationId config.OrganizationLocations with
+        match Deployment.organization config organizationId |> Option.bind _.Location with
         | None -> Ok None
         | Some location -> locationOf location |> Result.map Some
         |> Result.bind (fun location ->

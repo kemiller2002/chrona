@@ -105,6 +105,8 @@ let private afterChange (activity: Activity) : Result<PublicationState, Diagnost
     match activity.Publication with
     | Published
     | InvoicedExternally -> Ok AdjustmentRequired
+    // Staged time that changes is no longer what was staged.
+    | ReadyForPublication -> Ok Unpublished
     | other -> Ok other
 
 /// Changing reviewed time never leaves the review silently valid (14).

@@ -41,6 +41,12 @@ jobs:
       - name: Test
         run: dotnet test Chrona.sln --no-build --configuration Release --verbosity normal
 
+      # The page's brand CSS must be Forma's own compiler output for
+      # brand/chrona.brand.json at the pinned Forma release, never hand-edited.
+      - name: Verify the Chrona brand is Forma's compiler output
+        timeout-minutes: 5
+        run: tools/brand/compile.sh --check
+
       - name: Verify the Limen boundary
         run: npm run check:limen
 

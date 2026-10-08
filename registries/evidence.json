@@ -1,1 +1,49 @@
-[]
+[
+  {
+    "confidence": "high",
+    "contradicts": [],
+    "created_by_agent": "anthropic/claude-code",
+    "derived_from": [
+      "DF-CHRONA-2026-0001"
+    ],
+    "evidence_type": "primary",
+    "id": "EV-CHRONA-2026-0001",
+    "path": "research/evidence/EV-CHRONA-2026-0001--legacy-look-and-feel-inventory.md",
+    "provenance": {
+      "contributions": {
+        "EXE-20261008T083618828Z-5e4110e0": {
+          "actor": {
+            "id": "anthropic/claude-code",
+            "kind": "agent",
+            "model": "unknown",
+            "provider": "anthropic",
+            "runtime": "claude-code"
+          },
+          "at": "2026-10-08T08:41:17.375Z",
+          "operations": [
+            "created"
+          ],
+          "reason": "Catalogue the legacy look and feel and express it as Forma tokens"
+        }
+      }
+    },
+    "related_theories": [],
+    "research_area": "ui-reconstruction",
+    "retrieved": "2026-10-08",
+    "source_author": "kemiller2002",
+    "source_date": "2026-10-08",
+    "source_title": "kemiller2002/time-tracking-application (static-ui-screens and web)",
+    "source_uri": "https://github.com/kemiller2002/time-tracking-application/tree/38a0b657e1c686098169630a5920acaff5dedd6f",
+    "supports": [
+      "DF-CHRONA-2026-0001"
+    ],
+    "tags": [
+      "legacy",
+      "ui",
+      "inventory",
+      "forma",
+      "brand"
+    ],
+    "title": "Legacy time-tracking-application look and feel, catalogued and expressed as Forma tokens"
+  }
+]

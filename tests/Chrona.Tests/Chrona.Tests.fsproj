@@ -20,6 +20,7 @@
     <Compile Include="LedgerTests.fs" />
     <Compile Include="TimerTests.fs" />
     <Compile Include="ReviewBillingTests.fs" />
+    <Compile Include="BrandTokenTests.fs" />
   </ItemGroup>
 
   <ItemGroup>

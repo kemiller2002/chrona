@@ -31,7 +31,7 @@
 | WI-0023 | Billing projection, review lifecycle, attestation and Summa publication eligibility (sections 7, 8, 14, 16, 17) | complete | domain,billing,approval | high |
 | WI-0024 | Move chrona to Ordo 1.5.0 via echelon-current 1.2.0 (conditor upgrade --current) | complete |  | medium |
 | WI-0025 | Capture the remaining Chrona requirements as dependency-ordered backlog slices; add CHX-DATALOC-001 and record the 2026-10-08 decisions | complete | planning, requirements | high |
-| WI-0026 | Chrona 01: look-and-feel inventory of the legacy time-tracking-application (screens, layout, styles, interactions) | captured | chrona, order:01, legacy, ui, inventory | high |
+| WI-0026 | Chrona 01: look-and-feel inventory of the legacy time-tracking-application (screens, layout, styles, interactions) | active | chrona, order:01, legacy, ui, inventory | high |
 | WI-0027 | Chrona 02: decide reconstruction versus migration and record legacy data status (CHX-012, CHX-300, CHX-310) | captured | chrona, order:02, legacy, decision | high |
 | WI-0028 | Chrona 03: configurable data location and Chrona-owned namespace with organization manifests (CHX-DATALOC-001, CHX-024..027) | captured | chrona, order:03, data-location, depends:arca | high |
 | WI-0029 | Chrona 04: GitHub sign-in through Fides and token safety (CHX-022, CHX-023) | captured | chrona, order:04, auth, depends:fides, depends:arca | high |
@@ -47,3 +47,4 @@
 | WI-0039 | Chrona 14: search, reporting and export with Folio (CHX-270, CHX-280, CHX-290) | captured | chrona, order:14, reporting, folio | medium |
 | WI-0040 | Chrona 15: telemetry privacy, remaining scenario tests and the production completion gate (CHX-420, CHX-430, CHX-440, CHX-001, CHX-002, CHX-004 remainders) | captured | chrona, order:15, quality, gate | medium |
 | WI-0041 | Stop the Chromium install from hanging the browser-suite CI (unbounded apt-get update in playwright install --with-deps) | complete | ci, playwright, reliability | high |
+| WI-0042 | Raise Forma contract gaps G1-G6 from the legacy look-and-feel inventory (sidebar/tab bar, surface radius, display title scale, inverse hero, time-column timeline, filled primary action and control radius) so Chrona's chrona-* composition can retire | captured | forma, ui, order:10 | medium |

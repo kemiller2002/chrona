@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "1.0",
+  "brands": [
+    {
+      "id": "chrona",
+      "name": "Chrona",
+      "source": "chrona.brand.json",
+      "css": "chrona.css"
+    }
+  ]
+}

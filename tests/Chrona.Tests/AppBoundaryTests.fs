@@ -383,7 +383,23 @@ let private richViews () =
     let review = view (send state (locationChanged "#/review/2026-10-08"))
     let month = view (send state (locationChanged "#/month/2026-10"))
     let today = view (send state (locationChanged "#/today/2026-10-08"))
-    [ activity; review; month; today ]
+
+    // A member who may keep their own time but not change settings or
+    // export: the refusals are shown where the commands were made.
+    let restricted =
+        let model = state.Model.Value
+        let roster = model.Roster
+        let actor = model.Session.ActorId
+
+        let limited =
+            { roster with
+                Members =
+                    roster.Members.Add(actor, { roster.Members[actor] with Capabilities = set [ Chrona.Domain.Access.ViewOwnTime ] }) }
+
+        let limitedState = { state with Model = Some { model with Roster = limited } }
+        [ event "periodCadence" None "monthly"; event "copyExport" None "" ] |> List.fold send limitedState
+
+    [ activity; review; month; today; view restricted ]
 
 [<Fact>]
 let ``the application page binds only what its engine projects and sends only what it handles`` () =

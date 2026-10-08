@@ -1116,3 +1116,26 @@ textarea.chrona-export {
     font-size: clamp(2.2rem, 10vw, 3.4rem);
   }
 }
+
+/* ---- What the session's person may do (WI-0030) ---------------------------- */
+
+.chrona-access {
+  margin-block-start: 1rem;
+}
+
+.chrona-access__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.6rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chrona-access__list li {
+  padding: 0.2rem 0.6rem;
+  border: 1px solid var(--ef-color-border-subtle);
+  border-radius: var(--ef-primitive-radius-small);
+  color: var(--ef-color-text-secondary);
+  font-size: 0.85rem;
+}

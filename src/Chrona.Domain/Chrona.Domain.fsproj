@@ -11,6 +11,7 @@
     <Compile Include="Diagnostics.fs" />
     <Compile Include="Time.fs" />
     <Compile Include="Activity.fs" />
+    <Compile Include="Access.fs" />
     <Compile Include="Reference.fs" />
     <Compile Include="Overlap.fs" />
     <Compile Include="ManualEntry.fs" />

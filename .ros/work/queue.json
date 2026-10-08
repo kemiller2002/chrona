@@ -593,10 +593,10 @@
         "authorization"
       ],
       "priority": "high",
-      "status": "captured",
+      "status": "ready",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:47.325Z",
-      "updatedAt": "2026-10-08T07:43:47.325Z",
+      "updatedAt": "2026-10-08T12:40:28Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",
@@ -611,7 +611,7 @@
     {
       "id": "WI-0031",
       "title": "Chrona 06: reference data on Arca - authoritative reference records, their storage and administration across devices (CHX-040 remainder, CHX-063 remainder)",
-      "description": "Depends on WI-0028. The pure catalogue, archive semantics, assignment rules and billing references were built in memory by WI-0045; this item makes reference data authoritative records stored through Arca (organization-scoped, shared across devices and people) and wires the CHX-063 remainder (Summa's InvoicedExternally report and ReadyForPublication staging).",
+      "description": "Depends on WI-0028. The pure catalogue, archive semantics, assignment rules and billing references were built in memory by WI-0045; this item makes reference data authoritative records stored through Arca (organization-scoped, shared across devices and people) and wires the CHX-063 remainder (Summa's InvoicedExternally report and ReadyForPublication staging). Also the CHX-030 remainder: organization rosters (Access.Roster) stored as records beside the reference data, members admitted and capabilities granted or revoked across devices by those who hold ManageOrganizationSettings, and choosing the organization to work in when a person belongs to several.",
       "tags": [
         "chrona",
         "order:06",
@@ -621,7 +621,7 @@
       "status": "captured",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:47.656Z",
-      "updatedAt": "2026-10-08T09:03:25.766Z",
+      "updatedAt": "2026-10-08T12:44:58Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",
@@ -636,7 +636,7 @@
     {
       "id": "WI-0032",
       "title": "Chrona 07: authoritative storage on Arca - partitioned layout, repository concurrency, integrity and manual edits (CHX-021, CHX-210, CHX-220, CHX-380, CHX-390, CHX-410, CHX-240 remainder, CHX-050 persistence)",
-      "description": "Depends on WI-0028, WI-0030, arca slice 6 (GitHub adapter, ARCA-API/OUT) (GitHub adapter) and arca slice 8 (integrity, ARCA-INT) (integrity). Persist Chrona.Domain records through Arca: deterministic partitioned paths (organization/actor/year-month), bounded reads and writes, one operation as one commit, repository-state optimistic concurrency with reload, revalidation and surfaced semantic conflicts (a clean Git merge is not proof), validation of everything loaded, detection of manual edits, and an API-efficient today view. Covers scenarios 10, 31 and 32 end to end. Also the remaining evidence-reference fields (source, notes) of CHX-240. Includes persisting the full CHX-050 activity record. Also the WI-0028 remainders (CHX-024..027): read the deployment configuration and drive Storage.initializeApplication/initializeOrganization/openNamespace and Organization.read/renameOrganization through Arca's GitHub adapter from the Limen engine, store activities in each organization's folder (chrona/datasets/<OrganizationId>, its own repository when configured), and detect repository visibility from GitHub (Arca repository identity) before initializing production data. The pure persistence core (record codec, partitioned layout, change sets, integrity on load, manual-edit review, reload-and-rerun) is WI-0051; this item drives it through Arca's GitHub adapter from the Limen engine and covers the remaining API-efficiency (conditional requests, cached derived indexes, paging, rate limits, backoff) and integrity checks (receipts, publications). Token safety on the storage path (CHX-023 remainder): the GitHub adapter gets its token only from Fides' token provider (Identity.TokenProvider), reports a 401 to Fides, and no token reaches a commit, record, log or fault.",
+      "description": "Depends on WI-0028, WI-0030, arca slice 6 (GitHub adapter, ARCA-API/OUT) (GitHub adapter) and arca slice 8 (integrity, ARCA-INT) (integrity). Persist Chrona.Domain records through Arca: deterministic partitioned paths (organization/actor/year-month), bounded reads and writes, one operation as one commit, repository-state optimistic concurrency with reload, revalidation and surfaced semantic conflicts (a clean Git merge is not proof), validation of everything loaded, detection of manual edits, and an API-efficient today view. Covers scenarios 10, 31 and 32 end to end. Also the remaining evidence-reference fields (source, notes) of CHX-240. Includes persisting the full CHX-050 activity record. Also the WI-0028 remainders (CHX-024..027): read the deployment configuration and drive Storage.initializeApplication/initializeOrganization/openNamespace and Organization.read/renameOrganization through Arca's GitHub adapter from the Limen engine, store activities in each organization's folder (chrona/datasets/<OrganizationId>, its own repository when configured), and detect repository visibility from GitHub (Arca repository identity) before initializing production data. The pure persistence core (record codec, partitioned layout, change sets, integrity on load, manual-edit review, reload-and-rerun) is WI-0051; this item drives it through Arca's GitHub adapter from the Limen engine and covers the remaining API-efficiency (conditional requests, cached derived indexes, paging, rate limits, backoff) and integrity checks (receipts, publications). Token safety on the storage path (CHX-023 remainder): the GitHub adapter gets its token only from Fides' token provider (Identity.TokenProvider), reports a 401 to Fides, and no token reaches a commit, record, log or fault. Also the CHX-260 remainder of the stable diagnostics: an unresolved semantic merge conflict after reload (and, with their own items, the submitted-period restriction in WI-0036, the concurrent timer conflict in WI-0033 and the unsupported integration contract in WI-0037).",
       "tags": [
         "chrona",
         "order:07",
@@ -647,7 +647,7 @@
       "status": "captured",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:47.968Z",
-      "updatedAt": "2026-10-08T12:33:31Z",
+      "updatedAt": "2026-10-08T12:44:59Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

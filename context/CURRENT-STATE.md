@@ -25,6 +25,8 @@ and feel and its rules, rebuilt on Limen, Forma, Aegis and Folio
 - Sign-in with GitHub through Fides' client (WI-0029), configured by the
   deployment's document `web/chrona.deployment.json`; without an identity
   section the deployment is a local session.
+- Capability-based authorization (WI-0030): every command is checked
+  against the organization's roster (`Access`).
 - `Chrona.Engine` and `Chrona.Application`: the Limen engine and its Aegis
   boundary; `Chrona.Wasm`: the WebAssembly shim.
 - The Chrona Forma brand (`brand/chrona.brand.json`) and the legacy
@@ -36,7 +38,7 @@ and feel and its rules, rebuilt on Limen, Forma, Aegis and Folio
 ## Not yet built
 
 Driving storage through Arca's GitHub adapter from the engine (WI-0032),
-reference data on Arca (WI-0031), authorization (WI-0030), real sign-in
+reference data and rosters on Arca (WI-0031), real sign-in
 against a deployed Fides exchange (WI-0052), offline sync, and the
 Summa contract (owned and published by Summa). Today the application keeps
 its data in the tab's memory.

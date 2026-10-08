@@ -76,6 +76,12 @@ type Diagnostic =
     | InvalidLineage of id: string * other: string
     | IncompleteRead of folder: string
     | ExternalEdit of path: string
+    // Membership and authorization (WI-0030).
+    | UnauthorizedCapability of capability: string
+    | NotAMember of principalId: string * organizationId: string
+    | AlreadyAMember of principalId: string * organizationId: string
+    | LastAdministrator of organizationId: string
+    | CapabilityNotForKind of capability: string * kind: string
 
 /// The stable code: `CHRONA.<AREA>.<NAME>`.
 let code =
@@ -140,3 +146,8 @@ let code =
     | InvalidLineage _ -> "CHRONA.INTEGRITY.INVALID_LINEAGE"
     | IncompleteRead _ -> "CHRONA.INTEGRITY.INCOMPLETE_READ"
     | ExternalEdit _ -> "CHRONA.INTEGRITY.EXTERNAL_EDIT"
+    | UnauthorizedCapability _ -> "CHRONA.AUTH.UNAUTHORIZED_CAPABILITY"
+    | NotAMember _ -> "CHRONA.AUTH.NOT_A_MEMBER"
+    | AlreadyAMember _ -> "CHRONA.AUTH.ALREADY_A_MEMBER"
+    | LastAdministrator _ -> "CHRONA.AUTH.LAST_ADMINISTRATOR"
+    | CapabilityNotForKind _ -> "CHRONA.AUTH.CAPABILITY_NOT_FOR_KIND"

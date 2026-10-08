@@ -29,3 +29,4 @@
 | WI-0021 | Revision-safe lifecycle: amend, void, restore, split and merge with lineage and audit provenance (sections 12, 13, 21, 25) | complete | domain,lifecycle,audit | high |
 | WI-0022 | Timer state machine: one active timer, pause/resume, persisted segments, cross-midnight split, long-running review (section 10) | complete | domain,timer | high |
 | WI-0023 | Billing projection, review lifecycle, attestation and Summa publication eligibility (sections 7, 8, 14, 16, 17) | complete | domain,billing,approval | high |
+| WI-0024 | Move chrona to Ordo 1.5.0 via echelon-current 1.2.0 (conditor upgrade --current) | complete |  | medium |

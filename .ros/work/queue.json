@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "repository": "chrona",
-  "nextSeq": 43,
+  "nextSeq": 45,
   "items": [
     {
       "id": "WI-0001",
@@ -515,10 +515,10 @@
         "decision"
       ],
       "priority": "high",
-      "status": "captured",
+      "status": "complete",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:46.334Z",
-      "updatedAt": "2026-10-08T08:44:25.223Z",
+      "updatedAt": "2026-10-08T08:51:10.553Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",
@@ -906,6 +906,58 @@
       "attachments": [],
       "createdAt": "2026-10-08T08:41:17.009Z",
       "updatedAt": "2026-10-08T08:41:17.009Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0043",
+      "title": "Chrona.Domain: close the legacy rule gaps found reconciling DOMAIN-REQUIREMENTS.md (business purpose required, amendments revalidated, contiguous merge, timer nearest-minute and 30-second rule, evidence by record state, attestation statement) (CHX-012, CHX-090, CHX-103, CHX-130, CHX-160)",
+      "description": "DF-CHRONA-2026-0002 reconciliation gaps R1-R6. Pure domain; independent of Arca, Fides and the Summa contract. Precedes the UI rebuild so the screens enforce the legacy rules.",
+      "tags": [
+        "chrona",
+        "domain",
+        "legacy",
+        "order:02b"
+      ],
+      "priority": "high",
+      "status": "captured",
+      "attachments": [],
+      "createdAt": "2026-10-08T08:48:15.458Z",
+      "updatedAt": "2026-10-08T08:48:15.458Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0044",
+      "title": "Chrona: import legacy time-tracking-application records on Arca if production records appear (CHX-300 remainder)",
+      "description": "DF-CHRONA-2026-0002 migration path. Only if kemiller2002/time-tracking-data (business-activity 1.0.0, business-evidence-link 1.0.0) or a legacy ledger.json / business-activity-ledger:v1 document holds production records. One-way import on Arca's migration workflow; preserve listed fields; unknown stays unknown; counts and totals validated before and after. Depends on WI-0032.",
+      "tags": [
+        "chrona",
+        "legacy",
+        "migration",
+        "depends:arca"
+      ],
+      "priority": "low",
+      "status": "captured",
+      "attachments": [],
+      "createdAt": "2026-10-08T08:48:15.864Z",
+      "updatedAt": "2026-10-08T08:48:15.864Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

@@ -36,9 +36,10 @@ it is not a product feature. No time-tracking behaviour exists.
 
 The legacy sources the expansion asks to migrate
 (`time-tracking-application/docs/DOMAIN-REQUIREMENTS.md` and its integration
-docs) are not in this repository. This analysis and the implementation use
-the expansion's own restatement of them; reconciling against the legacy text
-remains open (CHX-012, CHX-300).
+docs) are not in this repository. This analysis and the implementation used
+the expansion's own restatement of them; WI-0027 reconciled the domain
+against the legacy text (DF-CHRONA-2026-0002) and WI-0043 closes the gaps it
+found.
 
 ## Highest-value gaps and the order they are closed
 
@@ -75,8 +76,8 @@ reporting and export remain open (see the rows marked `later`).
 | CHX-003 | partial | partial | **0.3 Limen.** F# engine behind Limen with real-browser verification of the slice (`verification/kernel-slice`, `TransportTests`). No product surface. | later |
 | CHX-004 | partial | partial | **0.4 F# architecture.** Engine/Application/Wasm tiers exist; no `Chrona.Domain` or `Chrona.Integration` assembly. **WI-0020:** pure `Chrona.Domain` assembly added beneath the engine. `Chrona.Integration` remains. | WI-0020 |
 | CHX-005 | partial | partial | **0.5 Shared foundations.** Aegis at the dispatch boundary, Forma page and Folio declared (`FoundationsConformanceTests`); no product surface uses them yet. | later |
-| CHX-011 | missing | missing | **1.1 Purpose.** Charter still generic; no time-tracking product. | later |
-| CHX-012 | missing | missing | **1.2 Preserve existing capabilities.** None of the listed capabilities exists; the legacy `time-tracking-application` sources are not in this repository. | WI-0020..WI-0023 |
+| CHX-011 | missing | tested | **1.1 Purpose.** Charter still generic; no time-tracking product. **WI-0027:** `PROJECT-CHARTER.md` and `context/CURRENT-STATE.md` describe the time-tracking product (`CompatibilityTests`). | WI-0027 |
+| CHX-012 | missing | partial | **1.2 Preserve existing capabilities.** None of the listed capabilities exists; the legacy `time-tracking-application` sources are not in this repository. **WI-0027:** the legacy `DOMAIN-REQUIREMENTS.md` is reconciled rule by rule against `Chrona.Domain` (DF-CHRONA-2026-0002); gaps R1-R6 are WI-0043. Reference data, GitHub sync, offline use, observations and receipts remain with their slices. | WI-0020..WI-0023, WI-0027, WI-0043 |
 | CHX-021 | missing | missing | **2.1 Authoritative storage.** No GitHub storage. | later |
 | CHX-022 | missing | missing | **2.2 Login.** No GitHub token login. | later |
 | CHX-023 | missing | missing | **2.3 Token safety.** No token handling. | later |
@@ -117,8 +118,8 @@ reporting and export remain open (see the rows marked `later`).
 | CHX-270 | missing | missing | **27 Search.** No search. | later |
 | CHX-280 | missing | missing | **28 Reporting.** No reports. | later |
 | CHX-290 | missing | missing | **29 Export.** No export. | later |
-| CHX-300 | missing | missing | **30 Legacy migration.** No migration. | later |
-| CHX-310 | missing | missing | **31 Rename/source compatibility.** No compatibility mapping. | later |
+| CHX-300 | missing | partial | **30 Legacy migration.** No migration. **WI-0027:** reconstruction, not migration; legacy data verified as demo-only; the import path is defined (preserved fields, unknown stays unknown, counts and totals compared) and recognised legacy formats resolve exactly, unknown ones are refused (`Compatibility.format`). The importer is WI-0044, only if production records appear. | WI-0027, WI-0044 |
+| CHX-310 | missing | tested | **31 Rename/source compatibility.** No compatibility mapping. **WI-0027:** explicit alias tables for product names, assemblies, record formats and browser-storage keys; Chrona is canonical; unknown names are `CHRONA.LEGACY.UNKNOWN_SOURCE` (`Compatibility`, `CompatibilityTests`). | WI-0027 |
 | CHX-320 | missing | missing | **32 Core UX.** No product UI. | later |
 | CHX-330 | missing | missing | **33 Quick entry.** No entry UI. | later |
 | CHX-340 | missing | missing | **34 Obligations/work queue.** No obligations. | later |
@@ -138,4 +139,4 @@ reporting and export remain open (see the rows marked `later`).
 
 | Corpus | Sections | Current tested | Current partial | Current missing |
 |---|---:|---:|---:|---:|
-| CHRONA-REQUIREMENTS-EXPANSION | 63 | 10 | 22 | 31 |
+| CHRONA-REQUIREMENTS-EXPANSION | 63 | 12 | 24 | 27 |

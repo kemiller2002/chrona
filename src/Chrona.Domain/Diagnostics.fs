@@ -43,6 +43,9 @@ type Diagnostic =
     | AlreadyPublished of activityId: string
     | NotApproved of activityId: string
     | BillingPolicyNotFound
+    // Legacy compatibility (WI-0027).
+    | UnknownLegacySource of name: string
+    | UnknownLegacyFormat of schemaName: string * schemaVersion: string
 
 /// The stable code: `CHRONA.<AREA>.<NAME>`.
 let code =
@@ -79,3 +82,5 @@ let code =
     | AlreadyPublished _ -> "CHRONA.PUBLICATION.DUPLICATE"
     | NotApproved _ -> "CHRONA.PUBLICATION.NOT_APPROVED"
     | BillingPolicyNotFound -> "CHRONA.BILLING.POLICY_NOT_FOUND"
+    | UnknownLegacySource _ -> "CHRONA.LEGACY.UNKNOWN_SOURCE"
+    | UnknownLegacyFormat _ -> "CHRONA.LEGACY.UNKNOWN_FORMAT"

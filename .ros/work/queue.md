@@ -32,7 +32,7 @@
 | WI-0024 | Move chrona to Ordo 1.5.0 via echelon-current 1.2.0 (conditor upgrade --current) | complete |  | medium |
 | WI-0025 | Capture the remaining Chrona requirements as dependency-ordered backlog slices; add CHX-DATALOC-001 and record the 2026-10-08 decisions | complete | planning, requirements | high |
 | WI-0026 | Chrona 01: look-and-feel inventory of the legacy time-tracking-application (screens, layout, styles, interactions) | complete | chrona, order:01, legacy, ui, inventory | high |
-| WI-0027 | Chrona 02: decide reconstruction versus migration, record legacy data status and rewrite the charter for the time-tracking product (CHX-011, CHX-012, CHX-300, CHX-310) | captured | chrona, order:02, legacy, decision | high |
+| WI-0027 | Chrona 02: decide reconstruction versus migration, record legacy data status and rewrite the charter for the time-tracking product (CHX-011, CHX-012, CHX-300, CHX-310) | complete | chrona, order:02, legacy, decision | high |
 | WI-0028 | Chrona 03: configurable data location and Chrona-owned namespace with organization manifests (CHX-DATALOC-001, CHX-024..027) | captured | chrona, order:03, data-location, depends:arca | high |
 | WI-0029 | Chrona 04: GitHub sign-in through Fides and token safety (CHX-022, CHX-023) | captured | chrona, order:04, auth, depends:fides, depends:arca | high |
 | WI-0030 | Chrona 05: actors, membership and capability-based authorization (CHX-030, CHX-260 remainder) | captured | chrona, order:05, authorization | high |
@@ -48,3 +48,5 @@
 | WI-0040 | Chrona 15: telemetry privacy, remaining scenario tests and the production completion gate (CHX-420, CHX-430, CHX-440, CHX-001, CHX-002, CHX-004 remainders) | captured | chrona, order:15, quality, gate | medium |
 | WI-0041 | Stop the Chromium install from hanging the browser-suite CI (unbounded apt-get update in playwright install --with-deps) | complete | ci, playwright, reliability | high |
 | WI-0042 | Raise Forma contract gaps G1-G6 from the legacy look-and-feel inventory (sidebar/tab bar, surface radius, display title scale, inverse hero, time-column timeline, filled primary action and control radius) so Chrona's chrona-* composition can retire | captured | forma, ui, order:10 | medium |
+| WI-0043 | Chrona.Domain: close the legacy rule gaps found reconciling DOMAIN-REQUIREMENTS.md (business purpose required, amendments revalidated, contiguous merge, timer nearest-minute and 30-second rule, evidence by record state, attestation statement) (CHX-012, CHX-090, CHX-103, CHX-130, CHX-160) | captured | chrona, domain, legacy, order:02b | high |
+| WI-0044 | Chrona: import legacy time-tracking-application records on Arca if production records appear (CHX-300 remainder) | captured | chrona, legacy, migration, depends:arca | low |

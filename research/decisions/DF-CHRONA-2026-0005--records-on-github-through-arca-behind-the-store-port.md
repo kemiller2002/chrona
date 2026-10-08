@@ -2,7 +2,7 @@
 id: DF-CHRONA-2026-0005
 title: Records live on GitHub through Arca's provider behind the store port, every commit conditioned on the repository state and decided again when it moved
 status: accepted
-version: 1.4.0
+version: 1.5.0
 created: 2026-10-08
 updated: 2026-10-08
 owners:
@@ -78,13 +78,23 @@ provenance:
         model: unknown
         runtime: claude-code
       reason: "Shared-device sign-out (WI-0058) and the offline read cache plan (WI-0057)"
+    EXE-20261008T152358903Z-a0425e9f:
+      operations: [modified]
+      at: 2026-10-08T15:30:15.541Z
+      actor:
+        kind: agent
+        id: anthropic/claude-code
+        provider: anthropic
+        model: unknown
+        runtime: claude-code
+      reason: "The audit trail as records (WI-0056)"
 ---
 
 # DF-CHRONA-2026-0005 — Records on GitHub through Arca
 
 - **Date:** 2026-10-08
 - **Status:** accepted
-- **Work items:** WI-0028, WI-0051, WI-0032, WI-0053, WI-0035, WI-0033, WI-0034, WI-0058
+- **Work items:** WI-0028, WI-0051, WI-0032, WI-0053, WI-0035, WI-0033, WI-0034, WI-0058, WI-0056
 
 ## Context
 
@@ -178,6 +188,14 @@ and semantic conflicts surfaced.
     longer written with each change and says so; rebuilding still works.
     The page lists each month that holds the person's time from the index,
     and reads a month folder only when the person goes to it.
+11. **The audit trail (WI-0056).** Each command's audit entries travel with
+    its records and become immutable `chrona.audit` records
+    (`records/chrona.audit/<person>/<yyyy>/<MM>/<instant>-<digest>.json`),
+    kept with the activities they concern and written in the same commit.
+    The id is the entry's instant and a digest of its content, so the same
+    fact is never written twice. A change refused as a conflict writes no
+    entry; one decided again carries its entries. The activity screen's
+    history is read from them; revisions from before say so.
 4. **Bounded reads.** A change to a month not yet read reads that month
    first, so it is never checked against less than what is stored.
 5. **The organization.** A storing deployment lists the organizations it

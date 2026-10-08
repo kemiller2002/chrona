@@ -12,6 +12,7 @@
 /// Pure.
 module Chrona.Domain.Reconcile
 
+open Arca
 open Chrona.Domain.Activity
 open Chrona.Domain.Diagnostics
 
@@ -105,5 +106,12 @@ let decide (stored: Stored.Stored) (change: Stored.Changed) : Result<Stored.Chan
             { change with
                 Activities = pending
                 References = references
-                Members = members }
+                Members = members
+                // An audit entry already stored (an earlier attempt landed) is not written again.
+                Audit =
+                    change.Audit
+                    |> List.filter (fun audited ->
+                        match AuditRecord.path audited with
+                        | Ok path -> not (stored.Audit.ContainsKey(RelativePath.render path))
+                        | Error _ -> true) }
     | divergences -> Error divergences

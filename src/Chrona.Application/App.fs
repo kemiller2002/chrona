@@ -303,7 +303,7 @@ let step (env: Env) (state: State) (inbound: Inbound) =
                         id
                         (match result with
                          | StorageValue value -> Bridge.Read value
-                         | StorageFailed _ -> Bridge.Read None)
+                         | StorageFailed reason -> Bridge.Refused reason)
 
                     state, None
                 | _ -> raise (CapabilityFailed("Storage", $"A Storage result for {id}, which was not a Storage request"))

@@ -147,6 +147,13 @@ let private navigation (model: Model) =
         let current = Routes.ofScreenName id = Some section
         [ t "id" id; t "label" label; t "mark" mark; t "current" (if current then "page" else "false") ])
 
+/// Where unsent changes are kept, for the person (23).
+let private unsentDetail (sync: SyncState) =
+    match sync.KeptInBrowser, sync.Note with
+    | true, _ -> "They are kept in this browser and sent, in order, when GitHub can be reached."
+    | false, Some note -> $"{note} Keep this page open until they are sent."
+    | false, None -> "This browser cannot keep them. Keep this page open until they are sent."
+
 let private storeLines (model: Model) =
     let store = model.Store
 
@@ -159,6 +166,12 @@ let private storeLines (model: Model) =
     | Some(Conflict _), _ -> "attention", "Not saved: changed elsewhere", "Resolve it under More."
     | Some(Failed detail), _ -> "attention", "Not saved", detail
     | Some(OutcomeUnknown detail), _ -> "attention", "Save outcome unknown", detail
+    | _, _ when not store.Pending.IsEmpty && store.Sync.Offline ->
+        "attention",
+        "Offline: " + plural store.Pending.Length "change waits" "changes wait" + " to be sent",
+        unsentDetail store.Sync
+    | _, _ when not store.Pending.IsEmpty && not store.Sync.KeptInBrowser ->
+        "progress", "Saving…", plural store.Pending.Length "change" "changes" + ". " + unsentDetail store.Sync
     | _, _ when not store.Pending.IsEmpty -> "progress", "Saving…", plural store.Pending.Length "change" "changes"
     | _, InMemory ->
         "memory",
@@ -580,6 +593,13 @@ let private obligations (model: Model) =
 
       for case in model.Store.Conflicts do
           yield $"conflict-{case.Id}", conflictTitle case, "It changed elsewhere first. Keep what is stored, or redo yours on it.", "goMore"
+
+      if model.Store.Sync.Offline && not model.Store.Pending.IsEmpty then
+          yield
+              "unsent",
+              plural model.Store.Pending.Length "change has" "changes have" + " not reached GitHub yet",
+              unsentDetail model.Store.Sync,
+              "goMore"
 
       match model.Store.Held with
       | [] -> ()

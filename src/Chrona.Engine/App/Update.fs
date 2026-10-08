@@ -38,6 +38,11 @@ type Msg =
     | LocationMoved of hash: string
     | Ticked of generation: int
     | StoreAnswered of commitId: string * StoreOutcome
+    /// Changes queued in this browser before the page opened, still unsent,
+    /// sent now in order (WI-0033). Each is answered like any other.
+    | StoreResumed of StoreRequest list
+    /// Where the unsent changes stand now.
+    | SyncChanged of SyncState
     /// Whether the browser took the text onto its clipboard.
     | Copied of succeeded: bool
     /// A page event: its name, the enclosing item's key, the control's value
@@ -1245,6 +1250,11 @@ let update (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
             | problem, _ -> { model.Store with Pending = pending; Problem = Some problem }
 
         { model with Store = store }, []
+    | StoreResumed requests ->
+        let known = model.Store.Pending |> List.map _.CommitId |> Set.ofList
+        let resumed = requests |> List.filter (fun request -> not (known.Contains request.CommitId))
+        { model with Store = { model.Store with Pending = model.Store.Pending @ resumed } }, []
+    | SyncChanged sync -> { model with Store = { model.Store with Sync = sync } }, []
     | Copied true -> { model with CopyStatus = "Copied to the clipboard."; Announcement = "Copied to the clipboard." }, []
     | Copied false ->
         let text = "This browser did not allow copying. Select the text and copy it yourself."

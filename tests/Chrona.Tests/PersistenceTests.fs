@@ -566,3 +566,63 @@ let ``a change decided again keeps what still fits and names every divergence wi
     // A member removed elsewhere already.
     Assert.Equal(Error [ Reconcile.MemberGone "github:hubot" ], Reconcile.decide stored { Stored.nothing with Removed = [ "github:hubot" ] })
     Assert.Equal("CHRONA.CONCURRENCY.KEPT_CHANGING", code (Reconcile.diagnostic Reconcile.KeptChanging))
+
+// ---- Changes read back from the queue of unsent changes (WI-0033) -------------------
+
+module MemberRecord = Chrona.Domain.MemberRecord
+
+[<Fact>]
+let ``an actor's path segment reads back as the actor, and nothing else does`` () =
+    for actorId in [ "github:583231"; "github:octocat"; "local_person"; "a.b-c"; "é:ü" ] do
+        Assert.Equal(Some actorId, ActivityRecord.actorOfSegment (ActivityRecord.actorSegment actorId))
+
+    Assert.Equal(None, ActivityRecord.actorOfSegment "github_3")
+    Assert.Equal(None, ActivityRecord.actorOfSegment "github_zz")
+    Assert.Equal(None, ActivityRecord.actorOfSegment "-leading")
+
+[<Fact>]
+let ``a queued operation's changes read back as the records a command changed`` () =
+    let snapshot, _ = (Persistence.empty, InMemory.empty) |> store (Record(activity "A-1" (10, 7) (9, 0) 60))
+    let stored = { Stored.empty with Activities = snapshot }
+    let moved = { activity "A-1" (11, 2) (9, 0) 60 with Revision = 2 }
+    let fresh = activity "A-2" (10, 7) (11, 0) 30
+
+    let membership: Access.Membership =
+        { Principal =
+            { PrincipalId = "github:1001"
+              Kind = Access.Human
+              DisplayName = "hubot" }
+          Capabilities = Access.Grants.ownTime
+          Revision = 1 }
+
+    let changed = { Stored.nothing with Activities = [ moved; fresh ]; Members = [ membership ] }
+    let changes = Stored.changes stored changed |> ok
+
+    // The month move is a delete and a create; it reads back as the activity.
+    Assert.Contains(changes, fun change -> match change with Change.Delete _ -> true | _ -> false)
+    let readBack = Stored.changedOf changes |> ok
+    Assert.Equal<Activity list>([ moved; fresh ] |> List.sortBy _.ActivityId, readBack.Activities |> List.sortBy _.ActivityId)
+    Assert.Equal<Access.Membership list>([ membership ], readBack.Members)
+
+    // A member's removal reads back as the principal removed.
+    let path = MemberRecord.path "github:1001" |> ok
+    Assert.Equal(Ok { Stored.nothing with Removed = [ "github:1001" ] }, Stored.changedOf [ Change.Delete(path, Revision "abc") ])
+
+    // Content that is not a Chrona record is refused, not guessed at.
+    Assert.True(Stored.changedOf [ Change.Create(path, "{}") ] |> Result.isError)
+
+[<Fact>]
+let ``unsent changes are laid over what is stored for deciding and showing, keeping stored revisions`` () =
+    let snapshot, _ = (Persistence.empty, InMemory.empty) |> store (Record(activity "A-1" (10, 7) (9, 0) 60))
+    let stored = { Stored.empty with Activities = snapshot }
+    let amended = { snapshot.Activities["A-1"].Activity with Revision = 2; Minutes = 60; Classification = { snapshot.Activities["A-1"].Activity.Classification with Description = "Amended" } }
+    let fresh = activity "A-2" (10, 7) (11, 0) 30
+    let shown = Stored.overlay { Stored.nothing with Activities = [ amended; fresh ] } stored
+
+    Assert.Equal("Amended", shown.Activities.Activities["A-1"].Activity.Classification.Description)
+    Assert.Equal(snapshot.Activities["A-1"].Revision, shown.Activities.Activities["A-1"].Revision)
+    Assert.Equal(Revision "", shown.Activities.Activities["A-2"].Revision)
+
+    // A next change is decided on it: the amended record's next revision fits.
+    let next = { amended with Revision = 3 }
+    Assert.True(Reconcile.decide shown { Stored.nothing with Activities = [ next ] } |> Result.isOk)

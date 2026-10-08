@@ -32,6 +32,9 @@ and feel and its rules, rebuilt on Limen, Forma, Aegis and Folio
   (`Reconcile`) and, if it still does not fit, kept under More for the
   person to resolve; records of theirs edited outside Chrona are accepted
   there after the rules of a recorded activity.
+- Offline change queue (WI-0033): changes wait in this browser, write-ahead,
+  and are sent in order when GitHub can be reached; the sync state is
+  shown.
 - `Chrona.Engine` and `Chrona.Application`: the Limen engine and its Aegis
   boundary; `Chrona.Wasm`: the WebAssembly shim.
 - The Chrona Forma brand (`brand/chrona.brand.json`) and the legacy
@@ -43,8 +46,8 @@ and feel and its rules, rebuilt on Limen, Forma, Aegis and Folio
 ## Not yet built
 
 Real sign-in and storage
-against a deployed Fides exchange (WI-0052), offline sync and the persisted
-timer (WI-0033), derived indexes (WI-0034), browser reliability and visual
+against a deployed Fides exchange (WI-0052), the persisted timer and
+starting offline (WI-0055), derived indexes (WI-0034), browser reliability and visual
 regression (WI-0054), and the Summa contract (owned and published by Summa). A deployment with a data
 location keeps its records on GitHub through Arca (WI-0032); a local
 deployment keeps them in the tab.

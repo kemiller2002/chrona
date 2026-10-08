@@ -249,6 +249,20 @@
             "modified"
           ],
           "reason": "Conflict resolution and acceptance of outside edits (WI-0035)"
+        },
+        "EXE-20261008T142708182Z-504eba9b": {
+          "actor": {
+            "id": "anthropic/claude-code",
+            "kind": "agent",
+            "model": "unknown",
+            "provider": "anthropic",
+            "runtime": "claude-code"
+          },
+          "at": "2026-10-08T14:37:57.174Z",
+          "operations": [
+            "modified"
+          ],
+          "reason": "The queue of unsent changes (WI-0033)"
         }
       }
     },
@@ -270,7 +284,7 @@
     ],
     "title": "Records live on GitHub through Arca's provider behind the store port, every commit conditioned on the repository state and decided again when it moved",
     "updated": "2026-10-08",
-    "version": "1.1.0"
+    "version": "1.2.0"
   },
   {
     "created": "2026-10-05",

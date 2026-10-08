@@ -51,6 +51,25 @@ let actorSegment (actorId: string) =
             Encoding.UTF8.GetBytes(string c) |> Array.map (fun b -> $"_{b:x2}") |> String.concat "")
     |> String.concat ""
 
+/// The actor id a segment was made from (`actorSegment`'s inverse), or None
+/// when the text is not one `actorSegment` makes.
+let actorOfSegment (segment: string) : string option =
+    let rec bytesFrom (index: int) (bytes: byte list) =
+        if index >= segment.Length then
+            Some(List.rev bytes)
+        elif segment[index] = '_' && index + 2 < segment.Length then
+            match Byte.TryParse(segment.Substring(index + 1, 2), Globalization.NumberStyles.HexNumber, Globalization.CultureInfo.InvariantCulture) with
+            | true, value -> bytesFrom (index + 3) (value :: bytes)
+            | _ -> None
+        elif segment[index] = '_' then
+            None
+        else
+            bytesFrom (index + 1) (List.rev (List.ofArray (Encoding.UTF8.GetBytes(string segment[index]))) @ bytes)
+
+    bytesFrom 0 []
+    |> Option.map (Array.ofList >> Encoding.UTF8.GetString)
+    |> Option.filter (fun actorId -> actorSegment actorId = segment)
+
 let private segment (text: string) : Result<Segment, Diagnostic> =
     Segment.create text |> Result.mapError (LocationError.describe >> InvalidDataLocation)
 

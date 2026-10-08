@@ -207,3 +207,82 @@ let ``someone else's activity is refused, not shown`` () =
     let mine, _ = (recorded, []) |> step (LocationMoved $"#/entries/{id}?on=2026-10-08")
     Assert.True(flagOf "screenActivity" mine)
     Assert.Equal("Pairing", textOf "detailTitle" mine)
+
+// ---- the organization in the address -------------------------------------------------
+
+let private twoOrganizations =
+    """{"environment":"test","environmentName":"test","location":{"owner":"acme","repository":"chrona-data","branch":"main","basePath":""},"identity":{"exchange":"https://fides.test","application":"chrona-test","provider":"github","clientId":"Iv23liTEST","redirectUri":"http://127.0.0.1:4321/web/index.html"},"organizations":[{"id":"org_a","displayName":"A","slug":"a","timeZone":"UTC","administrators":["583231"]},{"id":"org_b","displayName":"B","slug":"b","timeZone":"UTC","administrators":["583231"]}]}"""
+
+let private oneOrganization =
+    """{"environment":"test","environmentName":"test","location":{"owner":"acme","repository":"chrona-data","branch":"main","basePath":""},"identity":{"exchange":"https://fides.test","application":"chrona-test","provider":"github","clientId":"Iv23liTEST","redirectUri":"http://127.0.0.1:4321/web/index.html"},"organizations":[{"id":"org_a","displayName":"A","slug":"a","timeZone":"UTC","administrators":["583231"]}]}"""
+
+/// A page opened at an address, signed in to a deployment.
+let private signedInAt (configuration: string) (fragment: string) =
+    openedAt fragment [] |> step (ConfigurationRead(Some configuration)) |> step (IdentityChanged(SignedInAs octocat))
+
+let private opensFor (effects: Effect list) =
+    effects |> List.choose (function OpenStore(_, session, _) -> Some session.OrganizationId | _ -> None)
+
+[<Fact>]
+let ``where a deployment serves several organizations, the address names the one worked in`` () =
+    let model, effects = signedInAt twoOrganizations "#/track"
+    // The first organization, named in the address, corrected in place.
+    Assert.Equal("org_a", model.Session.OrganizationId)
+    Assert.Contains(replace "/track?org=org_a", effects)
+    // Once the records are open, going somewhere names it too.
+    let opened, _ =
+        (model, [])
+        |> step (
+            StoreOpened
+                { Name = "acme/chrona-data"
+                  Activities = []
+                  References = []
+                  Attestations = []
+                  Members = [ { Principal = principalOf model.Session; Capabilities = Access.Grants.administrator; Revision = 1 } ]
+                  Held = []
+                  Audit = []
+                  Problems = []
+                  Months = []
+                  History = []
+                  Index = "" }
+        )
+
+    let _, effects = (opened, []) |> step (ui "goMore" "")
+    Assert.Contains(Navigate(Limen.Routing.NavigationEffect.Push "/more?org=org_a"), effects)
+    // Choosing the other organization goes to its home, named by it.
+    let chosen, effects = (opened, []) |> step (ui "chooseOrganization" "org_b")
+    Assert.Equal("org_b", chosen.Session.OrganizationId)
+    Assert.Contains(Navigate(Limen.Routing.NavigationEffect.Push "/?org=org_b"), effects)
+
+[<Fact>]
+let ``a link into another organization opens that organization`` () =
+    // Signing in at a link opens the organization it names, not the first.
+    let model, effects = signedInAt twoOrganizations "#/day/2026-10-08?org=org_b"
+    Assert.Equal("org_b", model.Session.OrganizationId)
+    Assert.Equal<string list>([ "org_b" ], opensFor effects)
+    Assert.Equal(Some "/day/2026-10-08?org=org_b", model.Router.Current)
+    // A link followed while working in another: the page moves there.
+    let moved, effects = (model, []) |> step (LocationMoved "#/track?org=org_a")
+    Assert.Equal("org_a", moved.Session.OrganizationId)
+    Assert.Equal<string list>([ "org_a" ], opensFor effects)
+    Assert.Equal(Places.Track, moved.Place)
+
+[<Fact>]
+let ``an organization the deployment does not serve is not found`` () =
+    let model, _ = signedInAt twoOrganizations "#/track?org=org_none"
+    Assert.True(flagOf "screenProblem" model)
+    Assert.Equal("Nothing in your records is the organization with the id \"org_none\". It may have been removed, or the link may be wrong.", textOf "problemDetail" model)
+    // Where it serves one, the address names none: another is not found, its own is dropped.
+    let single, _ = signedInAt oneOrganization "#/track?org=org_b"
+    Assert.True(flagOf "screenProblem" single)
+    let own, effects = signedInAt oneOrganization "#/track?org=org_a"
+    Assert.Contains(replace "/track", effects)
+    Assert.Equal(Places.Track, own.Place)
+
+[<Fact>]
+let ``the organization goes through sign-in inside the return target`` () =
+    let model, _ = openedAt "#/track?org=org_b" [] |> step (ConfigurationRead(Some twoOrganizations))
+    let model, effects = (model, []) |> step (IdentityChanged(SignedOutWith None))
+    Assert.Contains(replace "/sign-in?returnTo=%2Ftrack%3Forg%3Dorg_b", effects)
+    let _, effects = (model, []) |> step (ui "signIn" "")
+    Assert.Contains(KeepReturn(Some "/track?org=org_b"), effects)

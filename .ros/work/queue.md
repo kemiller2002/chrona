@@ -30,3 +30,19 @@
 | WI-0022 | Timer state machine: one active timer, pause/resume, persisted segments, cross-midnight split, long-running review (section 10) | complete | domain,timer | high |
 | WI-0023 | Billing projection, review lifecycle, attestation and Summa publication eligibility (sections 7, 8, 14, 16, 17) | complete | domain,billing,approval | high |
 | WI-0024 | Move chrona to Ordo 1.5.0 via echelon-current 1.2.0 (conditor upgrade --current) | complete |  | medium |
+| WI-0025 | Capture the remaining Chrona requirements as dependency-ordered backlog slices; add CHX-DATALOC-001 and record the 2026-10-08 decisions | active | planning, requirements | high |
+| WI-0026 | Chrona 01: look-and-feel inventory of the legacy time-tracking-application (screens, layout, styles, interactions) | captured | chrona, order:01, legacy, ui, inventory | high |
+| WI-0027 | Chrona 02: decide reconstruction versus migration and record legacy data status (CHX-012, CHX-300, CHX-310) | captured | chrona, order:02, legacy, decision | high |
+| WI-0028 | Chrona 03: configurable data location and Chrona-owned namespace with organization manifests (CHX-DATALOC-001, CHX-024..027) | captured | chrona, order:03, data-location, depends:arca | high |
+| WI-0029 | Chrona 04: GitHub sign-in through Fides and token safety (CHX-022, CHX-023) | captured | chrona, order:04, auth, depends:fides, depends:arca | high |
+| WI-0030 | Chrona 05: actors, membership and capability-based authorization (CHX-030, CHX-260 remainder) | captured | chrona, order:05, authorization | high |
+| WI-0031 | Chrona 06: reference data - clients, projects, activity types, tags, rate references and billing class (CHX-040, CHX-080 remainder, CHX-063 remainder) | captured | chrona, order:06, reference-data | high |
+| WI-0032 | Chrona 07: authoritative storage on Arca - partitioned layout, repository concurrency, integrity and manual edits (CHX-021, CHX-210, CHX-220, CHX-380, CHX-390, CHX-410, CHX-240 remainder, CHX-050 persistence) | captured | chrona, order:07, storage, depends:arca | high |
+| WI-0033 | Chrona 08: offline use, persisted timer and sync reconciliation (CHX-101, CHX-102, CHX-105, CHX-200, CHX-230) | captured | chrona, order:08, offline, depends:arca | high |
+| WI-0034 | Chrona 09: rebuildable derived state - indexes, totals, approval and publication projections (CHX-400) | captured | chrona, order:09, derived-state | medium |
+| WI-0035 | Chrona 10: reconstruct the product UI on Limen/Forma keeping the legacy look and feel (CHX-003, CHX-005, CHX-320, CHX-330, CHX-340, CHX-350, CHX-360, CHX-370) | captured | chrona, order:10, ui, limen, forma | high |
+| WI-0036 | Chrona 11: timesheet periods (CHX-150) | captured | chrona, order:11, periods | medium |
+| WI-0037 | Chrona 12: consume Summa's Chrona-to-Summa contracts package through conditor.json; Chrona.Integration and publication transport (CHX-170 remainder, CHX-180, CHX-063 remainder, CHX-450 remainder) | captured | chrona, order:12, integration, summa, contracts, depends:summa | high |
+| WI-0038 | Chrona 13: observation processing - accept, modify, reject, deduplicate, receipts (CHX-190, CHX-120 import path, CHX-250 import audit) | captured | chrona, order:13, observations | medium |
+| WI-0039 | Chrona 14: search, reporting and export with Folio (CHX-270, CHX-280, CHX-290) | captured | chrona, order:14, reporting, folio | medium |
+| WI-0040 | Chrona 15: telemetry privacy, remaining scenario tests and the production completion gate (CHX-420, CHX-430, CHX-440, CHX-001, CHX-002, CHX-004 remainders) | captured | chrona, order:15, quality, gate | medium |

@@ -54,3 +54,49 @@ let private counts (column: string * string * string -> string) =
 let ``both summaries are the counts of their columns`` () =
     Assert.Equal<int list>(counts (fun (_, baseline, _) -> baseline), summary "## Summary")
     Assert.Equal<int list>(counts (fun (_, _, current) -> current), summary "## Coverage after this programme")
+
+/// Every section that is not yet `tested` is planned: an open work item in
+/// the Praxis queue (captured, ready, active or blocked) names it, either
+/// directly (`CHX-240`) or inside a range (`CHX-024..027`). A gap that no
+/// open work item names would be silently dropped from the backlog.
+let private openWorkText =
+    use queue = System.Text.Json.JsonDocument.Parse(readRepoFile ".ros/work/queue.json")
+
+    queue.RootElement.GetProperty("items").EnumerateArray()
+    |> Seq.filter (fun item ->
+        match item.GetProperty("status").GetString() with
+        | "complete"
+        | "abandoned" -> false
+        | _ -> true)
+    |> Seq.map (fun item ->
+        let text (name: string) =
+            match item.TryGetProperty name with
+            | true, value when value.ValueKind = System.Text.Json.JsonValueKind.String -> value.GetString()
+            | _ -> ""
+
+        text "title" + "\n" + text "description")
+    |> String.concat "\n"
+
+let private plannedIds =
+    let known = rows |> List.map (fun (id, _, _) -> id)
+    let number (id: string) = int (id.Substring 4)
+
+    let direct =
+        Regex.Matches(openWorkText, @"CHX-\d{3}") |> Seq.map _.Value
+
+    let ranges =
+        Regex.Matches(openWorkText, @"CHX-(\d{3})\.\.(?:CHX-)?(\d{3})")
+        |> Seq.collect (fun m ->
+            let low, high = int m.Groups[1].Value, int m.Groups[2].Value
+            known |> List.filter (fun id -> number id >= low && number id <= high))
+
+    Seq.append direct ranges |> Set.ofSeq
+
+[<Fact>]
+let ``every section that is not yet tested is named by an open work item`` () =
+    let unplanned =
+        rows
+        |> List.filter (fun (id, _, current) -> current <> "tested" && not (plannedIds.Contains id))
+        |> List.map (fun (id, _, _) -> id)
+
+    Assert.Empty unplanned

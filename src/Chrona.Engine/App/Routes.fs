@@ -15,6 +15,7 @@ let private screenName =
     | More -> "more"
     | ActivityDetail _ -> "activity"
     | DayReview -> "review"
+    | ReportsScreen -> "reports"
 
 /// The screens a navigation item names (not those that need an argument).
 let ofScreenName =
@@ -24,6 +25,7 @@ let ofScreenName =
     | "month" -> Some Month
     | "more" -> Some More
     | "review" -> Some DayReview
+    | "reports" -> Some ReportsScreen
     | _ -> None
 
 let private parseMonth (text: string) =

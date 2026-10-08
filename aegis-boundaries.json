@@ -25,7 +25,7 @@
         "CHRONA.BOUNDARY.UNEXPECTED"
       ],
       "guarded": true,
-      "$comment": "Every kernel message for web/index.html is parsed and dispatched inside Aegis.capture (App.handle), classified by the same Boundary.classify. A message that is not the Limen shape is MESSAGE_INVALID; a kernel without the Navigation effect, or a result or fact for something the engine never requested (an Http, Storage or Clipboard result, an unknown correlation id, an unwatched capability fact), is CAPABILITY_UNAVAILABLE. A refused entry, an overlap or an archived reference is a typed domain diagnostic shown beside its form, never a fault. Programming defects (an event name the engine does not define) keep fail-loud semantics."
+      "$comment": "Every kernel message for web/index.html is parsed and dispatched inside Aegis.capture (App.handle), classified by the same Boundary.classify. A message that is not the Limen shape is MESSAGE_INVALID; a kernel without the Navigation effect, or a result or fact for something the engine never requested (an Http or Storage result, an unknown correlation id, an unwatched capability fact), is CAPABILITY_UNAVAILABLE. A refused entry, an overlap or an archived reference is a typed domain diagnostic shown beside its form, never a fault. Programming defects (an event name the engine does not define) keep fail-loud semantics."
     },
     {
       "name": "Browser localStorage",
@@ -36,12 +36,12 @@
       "$comment": "The kernel performs the Storage effects the engine requests. Their outcomes (including unavailable and quota-exceeded) cross the Limen protocol as explicit typed StorageResults; this declaration does not pretend the .NET Aegis runtime guards JavaScript localStorage."
     },
     {
-      "name": "Browser timing and environment (limen.schedule, limen.environment)",
+      "name": "Browser timing, environment, clipboard and print (limen.schedule, limen.environment, Clipboard, chrona.print)",
       "kind": "browser-capability",
       "owner": "Limen BrowserKernel",
       "codes": [],
       "guarded": false,
-      "$comment": "The kernel performs the timer's wake-ups and describes the browser's time zone. Their outcomes cross the Limen protocol as typed capability results; a kernel that does not offer either pack degrades visibly (no display refresh; UTC shown as the zone) rather than failing."
+      "$comment": "The kernel performs the timer's wake-ups, describes the browser's time zone, writes exports to the clipboard and opens the print dialog. Their outcomes cross the Limen protocol as typed results; a kernel that does not offer one degrades visibly (no display refresh; UTC shown as the zone; 'this browser did not allow copying'; the browser's own Print still prints Folio's document) rather than failing."
     }
   ],
   "persistence": {

@@ -26,6 +26,8 @@ type Msg =
     | LocationMoved of hash: string
     | Ticked of generation: int
     | StoreAnswered of commitId: string * StoreOutcome
+    /// Whether the browser took the text onto its clipboard.
+    | Copied of succeeded: bool
     /// A page event: its name, the enclosing item's key, the control's value
     /// and, for a checkbox, whether it is checked.
     | Ui of name: string * key: string option * value: string * isChecked: bool option
@@ -37,6 +39,10 @@ type Effect =
     | Wake of generation: int * afterMs: int
     | DescribeEnvironment
     | Store of StoreRequest
+    /// Put text on the clipboard.
+    | CopyText of text: string
+    /// Open the browser's print dialog for the page's printable document.
+    | Print
 
 /// The timer display refreshes once a second while running (the label is
 /// whole seconds); the engine computes it, never a client-side counter.
@@ -62,7 +68,9 @@ let eventNames =
       "splitFirst"; "splitSecond"; "splitEvidence"; "saveSplit"
       "evidenceKind"; "evidenceUrl"; "evidenceLabel"; "attachEvidence"; "unlinkEvidence"
       "mergeSelect"; "mergeActivityType"; "mergeProject"; "mergeDescription"; "mergePurpose"; "saveMerge"
-      "attestStatement"; "attestDay"; "resolveObligation"; "periodCadence"; "periodWeekStart" ]
+      "attestStatement"; "attestDay"; "resolveObligation"; "periodCadence"; "periodWeekStart"
+      "reportFrom"; "reportTo"; "reportProject"; "reportActivityType"; "reportTag"; "reportMethod"; "reportBillability"; "reportText"
+      "reportIncludeRemoved"; "reportGrouping"; "reportFormat"; "copyExport"; "printReport"; "reportMonth"; "goReports" ]
 
 // ---- helpers ----------------------------------------------------------------
 
@@ -490,6 +498,50 @@ let private attestDay (ctx: Ctx) (model: Model) =
                 Announcement = $"Attested {Format.longDate date}." }
             |> commitWith ctx [] [] [ attestation ]
 
+// ---- reports --------------------------------------------------------------------
+
+/// The report filter a draft names, over the session's own records. An
+/// unreadable date falls back to the month being viewed.
+let reportFilter (model: Model) : Reports.Filter =
+    let draft = model.Report
+    let first = selectedMonth model
+    let from = Format.parseIsoDate draft.From |> Option.defaultValue first
+    let ``to`` = Format.parseIsoDate draft.To |> Option.defaultValue (first.AddMonths(1).AddDays -1)
+    let one (value: string) = if value = "" then [] else [ value ]
+
+    { Reports.between from ``to`` with
+        ActorIds = [ model.Session.ActorId ]
+        ProjectIds = one draft.ProjectId
+        ActivityTypeIds = one draft.ActivityTypeId
+        Tags = one draft.Tag
+        EntryKinds =
+            match draft.Method with
+            | "manual" -> [ Reports.ManualEntries ]
+            | "timer" -> [ Reports.TimerEntries ]
+            | _ -> []
+        Billability =
+            match draft.Billability with
+            | "billable" -> [ Billable ]
+            | "non-billable" -> [ NonBillable ]
+            | "pending" -> [ PendingClassification ]
+            | _ -> []
+        Text = draft.Text
+        IncludeRemoved = draft.IncludeRemoved }
+
+/// The export the report form describes, generated at the model's instant.
+let exportText (model: Model) =
+    let header: Reports.Header =
+        { OrganizationId = model.Session.OrganizationId
+          GeneratedAt = model.Now
+          Filter = reportFilter model }
+
+    let all = model.Ledger.Activities |> Map.toList |> List.map snd
+    let policies = [ Billing.legacyDefault model.Session.OrganizationId ]
+
+    match model.Report.Format with
+    | "json" -> Reports.json policies header all
+    | _ -> Reports.csv policies header all
+
 // ---- the dispatcher -----------------------------------------------------------
 
 let private draft (f: ClassificationDraft -> ClassificationDraft) (field: Model -> ClassificationDraft) (set: Model -> ClassificationDraft -> Model) (model: Model) =
@@ -625,6 +677,29 @@ let private onEvent (ctx: Ctx) (name: string) (key: string option) (value: strin
         match Enum.TryParse<DayOfWeek>(value) with
         | true, day -> { model with PeriodConfig = { model.PeriodConfig with WeekStart = day } }, []
         | _ -> invalidArg (nameof value) $"Unknown day: {value}"
+    | "reportFrom" -> { model with Report = { model.Report with From = value } }, []
+    | "reportTo" -> { model with Report = { model.Report with To = value } }, []
+    | "reportProject" -> { model with Report = { model.Report with ProjectId = value } }, []
+    | "reportActivityType" -> { model with Report = { model.Report with ActivityTypeId = value } }, []
+    | "reportTag" -> { model with Report = { model.Report with Tag = value } }, []
+    | "reportMethod" -> { model with Report = { model.Report with Method = value } }, []
+    | "reportBillability" -> { model with Report = { model.Report with Billability = value } }, []
+    | "reportText" -> { model with Report = { model.Report with Text = value } }, []
+    | "reportIncludeRemoved" -> { model with Report = { model.Report with IncludeRemoved = checkedOn } }, []
+    | "reportGrouping" -> { model with Report = { model.Report with Grouping = value } }, []
+    | "reportFormat" -> { model with Report = { model.Report with Format = value }; CopyStatus = "" }, []
+    | "copyExport" -> { model with CopyStatus = "" }, [ CopyText(exportText model) ]
+    | "printReport" -> model, [ Print ]
+    | "goReports" -> navigate { Screen = ReportsScreen; Date = None } model
+    | "reportMonth" ->
+        let first = selectedMonth model
+
+        { model with
+            Report =
+                { model.Report with
+                    From = Format.isoDate first
+                    To = Format.isoDate (first.AddMonths(1).AddDays -1) } },
+        [ Navigate(Routes.hash { Screen = ReportsScreen; Date = Some first }) ]
     | "attestStatement" -> { model with AttestStatement = value }, []
     | "attestDay" -> attestDay ctx model
 
@@ -669,4 +744,8 @@ let update (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
             | problem -> { model.Store with Pending = pending; Problem = Some problem }
 
         { model with Store = store }, []
+    | Copied true -> { model with CopyStatus = "Copied to the clipboard."; Announcement = "Copied to the clipboard." }, []
+    | Copied false ->
+        let text = "This browser did not allow copying. Select the text and copy it yourself."
+        { model with CopyStatus = text; Announcement = text }, []
     | Ui(name, key, value, isChecked) -> onEvent ctx name key value isChecked model

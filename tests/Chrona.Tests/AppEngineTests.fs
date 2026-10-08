@@ -551,3 +551,43 @@ let ``Today shows the configured period around the selected day`` () =
     let fortnight, _ = update (ctxAt start) (ui "periodCadence" "biweekly") withThree
     Assert.Equal("Oct 5 – Oct 18", textOf "periodLabel" fortnight)
     Assert.Equal<string list>([ "biweekly" ], itemsOf "periodCadenceOptions" fortnight |> List.filter (fun r -> field "selected" r = "True") |> List.map (field "id"))
+
+// ---- reports and export (WI-0049) ------------------------------------------------------
+
+[<Fact>]
+let ``the report filters the session's records and keeps exact and billable time apart`` () =
+    let reports, _ = update (ctxAt start) (LocationMoved "#/reports") withThree
+    Assert.Equal("2026-10-01", textOf "reportFrom" reports)
+    Assert.Equal("2026-10-31", textOf "reportTo" reports)
+    Assert.Equal("3 activities", textOf "reportCount" reports)
+    Assert.Equal("2h", textOf "reportExact" reports)
+    Assert.Equal("2h", textOf "reportBillable" reports)
+
+    let searched, _ = update (ctxAt start) (ui "reportText" "SECOND") reports
+    Assert.Equal<string list>([ "Second" ], itemsOf "reportRows" searched |> List.map (field "title"))
+    let narrowed, _ = play [ start, ui "reportText" ""; start, ui "reportFrom" "2026-10-09" ] reports
+    Assert.True(flagOf "reportEmpty" narrowed)
+
+    let byDay, _ = update (ctxAt start) (ui "reportGrouping" "day") reports
+    Assert.Equal<string list>([ "Thursday, October 8" ], itemsOf "reportGroups" byDay |> List.map (field "name"))
+
+[<Fact>]
+let ``the export is the domain's deterministic CSV or JSON, copied through the clipboard`` () =
+    let reports, _ = update (ctxAt start) (LocationMoved "#/reports") withThree
+    let csv = textOf "exportText" reports
+    Assert.StartsWith("# schema: chrona.time-report/1\n# organization: org-1\n# generatedAt: 2026-10-08T18:10:00Z", csv)
+    let json, _ = update (ctxAt start) (ui "reportFormat" "json") reports
+    Assert.StartsWith("{\n  \"schema\": \"chrona.time-report/1\"", textOf "exportText" json)
+
+    let copying, effects = update (ctxAt start) (ui "copyExport" "") json
+    Assert.Equal<Effect list>([ CopyText(textOf "exportText" json) ], effects)
+    Assert.Equal("Copied to the clipboard.", textOf "copyStatus" (fst (update (ctxAt start) (Copied true) copying)))
+    Assert.StartsWith("This browser did not allow copying.", textOf "copyStatus" (fst (update (ctxAt start) (Copied false) copying)))
+    Assert.Equal<Effect list>([ Print ], snd (update (ctxAt start) (ui "printReport" "") json))
+
+[<Fact>]
+let ``the month reports on itself`` () =
+    let month, _ = update (ctxAt start) (LocationMoved "#/month/2026-09") withThree
+    let next, effects = update (ctxAt start) (ui "reportMonth" "") month
+    Assert.Equal<Effect list>([ Navigate "#/reports" ], effects)
+    Assert.Equal(("2026-09-01", "2026-09-30"), (next.Report.From, next.Report.To))

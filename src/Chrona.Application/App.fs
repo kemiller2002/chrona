@@ -47,6 +47,8 @@ type Purpose =
     | Tick of generation: int
     | Environment
     | Navigation
+    | Copying
+    | Printing
 
 [<NoComparison; NoEquality>]
 type State =
@@ -54,6 +56,8 @@ type State =
       /// The page's path, which routes are appended to as fragments.
       Path: string
       Capabilities: CapabilityOffer list
+      /// The core effects the kernel offered (Navigation, Clipboard, ...).
+      Effects: string list
       Pending: Map<string, Purpose>
       Sequence: int
       Fault: FaultView option }
@@ -62,6 +66,7 @@ let initial =
     { Model = None
       Path = "/"
       Capabilities = []
+      Effects = []
       Pending = Map.empty
       Sequence = 0
       Fault = None }
@@ -100,6 +105,12 @@ let private requests (state: State) (effects: Update.Effect list) =
             | Update.Wake _ -> state, requests, immediate
             | Update.DescribeEnvironment when negotiated environment state -> minted Environment, requests @ [ DescribeEnvironment id ], immediate
             | Update.DescribeEnvironment -> state, requests, immediate @ [ Update.EnvironmentUnavailable ]
+            | Update.CopyText text when List.contains "Clipboard" state.Effects -> minted Copying, requests @ [ Copy(id, text) ], immediate
+            | Update.CopyText _ -> state, requests, immediate @ [ Update.Copied false ]
+            | Update.Print when negotiated print state -> minted Printing, requests @ [ PrintPage id ], immediate
+            // Without the print pack the browser's own Print still prints
+            // the Folio document.
+            | Update.Print -> state, requests, immediate
             | Update.Store _ -> invalidOp "Store requests are answered before replying")
         (state, [], [])
 
@@ -151,7 +162,8 @@ let step (env: Env) (state: State) (inbound: Inbound) =
                 { state with
                     Model = Some(Model.initial env.Session env.StoreKind (env.Now()))
                     Path = path
-                    Capabilities = capabilities }
+                    Capabilities = capabilities
+                    Effects = effects }
 
             let next, sent = advance env started (Update.Started hash) []
             next, encode (view next) sent [] (Some handshake)
@@ -167,6 +179,9 @@ let step (env: Env) (state: State) (inbound: Inbound) =
                 | Moved hash -> state, Some(Update.LocationMoved hash)
                 | Dispatched
                 | NavigationFailed _ -> state, None
+            | ClipboardResult(id, succeeded) ->
+                let _, state = take id state
+                state, Some(Update.Copied succeeded)
             | CapabilityResult(id, _, outcome) ->
                 match take id state, outcome with
                 | (Environment, state), Completed result -> state, Some(environmentZone result)

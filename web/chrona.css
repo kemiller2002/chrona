@@ -821,6 +821,61 @@ button.chrona-link {
   block-size: 0.6rem;
 }
 
+/* ---- reports ---------------------------------------------------------------- */
+
+.chrona-table {
+  overflow-x: auto;
+}
+
+.chrona-table table {
+  inline-size: 100%;
+  border-collapse: collapse;
+}
+
+.chrona-table th,
+.chrona-table td {
+  border-block-end: 1px solid var(--ef-color-border-subtle);
+  padding: 0.6rem 0.5rem;
+  text-align: start;
+  vertical-align: top;
+}
+
+.chrona-table__number {
+  font-family: var(--ef-primitive-font-family-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.chrona-table__note {
+  color: var(--ef-color-text-secondary);
+  font-size: 0.85rem;
+}
+
+textarea.chrona-export {
+  inline-size: 100%;
+  font-family: var(--ef-primitive-font-family-mono);
+  font-size: 0.75rem;
+  white-space: pre;
+}
+
+/* Folio's document is the printed form of the report; on screen the
+   interactive report is the presentation. */
+.chrona-print {
+  display: none;
+}
+
+@media print {
+  body:has(.chrona-print) .chrona-shell,
+  body:has(.chrona-print) .chrona-tabbar,
+  body:has(.chrona-print) .chrona-skip-link {
+    display: none;
+  }
+
+  .chrona-print {
+    display: block;
+  }
+}
+
 /* ---- mobile (G1) ---------------------------------------------------------- */
 
 .chrona-tabbar {

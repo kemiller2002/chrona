@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "repository": "chrona",
-  "nextSeq": 67,
+  "nextSeq": 68,
   "items": [
     {
       "id": "WI-0001",
@@ -1293,7 +1293,7 @@
     {
       "id": "WI-0059",
       "title": "Chrona 08e: move the offline change queue from localStorage to Arca's IndexedDB adapter - one queue owner across tabs, durability mode in sync state, first-run migration (CHX-021, CHX-230, CHX-370; Limen LCP-059, LCP-065, LCP-066, LCP-070, LCP-073)",
-      "description": "Follows WI-0033, which queues every change write-ahead in Arca's OfflineQueue on this browser's localStorage (Arca LocalStorageQueue over Limen Storage requests) and notes that IndexedDB waits on Limen; and WI-0058, whose sharedDevicePolicy (ask | discardOnSignOut) sign-out choices stay exactly as they are and are carried over to the IndexedDB queue (LCP-070). Requirements: kemiller2002/limen docs/requirements/LIMEN-INDEXEDDB-REQUIREMENTS.md LCP-059, LCP-065, LCP-066, LCP-070, LCP-073; decision DF-LIMEN-2026-0005. Depends on Arca WI-0016 and WI-0020 released (EchelonFoundry.Arca.Limen, installed through Conditor) and on Limen 0.8.0 (Limen WI-0166). Wire the IndexedDB queue store through the durability-mode composer (IndexedDb, then LocalStorage, then MemoryOnly) and show the mode wherever sync state is shown; in MemoryOnly warn before accepting an offline change. Register Limen's store and coordination packs. A second tab is told that another tab holds this device's unsent changes and can take over (OwnedElsewhere; OQ-LIMEN-IDB-001). The two-tab hazard is fixed in the interim (WI-0065, Arca 0.2.1, arca WI-0024, DF-ARCA-2026-0009). The queue is still saved as one localStorage snapshot, but Arca's LocalStorageQueue.store now fences every save on the stored text. A tab whose snapshot is stale can no longer overwrite another tab's unsent entries: its save is refused, nothing is written, the page says the change is not kept in this browser, and the change stays in that page until it is sent. StoreTests 'two tabs offline in one browser' proves it. Residual until this item: Chrona calls LocalStorageQueue.store without a lock, so two tabs whose read-then-write overlap within the browser's cross-tab propagation delay are not excluded, and both tabs may drain entries they both loaded. Adopting LocalStorageQueue.own over Limen's coordination pack (one owner per namespace, OwnedElsewhere for the other tab) closes that gap now, and this item's IndexedDB owner (LCP-059) closes it for good. Browser tests: two tabs, owner closed, sign-out under both policies against the IndexedDB queue, first-run migration from an existing localStorage queue.",
+      "description": "Follows WI-0033, which queues every change write-ahead in Arca's OfflineQueue on this browser's localStorage (Arca LocalStorageQueue over Limen Storage requests) and notes that IndexedDB waits on Limen; and WI-0058, whose sharedDevicePolicy (ask | discardOnSignOut) sign-out choices stay exactly as they are and are carried over to the IndexedDB queue (LCP-070). Requirements: kemiller2002/limen docs/requirements/LIMEN-INDEXEDDB-REQUIREMENTS.md LCP-059, LCP-065, LCP-066, LCP-070, LCP-073; decision DF-LIMEN-2026-0005. Depends on Arca WI-0016 and WI-0020 released (EchelonFoundry.Arca.Limen, installed through Conditor) and on Limen 0.8.0 (Limen WI-0166). Wire the IndexedDB queue store through the durability-mode composer (IndexedDb, then LocalStorage, then MemoryOnly) and show the mode wherever sync state is shown; in MemoryOnly warn before accepting an offline change. Register Limen's store and coordination packs. A second tab is told that another tab holds this device's unsent changes and can take over (OwnedElsewhere; OQ-LIMEN-IDB-001). The two-tab hazard is fixed in the interim (WI-0065, Arca 0.2.1, arca WI-0024, DF-ARCA-2026-0009). The queue is still saved as one localStorage snapshot, but Arca's LocalStorageQueue.store now fences every save on the stored text. A tab whose snapshot is stale can no longer overwrite another tab's unsent entries: its save is refused, nothing is written, the page says the change is not kept in this browser, and the change stays in that page until it is sent. StoreTests 'without Web Locks, two tabs offline in one browser' proves it. The residual gap (two tabs whose read-then-write overlap, both draining entries they loaded) is closed by WI-0067: Chrona takes the queue through LocalStorageQueue.own over Limen's coordination pack, with OwnedElsewhere shown and a hand-off on close. What remains here is the IndexedDB queue store, its durability-mode composer and first-run migration, after Limen 0.8.0; its owner (LCP-059) replaces the localStorage lock. Browser tests: two tabs, owner closed, sign-out under both policies against the IndexedDB queue, first-run migration from an existing localStorage queue.",
       "tags": [
         "chrona",
         "offline",
@@ -1304,7 +1304,7 @@
       "status": "captured",
       "attachments": [],
       "createdAt": "2026-10-08T15:27:10Z",
-      "updatedAt": "2026-10-08T16:44:37.000Z",
+      "updatedAt": "2026-10-08T17:24:25Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",
@@ -1460,6 +1460,27 @@
       "attachments": [],
       "createdAt": "2026-10-08T17:02:38.738Z",
       "updatedAt": "2026-10-08T17:08:51.776Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0067",
+      "title": "Chrona 08f: one tab owns the unsent changes - LocalStorageQueue.own over Limen's coordination pack, hand-off on close (CHX-021, CHX-230, CHX-370)",
+      "description": "Coordinator priority, data integrity (2026-10-08), closing WI-0059's interim gap after WI-0065 (Arca 0.2.1). Chrona selects Limen's coordination pack and takes the queue through LocalStorageQueue.own before any load, save or send. Owned: the normal path. OwnedElsewhere: the page says another tab is holding your unsent changes, keeps its own changes in the page and sends them directly while online (OQ-001), and offers to take over: a waiting lock that hands ownership off when the other tab closes, then loads and sends what that tab kept. OwnershipUnsupported: falls back to Arca's fenced store, visibly, with the mode shown, never losing data silently. A save refused because another tab wrote is said as that, not as storage the browser refuses. Tests: two tabs where only the owner sends, hand-off on close, no double send, a refused stale save. The IndexedDB move stays in WI-0059 and WI-0057, after Limen 0.8.0.",
+      "tags": [],
+      "priority": "high",
+      "status": "ready",
+      "attachments": [],
+      "createdAt": "2026-10-08T17:24:02Z",
+      "updatedAt": "2026-10-08T17:24:17Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

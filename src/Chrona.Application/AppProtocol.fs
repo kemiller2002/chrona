@@ -60,8 +60,15 @@ let lifecycle =
       Version = 1
       Fingerprint = "sha256:cadd4037cac232869a486237ec523e667af9490cdcf3e4fb1ba729cbc5c87978" }
 
+/// `limen.coordination` v1: Web Locks, so one tab holds this browser's
+/// unsent changes (Arca's LocalStorageQueue.own; WI-0067).
+let coordination =
+    { Id = "limen.coordination"
+      Version = 1
+      Fingerprint = "sha256:510dfbcd2f3f7966b842d518d209a511ada3ffb30132853f291e9d5fa8342684" }
+
 /// The optional packs the application selects when the kernel offers them.
-let wanted = [ schedule; environment; print; host; lifecycle ]
+let wanted = [ schedule; environment; print; host; lifecycle; coordination ]
 
 /// What came back for an Http request (Limen's EffectOutcome).
 type HttpResult =
@@ -287,6 +294,8 @@ type Request =
     | Host of correlationId: string * operation: string * arguments: (string * string) list
     /// A `limen.lifecycle` subscription to these topics.
     | Subscribe of correlationId: string * topics: string list
+    /// A `limen.coordination` exclusive lock, never stolen.
+    | Acquire of correlationId: string * name: string * wait: bool
 
 let private writeScalar (writer: Utf8JsonWriter) =
     function
@@ -341,6 +350,13 @@ let private writeRequest (writer: Utf8JsonWriter) (request: Request) =
         writeCapability writer correlationId schedule (fun w ->
             w.WriteString("operation", "timeout")
             w.WriteNumber("delayMs", delayMs))
+    | Acquire(correlationId, name, wait) ->
+        writeCapability writer correlationId coordination (fun w ->
+            w.WriteString("operation", "acquire")
+            w.WriteString("name", name)
+            w.WriteString("mode", "exclusive")
+            w.WriteBoolean("wait", wait)
+            w.WriteBoolean("steal", false))
     | Subscribe(correlationId, topics) ->
         writeCapability writer correlationId lifecycle (fun w ->
             w.WriteString("operation", "subscribe")

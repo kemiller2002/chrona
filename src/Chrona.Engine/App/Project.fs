@@ -149,10 +149,20 @@ let private navigation (model: Model) =
 
 /// Where unsent changes are kept, for the person (23).
 let private unsentDetail (sync: SyncState) =
-    match sync.KeptInBrowser, sync.Note with
-    | true, _ -> "They are kept in this browser and sent, in order, when GitHub can be reached."
-    | false, Some note -> $"{note} Keep this page open until they are sent."
-    | false, None -> "This browser cannot keep them. Keep this page open until they are sent."
+    match sync.Holder, sync.KeptInBrowser, sync.Note with
+    | HeldElsewhere _, _, _ ->
+        "Another tab is holding your unsent changes; the changes made here are sent from this page. Keep this page open until they are sent."
+    | _, true, _ -> "They are kept in this browser and sent, in order, when GitHub can be reached."
+    | _, false, Some note -> $"{note} Keep this page open until they are sent."
+    | _, false, None -> "This browser cannot keep them. Keep this page open until they are sent."
+
+/// Where this browser's unsent changes are kept, as a mode (WI-0067).
+let private queueMode (sync: SyncState) =
+    match sync.Holder, sync.KeptInBrowser with
+    | HeldElsewhere _, _ -> "Held by another Chrona tab"
+    | HeldHere, true -> "Kept in this browser by this tab"
+    | Unlocked, true -> "Kept in this browser; each tab keeps its own, as this browser cannot tell tabs apart"
+    | _, false -> "In this page only"
 
 let private storeLines (model: Model) =
     let store = model.Store
@@ -1281,6 +1291,9 @@ let project (model: Model) : View =
       text "storeTone" tone
       text "storeHeadline" headline
       text "storeDetail" detail
+      flag "queueElsewhere" (match model.Store.Sync.Holder with HeldElsewhere _ -> true | _ -> false)
+      flag "queueWaiting" (model.Store.Sync.Holder = HeldElsewhere true)
+      text "queueMode" (queueMode model.Store.Sync)
       text "todayLong" (Format.longDate (Model.today model))
       flag "needsReferences" needsReferences
       yield! today model

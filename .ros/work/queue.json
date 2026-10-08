@@ -1128,10 +1128,10 @@
       "description": "Split from WI-0032 (storage-free in the sense that it needs no GitHub or Fides): the pure persistence core on Arca.Core, tested against Arca's in-memory provider. The activity record codec (closed, versioned chrona.activity records), deterministic partitioned paths (organization folder / actor / year / month, stable ids, bounded month reads for the today view), change sets (one ledger command is one operation; a retimed activity that changes month moves in the same commit; every update and delete carries the revision last read), integrity on load (expansion 39: invalid JSON, schema, unsupported versions, misplaced records, duplicate ids, impossible revisions, overlapping recorded time, broken split/merge lineage; corruption is reported, never ignored), manual-edit detection from Arca commit history (41), and reload-and-revalidate after a conflict so independent changes are preserved and semantic conflicts surface (21). WI-0032 then drives this through Arca's GitHub adapter from the Limen engine.",
       "tags": [],
       "priority": "medium",
-      "status": "ready",
+      "status": "complete",
       "attachments": [],
       "createdAt": "2026-10-08T11:53:12Z",
-      "updatedAt": "2026-10-08T11:53:15Z",
+      "updatedAt": "2026-10-08T12:03:16Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

@@ -1107,10 +1107,10 @@
         "domain"
       ],
       "priority": "high",
-      "status": "ready",
+      "status": "complete",
       "attachments": [],
       "createdAt": "2026-10-08T10:50:27.295Z",
-      "updatedAt": "2026-10-08T10:50:32.891Z",
+      "updatedAt": "2026-10-08T10:57:27.862Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

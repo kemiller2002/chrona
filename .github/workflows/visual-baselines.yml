@@ -79,7 +79,8 @@ jobs:
           REASON: ${{ inputs.reason }}
           BASE: ${{ github.ref_name }}
         run: |
-          if git diff --quiet -- tests/visual/baselines; then
+          # Changed, new and removed images alike (git diff alone misses new files).
+          if [ -z "$(git status --porcelain -- tests/visual/baselines)" ]; then
             echo "The baselines are unchanged; nothing to propose." >> "$GITHUB_STEP_SUMMARY"
             echo "branch=" >> "$GITHUB_OUTPUT"
             exit 0

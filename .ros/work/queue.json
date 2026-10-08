@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "repository": "chrona",
-  "nextSeq": 25,
+  "nextSeq": 26,
   "items": [
     {
       "id": "WI-0001",
@@ -442,6 +442,29 @@
       "attachments": [],
       "createdAt": "2026-10-08T07:19:33.578Z",
       "updatedAt": "2026-10-08T07:20:44.525Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0025",
+      "title": "Fix the browser-suite CI hang: Chromium install blocks indefinitely in an unbounded apt-get update run by playwright install --with-deps",
+      "description": null,
+      "tags": [
+        "ci,playwright,reliability"
+      ],
+      "priority": "high",
+      "status": "ready",
+      "attachments": [],
+      "createdAt": "2026-10-08T07:37:35.340Z",
+      "updatedAt": "2026-10-08T07:37:35.000Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

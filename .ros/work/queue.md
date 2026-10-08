@@ -30,3 +30,4 @@
 | WI-0022 | Timer state machine: one active timer, pause/resume, persisted segments, cross-midnight split, long-running review (section 10) | complete | domain,timer | high |
 | WI-0023 | Billing projection, review lifecycle, attestation and Summa publication eligibility (sections 7, 8, 14, 16, 17) | complete | domain,billing,approval | high |
 | WI-0024 | Move chrona to Ordo 1.5.0 via echelon-current 1.2.0 (conditor upgrade --current) | complete |  | medium |
+| WI-0025 | Fix the browser-suite CI hang: Chromium install blocks indefinitely in an unbounded apt-get update run by playwright install --with-deps | ready | ci,playwright,reliability | high |

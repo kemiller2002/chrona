@@ -2574,7 +2574,27 @@
       "updatedAt": "2026-10-08T22:28:27.000Z",
       "telemetryExecutionIds": [
         "EXE-20261008T222827697Z-bac96650"
-      ]
+      ],
+      "latestCheckpoint": {
+        "id": "33729d159689bd6d43db085e",
+        "recordedAt": "2026-10-08T23:30:31.000Z",
+        "executionId": "EXE-20261008T222827697Z-bac96650",
+        "repository": "chrona",
+        "branch": "feature/indexeddb-queue",
+        "commit": "a468f77a9a07c641f5af314718914c3610309bc1",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/chrona"
+        },
+        "remoteBranch": "feature/indexeddb-queue",
+        "remoteCommit": "a468f77a9a07c641f5af314718914c3610309bc1",
+        "summary": "Queue on Arca.Limen LimenQueue (IndexedDB via limen.store v2, take-over, hand-over, migration notices); 367 .NET, 62 Chromium, 4 Pages green locally",
+        "nextAction": "Re-render the More baselines via the routine workflow, open the PR, gate every PR check, merge with sha",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      }
     }
   ]
 }

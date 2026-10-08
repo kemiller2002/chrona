@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-08T07:37:36.000Z",
+  "updatedAt": "2026-10-08T07:49:57.000Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -920,13 +920,43 @@
     {
       "id": "WI-0025",
       "type": "task",
-      "state": "active",
-      "semanticState": "active",
-      "evidence": [],
-      "updatedAt": "2026-10-08T07:37:36.000Z",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "implementation",
+          "path": ".github/workflows/build.yml"
+        },
+        {
+          "type": "tests",
+          "path": ".github/workflows/build.yml"
+        }
+      ],
+      "updatedAt": "2026-10-08T07:49:57.000Z",
       "telemetryExecutionIds": [
         "EXE-20261008T073736358Z-d18b821a"
-      ]
+      ],
+      "latestCheckpoint": {
+        "id": "4ea33dbbc3dfd2d17a0c853e",
+        "recordedAt": "2026-10-08T07:49:56.000Z",
+        "executionId": "EXE-20261008T073736358Z-d18b821a",
+        "repository": "chrona",
+        "branch": "fix/ci-browser-install-hang",
+        "commit": "ab2ced658504b0c4827b70ae9981f8ba94e35276",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/chrona"
+        },
+        "remoteBranch": "fix/ci-browser-install-hang",
+        "remoteCommit": "ab2ced658504b0c4827b70ae9981f8ba94e35276",
+        "summary": "Chromium install no longer runs apt on the normal path: browser cached by the lockfile's Playwright version, OS libraries proved offline with ldd, bounded fallback, 20-minute job ceiling. First push green (push and pull_request Build runs, 8 browser tests, cache saved).",
+        "nextAction": "Complete the work item, push the Praxis state for the second green CI run, then merge",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      },
+      "completedAt": "2026-10-08T07:49:57.000Z"
     }
   ]
 }

@@ -46,4 +46,39 @@ export const test = base.extend({
   }
 });
 
+// Reference data every record needs, added through the More screen.
+export async function setUp(page) {
+  await page.fill("#new-project-name", "HelixNote");
+  await page.click("#add-project");
+  await page.fill("#new-activity-type-name", "Research");
+  await page.click("#add-activity-type");
+  await page.fill("#new-tag-name", "Backend");
+  await page.click("#add-tag");
+  await expect(page.locator("#projects .ef-checkbox__label")).toHaveText(["HelixNote"]);
+  await expect(page.locator("#activity-types .ef-checkbox__label")).toHaveText(["Research"]);
+}
+
+// Yesterday in New York: a whole past day, so a fixed time of day is never in
+// the future whenever the suite runs.
+export const yesterday = () => {
+  const date = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
+};
+
+
+// Adds a manual entry on `date` (yesterday by default) from the Track screen.
+export async function addEntry(page, { start, end, description, purpose = "Delivery", date = yesterday() }) {
+  await page.selectOption("#manual-activity-type", { label: "Research" });
+  await page.selectOption("#manual-project", { label: "HelixNote" });
+  await page.fill("#manual-start-date", date);
+  await page.fill("#manual-start-time", start);
+  await page.fill("#manual-end-date", date);
+  await page.fill("#manual-end-time", end);
+  await page.fill("#manual-description", description);
+  await page.fill("#manual-purpose", purpose);
+  await page.fill("#manual-reason", "Entered from notes");
+  await page.click("#save-manual");
+  await expect(page.locator("p[role=status][aria-live=polite]")).toHaveText(/^Saved /);
+}
+
 export { expect };

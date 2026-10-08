@@ -360,3 +360,173 @@ let ``times, durations and dates read the way the legacy application wrote them`
     Assert.Equal("KM", Format.initials "Kevin Miller")
     Assert.Equal(None, Format.parseTime "09:00:30")
     Assert.Equal(None, Format.parseIsoDate "10/08/2026")
+
+// ---- lifecycle, merge, review and month (WI-0047) ------------------------------------
+
+let private withThree =
+    let entry (start: string) (finish: string) (description: string) =
+        [ at 0.0, ui "manualActivityType" activityType
+          at 0.0, ui "manualProject" project
+          at 0.0, ui "manualStartDate" "2026-10-08"
+          at 0.0, ui "manualStartTime" start
+          at 0.0, ui "manualEndTime" finish
+          at 0.0, ui "manualDescription" description
+          at 0.0, ui "manualPurpose" "Delivery"
+          at 0.0, ui "saveManual" "" ]
+
+    play (entry "09:00" "10:00" "First" @ entry "10:00" "10:30" "Second" @ entry "11:00" "11:30" "Third") ready |> fst |> settle
+
+let private activityId (description: string) (model: Model) =
+    model.Ledger.Activities |> Map.toList |> List.map snd |> List.find (fun a -> a.Classification.Description = description) |> _.ActivityId
+
+let private opened (description: string) (model: Model) =
+    fst (update (ctxAt start) (LocationMoved $"#/activity/{activityId description model}") model)
+
+[<Fact>]
+let ``new screens have addresses: month, review and an activity`` () =
+    for route in
+        [ { Screen = Month; Date = Some(DateOnly(2026, 10, 1)) }
+          { Screen = DayReview; Date = Some(DateOnly(2026, 10, 8)) }
+          { Screen = ActivityDetail "ACT-1"; Date = None } ] do
+        Assert.Equal(route, Routes.parse (Routes.hash route))
+
+    Assert.Equal<Effect list>([ Navigate "#/activity/ACT-7" ], snd (update (ctxAt start) (keyed "openActivity" "ACT-7" "") ready))
+    Assert.Equal<Effect list>([ Navigate "#/review/2026-10-08" ], snd (update (ctxAt start) (ui "openReview" "") ready))
+    let october, _ = update (ctxAt start) (LocationMoved "#/month/2026-10") ready
+    Assert.Equal<Effect list>([ Navigate "#/month/2026-09" ], snd (update (ctxAt start) (ui "previousMonth" "") october))
+    Assert.Equal<Effect list>([ Navigate "#/month/2027-01" ], snd (update (ctxAt start) (ui "showMonth" "2027-01") october))
+
+[<Fact>]
+let ``an activity's detail opens at its revision and follows the route`` () =
+    let model = opened "First" withThree
+    Assert.Equal(Some 1, model.Detail |> Option.map _.Revision)
+    Assert.Equal("First", textOf "detailTitle" model)
+    Assert.Equal("9:00 AM – 10:00 AM", textOf "detailTimes" model)
+    Assert.True(flagOf "detailCanSplit" model)
+    let left, _ = update (ctxAt start) (LocationMoved "#/today") model
+    Assert.True(left.Detail.IsNone)
+    let missing, _ = update (ctxAt start) (LocationMoved "#/activity/nope") model
+    Assert.True(flagOf "detailMissing" missing)
+
+[<Fact>]
+let ``a correction keeps the original in the history and is revalidated`` () =
+    let model = opened "First" withThree
+    let refused, _ = play [ start, ui "amendPurpose" ""; start, ui "saveAmend" "" ] model
+    Assert.Equal<Diagnostic list>([ MissingField "businessPurpose" ], refused.Problems[AmendForm])
+
+    let amended, effects = play [ start, ui "amendDescription" "First, corrected"; start, ui "amendReason" "Typo"; start, ui "saveAmend" "" ] model
+    let a = amended.Ledger.Activities[activityId "First, corrected" amended]
+    Assert.Equal(2, a.Revision)
+    Assert.Equal(Some 2, amended.Detail |> Option.map _.Revision)
+    Assert.Equal<string list>([ "Amended"; "Recorded" ], itemsOf "detailHistory" amended |> List.map (field "action"))
+    Assert.Equal("Reason: Typo", itemsOf "detailHistory" amended |> List.head |> field "reason")
+    Assert.True(effects |> List.exists (function Store r -> r.Activities = [ a ] | _ -> false))
+
+[<Fact>]
+let ``a command against a revision that changed since the detail opened is a conflict`` () =
+    let model = opened "First" withThree
+    let id = activityId "First" model
+    let zone = model.Zone.Value
+
+    let context: Ledger.CommandContext =
+        { Performer = model.Session.ActorId; At = start; Source = "elsewhere"; Zone = zone; References = model.References; CorrelationId = None }
+
+    // Another device changes the record after this screen opened it.
+    let elsewhere = Ledger.execute context model.Ledger (Ledger.Void(id, 1, "duplicate")) |> Result.defaultWith (fun e -> failwith $"{e}")
+    let stale = { model with Ledger = elsewhere }
+    let refused, _ = update (ctxAt start) (ui "saveAmend" "") stale
+    Assert.Equal<Diagnostic list>([ RevisionConflict(1, 2) ], refused.Problems[AmendForm])
+    Assert.Equal<string list>([ "This changed since you opened it. Review the current version and try again." ], itemsOf "amendProblems" refused |> List.map (field "text"))
+
+[<Fact>]
+let ``removing from totals keeps the record; restoring rechecks it`` () =
+    let model = opened "First" withThree
+    let voided, _ = play [ start, ui "voidReason" "Duplicate"; start, ui "voidActivity" "" ] model
+    Assert.True(flagOf "detailVoided" voided)
+    Assert.Equal("1h", textOf "dayTotal" voided)
+    let today = itemsOf "dayRecords" voided |> List.find (fun r -> field "title" r = "First")
+    Assert.Equal("Removed from totals", field "state" today)
+    let restored, _ = update (ctxAt start) (ui "restoreActivity" "") voided
+    Assert.True(flagOf "detailRecorded" restored)
+    Assert.Equal("2h", textOf "dayTotal" restored)
+
+[<Fact>]
+let ``evidence links with a label and a web address, and unlinks`` () =
+    let model = opened "First" withThree
+    let bad, _ = play [ start, ui "evidenceUrl" "javascript:alert(1)"; start, ui "attachEvidence" "" ] model
+    Assert.Equal<Diagnostic list>([ MissingField "evidenceLabel"; InvalidEvidenceUrl "javascript:alert(1)" ], bad.Problems[EvidenceForm])
+    let linked, _ = play [ start, ui "evidenceUrl" "https://example.test/pr/4"; start, ui "evidenceKind" "pull-request"; start, ui "evidenceLabel" "PR 4"; start, ui "attachEvidence" "" ] model
+    let evidence = itemsOf "detailEvidence" linked |> List.exactlyOne
+    Assert.Equal("Pull request", field "kind" evidence)
+    let unlinked, _ = update (ctxAt start) (keyed "unlinkEvidence" (field "id" evidence) "") linked
+    Assert.Empty(itemsOf "detailEvidence" unlinked)
+    Assert.Equal("Evidence unlinked", itemsOf "detailHistory" unlinked |> List.head |> field "action")
+
+[<Fact>]
+let ``a split shares the exact minutes and assigns each piece of evidence once`` () =
+    let linked, _ = play [ start, ui "evidenceLabel" "Commit"; start, ui "attachEvidence" "" ] (opened "First" withThree)
+    let evidenceId = linked.Ledger.Activities[linked.Detail.Value.ActivityId].Evidence.Head.Id
+    let refused, _ = play [ start, ui "splitFirst" "20"; start, ui "splitSecond" "20"; start, ui "saveSplit" "" ] linked
+    Assert.Equal<Diagnostic list>([ SplitDurationMismatch(60, 40) ], refused.Problems[SplitForm])
+    let split, _ = play [ start, ui "splitSecond" "40"; start, keyed "splitEvidence" evidenceId "2"; start, ui "saveSplit" "" ] refused
+    Assert.True(flagOf "detailSuperseded" split)
+    let source = split.Detail.Value.ActivityId
+    let children = split.Ledger.Activities |> Map.toList |> List.map snd |> List.filter (fun a -> a.Lineage = [ source ])
+    Assert.Equal<int list>([ 20; 40 ], children |> List.map _.Minutes |> List.sort)
+    Assert.Equal<int list>([ 0; 1 ], children |> List.sortBy _.Minutes |> List.map (fun c -> c.Evidence.Length))
+    Assert.StartsWith("Replaced by \"First\" (20m), \"First\" (40m)", textOf "detailReplacedBy" split)
+
+[<Fact>]
+let ``only adjacent activities merge; the originals are kept, superseded`` () =
+    let first, second, third = activityId "First" withThree, activityId "Second" withThree, activityId "Third" withThree
+    let gap, _ = play [ start, check "mergeSelect" first true; start, check "mergeSelect" third true; start, ui "saveMerge" "" ] withThree
+    Assert.True(flagOf "canMerge" gap)
+    Assert.Equal<Diagnostic list>([ IncompatibleMergeSources "sources are not contiguous" ], gap.Problems[MergeForm])
+
+    let merged, _ =
+        play [ start, check "mergeSelect" third false; start, check "mergeSelect" second true; start, ui "mergeDescription" "First and second"; start, ui "saveMerge" "" ] gap
+
+    Assert.Empty merged.MergeSelection
+    Assert.Equal("2h", textOf "dayTotal" merged)
+    Assert.Equal<string list>([ "First and second"; "Third" ], itemsOf "dayRecords" merged |> List.map (field "title"))
+    Assert.Equal("Merged 2 activities into one. The originals are kept, superseded.", merged.Announcement)
+
+[<Fact>]
+let ``attestation needs a statement, keeps every earlier one, and a later change is an obligation`` () =
+    let review, _ = update (ctxAt start) (LocationMoved "#/review/2026-10-08") withThree
+    let refused, _ = update (ctxAt start) (ui "attestDay" "") review
+    Assert.Equal<Diagnostic list>([ MissingField "statement" ], refused.Problems[AttestForm])
+
+    let attested, effects = play [ start, ui "attestStatement" "Complete."; start, ui "attestDay" "" ] review
+    Assert.True(effects |> List.exists (function Store r -> r.Attestations.Length = 1 | _ -> false))
+    Assert.Equal<string list>([ "Complete." ], itemsOf "attestations" attested |> List.map (field "statement"))
+    Assert.False(flagOf "hasObligations" attested)
+
+    let second = activityId "Second" attested
+    let changed, _ = play [ start, LocationMoved $"#/activity/{second}"; start, ui "amendReason" "Late fix"; start, ui "amendDescription" "Second, fixed"; start, ui "saveAmend" "" ] attested
+    let obligations = itemsOf "obligations" changed
+    Assert.Equal<string list>([ "Thursday, October 8 changed after you attested it" ], obligations |> List.map (field "title"))
+    Assert.Equal<Effect list>([ Navigate "#/review/2026-10-08" ], snd (update (ctxAt start) (keyed "resolveObligation" (field "id" obligations.Head) "") changed))
+
+    let again, _ = play [ start, LocationMoved "#/review/2026-10-08"; start, ui "attestStatement" "Rechecked."; start, ui "attestDay" "" ] changed
+    Assert.Equal<string list>([ "Rechecked."; "Complete." ], itemsOf "attestations" again |> List.map (field "statement"))
+    Assert.False(flagOf "hasObligations" again)
+
+[<Fact>]
+let ``a held timer is an obligation until it is completed`` () =
+    let held, _ = play (chooseForTimer @ [ start, ui "startTimer" ""; at 5.0, ui "stopTimer" "" ]) ready
+    Assert.Equal<string list>([ "stopped-timer" ], itemsOf "obligations" held |> List.map (field "id"))
+    Assert.Equal<Effect list>([ Navigate "#/track" ], snd (update (ctxAt start) (keyed "resolveObligation" "stopped-timer" "") held))
+
+[<Fact>]
+let ``the month sums effective records by type and by day`` () =
+    let model, _ = update (ctxAt start) (LocationMoved "#/month/2026-10") withThree
+    Assert.Equal("October 2026", textOf "monthTitle" model)
+    Assert.Equal("2h", textOf "monthTotal" model)
+    Assert.Equal("1", textOf "monthActiveDays" model)
+    let byType = itemsOf "monthByType" model |> List.exactlyOne
+    Assert.Equal("Research", field "name" byType)
+    Assert.Equal("100%", field "shareText" byType)
+    Assert.Equal<string list>([ "Thursday, October 8" ], itemsOf "monthDays" model |> List.map (field "label"))
+    let september, _ = update (ctxAt start) (LocationMoved "#/month/2026-09") withThree
+    Assert.True(flagOf "monthEmpty" september)

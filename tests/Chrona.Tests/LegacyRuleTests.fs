@@ -231,3 +231,20 @@ let ``R6: an attestation carries a statement, and attesting again keeps both`` (
     let twice, _ = Reviews.attest context day "Rechecked after lunch." once |> ok
     Assert.Equal("Complete and accurate.", first.Statement)
     Assert.Equal<string list>([ "Complete and accurate."; "Rechecked after lunch." ], twice.Attestations |> List.map _.Statement)
+
+// Evidence references (24) ----------------------------------------------------
+
+[<Fact>]
+let ``evidence needs a label and a kind, and a link must be a web address`` () =
+    let ledger = run [ Record(activity "A1" (9, 0) 60) ]
+    let bad = { evidence "E1" with Label = " "; Kind = ""; Url = "javascript:alert(1)" }
+
+    Assert.Equal<Diagnostic list>(
+        [ MissingField "evidenceLabel"; MissingField "evidenceKind"; InvalidEvidenceUrl "javascript:alert(1)" ],
+        execute context ledger (LinkEvidence("A1", 1, bad)) |> refused
+    )
+
+    // A link is optional; a reference without one is still evidence.
+    Assert.True(Result.isOk (execute context ledger (LinkEvidence("A1", 1, { evidence "E2" with Url = "" }))))
+    Assert.True(Result.isOk (execute context ledger (LinkEvidence("A1", 1, { evidence "E3" with Url = "http://intranet.example/doc" }))))
+    Assert.Equal("CHRONA.EVIDENCE.INVALID_URL", code (InvalidEvidenceUrl "x"))

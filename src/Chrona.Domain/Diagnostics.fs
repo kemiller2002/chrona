@@ -43,6 +43,8 @@ type Diagnostic =
     | AlreadyPublished of activityId: string
     | NotApproved of activityId: string
     | BillingPolicyNotFound
+    // Evidence (WI-0047).
+    | InvalidEvidenceUrl of url: string
     // Reference data (WI-0045).
     | UnknownReference of kind: string * id: string
     | ArchivedReference of kind: string * id: string
@@ -87,6 +89,7 @@ let code =
     | AlreadyPublished _ -> "CHRONA.PUBLICATION.DUPLICATE"
     | NotApproved _ -> "CHRONA.PUBLICATION.NOT_APPROVED"
     | BillingPolicyNotFound -> "CHRONA.BILLING.POLICY_NOT_FOUND"
+    | InvalidEvidenceUrl _ -> "CHRONA.EVIDENCE.INVALID_URL"
     | UnknownReference _ -> "CHRONA.REFERENCE.UNKNOWN"
     | ArchivedReference _ -> "CHRONA.REFERENCE.ARCHIVED"
     | DuplicateReference _ -> "CHRONA.REFERENCE.DUPLICATE"

@@ -108,8 +108,9 @@ for the diagnosis, the evidence, and one unexercised watch item.
   Arca WI-0018 asks for namespace-scoped change tokens; until then a
   dedicated data repository avoids needless reloads.
 - Offline (WI-0033): every change goes through Arca's offline queue, kept
-  write-ahead in this browser's localStorage (Arca's LocalStorageQueue over
-  Limen Storage) and sent in order; signing out with unsent changes asks
+  write-ahead in this browser's IndexedDB (WI-0059: Arca's LimenQueue over
+  Limen's store pack; localStorage, then the page, where it cannot be used)
+  and sent in order; signing out with unsent changes asks
   to send, keep (per account) or discard them, per the deployment's
   `sharedDevicePolicy` (WI-0058); a lost connection backs off and
   retries, the queue survives refresh and restart and is sent after the
@@ -150,11 +151,19 @@ for the diagnosis, the evidence, and one unexercised watch item.
   lifecycle pack); a newer Chrona deployed since is offered as a reload that
   keeps unsent changes and the timer (build stamped at publish, compared
   with `build/wasm/wwwroot/chrona-build.json`).
-- One tab holds the unsent changes (WI-0067): the queue kept in this
-  browser is taken through Arca's `LocalStorageQueue.own` (a Web Lock,
-  Limen's coordination pack). Another tab says so, sends its own changes
-  from the page, and can take the queue over when the holding tab closes.
-  Without Web Locks, saves are fenced and the mode is shown.
+- One tab holds the unsent changes (WI-0067, WI-0059): the queue kept in
+  this browser is opened through Arca 0.3.0's `LimenQueue.own` (a Web Lock
+  through Limen's coordination pack; the queue in IndexedDB through the
+  store pack, registered as `storeCapability({ namespace: "chrona" })`).
+  Another tab says so, sends its own changes from the page, and can take
+  the queue over at once ("Use this tab instead", `LimenQueue.takeOver`);
+  the tab that lost it hands what it kept over and never sends it. When
+  the holder closes, the other tab holds the queue once the person returns
+  to it. Without Web Locks, each tab keeps its changes in its page. The
+  first load moves an older localStorage queue into IndexedDB and says so
+  (an interrupted move finishes without sending twice; one that cannot be
+  read is left as it is). The iPhone and iPad manual passes of this stay
+  with the user.
 - The GitHub API fake (WI-0069): `tests/browser/github-fake.js` is a pure
   `respond(state, request)` over the endpoints Arca's GitHub provider uses,
   served to every tab of a browser context by one Playwright route.

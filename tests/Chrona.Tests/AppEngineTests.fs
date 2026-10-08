@@ -805,6 +805,28 @@ let ``a page coming back restarts the timer's wake-ups from its timestamps and s
     let offline, _ = update (ctxAt start) (ConnectionChanged false) pending
     Assert.True(offline.Store.Sync.Offline)
 
+    // Another tab held the unsent changes: returning asks for them again,
+    // before anything is sent, so what that tab kept is sent with them (WI-0059).
+    let elsewhere, _ = update (ctxAt start) (SyncChanged { pending.Store.Sync with Holder = HeldElsewhere false }) pending
+    let _, effects = update (ctxAt start) PageReturned elsewhere
+    Assert.Equal(Some 0, effects |> List.tryFindIndex ((=) ClaimQueue))
+    Assert.True(effects |> List.findIndex ((=) ClaimQueue) < (effects |> List.findIndex ((=) SendUnsent)))
+    Assert.DoesNotContain(ClaimQueue, snd (update (ctxAt start) PageReturned pending))
+
+    // Taken over by another tab: what this tab kept is that tab's to send.
+    let handed, _ = update (ctxAt start) (UnsentHandedOver(pending.Store.Pending |> List.map _.CommitId)) elsewhere
+    Assert.Empty(handed.Store.Pending)
+    Assert.Equal("Your unsent changes moved to the other Chrona tab, which now sends them.", handed.Announcement)
+
+    // A deployment that stores nothing never has unsent changes to keep.
+    Assert.Equal(InMemory, ready.Store.Kind)
+    Assert.Equal("None", textOf "queueMode" ready)
+
+    // Records that cannot open still say what the queue's move did.
+    let waiting, _ = update (ctxAt start) (UnsentWaiting(1, Some "moved")) ready
+    Assert.Equal(1, waiting.Store.Waiting)
+    Assert.Equal(Some "moved", waiting.Store.Sync.Notice)
+
 [<Fact>]
 let ``only a page built for a deployment compares builds, and a reload never loses what lives only in the page`` () =
     let dev, effects = update (ctxAt start) (BuildKnown Model.Development) ready

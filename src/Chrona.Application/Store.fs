@@ -63,9 +63,13 @@ type StorePort =
       SendNow: unit -> unit
       /// Discard this account's unsent changes from this device.
       Discard: unit -> unit
-      /// Take over this browser's unsent changes once the tab holding them
-      /// closes (WI-0067).
+      /// Take this browser's unsent changes over from the tab holding them
+      /// ("use this tab instead"; WI-0059).
       TakeOver: unit -> unit
+      /// Ask again to hold them: the tab that held them may have closed.
+      Claim: unit -> unit
+      /// The browser closed the queue's database under the page: open it again.
+      Reconnect: unit -> unit
       /// This tab no longer holds this browser's unsent changes.
       Lost: unit -> unit }
 
@@ -81,6 +85,8 @@ let inMemory (bridge: Bridge) : StorePort =
       SendNow = fun () -> ()
       Discard = fun () -> bridge.Start(async { return [ Update.UnsentDiscarded 0 ] })
       TakeOver = fun () -> ()
+      Claim = fun () -> ()
+      Reconnect = fun () -> ()
       Lost = fun () -> () }
 
 // ---- GitHub, through the bridge ----------------------------------------------------
@@ -139,7 +145,8 @@ let gitHub (bridge: Bridge) (tokens: unit -> TokenProvider option) (unauthorized
                     | Read _
                     | Done
                     | Refused _
-                    | LockOutcome _ -> return HttpOutcome.Failed HttpFailure.InvalidResponse
+                    | Raw _
+                    | Missing -> return HttpOutcome.Failed HttpFailure.InvalidResponse
                 }
           Wait = fun delay -> bridge.Call(Sleep(int delay.TotalMilliseconds)) |> Async.Ignore
           Tokens =
@@ -187,12 +194,15 @@ type private Opened =
       Organization: Deployment.OrganizationConfig
       /// This page's unsent changes, in order: Arca's offline queue (WI-0033).
       Queue: OfflineQueue
-      /// Where the queue is kept in this browser, when it can be.
-      Keeper: QueueStore option
+      /// The queue this tab holds in this browser, when it holds one it can
+      /// keep (WI-0059: Arca's LimenQueue, in IndexedDB where it can be).
+      Owned: Arca.Limen.OwnedQueue option
       /// Which tab holds this browser's queue (WI-0067).
       Holder: QueueHolder
       /// Why the queue is not kept in this browser, for the person.
       Note: string option
+      /// What the person must be told about the kept changes (LCP-062, LCP-066).
+      Notice: string option
       /// The activity index as last read or written (WI-0034).
       Index: Indexed }
 
@@ -240,7 +250,8 @@ let private changeOf (request: StoreRequest) : Stored.Changed =
       Audit = request.Audit }
 
 /// Browser localStorage through Limen's Storage requests, as Arca's
-/// LocalStorageQueue asks for it.
+/// LimenQueue asks for it: the fallback store, and where an older Chrona kept
+/// the queue (migrated on first load).
 let private localStorage (bridge: Bridge) (request: LocalStorageRequest) =
     async {
         let call =
@@ -255,20 +266,89 @@ let private localStorage (bridge: Bridge) (request: LocalStorageRequest) =
         | Refused "quota-exceeded" -> return LocalStorageOutcome.Failure LocalStorageFailure.QuotaExceeded
         | Refused _
         | Answered _
-        | LockOutcome _ -> return LocalStorageOutcome.Failure LocalStorageFailure.Unavailable
+        | Raw _
+        | Missing -> return LocalStorageOutcome.Failure LocalStorageFailure.Unavailable
     }
 
-/// A Web Lock through Limen's coordination pack, as Arca's
-/// LocalStorageQueue.own asks for it: at once, or once whoever holds it lets
-/// go (`wait`). Without the pack, or Web Locks, the answer is unsupported.
-let private lockWith (bridge: Bridge) (wait: bool) (QueueLockRequest.Acquire name) =
+/// Limen's coordination pack (Web Locks) through the bridge, as Arca's
+/// LimenQueue asks for it. Without the pack, the answer is unsupported.
+let private coordinate (bridge: Bridge) (request: Limen.Contract.Coordination.Types.CoordinationRequest) =
     async {
-        match! bridge.Call(LockAcquire(name, wait)) with
-        | LockOutcome "Acquired" -> return QueueLockOutcome.Acquired
-        // A cancelled wait leaves the lock where it was.
-        | LockOutcome("Busy" | "Cancelled") -> return QueueLockOutcome.Busy
-        | _ -> return QueueLockOutcome.Unsupported
+        match! bridge.Call(Coordinate(Limen.Contract.Coordination.Codec.serializeCoordinationRequest request)) with
+        | Raw result ->
+            match Limen.Contract.Coordination.Codec.parseCoordinationResult result with
+            | Ok decoded -> return decoded
+            | Error _ -> return Limen.Contract.Coordination.Types.CoordinationResult.Unsupported
+        | _ -> return Limen.Contract.Coordination.Types.CoordinationResult.Unsupported
     }
+
+/// Limen's store pack (IndexedDB, in Chrona's namespace) through the bridge,
+/// as Arca's LimenQueue asks for it. Without the pack, the answer is
+/// unsupported, and Arca keeps the queue in localStorage instead.
+let private storeOperation (bridge: Bridge) (request: Limen.Contract.Store.Types.StoreRequest) =
+    async {
+        match! bridge.Call(StoreOperation(Limen.Contract.Store.Codec.serializeStoreRequest request)) with
+        | Raw result ->
+            match Limen.Contract.Store.Codec.parseStoreResult result with
+            | Ok decoded -> return decoded
+            | Error _ -> return Limen.Contract.Store.Types.StoreResult.Unavailable "the store pack's answer could not be read"
+        | _ -> return Limen.Contract.Store.Types.StoreResult.Unsupported
+    }
+
+/// What Arca's LimenQueue asks of the page: Limen's store and coordination
+/// packs, its Storage effect (localStorage), and a clock for diagnostics.
+let private limenHost (bridge: Bridge) (now: unit -> DateTimeOffset) : Arca.Limen.LimenHost =
+    { Store = storeOperation bridge
+      Lock = coordinate bridge
+      LocalStorage = localStorage bridge
+      Now = now }
+
+/// The queue's stores in order of durability (WI-0059, Limen LCP-065):
+/// IndexedDB, then localStorage, then this page's memory.
+let private queueOptions = Arca.Limen.QueueOptions.standard
+
+/// Where a queue Chrona holds is kept, for the person.
+let private durabilityOf (queue: Arca.Limen.OwnedQueue) =
+    match queue.Mode with
+    | Arca.Limen.DurabilityMode.IndexedDb -> InIndexedDb
+    | Arca.Limen.DurabilityMode.LocalStorage _ -> InLocalStorage
+    | Arca.Limen.DurabilityMode.MemoryOnly -> InPage
+
+/// What the person must be told about the kept changes (LCP-062, LCP-066).
+let private noticeText (notice: Arca.Limen.QueueNotice) =
+    match notice with
+    | Arca.Limen.QueueNotice.LocalQueueLost ->
+        "This browser cleared the unsent changes it kept for Chrona (cleared site data or freed space). Those changes are gone; anything still in this page is sent."
+    | Arca.Limen.QueueNotice.LegacyQueuePending entries ->
+        let changes = if entries = 1 then "1 earlier unsent change waits" else $"{entries} earlier unsent changes wait"
+        $"{changes} in this browser's older storage. They move here once the changes now kept are sent; none is merged or dropped."
+    | Arca.Limen.QueueNotice.LegacyQueueUnreadable ->
+        "Unsent changes kept in this browser's older storage cannot be read. They were left exactly as they are."
+    | Arca.Limen.QueueNotice.LegacyQueueAdopted entries ->
+        let changes = if entries = 1 then "1 unsent change" else $"{entries} unsent changes"
+        $"{changes} kept in this browser's older storage moved to IndexedDB, unchanged."
+
+/// The notice of a queue just loaded: those at open, then the load's; a
+/// legacy queue adopted on load is no longer pending.
+let private noticeOf (queue: Arca.Limen.OwnedQueue) =
+    let notices = queue.Notices @ (queue.Diagnostics()).Notices |> List.distinct
+
+    let adopted =
+        notices |> List.exists (function Arca.Limen.QueueNotice.LegacyQueueAdopted _ -> true | _ -> false)
+
+    notices
+    |> List.filter (function Arca.Limen.QueueNotice.LegacyQueuePending _ -> not adopted | _ -> true)
+    |> List.map noticeText
+    |> function
+        | [] -> None
+        | texts -> Some(String.concat " " texts)
+
+/// Why a queue this tab holds is kept in this page only.
+let private memoryOnlyNote =
+    "This browser offers no storage Chrona can use for unsent changes (IndexedDB and localStorage are unavailable or full), so they live in this page only."
+
+/// The Web Lock that names a folder's queue: one tab holds it.
+let private lockOf (folder: Namespace) = Arca.Limen.QueueLock.name folder
 
 let private describeQueueStore =
     function
@@ -374,6 +454,8 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
     let mutable pending: Opened option = None
     let jobs = Queue<unit -> Async<Update.Msg list>>()
     let mutable busy = false
+    /// Changes this tab kept that another tab took over, not told yet.
+    let handed = ResizeArray<string>()
 
     /// Runs the queued jobs one at a time; each job's messages go to the
     /// engine as it finishes.
@@ -393,6 +475,14 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                             busy <- false
                             return raise error
                     }
+
+                let messages =
+                    if handed.Count = 0 then
+                        messages
+                    else
+                        let ids = List.ofSeq handed
+                        handed.Clear()
+                        messages @ [ Update.UnsentHandedOver ids ]
 
                 bridge.Emit messages
                 return! run ()
@@ -599,48 +689,64 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
         if jobs.Count = 0 then [ Update.StoreOpened(contents state) ] else []
 
     let sync (state: Opened) (offline: bool) =
+        let durability = state.Owned |> Option.map durabilityOf |> Option.defaultValue InPage
+
         Update.SyncChanged
             { Offline = offline
-              KeptInBrowser = state.Keeper.IsSome
+              KeptInBrowser = state.Owned.IsSome && durability <> InPage
               Note = state.Note
-              Holder = state.Holder }
+              Holder = state.Holder
+              Durability = durability
+              Notice = state.Notice }
+
+    /// What Arca's LimenQueue asks of this page.
+    let host = limenHost bridge now
+
+    /// The queues this page holds, by lock: held until the page goes, the
+    /// person signs out, or another tab takes one over. A Web Lock is not
+    /// re-entrant, so a queue this page holds is never asked for again.
+    let held = Dictionary<string, Arca.Limen.OwnedQueue>()
 
     /// Keeps the queue in this browser, write-ahead. When the browser
     /// refuses, the queue goes on in this page only, and the person is told.
     let persist (state: Opened) (queue: OfflineQueue) =
         async {
-            match state.Keeper with
+            match state.Owned with
             | None -> return { state with Queue = queue }
-            | Some keeper ->
-                match! keeper.Save queue with
+            | Some owned ->
+                match! owned.Store.Save queue with
                 | Ok() -> return { state with Queue = queue }
+                | Error QueueStoreFailure.Unavailable when (owned.Diagnostics()).Ownership = Arca.Limen.OwnershipState.OwnedElsewhere ->
+                    // Another tab took the queue over ("use this tab
+                    // instead"): this save was fenced and wrote nothing. What
+                    // was kept is that tab's now, to send or reconcile, never
+                    // sent from here too; what this save added stays here.
+                    held.Remove(lockOf state.Folder) |> ignore
+                    let kept = state.Queue.Entries |> List.map _.Sequence |> Set.ofList
+                    handed.AddRange(state.Queue.Entries |> List.filter unsent |> List.map _.Operation.IdempotencyKey)
+
+                    return
+                        { state with
+                            Queue = { queue with Entries = queue.Entries |> List.filter (fun entry -> not (kept.Contains entry.Sequence)) }
+                            Owned = None
+                            Holder = HeldElsewhere false
+                            Note = None }
                 | Error failure ->
-                    let! note =
-                        async {
-                            match failure with
-                            // Arca refuses to keep anything that looks like a credential.
-                            | QueueStoreFailure.Corrupt _ -> return "A change holds text that looks like a credential, so this browser does not keep unsent changes."
-                            // A fenced save is refused when another tab saved
-                            // since this one read: the browser still keeps
-                            // changes, but this tab's would overwrite that
-                            // tab's, so nothing was written.
-                            | QueueStoreFailure.Unavailable ->
-                                match! (LocalStorageQueue.store (localStorage bridge) LocalStorageQueue.DefaultBudget state.Folder).Load() with
-                                | Ok _ -> return "Another Chrona tab saved its unsent changes in this browser, so this tab keeps its own in this page instead of overwriting them."
-                                | Error other -> return describeQueueStore other
-                            | other -> return describeQueueStore other
-                        }
+                    let note =
+                        match failure, (owned.Diagnostics()).Ownership with
+                        // Arca refuses to keep anything that looks like a credential.
+                        | QueueStoreFailure.Corrupt _, _ -> "A change holds text that looks like a credential, so this browser does not keep unsent changes."
+                        // Opened again when the store pack reports it.
+                        | _, Arca.Limen.OwnershipState.ConnectionLost ->
+                            "The browser closed the storage that keeps unsent changes; Chrona is opening it again."
+                        | other, _ -> describeQueueStore other
 
                     return
                         { state with
                             Queue = queue
-                            Keeper = None
+                            Owned = None
                             Note = Some note }
         }
-
-    /// The queue locks this page holds, and the store each one keeps: held
-    /// until the page goes.
-    let held = Dictionary<string, QueueStore>()
 
     let mutable retryMs = FirstRetryMs
     let mutable retrying = false
@@ -837,27 +943,32 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                             | Error _ -> return messages @ [ answer (Failed "The queued change could not be sent.") ]
                             | Ok inFlight ->
                                 let! state = save inFlight
-                                let! result = state.Provider.Commit operation
 
-                                match OfflineQueue.recordResult entry.Sequence result state.Queue with
-                                | Error _ -> return messages @ [ answer (Failed "The queued change's result could not be recorded.") ]
-                                | Ok next ->
-                                    match result with
-                                    | Ok receipt -> return! landed state receipt next
-                                    | Error failure ->
-                                        let! state = save next
-                                        let sent = next.Entries |> List.find (fun e -> e.Sequence = entry.Sequence)
+                                match state.Queue.Entries |> List.exists (fun e -> e.Sequence = entry.Sequence) with
+                                // Taken over meanwhile: the entry is the other tab's to send.
+                                | false -> return! step messages
+                                | true ->
+                                    let! result = state.Provider.Commit operation
 
-                                        match sent.State with
-                                        // Nothing was applied; GitHub could not be reached.
-                                        | EntryState.Pending -> return offline state
-                                        | EntryState.Refused _ ->
-                                            return!
-                                                finish
-                                                    state
-                                                    (OfflineQueue.abandon entry.Sequence (describeFailure failure) next)
-                                                    (fun _ -> [ answer (Failed(describeFailure failure)) ])
-                                        | _ -> return! step messages
+                                    match OfflineQueue.recordResult entry.Sequence result state.Queue with
+                                    | Error _ -> return messages @ [ answer (Failed "The queued change's result could not be recorded.") ]
+                                    | Ok next ->
+                                        match result with
+                                        | Ok receipt -> return! landed state receipt next
+                                        | Error failure ->
+                                            let! state = save next
+                                            let sent = next.Entries |> List.find (fun e -> e.Sequence = entry.Sequence)
+
+                                            match sent.State with
+                                            // Nothing was applied; GitHub could not be reached.
+                                            | EntryState.Pending -> return offline state
+                                            | EntryState.Refused _ ->
+                                                return!
+                                                    finish
+                                                        state
+                                                        (OfflineQueue.abandon entry.Sequence (describeFailure failure) next)
+                                                        (fun _ -> [ answer (Failed(describeFailure failure)) ])
+                                            | _ -> return! step messages
             }
 
         step []
@@ -868,43 +979,60 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
     /// person's credential: they stay, untouched, for that account.
     let ready (state: Opened) =
         async {
-            /// The queue this browser keeps, laid under this tab's own.
-            let keep (keeper: QueueStore) (holder: QueueHolder) (state: Opened) =
+            /// The queue this browser keeps, laid under this tab's own. The
+            /// first load moves a queue an older Chrona kept in localStorage
+            /// into IndexedDB (copied, verified, then removed), or reports why
+            /// it waits or was left in place.
+            let keep (owned: Arca.Limen.OwnedQueue) (state: Opened) =
                 async {
-                    match! keeper.Load() with
-                    | Ok None -> return { state with Keeper = Some keeper; Holder = holder }
-                    | Ok(Some kept) when
-                        kept.Entries |> List.exists (fun entry -> unsent entry && entry.Operation.ActorId <> state.Session.ActorId)
+                    let! result = owned.Store.Load()
+                    let state = { state with Holder = HeldHere }
+                    let notice = noticeOf owned
+
+                    let kept =
+                        { state with
+                            Owned = Some owned
+                            Note = (if owned.Mode = Arca.Limen.DurabilityMode.MemoryOnly then Some memoryOnlyNote else None)
+                            Notice = notice }
+
+                    match result with
+                    | Ok None -> return kept
+                    | Ok(Some queue) when
+                        queue.Entries |> List.exists (fun entry -> unsent entry && entry.Operation.ActorId <> state.Session.ActorId)
                         ->
                         return
                             { state with
-                                Keeper = None
-                                Holder = holder
+                                Owned = None
+                                Notice = notice
                                 Note = Some "Another account left changes in this browser that have not been sent; they are kept for that account." }
-                    | Ok(Some kept) -> return { state with Queue = OfflineQueue.recover kept; Keeper = Some keeper; Holder = holder }
-                    | Error failure -> return { state with Keeper = None; Holder = holder; Note = Some(describeQueueStore failure) }
+                    | Ok(Some queue) -> return { kept with Queue = OfflineQueue.recover queue }
+                    | Error failure -> return { state with Owned = None; Notice = notice; Note = Some(describeQueueStore failure) }
                 }
 
             // One tab holds this browser's queue: only it loads, keeps and
-            // sends what is kept (WI-0067). A Web Lock is not re-entrant, so a
-            // lock this page already holds is not asked for again (opening
-            // the records again would otherwise read as another tab's).
-            let lock = LocalStorageQueue.lockName state.Folder
+            // sends what is kept (WI-0067, LCP-059). A queue this page already
+            // holds is not asked for again (opening the records again would
+            // otherwise read as another tab's).
+            let lock = lockOf state.Folder
 
             let! state =
                 async {
                     match held.TryGetValue lock with
-                    | true, keeper -> return! keep keeper HeldHere state
+                    | true, owned -> return! keep owned state
                     | _ ->
-                        match! LocalStorageQueue.own (lockWith bridge false) (localStorage bridge) LocalStorageQueue.DefaultBudget state.Folder with
-                        | QueueOwnership.Owned keeper ->
-                            held[lock] <- keeper
-                            return! keep keeper HeldHere state
-                        | QueueOwnership.OwnedElsewhere -> return { state with Keeper = None; Holder = HeldElsewhere false; Note = None }
-                        // No Web Locks: every save is fenced instead, so one
-                        // tab's save never overwrites another's.
-                        | QueueOwnership.OwnershipUnsupported ->
-                            return! keep (LocalStorageQueue.store (localStorage bridge) LocalStorageQueue.DefaultBudget state.Folder) Unlocked state
+                        match! Arca.Limen.LimenQueue.own host queueOptions state.Folder with
+                        | Arca.Limen.QueueOpening.Owned owned ->
+                            held[lock] <- owned
+                            return! keep owned state
+                        | Arca.Limen.QueueOpening.OwnedElsewhere -> return { state with Owned = None; Holder = HeldElsewhere false; Note = None }
+                        // No Web Locks and no page-only fallback: durable
+                        // stores are never written by several tabs at once.
+                        | Arca.Limen.QueueOpening.OwnershipUnsupported ->
+                            return
+                                { state with
+                                    Owned = None
+                                    Note = Some "This browser cannot tell Chrona's tabs apart, so unsent changes live in this page only." }
+                        | Arca.Limen.QueueOpening.NothingUsable _ -> return { state with Owned = None; Note = Some memoryOnlyNote }
                 }
 
             opened <- Some state
@@ -1081,9 +1209,10 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                                               Months = months
                                               Organization = organization
                                               Queue = OfflineQueue.create OfflinePolicy.QueueWrites
-                                              Keeper = None
+                                              Owned = None
                                               Holder = HeldHere
                                               Note = None
+                                              Notice = None
                                               Index = { Index = None; Revision = None; Note = None } }
 
                                         // A new organization's activity index starts empty.
@@ -1251,42 +1380,53 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
         }
 
     /// Signing out discards this account's unsent changes from this device,
-    /// as the person confirmed (WI-0058). Another account's are untouched.
+    /// as the person confirmed (WI-0058). Another account's are untouched,
+    /// and so is an entry that may have landed (in flight, outcome unknown):
+    /// it stays to be reconciled, never dropped (Arca's LCP-070 rule). The
+    /// account is Chrona's actor id, never a display name.
     let discardJob () =
         async {
             match opened with
             | None -> return [ Update.UnsentDiscarded 0 ]
             | Some state ->
-                let mine, others =
-                    state.Queue.Entries
-                    |> List.partition (fun entry -> unsent entry && entry.Operation.ActorId = state.Session.ActorId)
+                let discardable (entry: QueueEntry) =
+                    entry.Operation.ActorId = state.Session.ActorId
+                    && (match entry.State with
+                        | EntryState.Pending
+                        | EntryState.Conflicted _
+                        | EntryState.Refused _ -> true
+                        | _ -> false)
 
-                let! saved = persist state { state.Queue with Entries = others |> List.filter unsent }
+                let mine, kept = state.Queue.Entries |> List.partition discardable
+                let! saved = persist state { state.Queue with Entries = kept |> List.filter unsent }
                 opened <- Some saved
                 return [ Update.UnsentDiscarded mine.Length; sync saved false ]
         }
 
-    /// The tab that held this browser's queue closed, and this tab took the
-    /// lock: it now holds the queue. What that tab kept is read back and
+    /// This tab now holds the queue: the person took it over from the tab
+    /// that held it, or that tab closed. What that tab kept is read back and
     /// this tab's own unsent changes follow it, in order, renumbered after
     /// it; nothing is sent twice, because an entry that tab was sending
-    /// becomes an outcome to reconcile, never a blind resend (ARCA-OFF-004).
-    let adoptJob (keeper: QueueStore) (lock: string) () =
+    /// becomes an outcome to reconcile, never a blind resend (ARCA-OFF-004,
+    /// LCP-060).
+    let adoptJob (owned: Arca.Limen.OwnedQueue) (lock: string) () =
         async {
             match opened with
-            | Some state when LocalStorageQueue.lockName state.Folder = lock ->
+            | Some state when lockOf state.Folder = lock ->
+                held[lock] <- owned
                 let mine = state.Queue.Entries |> List.filter unsent
-                let here = { state with Holder = HeldHere; Note = None }
+                let! loaded = owned.Store.Load()
+                let here = { state with Holder = HeldHere; Note = None; Notice = noticeOf owned }
 
-                match! keeper.Load() with
+                match loaded with
                 | Error failure ->
-                    let state = { here with Keeper = None; Note = Some(describeQueueStore failure) }
+                    let state = { here with Owned = None; Note = Some(describeQueueStore failure) }
                     opened <- Some state
                     return [ sync state false ]
                 | Ok(Some kept) when kept.Entries |> List.exists (fun entry -> unsent entry && entry.Operation.ActorId <> state.Session.ActorId) ->
                     let state =
                         { here with
-                            Keeper = None
+                            Owned = None
                             Note = Some "Another account left changes in this browser that have not been sent; they are kept for that account." }
 
                     opened <- Some state
@@ -1301,8 +1441,13 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
 
                     // Decisions were counted by the old numbers.
                     decided.Clear()
-                    held[lock] <- keeper
-                    let! state = persist { here with Keeper = Some keeper } queue
+
+                    let here =
+                        { here with
+                            Owned = Some owned
+                            Note = (if owned.Mode = Arca.Limen.DurabilityMode.MemoryOnly then Some memoryOnlyNote else None) }
+
+                    let! state = persist here queue
                     opened <- Some state
                     let resumed = before.Entries |> List.filter unsent |> List.choose (requestOf state.Folder)
 
@@ -1313,25 +1458,28 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                         [ Update.StoreOpened(contents state)
                           Update.StoreResumed resumed
                           sync state false ]
-            | _ -> return []
+            | _ ->
+                // The records closed or moved on meanwhile: let it go.
+                do! owned.Release()
+                return []
         }
 
-    /// Waits, outside the job queue, for the tab holding this browser's
-    /// queue to close; the lock passes to this tab when it does.
+    /// "Use this tab instead" (OQ-LIMEN-IDB-001): takes the queue over from
+    /// the tab holding it, outside the job queue. That tab hears LockLost and
+    /// its next save is fenced and writes nothing.
     let takeOverJob () =
         async {
             match opened with
             | Some state when state.Holder = HeldElsewhere false ->
                 let state = { state with Holder = HeldElsewhere true }
-                let lock = LocalStorageQueue.lockName state.Folder
+                let lock = lockOf state.Folder
                 opened <- Some state
 
                 bridge.Start(
                     async {
-                        match! LocalStorageQueue.own (lockWith bridge true) (localStorage bridge) LocalStorageQueue.DefaultBudget state.Folder with
-                        | QueueOwnership.Owned keeper -> serial (adoptJob keeper lock)
-                        | QueueOwnership.OwnedElsewhere
-                        | QueueOwnership.OwnershipUnsupported ->
+                        match! Arca.Limen.LimenQueue.takeOver host queueOptions state.Folder with
+                        | Arca.Limen.QueueOpening.Owned owned -> serial (adoptJob owned lock)
+                        | _ ->
                             serial (fun () ->
                                 async {
                                     match opened with
@@ -1350,15 +1498,77 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
             | _ -> return []
         }
 
-    /// Another context took the lock (Chrona never steals one): this tab no
-    /// longer keeps the queue, and goes on with its own changes in the page.
-    /// A change both tabs then send is found already stored, not doubled.
+    /// The tab holding the queue closed: this tab asks for it again when the
+    /// person returns to it, and holds it when no other tab does.
+    let claimJob () =
+        async {
+            match opened with
+            | Some state when state.Holder = HeldElsewhere false ->
+                match! Arca.Limen.LimenQueue.own host queueOptions state.Folder with
+                | Arca.Limen.QueueOpening.Owned owned -> return! adoptJob owned (lockOf state.Folder) ()
+                | _ -> return []
+            | _ -> return []
+        }
+
+    /// The browser closed the queue's database under the page (cleared site
+    /// data, eviction): it is opened again, and what this tab holds is kept
+    /// there again. This tab's queue is the whole queue, so it is saved as
+    /// it stands; whatever the browser lost is said (LocalQueueLost).
+    let reconnectJob () =
+        async {
+            match opened with
+            | Some state when state.Holder = HeldHere ->
+                let lock = lockOf state.Folder
+
+                match held.TryGetValue lock with
+                | true, previous ->
+                    held.Remove lock |> ignore
+                    do! previous.Release()
+                | _ -> ()
+
+                match! Arca.Limen.LimenQueue.own host queueOptions state.Folder with
+                | Arca.Limen.QueueOpening.Owned owned ->
+                    held[lock] <- owned
+                    // Loaded first: the store reports what it found.
+                    let! _ = owned.Store.Load()
+
+                    let here =
+                        { state with
+                            Owned = Some owned
+                            Note = (if owned.Mode = Arca.Limen.DurabilityMode.MemoryOnly then Some memoryOnlyNote else None)
+                            Notice = noticeOf owned }
+
+                    let! state = persist here state.Queue
+                    opened <- Some state
+                    return [ sync state false ]
+                | Arca.Limen.QueueOpening.OwnedElsewhere ->
+                    let state = { state with Owned = None; Holder = HeldElsewhere false; Note = None }
+                    opened <- Some state
+                    return [ sync state false ]
+                | _ ->
+                    let state = { state with Owned = None; Note = Some memoryOnlyNote }
+                    opened <- Some state
+                    return [ sync state false ]
+            | _ -> return []
+        }
+
+    /// Another tab took the queue over ("use this tab instead" there): this
+    /// tab no longer keeps it, and goes on with its own changes in the page.
+    /// What this tab was sending is reconciled by that tab, never sent twice.
     let lostJob () =
         async {
             match opened with
-            | Some state when state.Holder = HeldHere && state.Keeper.IsSome ->
-                held.Remove(LocalStorageQueue.lockName state.Folder) |> ignore
-                let state = { state with Keeper = None; Holder = HeldElsewhere false }
+            | Some state when state.Holder = HeldHere && state.Owned.IsSome ->
+                held.Remove(lockOf state.Folder) |> ignore
+                // Everything this tab held was kept: it is the other tab's now.
+                handed.AddRange(state.Queue.Entries |> List.filter unsent |> List.map _.Operation.IdempotencyKey)
+
+                let state =
+                    { state with
+                        Queue = { state.Queue with Entries = [] }
+                        Owned = None
+                        Holder = HeldElsewhere false
+                        Note = None }
                 opened <- Some state
                 return [ sync state false ]
             | _ -> return []
@@ -1374,17 +1584,31 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
     let waiting (config: Deployment.DeploymentConfig) (session: Session) =
         async {
             match Storage.binding config with
-            | Error _ -> return 0
+            | Error _ -> return 0, None
             | Ok binding ->
                 match Storage.organizationNamespace config binding session.OrganizationId with
-                | Error _ -> return 0
+                | Error _ -> return 0, None
                 | Ok folder ->
-                    let keeper = LocalStorageQueue.store (localStorage bridge) LocalStorageQueue.DefaultBudget folder
+                    let count (kept: Result<OfflineQueue option, QueueStoreFailure>) =
+                        match kept with
+                        | Ok(Some kept) -> kept.Entries |> List.filter (fun entry -> unsent entry && entry.Operation.ActorId = session.ActorId) |> List.length
+                        | _ -> 0
 
-                    match! keeper.Load() with
-                    | Ok(Some kept) ->
-                        return kept.Entries |> List.filter (fun entry -> unsent entry && entry.Operation.ActorId = session.ActorId) |> List.length
-                    | _ -> return 0
+                    // Read under the queue's lock, and let go again: the tab
+                    // holding it, if another does, shows its own count.
+                    match held.TryGetValue(lockOf folder) with
+                    | true, owned ->
+                        let! kept = owned.Store.Load()
+                        return count kept, None
+                    | _ ->
+                        match! Arca.Limen.LimenQueue.own host queueOptions folder with
+                        | Arca.Limen.QueueOpening.Owned owned ->
+                            // The first load may move an older localStorage queue.
+                            let! kept = owned.Store.Load()
+                            let notice = noticeOf owned
+                            do! owned.Release()
+                            return count kept, notice
+                        | _ -> return 0, None
         }
 
     { Kind = InMemory
@@ -1397,8 +1621,8 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                     let! messages = openJob config session dates ()
 
                     if messages |> List.exists (function Update.StoreUnavailable _ -> true | _ -> false) then
-                        let! count = waiting config session
-                        return messages @ [ Update.UnsentWaiting count ]
+                        let! count, notice = waiting config session
+                        return messages @ [ Update.UnsentWaiting(count, notice) ]
                     else
                         return messages
                 })
@@ -1418,4 +1642,6 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                 serial drain
       Discard = fun () -> if requested then serial discardJob else memory.Discard()
       TakeOver = fun () -> if requested then serial takeOverJob
+      Claim = fun () -> if requested then serial claimJob
+      Reconnect = fun () -> if requested then serial reconnectJob
       Lost = fun () -> if requested then serial lostJob }

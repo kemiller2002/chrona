@@ -8,9 +8,9 @@ test.use({ timezoneId: "America/New_York" });
 
 const announcement = (page) => page.locator("p[role=status][aria-live=polite]");
 
-test("the page runs on Limen with the schedule, environment, print, host and lifecycle packs, in the Chrona brand", async ({ app: page }) => {
+test("the page runs on Limen with the schedule, environment, print, host, lifecycle, coordination and store packs, in the Chrona brand", async ({ app: page }) => {
   await expect(page.locator("html")).toHaveAttribute("data-protocol", "1.4");
-  await expect(page.locator("html")).toHaveAttribute("data-capabilities", "limen.schedule limen.environment chrona.print chrona.host limen.lifecycle limen.coordination");
+  await expect(page.locator("html")).toHaveAttribute("data-capabilities", "limen.schedule limen.environment chrona.print chrona.host limen.lifecycle limen.coordination limen.store");
   await expect(page.locator("#zone")).toHaveText("America/New_York");
 
   // The legacy palette arrives as Forma tokens from the compiled brand.

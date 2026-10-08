@@ -5,16 +5,23 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- EchelonFoundry.Aegis.Core requires FSharp.Core >= 10.1.400. The F# SDK
+    <!-- EchelonFoundry.Aegis.Core requires FSharp.Core >= 10.1.400 and the
+         Fides packages >= 10.1.401. The F# SDK
          would otherwise inject an older FSharp.Core implicitly and NuGet would
          report a downgrade, so the version is pinned here and the implicit
          reference is disabled in Directory.Build.props. -->
-    <PackageVersion Include="FSharp.Core" Version="10.1.400" />
+    <PackageVersion Include="FSharp.Core" Version="10.1.401" />
     <PackageVersion Include="EchelonFoundry.Aegis.Core" Version="1.0.0" />
     <!-- Arca 0.2.0: attested GitHub release assets in vendor/nuget, installed
          and proven by Conditor (conditor.json, vendor/nuget/arca.lock). -->
     <PackageVersion Include="EchelonFoundry.Arca.Core" Version="0.2.0" />
     <PackageVersion Include="EchelonFoundry.Arca.GitHub" Version="0.2.0" />
+    <!-- Fides 0.2.0, the same way (vendor/nuget/fides.lock): the WASM sign-in
+         client and its bridge to Arca's token-provider port. Fides.Hosting
+         is the exchange's server side and is not referenced. -->
+    <PackageVersion Include="EchelonFoundry.Fides" Version="0.2.0" />
+    <PackageVersion Include="EchelonFoundry.Fides.Client" Version="0.2.0" />
+    <PackageVersion Include="EchelonFoundry.Fides.Arca" Version="0.2.0" />
   </ItemGroup>
 
   <ItemGroup Label="Test">

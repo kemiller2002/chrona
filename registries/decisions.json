@@ -147,6 +147,55 @@
     "version": "1.0.0"
   },
   {
+    "created": "2026-10-08",
+    "derived_from": [
+      "DF-CHRONA-2026-0003"
+    ],
+    "id": "DF-CHRONA-2026-0004",
+    "owners": [
+      "chrona"
+    ],
+    "path": "research/decisions/DF-CHRONA-2026-0004--sign-in-through-fides-client-over-limen-requests.md",
+    "provenance": {
+      "contributions": {
+        "EXE-20261008T121136332Z-c6255241": {
+          "actor": {
+            "id": "anthropic/claude-code",
+            "kind": "agent",
+            "model": "unknown",
+            "provider": "anthropic",
+            "runtime": "claude-code"
+          },
+          "at": "2026-10-08T12:33:12.158Z",
+          "operations": [
+            "created"
+          ],
+          "reason": "Sign-in through Fides and the deployment's configuration document (WI-0029)"
+        }
+      }
+    },
+    "related_documents": [
+      "research/decisions/DF-CHRONA-2026-0003--product-ui-on-limen-in-memory-with-identity-and-store-ports.md",
+      "docs/requirements/CHRONA-DATA-LOCATION.md",
+      "docs/deployment-configuration.md"
+    ],
+    "review_cycle": "on-trigger",
+    "status": "accepted",
+    "superseded_by": [],
+    "supersedes": [],
+    "tags": [
+      "identity",
+      "fides",
+      "limen",
+      "architecture",
+      "configuration",
+      "security"
+    ],
+    "title": "Sign-in runs Fides' own client inside the Limen request/reply loop, configured only by the deployment's configuration document",
+    "updated": "2026-10-08",
+    "version": "1.0.0"
+  },
+  {
     "created": "2026-10-05",
     "id": "DF-CHRONA-FND-2026-0001",
     "owners": [

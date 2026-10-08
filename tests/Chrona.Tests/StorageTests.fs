@@ -9,6 +9,8 @@ open Arca
 open Chrona.Domain.Diagnostics
 open Chrona.Domain.Storage
 
+module Deployment = Chrona.Domain.Deployment
+
 module Organization = Chrona.Domain.Organization
 
 let private ok =
@@ -33,7 +35,7 @@ let private configText (owner: string) (repository: string) (basePath: string) =
         .Replace("BASE", basePath)
 
 let private production =
-    configText "acme" "chrona-data" "deployments/prod" |> parseDeploymentConfig |> ok
+    configText "acme" "chrona-data" "deployments/prod" |> Deployment.parse |> ok
 
 let private bindingOf config = binding config |> ok
 
@@ -80,7 +82,7 @@ let private initialized () =
 [<Fact>]
 let ``the data location comes from deployment configuration, never from code`` () =
     let first = bindingOf production
-    let second = configText "other-owner" "time" "" |> parseDeploymentConfig |> ok |> bindingOf
+    let second = configText "other-owner" "time" "" |> Deployment.parse |> ok |> bindingOf
 
     Assert.Equal("acme/chrona-data", string first.Location.Repository)
     Assert.Equal("deployments/prod/chrona", RelativePath.render (applicationNamespace first |> ok).Root)
@@ -91,13 +93,17 @@ let ``the data location comes from deployment configuration, never from code`` (
 
 [<Fact>]
 let ``a configuration that names an unsafe or invalid location is refused`` () =
-    let refused text = parseDeploymentConfig text |> codeOf
+    let refused text = Deployment.parse text |> codeOf
 
     Assert.Equal("CHRONA.STORAGE.INVALID_LOCATION", refused (configText "acme" "chrona-data" "../outside"))
     Assert.Equal("CHRONA.STORAGE.INVALID_LOCATION", refused (configText "acme" "chrona-data" ".github"))
     Assert.Equal("CHRONA.STORAGE.INVALID_LOCATION", refused (configText "-acme" "chrona-data" ""))
     Assert.Equal("CHRONA.STORAGE.INVALID_CONFIGURATION", refused "not json")
-    Assert.Equal("CHRONA.STORAGE.INVALID_CONFIGURATION", refused """{"environment":"production","environmentName":"p"}""")
+    // A deployment may configure no storage (a local session in memory), but
+    // then there is nothing to bind Chrona's namespace to.
+    let unstored = Deployment.parse """{"environment":"local","environmentName":"local"}""" |> ok
+    Assert.Equal(None, unstored.Location)
+    Assert.Equal("CHRONA.ENTRY.MISSING_FIELD", binding unstored |> codeOf)
 
     Assert.Equal(
         "CHRONA.STORAGE.INVALID_CONFIGURATION",
@@ -160,7 +166,7 @@ let ``an organization can keep its data in its own repository, for its own permi
     let text =
         """{"environment":"production","environmentName":"production","location":{"owner":"acme","repository":"chrona-data","branch":"main","basePath":"deployments/prod"},"organizations":{"org_eu":{"owner":"acme-eu","repository":"chrona-eu","branch":"main","basePath":""}}}"""
 
-    let config = parseDeploymentConfig text |> ok
+    let config = Deployment.parse text |> ok
     let binding = bindingOf config
     let eu = organizationNamespace config binding "org_eu" |> ok
     let home = organizationNamespace config binding "org_acme" |> ok
@@ -172,10 +178,10 @@ let ``an organization can keep its data in its own repository, for its own permi
     // An organization override must name a valid organization and location.
     Assert.Equal(
         "CHRONA.STORAGE.INVALID_ORGANIZATION_ID",
-        text.Replace("\"org_eu\"", "\"org eu\"") |> parseDeploymentConfig |> codeOf
+        text.Replace("\"org_eu\"", "\"org eu\"") |> Deployment.parse |> codeOf
     )
 
-    Assert.Equal("CHRONA.STORAGE.INVALID_LOCATION", text.Replace("\"chrona-eu\"", "\"..\"") |> parseDeploymentConfig |> codeOf)
+    Assert.Equal("CHRONA.STORAGE.INVALID_LOCATION", text.Replace("\"chrona-eu\"", "\"..\"") |> Deployment.parse |> codeOf)
 
 // ---- 2.6: the organization manifest -------------------------------------------
 
@@ -315,7 +321,7 @@ let ``a folder that is not initialized, belongs to another application, or was c
     let app = applicationNamespace binding |> ok
 
     // Nothing there yet.
-    let fresh = configText "acme" "chrona-data" "deployments/staging" |> parseDeploymentConfig |> ok |> bindingOf
+    let fresh = configText "acme" "chrona-data" "deployments/staging" |> Deployment.parse |> ok |> bindingOf
     let freshSpace = applicationNamespace fresh |> ok
     Assert.Equal<string list>([ "CHRONA.STORAGE.NAMESPACE_NOT_INITIALIZED" ], openNamespace freshSpace (read freshSpace manifestPath state) |> codes)
 

@@ -803,7 +803,7 @@ let private reportView (model: Model) =
 
     let range = $"{Format.longDate filter.From} to {Format.longDate filter.To}"
 
-    [ flag "screenReports" (model.Route.Screen = ReportsScreen)
+    [ flag "screenReports" (model.Route.Screen = ReportsScreen && canWork model)
       text "reportFrom" (Format.isoDate filter.From)
       text "reportTo" (Format.isoDate filter.To)
       text "reportText" draft.Text
@@ -834,6 +834,50 @@ let private reportView (model: Model) =
 
 // ---- the whole view ---------------------------------------------------------------
 
+// ---- sign-in (CHX-022, CHX-023) ---------------------------------------------------
+
+/// What a sign-in outcome means to the person, by its stable code.
+let noticeText (code: string) =
+    match code with
+    | "signed_out" -> "You signed out. This tab no longer holds your GitHub token."
+    | "state_invalid" -> "That sign-in did not start in this tab, or was already used. Sign in again."
+    | "state_expired" -> "The sign-in took longer than ten minutes. Sign in again."
+    | "provider_denied" -> "GitHub sign-in was cancelled."
+    | "expired" -> "Your session ended. Sign in again."
+    | "revoked" -> "Your session is no longer valid. Sign in again."
+    | "provider_unavailable" -> "GitHub or the sign-in service cannot be reached. Chrona will try again."
+    | "repository_access_denied" -> "Your GitHub account cannot read this deployment's data repository."
+    | "sign_in_failed" -> "Sign-in could not start. Try again."
+    | other -> $"Sign-in was refused ({other})."
+
+let private retentionText =
+    function
+    | ThisPage -> "Your token is kept in this page only: reloading or closing it signs you out."
+    | ThisTab -> "Your token is kept in this tab until it closes."
+
+let private identityView (model: Model) =
+    let identity = model.Identity
+    let notice = identity.Notice
+
+    [ flag "shellVisible" (canWork model)
+      flag "screenConfiguring" (identity.Mode = Configuring)
+      flag "screenMisconfigured" (match identity.Mode with Misconfigured _ -> true | _ -> false)
+      text "misconfiguredDetail" (match identity.Mode with Misconfigured detail -> detail | _ -> "")
+      flag "screenSignIn" (match identity.Mode with SignInRequired _ -> true | _ -> false)
+      flag "signInBusy" (identity.Mode = SignInRequired true)
+      text "signInButton" (if identity.Mode = SignInRequired true then "Signing in…" else "Sign in with GitHub")
+      flag "retentionPage" (identity.Retention = ThisPage)
+      flag "retentionTab" (identity.Retention = ThisTab)
+      flag "hasSignInNotice" (notice.IsSome && not (canWork model))
+      flag "hasSessionNotice" (notice.IsSome && canWork model)
+      text "signInNotice" (notice |> Option.map noticeText |> Option.defaultValue "")
+      text "signInNoticeCode" (notice |> Option.defaultValue "")
+      flag "accountSignedIn" (identity.Mode = SignedInMode)
+      flag "accountLocal" (identity.Mode = LocalOnly)
+      text "accountLogin" model.Session.DisplayName
+      text "accountProvider" (match model.Session.Kind with SignedIn provider -> provider | LocalSession -> "")
+      text "accountRetention" (retentionText identity.Retention) ]
+
 let project (model: Model) : View =
     let tone, headline, detail = storeLines model
 
@@ -847,6 +891,7 @@ let project (model: Model) : View =
       flag "screenActivity" (match model.Route.Screen with ActivityDetail _ -> true | _ -> false)
       items "navigation" (navigation model)
       text "announcement" model.Announcement
+      yield! identityView model
       text "sessionName" model.Session.DisplayName
       text "sessionInitials" (Format.initials model.Session.DisplayName)
       text "storeTone" tone

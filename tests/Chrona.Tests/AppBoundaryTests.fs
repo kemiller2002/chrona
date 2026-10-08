@@ -34,6 +34,7 @@ let private envWith (answer: StoreRequest -> StoreOutcome) =
         { Now = fun () -> clock.Value
           NewId = fun prefix -> $"{prefix}-{Threading.Interlocked.Increment ids}"
           Session = App.localSession
+          Identity = Identity.create (fun () -> clock.Value) (fun count -> Array.create count 7uy)
           StoreKind = InMemory
           Store =
             fun request ->
@@ -65,8 +66,28 @@ let private event (name: string) (key: string option) (value: string) =
 let private capabilityResult (id: string) (capability: string) (result: string) =
     $"""{{"kind":"EffectResult","result":{{"kind":"CapabilityResult","correlationId":"{id}","capability":"{capability}","version":1,"outcome":{{"kind":"Completed","result":{result}}}}}}}"""
 
+/// A deployment that configures neither storage nor sign-in: a local session.
+let private localConfiguration = """{"environment":"local","environmentName":"local"}"""
+
+let private httpResult (id: string) (status: int) (body: string) =
+    let body = Text.Json.JsonSerializer.Serialize body
+    $"""{{"kind":"EffectResult","result":{{"kind":"HttpResult","correlationId":"{id}","outcome":{{"kind":"Success","status":{status},"body":{body}}}}}}}"""
+
+/// `App.handle`, and when the reply asks for the deployment's configuration,
+/// the local configuration's answer too. The reply returned is the first one.
+let private handle aegis env state message =
+    let state, text = App.handle aegis env state message
+
+    let read =
+        (JsonNode.Parse text).["effects"].AsArray()
+        |> Seq.tryFind (fun e -> e.["kind"].GetValue<string>() = "Http" && e.["url"].GetValue<string>().EndsWith "chrona.deployment.json")
+
+    match read with
+    | Some request -> fst (App.handle aegis env state (httpResult (request.["correlationId"].GetValue<string>()) 200 localConfiguration)), text
+    | None -> state, text
+
 let private run aegis env messages =
-    messages |> List.fold (fun (state, _) message -> App.handle aegis env state message) (App.initial, "")
+    messages |> List.fold (fun (state, _) message -> handle aegis env state message) (App.initial, "")
 
 let private reply (text: string) = JsonNode.Parse text
 let private viewText (name: string) (text: string) = (reply text).["view"].[name].GetValue<string>()
@@ -82,7 +103,7 @@ let private describedAs (zone: string) (state: App.State, text: string) =
 let ``Initialize accepts the core contract and selects the schedule and environment packs`` () =
     let _, aegis = collector ()
     let env, _ = envWith App.inMemoryStore
-    let _, text = App.handle aegis env App.initial initialize
+    let _, text = handle aegis env App.initial initialize
     let handshake = (reply text).["handshake"]
     Assert.Equal("Accepted", handshake.["kind"].GetValue<string>())
     Assert.Equal(4, handshake.["protocol"].["minor"].GetValue<int>())
@@ -92,12 +113,16 @@ let ``Initialize accepts the core contract and selects the schedule and environm
         handshake.["capabilities"].AsArray() |> Seq.map (fun c -> c.["id"].GetValue<string>()) |> Seq.toList
     )
 
-    // The first thing the engine asks is the browser's time zone.
+    // The engine asks for the browser's time zone and reads the deployment's
+    // configuration, beside the page.
     match effects text with
-    | [ e ] ->
+    | [ e; read ] ->
         Assert.Equal("Capability", e.["kind"].GetValue<string>())
         Assert.Equal("limen.environment", e.["capability"].GetValue<string>())
         Assert.Equal("describe", e.["request"].["operation"].GetValue<string>())
+        Assert.Equal("Http", read.["kind"].GetValue<string>())
+        Assert.Equal("GET", read.["method"].GetValue<string>())
+        Assert.Equal("http://127.0.0.1:4321/web/chrona.deployment.json", read.["url"].GetValue<string>())
     | other -> failwith $"{other}"
 
     Assert.True(viewFlag "screenTrack" text)
@@ -107,17 +132,27 @@ let ``a pack offered at another fingerprint is not selected`` () =
     let _, aegis = collector ()
     let env, _ = envWith App.inMemoryStore
     let stale = """{"id":"limen.schedule","version":1,"fingerprint":"sha256:00"}"""
-    let _, text = App.handle aegis env App.initial (initializeWith events (offer stale) "")
+    let _, text = handle aegis env App.initial (initializeWith events (offer stale) "")
     Assert.Equal(0, (reply text).["handshake"].["capabilities"].AsArray().Count)
-    // Without the environment pack the engine falls back to UTC at once.
+    // Without the environment pack the engine falls back to UTC at once; it
+    // asks only for the deployment's configuration.
     Assert.Equal("UTC", viewText "zoneId" text)
-    Assert.Empty(effects text)
+    Assert.Equal<string list>([ "Http" ], effects text |> List.map (fun e -> e.["kind"].GetValue<string>()))
 
 [<Fact>]
 let ``a kernel without Navigation is refused as an unavailable capability`` () =
     let sink, aegis = collector ()
     let env, _ = envWith App.inMemoryStore
-    let state, text = App.handle aegis env App.initial (initializeWith """["Storage"]""" (offer "") "")
+    let state, text = handle aegis env App.initial (initializeWith """["Storage"]""" (offer "") "")
+    Assert.True(viewFlag "hasOperationalFault" text)
+    Assert.Equal<string list>([ Boundary.CapabilityUnavailable ], recordedCodes sink)
+    Assert.True(state.Model.IsNone)
+
+[<Fact>]
+let ``a kernel without Http or Storage is refused: configuration and sign-in need them`` () =
+    let sink, aegis = collector ()
+    let env, _ = envWith App.inMemoryStore
+    let state, text = App.handle aegis env App.initial (initializeWith """["Navigation","Clipboard"]""" (offer "") "")
     Assert.True(viewFlag "hasOperationalFault" text)
     Assert.Equal<string list>([ Boundary.CapabilityUnavailable ], recordedCodes sink)
     Assert.True(state.Model.IsNone)
@@ -127,7 +162,7 @@ let ``a contract mismatch is answered with the reason and leaves the page unboun
     let _, aegis = collector ()
     let env, _ = envWith App.inMemoryStore
     let wrong = """{"protocol":{"major":1,"minor":4},"contract":{"unit":"limen.core","version":1,"fingerprint":"sha256:00"},"capabilities":[]}"""
-    let state, text = App.handle aegis env App.initial (initializeWith events wrong "")
+    let state, text = handle aegis env App.initial (initializeWith events wrong "")
     Assert.Equal("Rejected", (reply text).["handshake"].["kind"].GetValue<string>())
     Assert.Equal("ContractMismatch", (reply text).["handshake"].["reason"].["kind"].GetValue<string>())
     Assert.True(state.Model.IsNone)
@@ -138,7 +173,7 @@ let ``the described time zone becomes the business zone`` () =
     let env, _ = envWith App.inMemoryStore
     let state, text = run aegis env [ initialize ]
     let id = (effects text).Head.["correlationId"].GetValue<string>()
-    let _, text = App.handle aegis env state (capabilityResult id "limen.environment" """{"kind":"Described","environment":{"locale":"en-US","languages":["en-US"],"timeZone":"America/New_York","direction":"ltr","preferences":[]}}""")
+    let _, text = handle aegis env state (capabilityResult id "limen.environment" """{"kind":"Described","environment":{"locale":"en-US","languages":["en-US"],"timeZone":"America/New_York","direction":"ltr","preferences":[]}}""")
     Assert.Equal("America/New_York", viewText "zoneId" text)
 
 [<Fact>]
@@ -146,7 +181,7 @@ let ``navigation is a same-origin push of the page path and fragment; the result
     let _, aegis = collector ()
     let env, _ = envWith App.inMemoryStore
     let state, _ = run aegis env [ initialize ]
-    let state, text = App.handle aegis env state (event "navigate" (Some "more") "")
+    let state, text = handle aegis env state (event "navigate" (Some "more") "")
 
     let push = (effects text).Head
     Assert.Equal("Navigation", push.["kind"].GetValue<string>())
@@ -156,12 +191,12 @@ let ``navigation is a same-origin push of the page path and fragment; the result
 
     let id = push.["correlationId"].GetValue<string>()
     let moved = $"""{{"kind":"EffectResult","result":{{"kind":"NavigationResult","correlationId":"{id}","outcome":{{"kind":"Success","location":{{"origin":"http://127.0.0.1:4321","path":"/web/index.html","query":"","hash":"#/more"}}}}}}}}"""
-    let _, text = App.handle aegis env state moved
+    let _, text = handle aegis env state moved
     Assert.True(viewFlag "screenMore" text)
 
     // Back and Forward arrive as LocationChanged.
     let back = """{"kind":"LocationChanged","location":{"origin":"http://127.0.0.1:4321","path":"/web/index.html","query":"","hash":"#/today"}}"""
-    let _, text = App.handle aegis env state back
+    let _, text = handle aegis env state back
     Assert.True(viewFlag "screenToday" text)
 
 [<Fact>]
@@ -169,12 +204,12 @@ let ``a running timer asks the schedule pack for one-second wake-ups, and a fire
     let _, aegis = collector ()
     let env, _ = envWith App.inMemoryStore
 
-    let started = App.handle aegis env App.initial initialize
-    let described = App.handle aegis env (fst started) (describedAs "America/New_York" started) |> fst
+    let started = handle aegis env App.initial initialize
+    let described = handle aegis env (fst started) (describedAs "America/New_York" started) |> fst
 
     let state, _ =
         List.fold
-            (fun (s, _) m -> App.handle aegis env s m)
+            (fun (s, _) m -> handle aegis env s m)
             (described, "")
             [ event "newProjectName" None "HelixNote"
               event "addProject" None ""
@@ -187,7 +222,7 @@ let ``a running timer asks the schedule pack for one-second wake-ups, and a fire
 
     let state, text =
         [ event "timerProject" None project; event "timerActivityType" None activityType; event "startTimer" None "" ]
-        |> List.fold (fun (s, _) m -> App.handle aegis env s m) (state, "")
+        |> List.fold (fun (s, _) m -> handle aegis env s m) (state, "")
 
     let wake = (effects text).Head
     Assert.Equal("limen.schedule", wake.["capability"].GetValue<string>())
@@ -195,7 +230,7 @@ let ``a running timer asks the schedule pack for one-second wake-ups, and a fire
     Assert.Equal(1000, wake.["request"].["delayMs"].GetValue<int>())
 
     let id = wake.["correlationId"].GetValue<string>()
-    let _, text = App.handle aegis env state (capabilityResult id "limen.schedule" """{"kind":"Fired","elapsedMs":1000}""")
+    let _, text = handle aegis env state (capabilityResult id "limen.schedule" """{"kind":"Fired","elapsedMs":1000}""")
     Assert.Equal("limen.schedule", (effects text).Head.["capability"].GetValue<string>())
 
 [<Fact>]
@@ -218,17 +253,17 @@ let ``a result nobody requested, or a result kind the app never asks for, is a c
     let state, _ = run aegis env [ initialize ]
     let before = state.Model.Value.Route
 
-    let state, text = App.handle aegis env state (capabilityResult "app-999" "limen.schedule" """{"kind":"Fired","elapsedMs":1}""")
+    let state, text = handle aegis env state (capabilityResult "app-999" "limen.schedule" """{"kind":"Fired","elapsedMs":1}""")
     Assert.True(viewFlag "hasOperationalFault" text)
     Assert.Equal(before, state.Model.Value.Route)
 
     let storage = """{"kind":"EffectResult","result":{"kind":"StorageResult","correlationId":"x","outcome":{"kind":"Success"}}}"""
-    let _, text = App.handle aegis env state storage
+    let _, text = handle aegis env state storage
     Assert.True(viewFlag "hasOperationalFault" text)
     Assert.Equal<string list>([ Boundary.CapabilityUnavailable; Boundary.CapabilityUnavailable ], recordedCodes sink)
 
     // The fault is shown until the next message, then cleared.
-    let _, text = App.handle aegis env state (event "goToday" None "")
+    let _, text = handle aegis env state (event "goToday" None "")
     Assert.False(viewFlag "hasOperationalFault" text)
 
 [<Fact>]
@@ -236,7 +271,7 @@ let ``a malformed message is a classified fault that changes nothing`` () =
     let sink, aegis = collector ()
     let env, _ = envWith App.inMemoryStore
     let state, _ = run aegis env [ initialize ]
-    let after, text = App.handle aegis env state """{"kind":"Event","event":{"kind":"Event"}}"""
+    let after, text = handle aegis env state """{"kind":"Event","event":{"kind":"Event"}}"""
     Assert.True(viewFlag "hasOperationalFault" text)
     Assert.Equal<string list>([ Boundary.MessageInvalid ], recordedCodes sink)
     Assert.Equal(state.Model.Value.Route, after.Model.Value.Route)
@@ -268,8 +303,8 @@ let private toggled (name: string) (key: string) (on: bool) =
 let private richViews () =
     let _, aegis = collector ()
     let env, _ = envWith App.inMemoryStore
-    let started = App.handle aegis env App.initial initialize
-    let send (state: App.State) message = fst (App.handle aegis env state message)
+    let started = handle aegis env App.initial initialize
+    let send (state: App.State) message = fst (handle aegis env state message)
     let view (state: App.State) = Chrona.Engine.App.Project.project state.Model.Value
     let state = send (fst started) (describedAs "America/New_York" started)
 
@@ -383,26 +418,26 @@ let ``an export is copied through Limen's clipboard effect, and its answer is sh
     let _, aegis = collector ()
     let env, _ = envWith App.inMemoryStore
     let state, _ = run aegis env [ initialize; event "goReports" None "" ]
-    let state, text = App.handle aegis env state (event "copyExport" None "")
+    let state, text = handle aegis env state (event "copyExport" None "")
     let copy = (effects text).Head
     Assert.Equal("Clipboard", copy.["kind"].GetValue<string>())
     Assert.Equal("writeText", copy.["operation"].GetValue<string>())
     Assert.StartsWith("# schema: chrona.time-report/1", copy.["text"].GetValue<string>())
     let id = copy.["correlationId"].GetValue<string>()
     let result = $"""{{"kind":"EffectResult","result":{{"kind":"ClipboardResult","correlationId":"{id}","outcome":{{"kind":"Success"}}}}}}"""
-    let _, text = App.handle aegis env state result
+    let _, text = handle aegis env state result
     Assert.Equal("Copied to the clipboard.", viewText "copyStatus" text)
 
 [<Fact>]
 let ``without the clipboard effect the page says so at once; without the print pack nothing is requested`` () =
     let _, aegis = collector ()
     let env, _ = envWith App.inMemoryStore
-    let noClipboard = initializeWith """["Navigation"]""" (offer $"{schedule},{environment}") "#/reports"
+    let noClipboard = initializeWith """["Http","Storage","Navigation"]""" (offer $"{schedule},{environment}") "#/reports"
     let state, _ = run aegis env [ noClipboard ]
-    let state, text = App.handle aegis env state (event "copyExport" None "")
+    let state, text = handle aegis env state (event "copyExport" None "")
     Assert.Empty(effects text)
     Assert.StartsWith("This browser did not allow copying.", viewText "copyStatus" text)
-    let _, text = App.handle aegis env state (event "printReport" None "")
+    let _, text = handle aegis env state (event "printReport" None "")
     Assert.Empty(effects text)
 
 [<Fact>]
@@ -412,7 +447,7 @@ let ``the print pack is selected when offered and opens the print dialog`` () =
     let printOffer = $"""{{"id":"chrona.print","version":1,"fingerprint":"{AppProtocol.print.Fingerprint}"}}"""
     let state, text = run aegis env [ initializeWith events (offer $"{schedule},{environment},{printOffer}") "#/reports" ]
     Assert.Equal(3, (reply text).["handshake"].["capabilities"].AsArray().Count)
-    let _, text = App.handle aegis env state (event "printReport" None "")
+    let _, text = handle aegis env state (event "printReport" None "")
     let request = (effects text).Head
     Assert.Equal("chrona.print", request.["capability"].GetValue<string>())
     Assert.Equal("print", request.["request"].["action"].GetValue<string>())

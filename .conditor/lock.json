@@ -1,7 +1,7 @@
 {
   "schemaVersion": 4,
   "project": "chrona",
-  "manifestSha256": "a6d179674e9d1c8f1a847b1b8df4eb64053a541b648e17fc0488ceaa030d6ced",
+  "manifestSha256": "7f936b2463d56196e5b4f95eb66c4f45a6be722e53be64814e4e024970842fd1",
   "manifest": {
     "schemaVersion": 1,
     "name": "chrona",
@@ -28,6 +28,11 @@
       },
       {
         "id": "arca",
+        "version": "0.2.0",
+        "required": true
+      },
+      {
+        "id": "fides",
         "version": "0.2.0",
         "required": true
       }
@@ -72,17 +77,18 @@
       "package": "EchelonFoundry.Arca.Core,EchelonFoundry.Arca.GitHub",
       "authority": "registry-resolved-set",
       "sourceReference": "nuget-feed:kemiller2002/arca@v0.2.0#sha256:38bd3c8ebb6e968d3ead49a0c71fc3f1f8621e56746ea792e3f20cb13fd241f6"
+    },
+    {
+      "id": "fides",
+      "version": "0.2.0",
+      "distribution": "nuget",
+      "package": "EchelonFoundry.Fides,EchelonFoundry.Fides.Arca,EchelonFoundry.Fides.Client,EchelonFoundry.Fides.Hosting",
+      "authority": "registry-resolved-set",
+      "sourceReference": "nuget-feed:kemiller2002/fides@v0.2.0#sha256:0ef2204d8ec298e6d930ce11d66629794486a5e31367959d7f9dbd39468b6a2a"
     }
   ],
   "requirements": [],
   "reviewSignals": [
-    {
-      "component": "ordo",
-      "code": "SDE-STRUCT-001",
-      "band": "strong-review",
-      "path": "src/Chrona.Wasm/bin/Release/net10.0/wwwroot/_framework/dotnet.js",
-      "lineCount": 1162
-    },
     {
       "component": "ordo",
       "code": "SDE-STRUCT-001",
@@ -103,6 +109,13 @@
       "band": "review",
       "path": "tests/Chrona.Tests/AppEngineTests.fs",
       "lineCount": 606
+    },
+    {
+      "component": "ordo",
+      "code": "SDE-STRUCT-001",
+      "band": "review",
+      "path": "src/Chrona.Domain/ActivityRecord.fs",
+      "lineCount": 503
     }
   ]
 }

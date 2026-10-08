@@ -34,7 +34,7 @@
 | WI-0026 | Chrona 01: look-and-feel inventory of the legacy time-tracking-application (screens, layout, styles, interactions) | complete | chrona, order:01, legacy, ui, inventory | high |
 | WI-0027 | Chrona 02: decide reconstruction versus migration, record legacy data status and rewrite the charter for the time-tracking product (CHX-011, CHX-012, CHX-300, CHX-310) | complete | chrona, order:02, legacy, decision | high |
 | WI-0028 | Chrona 03: configurable data location and Chrona-owned namespace with organization manifests (CHX-DATALOC-001, CHX-024..027) | complete | chrona, order:03, data-location, depends:arca | high |
-| WI-0029 | Chrona 04: GitHub sign-in through Fides and token safety (CHX-022, CHX-023) | captured | chrona, order:04, auth, depends:fides, depends:arca | high |
+| WI-0029 | Chrona 04: GitHub sign-in through Fides and token safety (CHX-022, CHX-023) | complete | chrona, order:04, auth, depends:fides, depends:arca | high |
 | WI-0030 | Chrona 05: actors, membership and capability-based authorization (CHX-030, CHX-260 remainder) | captured | chrona, order:05, authorization | high |
 | WI-0031 | Chrona 06: reference data on Arca - authoritative reference records, their storage and administration across devices (CHX-040 remainder, CHX-063 remainder) | captured | chrona, order:06, reference-data | high |
 | WI-0032 | Chrona 07: authoritative storage on Arca - partitioned layout, repository concurrency, integrity and manual edits (CHX-021, CHX-210, CHX-220, CHX-380, CHX-390, CHX-410, CHX-240 remainder, CHX-050 persistence) | captured | chrona, order:07, storage, depends:arca | high |
@@ -57,3 +57,4 @@
 | WI-0049 | Chrona 14a: search, reports and deterministic export in memory, printable through Folio (CHX-270, CHX-280, CHX-290, CHX-005) | complete | chrona, reporting, folio | medium |
 | WI-0050 | Chrona 13a: observation processing in the pure domain - candidates, dispositions (pending, accepted, accepted with changes, rejected, duplicate, needs attention), source auto-accept policy, deduplication and receipts (CHX-190, CHX-120 import path, CHX-250 import audit; scenarios 25-30) | complete | chrona, observations, domain | high |
 | WI-0051 | Chrona 07a: activity records on Arca - record codec, partitioned layout, change sets and integrity on load (CHX-220, CHX-390, CHX-410, CHX-050 persistence) | complete |  | medium |
+| WI-0052 | Chrona 04b: real end-to-end sign-in against a deployed Fides exchange and GitHub App (CHX-022 remainder) | captured |  | medium |

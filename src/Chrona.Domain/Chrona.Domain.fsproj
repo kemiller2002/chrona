@@ -24,6 +24,7 @@
     <Compile Include="Compatibility.fs" />
     <Compile Include="Codec.fs" />
     <Compile Include="Organization.fs" />
+    <Compile Include="Deployment.fs" />
     <Compile Include="Storage.fs" />
     <Compile Include="ActivityRecord.fs" />
     <Compile Include="Persistence.fs" />

@@ -3,11 +3,13 @@
 /// and handshake answer out. Mechanics only; no Chrona decision is made here.
 ///
 /// The application requests Navigation (routes), Clipboard (copying an
-/// export) and three optional capability packs: `limen.schedule` (the
-/// timer's once-a-second wake-up), `limen.environment` (the browser's time
-/// zone) and `chrona.print` (the browser's print dialog). It requests no Http
-/// or Storage effect, so a result for one of those is a contract violation,
-/// not a domain outcome.
+/// export), Http (the deployment's configuration and Fides' exchange) and
+/// Storage (sign-in state Fides keeps across tabs), and four optional
+/// capability packs: `limen.schedule` (the timer's once-a-second wake-up),
+/// `limen.environment` (the browser's time zone), `chrona.print` (the
+/// browser's print dialog) and `chrona.host` (this tab's session storage,
+/// leaving for the identity provider, tidying the address bar after its
+/// callback, and telling the origin's other tabs about sign-in).
 ///
 /// See the `protocol` export of `@echelon-foundry/limen` (0.7.1) and its
 /// generated schedule and environment contracts.
@@ -43,8 +45,28 @@ let print =
       Version = 1
       Fingerprint = "chrona.print/1: print" }
 
+/// `chrona.host` v1: Chrona's own pack (web-kernel/host.js) for what Fides'
+/// client needs from the browser beyond Limen's core effects.
+let host =
+    { Id = "chrona.host"
+      Version = 1
+      Fingerprint = "chrona.host/1: tab storage, leave, replace address, broadcast" }
+
 /// The optional packs the application selects when the kernel offers them.
-let wanted = [ schedule; environment; print ]
+let wanted = [ schedule; environment; print; host ]
+
+/// What came back for an Http request (Limen's EffectOutcome).
+type HttpResult =
+    | HttpSucceeded of status: int * body: string
+    | HttpFailed of reason: string
+    | HttpCancelled
+    /// The request may or may not have reached the server.
+    | HttpUnknown of reason: string
+
+/// What came back for a Storage request.
+type StorageResult =
+    | StorageValue of value: string option
+    | StorageFailed of reason: string
 
 type NavigationOutcome =
     | Moved of hash: string
@@ -58,7 +80,14 @@ type CapabilityOutcome =
 
 [<NoComparison; NoEquality>]
 type Inbound =
-    | Initialize of protocolVersion: int * effects: string list * path: string * hash: string * handshake: JsonNode option
+    | Initialize of
+        protocolVersion: int *
+        effects: string list *
+        origin: string *
+        path: string *
+        query: (string * string) list *
+        hash: string *
+        handshake: JsonNode option
     | Event of name: string * key: string option * value: string option * isChecked: bool option
     | LocationChanged of hash: string
     | NavigationResult of correlationId: string * NavigationOutcome
@@ -66,6 +95,20 @@ type Inbound =
     /// Whether the browser accepted text onto the clipboard.
     | ClipboardResult of correlationId: string * succeeded: bool
     | CapabilityFact of capability: string * fact: JsonNode
+    | HttpResponse of correlationId: string * HttpResult
+    | StorageResponse of correlationId: string * StorageResult
+
+/// `?a=1&b=two%20words` as decoded pairs, in order. A name without `=` has
+/// an empty value.
+let queryPairs (query: string) =
+    query.TrimStart('?').Split('&', System.StringSplitOptions.RemoveEmptyEntries)
+    |> Array.map (fun pair ->
+        let decode (text: string) = System.Uri.UnescapeDataString(text.Replace('+', ' '))
+
+        match pair.IndexOf '=' with
+        | -1 -> decode pair, ""
+        | index -> decode (pair.Substring(0, index)), decode (pair.Substring(index + 1)))
+    |> List.ofArray
 
 let private location (path: string) (node: JsonNode) =
     required "path" path asString node, (optional "hash" path asString node |> Option.defaultValue "")
@@ -99,6 +142,35 @@ let private effectResult (node: JsonNode) =
         | other -> raise (MalformedInput($"{path}.outcome.kind", $"a known clipboard outcome, not '{other}'"))
     | "CapabilityResult" ->
         CapabilityResult(correlation, required "capability" path asString node, capability $"{path}.outcome" (required "outcome" path asObject node))
+    | "HttpResult" ->
+        let outcome = required "outcome" path asObject node
+        let at = $"{path}.outcome"
+
+        let result =
+            match required "kind" at asString outcome with
+            | "Success" ->
+                let body =
+                    optional "body" at asString outcome |> Option.defaultValue ""
+
+                HttpSucceeded(required "status" at asInt outcome, body)
+            | "Failure" -> HttpFailed(required "reason" at asString outcome)
+            | "Cancelled" -> HttpCancelled
+            | "OutcomeUnknown" -> HttpUnknown(required "reason" at asString outcome)
+            | other -> raise (MalformedInput($"{at}.kind", $"a known Http outcome, not '{other}'"))
+
+        HttpResponse(correlation, result)
+    | "StorageResult" ->
+        let outcome = required "outcome" path asObject node
+        let at = $"{path}.outcome"
+
+        let result =
+            match required "kind" at asString outcome with
+            | "Success" ->
+                StorageValue(optional "value" at asString outcome)
+            | "Failure" -> StorageFailed(required "reason" at asString outcome)
+            | other -> raise (MalformedInput($"{at}.kind", $"a known Storage outcome, not '{other}'"))
+
+        StorageResponse(correlation, result)
     | other -> raise (CapabilityFailed(other, $"Unexpected {other} ({correlation}): the application requests no such effect"))
 
 /// Reads one message from the kernel.
@@ -107,11 +179,15 @@ let decode (messageJson: string) =
 
     match required "kind" "$" asString message with
     | "Initialize" ->
-        let path, hash = location "$.location" (required "location" "$" asObject message)
+        let where = required "location" "$" asObject message
+        let path, hash = location "$.location" where
+
         Initialize(
             required "protocolVersion" "$" asInt message,
             required "capabilities" "$" asArray message |> List.mapi (fun index item -> asString $"$.capabilities[{index}]" item),
+            required "origin" "$.location" asString where,
             path,
+            optional "query" "$.location" asString where |> Option.defaultValue "" |> queryPairs,
             hash,
             tryField "handshake" message
         )
@@ -173,6 +249,13 @@ type Request =
     | DescribeEnvironment of correlationId: string
     | Copy of correlationId: string * text: string
     | PrintPage of correlationId: string
+    /// An Http request whose response body is read as text.
+    | Http of correlationId: string * method: string * url: string * headers: (string * string) list * body: string option * timeoutMs: int
+    | StorageGet of correlationId: string * key: string
+    | StorageSet of correlationId: string * key: string * value: string
+    | StorageRemove of correlationId: string * key: string
+    /// A `chrona.host` request: its operation and string arguments.
+    | Host of correlationId: string * operation: string * arguments: (string * string) list
 
 let private writeScalar (writer: Utf8JsonWriter) =
     function
@@ -239,6 +322,42 @@ let private writeRequest (writer: Utf8JsonWriter) (request: Request) =
         writer.WriteString("operation", "writeText")
         writer.WriteString("text", text)
     | PrintPage correlationId -> writeCapability writer correlationId print (fun w -> w.WriteString("action", "print"))
+    | Http(correlationId, method, url, headers, body, timeoutMs) ->
+        writer.WriteString("kind", "Http")
+        writer.WriteString("correlationId", correlationId)
+        writer.WriteString("method", method)
+        writer.WriteString("url", url)
+
+        if not headers.IsEmpty then
+            writer.WritePropertyName "headers"
+            writer.WriteStartObject()
+            headers |> List.iter (fun (name, value) -> writer.WriteString(name, value))
+            writer.WriteEndObject()
+
+        body |> Option.iter (fun body -> writer.WriteString("body", body))
+        writer.WriteNumber("timeoutMs", timeoutMs)
+        writer.WriteString("response", "text")
+        writer.WriteString("credentials", "omit")
+    | StorageGet(correlationId, key) ->
+        writer.WriteString("kind", "Storage")
+        writer.WriteString("operation", "get")
+        writer.WriteString("correlationId", correlationId)
+        writer.WriteString("key", key)
+    | StorageSet(correlationId, key, value) ->
+        writer.WriteString("kind", "Storage")
+        writer.WriteString("operation", "set")
+        writer.WriteString("correlationId", correlationId)
+        writer.WriteString("key", key)
+        writer.WriteString("value", value)
+    | StorageRemove(correlationId, key) ->
+        writer.WriteString("kind", "Storage")
+        writer.WriteString("operation", "remove")
+        writer.WriteString("correlationId", correlationId)
+        writer.WriteString("key", key)
+    | Host(correlationId, operation, arguments) ->
+        writeCapability writer correlationId host (fun w ->
+            w.WriteString("operation", operation)
+            arguments |> List.iter (fun (name, value) -> w.WriteString(name, value)))
 
     writer.WriteEndObject()
 

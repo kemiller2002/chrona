@@ -75,6 +75,16 @@ for (const [width, viewport] of [
       await capture(page, "more", width);
       await go(page, "#/reports", "#screen-reports");
       await capture(page, "reports", width);
+      // The week, the period and the projects (CHX-460).
+      await go(page, `#/week/${date}`, "#screen-week");
+      await capture(page, "week", width);
+      await go(page, `#/periods/${date}`, "#screen-period");
+      await capture(page, "period", width);
+      await go(page, "#/projects", "#screen-projects");
+      await capture(page, "projects", width);
+      await page.click("#project-list a >> nth=0");
+      await expect(page.locator("#screen-project")).toBeVisible();
+      await capture(page, "project", width);
       // An address that names nothing (CHX-460).
       await go(page, "#/nowhere", "#screen-problem");
       await capture(page, "not-found", width);

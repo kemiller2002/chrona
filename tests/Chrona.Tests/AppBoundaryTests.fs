@@ -439,6 +439,11 @@ let private richViews () =
     let month = view (send state (locationChanged "#/month/2026-10"))
     let today = view (send state (locationChanged "#/today/2026-10-08"))
 
+    // A project's page, with the entries recorded on it (CHX-460).
+    let project =
+        let projectId = state.Model.Value.Ledger.Activities[first].Classification.ProjectId
+        view (send state (locationChanged $"#/projects/{projectId}"))
+
     // A member who may keep their own time but not change settings or
     // export: the refusals are shown where the commands were made.
     let restricted =
@@ -509,7 +514,7 @@ let private richViews () =
 
         send { state with Model = Some signedIn } (event "admitMember" None "")
 
-    [ activity; review; month; today; view restricted; view troubled; view administering ]
+    [ activity; review; month; today; project; view restricted; view troubled; view administering ]
 
 [<Fact>]
 let ``the application page binds only what its engine projects and sends only what it handles`` () =

@@ -36,6 +36,8 @@ All of these come from Forma tokens compiled from `brand/`:
 | `more-*` | [more](screenshots/more-desktop.jpg), [settings](screenshots/settings-desktop.jpg) | More holds the session, the people, the reference data, the period settings and the store's state, instead of a link list. |
 | `reports-*` | none | New (WI-0039): reports and export through Folio. |
 | `sign-in-*` | [sign-in](screenshots/sign-in-desktop.jpg) | Same split page; sign-in is GitHub through Fides. |
+| `week-*`, `period-*` | none | New (WI-0071, CHX-460): the week and the timesheet period as places of their own, in the month's composition (metric cards, a days list linked to each day). The legacy app had neither page. |
+| `projects-*`, `project-*` | none | New (WI-0071, CHX-460): the organization's projects, and one project with the person's time on it, linked to its day, week and report. |
 | `not-found-*` | none | New (WI-0071, CHX-460): an address that names nothing, Forma's empty state with the way home. The not-permitted page is the same composition. |
 
 Every screen's top bar also has "Copy link" (WI-0071), and the day's ledger a project filter; the navigation items and record titles are links to their places, styled as the buttons they replaced.

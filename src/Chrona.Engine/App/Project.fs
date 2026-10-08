@@ -151,6 +151,10 @@ let private sectionOf (place: Places.Place) =
     match place with
     | Places.Today
     | Places.Day _
+    | Places.ThisWeek
+    | Places.Week _
+    | Places.ThisPeriod
+    | Places.Period _
     | Places.Entry _
     | Places.ReviewToday
     | Places.Review _ -> "today"
@@ -158,6 +162,8 @@ let private sectionOf (place: Places.Place) =
     | Places.ThisMonth
     | Places.Month _
     | Places.Reports _ -> "month"
+    | Places.Projects
+    | Places.Project _
     | Places.Settings _ -> "more"
     | Places.SignIn _ -> ""
 
@@ -321,6 +327,8 @@ let private today (model: Model) =
            :: (Reference.all Reference.Project model.References
                |> List.map (fun item -> [ t "id" item.Id; t "name" item.Name; f "selected" (Some item.Id = project) ])))
       flag "dayFiltered" project.IsSome
+      // The week this day is in, with the same filter (CHX-460).
+      text "weekHref" (hrefOf (Places.Week((weekOf model date).Start, project)))
       text "dayFilterName" (project |> Option.map (referenceName model Reference.Project) |> Option.defaultValue "")
       text "dayTitle" (Format.longDate date)
       text "dayIso" (Format.isoDate date)
@@ -501,22 +509,24 @@ let private cadenceName =
     | Periods.SemiMonthly -> "semimonthly"
     | Periods.Monthly -> "monthly"
 
+let private submissionText =
+    function
+    | Periods.NothingToSubmit -> "Nothing to submit"
+    | Periods.NotSubmitted -> "Not submitted"
+    | Periods.PartlySubmitted -> "Partly submitted"
+    | Periods.FullySubmitted -> "Submitted"
+
+let private approvalText =
+    function
+    | Periods.ApprovalNotRequired -> "Not required"
+    | Periods.NothingApproved -> "Not approved"
+    | Periods.PartlyApproved -> "Partly approved"
+    | Periods.FullyApproved -> "Approved"
+
 let private periodView (model: Model) =
     let summary = currentPeriod model
-
-    let submission =
-        match summary.Submission with
-        | Periods.NothingToSubmit -> "Nothing to submit"
-        | Periods.NotSubmitted -> "Not submitted"
-        | Periods.PartlySubmitted -> "Partly submitted"
-        | Periods.FullySubmitted -> "Submitted"
-
-    let approval =
-        match summary.Approval with
-        | Periods.ApprovalNotRequired -> "Not required"
-        | Periods.NothingApproved -> "Not approved"
-        | Periods.PartlyApproved -> "Partly approved"
-        | Periods.FullyApproved -> "Approved"
+    let submission = submissionText summary.Submission
+    let approval = approvalText summary.Approval
 
     let cadences =
         [ "daily", "Daily"; "weekly", "Weekly"; "biweekly", "Every two weeks"; "semimonthly", "Twice a month"; "monthly", "Monthly" ]
@@ -527,6 +537,8 @@ let private periodView (model: Model) =
         |> List.map (fun d -> [ t "id" (string d); t "name" (string d); f "selected" (d = model.PeriodConfig.WeekStart) ])
 
     [ text "periodLabel" (periodLabel summary.Period)
+      // The period's own page (CHX-460).
+      text "periodHref" (hrefOf (Places.Period summary.Period.Start))
       text "periodExact" (Format.minutes summary.ExactMinutes)
       text "periodBillable" (Format.minutes summary.BillableMinutes)
       text "periodNonBillable" (Format.minutes summary.NonBillableMinutes)
@@ -1130,6 +1142,140 @@ let private reportView (model: Model) =
       text "printSubtitle" $"{model.Session.DisplayName} · {range}"
       text "printGenerated" $"Generated {localStamp model model.Now} · {Reports.Schema}" ]
 
+// ---- the week, a period and projects (CHX-460) --------------------------------------
+
+/// The person's own records that were read.
+let private mine (model: Model) =
+    model.Ledger.Activities |> Map.toList |> List.map snd |> List.filter (fun a -> a.ActorId = model.Session.ActorId)
+
+/// One row per day from `first` to `last`: its counted time, linked to the
+/// day's ledger (with the same project filter).
+let private dayRows (project: string option) (first: DateOnly) (last: DateOnly) (counted: Activity list) =
+    [ for offset in 0 .. last.DayNumber - first.DayNumber do
+          let date = first.AddDays offset
+          let onDay = counted |> List.filter (fun a -> a.Occurrence.LocalDate = date)
+
+          [ t "id" (Format.isoDate date)
+            t "label" (Format.longDate date)
+            t "total" (Format.minutes (onDay |> List.sumBy _.Minutes))
+            t "count" (plural onDay.Length "entry" "entries")
+            t "href" (hrefOf (Places.Day(date, project))) ] ]
+
+let private projectOptions (model: Model) (project: string option) =
+    [ t "id" ""; t "name" "All projects"; f "selected" project.IsNone ]
+    :: (Reference.all Reference.Project model.References
+        |> List.map (fun item -> [ t "id" item.Id; t "name" item.Name; f "selected" (Some item.Id = project) ]))
+
+let private weekView (model: Model) =
+    let on, project =
+        match model.Place with
+        | Places.Week(on, project) -> on, project
+        | _ -> Model.today model, None
+
+    let week = weekOf model on
+
+    let counted =
+        mine model
+        |> List.filter (fun a -> consumesTime a && Periods.contains week a.Occurrence.LocalDate && project |> Option.forall ((=) a.Classification.ProjectId))
+
+    let total = counted |> List.sumBy _.Minutes
+    let billed = counted |> List.sumBy (fun a -> Billing.billableMinutes (billing model) a.Minutes)
+
+    [ flag "screenWeek" (shows model (function Places.ThisWeek | Places.Week _ -> true | _ -> false))
+      text "weekTitle" (periodLabel week)
+      text "weekTotal" (Format.minutes total)
+      text "weekBilled" $"{Format.minutes billed} billed"
+      text "weekDecimal" (Format.decimalHours total)
+      text "weekEntryCount" (plural counted.Length "entry" "entries")
+      items "weekDays" (dayRows project week.Start week.Finish counted)
+      items "weekProjectOptions" (projectOptions model project)
+      flag "weekFiltered" project.IsSome
+      text "weekFilterName" (project |> Option.map (referenceName model Reference.Project) |> Option.defaultValue "") ]
+
+let private cadenceLabel =
+    function
+    | Periods.Daily -> "Daily"
+    | Periods.Weekly -> "Weekly"
+    | Periods.Biweekly _ -> "Every two weeks"
+    | Periods.SemiMonthly -> "Twice a month"
+    | Periods.Monthly -> "Monthly"
+
+/// A timesheet period's own page: its summary and its days (15).
+let private periodPage (model: Model) =
+    let on =
+        match model.Place with
+        | Places.Period on -> on
+        | _ -> Model.today model
+
+    let period = Periods.containing model.PeriodConfig on
+    let summary = Periods.summarize model.PeriodConfig [ billing model ] (Model.today model) (mine model) period
+    let counted = mine model |> List.filter (fun a -> consumesTime a && Periods.contains period a.Occurrence.LocalDate)
+
+    [ flag "screenPeriod" (shows model (function Places.ThisPeriod | Places.Period _ -> true | _ -> false))
+      text "periodPageTitle" (periodLabel period)
+      text "periodPageCadence" $"{cadenceLabel model.PeriodConfig.Cadence} timesheet period"
+      text "periodPageExact" (Format.minutes summary.ExactMinutes)
+      text "periodPageBillable" (Format.minutes summary.BillableMinutes)
+      text "periodPageNonBillable" (Format.minutes summary.NonBillableMinutes)
+      text "periodPageUnclassified" (Format.minutes summary.UnclassifiedMinutes)
+      text "periodPageSubmission" (submissionText summary.Submission)
+      text "periodPageApproval" (approvalText summary.Approval)
+      items "periodDays" (dayRows None period.Start period.Finish counted) ]
+
+let private projectState (item: Reference.Item) =
+    if item.Status = Reference.Active then "Offered for new work" else "Archived: kept on past records"
+
+let private projectsView (model: Model) =
+    let projects = Reference.all Reference.Project model.References
+
+    [ flag "screenProjects" (shows model ((=) Places.Projects))
+      flag "projectsEmpty" projects.IsEmpty
+      items
+          "projectList"
+          (projects
+           |> List.map (fun item -> [ t "id" item.Id; t "name" item.Name; t "state" (projectState item); t "href" (hrefOf (Places.Project item.Id)) ])) ]
+
+/// One project: the person's time on it, and where to look further.
+let private projectView (model: Model) =
+    let id =
+        match model.Place with
+        | Places.Project id -> id
+        | _ -> ""
+
+    let item = Reference.all Reference.Project model.References |> List.tryFind (fun item -> item.Id = id)
+
+    let entries =
+        mine model
+        |> List.filter (fun a -> a.Classification.ProjectId = id && (match a.Record with Superseded _ -> false | _ -> true))
+        |> List.sortByDescending (fun a -> a.Occurrence.LocalDate, a.Occurrence.LocalTime, a.ActivityId)
+
+    let counted = entries |> List.filter consumesTime
+    let total = counted |> List.sumBy _.Minutes
+    let today = Model.today model
+
+    [ flag "screenProject" (shows model (function Places.Project _ -> true | _ -> false))
+      text "projectName" (item |> Option.map _.Name |> Option.defaultValue "")
+      text "projectState" (item |> Option.map projectState |> Option.defaultValue "")
+      text "projectTotal" (Format.minutes total)
+      text "projectBilled" $"{Format.minutes (counted |> List.sumBy (fun a -> Billing.billableMinutes (billing model) a.Minutes))} billed"
+      text "projectEntryCount" (plural counted.Length "entry" "entries")
+      flag "projectEmpty" (entries.IsEmpty && model.Store.Reading.IsEmpty)
+      flag "projectReading" (not model.Store.Reading.IsEmpty)
+      items
+          "projectEntries"
+          (entries
+           |> List.truncate 50
+           |> List.map (fun a ->
+               [ t "id" a.ActivityId
+                 t "date" (Format.longDate a.Occurrence.LocalDate)
+                 t "title" a.Classification.Description
+                 t "duration" (Format.minutes a.Minutes)
+                 t "state" (match a.Record with Voided _ -> "Removed from totals" | _ -> "Recorded")
+                 t "href" (hrefOf (Places.Entry(a.ActivityId, Some a.Occurrence.LocalDate))) ]))
+      text "projectTodayHref" (hrefOf (Places.Day(today, Some id)))
+      text "projectWeekHref" (hrefOf (Places.Week((weekOf model today).Start, Some id)))
+      text "projectReportHref" (hrefOf (Places.Reports { Places.allReports with ProjectId = Some id })) ]
+
 // ---- addresses: not found, not permitted, copy link (CHX-460) -----------------------
 
 /// What Limen's expectation for a parameter means, for a person.
@@ -1381,6 +1527,10 @@ let project (model: Model) : View =
       flag "screenActivity" (shows model (function Places.Entry _ -> true | _ -> false))
       yield! problemView model
       yield! linkView model
+      yield! weekView model
+      yield! periodPage model
+      yield! projectsView model
+      yield! projectView model
       items "navigation" (navigation model)
       text "announcement" model.Announcement
       yield! identityView model

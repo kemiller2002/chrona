@@ -740,7 +740,7 @@
     {
       "id": "WI-0036",
       "title": "Chrona 11: timesheet periods on Arca - persisted period configuration, closed periods and their effect on submission and approval (CHX-150 remainder)",
-      "description": "Depends on WI-0032. The pure cadences, configuration and summaries are WI-0048; this item stores the organization's period configuration and period state through Arca and enforces closed periods in submission, approval and attestation. Also the CHX-260 remainder (the submitted-period restriction's stable diagnostic), the CHX-320 remainder (the week view and submitting, approving and rejecting a period in the application) and the CHX-340 remainder (submissions, approvals and rejections in the obligations queue).",
+      "description": "Depends on WI-0032. The pure cadences, configuration and summaries are WI-0048; this item stores the organization's period configuration and period state through Arca and enforces closed periods in submission, approval and attestation. Also the CHX-260 remainder (the submitted-period restriction's stable diagnostic), the CHX-320 remainder (submitting, approving and rejecting a period in the application; the week view and the period page with their addresses are WI-0071) and the CHX-340 remainder (submissions, approvals and rejections in the obligations queue).",
       "tags": [
         "chrona",
         "order:11",
@@ -750,7 +750,7 @@
       "status": "captured",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:49.227Z",
-      "updatedAt": "2026-10-08T14:16:00Z",
+      "updatedAt": "2026-10-08T21:09:52.000Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",
@@ -793,7 +793,7 @@
     {
       "id": "WI-0038",
       "title": "Chrona 13: observation inboxes on Arca - reading producer inboxes, durable candidates and receipts, startup reconciliation (CHX-190 remainder, CHX-200, CHX-120 import path remainder, CHX-250 import audit remainder)",
-      "description": "Depends on WI-0032. Inbox processing with overlap checks on import and audited outcomes. Scenarios 25-30. The pure processing rules are WI-0050; this item stores candidates and receipts through Arca and reads producer inboxes. Also the CHX-390 remainder for receipts: a receipt without a durable processing result is detected. The CHX-200 remainder: inbox reconciliation at startup that never blocks the first render, is resumable and paged, and where one failed item does not block the others (the queue of unsent changes already does this, WI-0033). Also CHX-180: Chrona.Integration, the contract Chrona owns as the receiver of observations (requirement 18: receiver-owned, transport-independent, versioned side by side, compatibility fixtures); it is not the Summa billing contract, which Summa owns (Chrona.Summa, WI-0037). Also the CHX-360 remainder from WI-0064: reviewing candidates is one of requirement 36's mobile priority workflows, so it is tested end to end at phone width (no sideways scrolling, 44-pixel targets).",
+      "description": "Depends on WI-0032. Inbox processing with overlap checks on import and audited outcomes. Scenarios 25-30. The pure processing rules are WI-0050; this item stores candidates and receipts through Arca and reads producer inboxes. Also the CHX-390 remainder for receipts: a receipt without a durable processing result is detected. The CHX-200 remainder: inbox reconciliation at startup that never blocks the first render, is resumable and paged, and where one failed item does not block the others (the queue of unsent changes already does this, WI-0033). Also CHX-180: Chrona.Integration, the contract Chrona owns as the receiver of observations (requirement 18: receiver-owned, transport-independent, versioned side by side, compatibility fixtures); it is not the Summa billing contract, which Summa owns (Chrona.Summa, WI-0037). Also the CHX-360 remainder from WI-0064: reviewing candidates is one of requirement 36's mobile priority workflows, so it is tested end to end at phone width (no sideways scrolling, 44-pixel targets). Also the CHX-460 remainder from WI-0071: candidate review has addresses (#/candidates with its filters, #/candidates/<id>) in Places, in .echelon/routes.json and in the cold deep-link browser tests, with not-found for an unknown candidate.",
       "tags": [
         "chrona",
         "order:13",
@@ -803,7 +803,7 @@
       "status": "captured",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:49.855Z",
-      "updatedAt": "2026-10-08T17:40:43Z",
+      "updatedAt": "2026-10-08T21:09:52.000Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

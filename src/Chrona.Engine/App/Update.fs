@@ -172,7 +172,7 @@ let eventNames =
       "attestStatement"; "attestDay"; "resolveObligation"; "periodCadence"; "periodWeekStart"
       "reportFrom"; "reportTo"; "reportProject"; "reportActivityType"; "reportTag"; "reportMethod"; "reportBillability"; "reportText"
       "reportIncludeRemoved"; "reportGrouping"; "reportFormat"; "copyExport"; "printReport"; "reportMonth"; "goReports"
-      "copyLink"; "skipToContent"; "dayProject" ]
+      "copyLink"; "skipToContent"; "dayProject"; "previousWeek"; "nextWeek"; "weekProject"; "previousPeriod"; "nextPeriod" ]
 
 // ---- helpers ----------------------------------------------------------------
 
@@ -519,21 +519,38 @@ let private followRoute (model: Model) =
     | Places.Entry(id, _), _ -> { model with Detail = openDetail model id }
     | _ -> { model with Detail = None }
 
+/// A place in its canonical form: a week or period named by its first day
+/// (the organization's week start and cadence decide which day that is).
+let normalize (model: Model) (place: Places.Place) =
+    match place with
+    | Places.Week(on, project) -> Places.Week((weekOf model on).Start, project)
+    | Places.Period on -> Places.Period (Periods.containing model.PeriodConfig on).Start
+    | other -> other
+
 /// The months a place shows stored time from. An activity named without its
 /// day is looked for in every month that holds the person's time.
 let private monthsNeeded (model: Model) =
     let monthOf (date: DateOnly) = date.Year, date.Month
 
-    match model.Place with
-    | Places.Day(on, _)
-    | Places.Review on -> [ monthOf on ]
-    | Places.Month(year, month) -> [ year, month ]
-    | Places.Entry(id, _) when model.Ledger.Activities.ContainsKey id -> []
-    | Places.Entry(_, Some on) -> [ monthOf on ]
-    | Places.Entry(_, None) ->
+    let between (first: DateOnly) (last: DateOnly) = [ monthOf first; monthOf last ]
+
+    // Every month that holds the person's time, from the activity index.
+    let history () =
         model.Store.History
         |> List.filter (fun total -> total.ActorId = model.Session.ActorId)
         |> List.map (fun total -> total.Year, total.Month)
+
+    match model.Place with
+    | Places.Day(on, _)
+    | Places.Review on -> [ monthOf on ]
+    | Places.Week(on, _) -> let week = weekOf model on in between week.Start week.Finish
+    | Places.Period on -> let period = Periods.containing model.PeriodConfig on in between period.Start period.Finish
+    | Places.Month(year, month) -> [ year, month ]
+    | Places.Entry(id, _) when model.Ledger.Activities.ContainsKey id -> []
+    | Places.Entry(_, Some on) -> [ monthOf on ]
+    | Places.Entry(_, None)
+    // A project's page shows all of the person's time on it.
+    | Places.Project _ -> history ()
     | _ -> []
 
 /// A month the person goes to that was not read yet is read now: one month
@@ -1191,6 +1208,11 @@ let private onEvent (ctx: Ctx) (name: string) (key: string option) (value: strin
         | Places.Day(_, project) -> project
         | _ -> None
 
+    let weekProject =
+        match model.Place with
+        | Places.Week(_, project) -> project
+        | _ -> None
+
     // The report form changed: the address follows, replacing the entry.
     let report (change: ReportDraft -> ReportDraft) =
         let next = { model with Report = { change model.Report with GeneratedAt = Some ctx.Now } }
@@ -1201,7 +1223,7 @@ let private onEvent (ctx: Ctx) (name: string) (key: string option) (value: strin
     | "goTrack" -> navigate Places.Track model
     | "goMore" -> navigate (Places.Settings None) model
     | "copyLink" ->
-        let place = Places.explicit (Model.today model) model.Place
+        let place = Places.explicit (Model.today model) model.Place |> normalize model
 
         match model.RouteProblem, Places.format place with
         | None, Ok location ->
@@ -1229,6 +1251,11 @@ let private onEvent (ctx: Ctx) (name: string) (key: string option) (value: strin
         match Format.parseIsoDate value with
         | Some date -> refine (Places.Day(date, dayProject)) model
         | None -> model, []
+    | "previousWeek" -> refine (Places.Week((weekOf model (selectedDate model)).Start.AddDays -7, weekProject)) model
+    | "nextWeek" -> refine (Places.Week((weekOf model (selectedDate model)).Start.AddDays 7, weekProject)) model
+    | "weekProject" -> refine (Places.Week((weekOf model (selectedDate model)).Start, (if value = "" then None else Some value))) model
+    | "previousPeriod" -> refine (Places.Period (Periods.previous model.PeriodConfig (Periods.containing model.PeriodConfig (selectedDate model))).Start) model
+    | "nextPeriod" -> refine (Places.Period (Periods.next model.PeriodConfig (Periods.containing model.PeriodConfig (selectedDate model))).Start) model
     | "previousDay" -> refine (Places.Day((selectedDate model).AddDays -1, dayProject)) model
     | "nextDay" -> refine (Places.Day((selectedDate model).AddDays 1, dayProject)) model
 
@@ -1734,7 +1761,9 @@ let private recordProblem (model: Model) =
         | Some _ -> Some(AddressProblem(Limen.Routing.RouteError.NotPermitted Places.Names.Entry))
         | None when stillLooking model -> None
         | None -> Some(RecordMissing("activity", id))
-    | Places.Day(_, project) -> missingReference (Reference.Project, "project") project
+    | Places.Day(_, project)
+    | Places.Week(_, project) -> missingReference (Reference.Project, "project") project
+    | Places.Project id -> missingReference (Reference.Project, "project") (Some id)
     | Places.Reports query ->
         [ missingReference (Reference.Project, "project") query.ProjectId
           missingReference (Reference.ActivityType, "activity type") query.ActivityTypeId
@@ -1776,6 +1805,11 @@ let rec private settle (resumed: bool) (model: Model) : Model * Effect list =
             resumeAt (Places.resume (guardOf model) (returnTo |> Option.orElse model.Identity.ReturnTo)) model
         | Ok _ when model.Identity.ReturnTo.IsSome && mayResume model && not resumed ->
             resumeAt (Places.resume (guardOf model) model.Identity.ReturnTo) model
+        // A week or period named by another of its days is named by its first.
+        | Ok place when normalize model place <> place && not resumed ->
+            match Places.format (normalize model place) with
+            | Ok canonical -> resumeAt canonical model
+            | Error error -> invalidOp $"No address for {place}: %A{error}"
         | Ok place ->
             let arrived, effects = arrive place model
             { arrived with RouteProblem = recordProblem arrived }, corrected @ effects

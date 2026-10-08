@@ -35,7 +35,13 @@ let private generated (seed: int) =
     let maybe (value: unit -> 'a) = if random.Next 2 = 0 then None else Some(value ())
     let date () = DateOnly(random.Next(1, 10000), random.Next(1, 13), 1).AddDays(random.Next 28)
 
-    match random.Next 12 with
+    match random.Next 18 with
+    | 12 -> ThisWeek
+    | 13 -> Week(date (), maybe (fun () -> pick awkward))
+    | 14 -> ThisPeriod
+    | 15 -> Period(date ())
+    | 16 -> Projects
+    | 17 -> Project(pick [ "PRJ-1"; "helix note"; "ünïcode/slash" ])
     | 0 -> Today
     | 1 -> Day(date (), maybe (fun () -> pick awkward))
     | 2 -> ThisMonth
@@ -81,6 +87,10 @@ let ``addresses are relative fragment links in Limen's canonical form`` () =
     Assert.Equal("/entries/ACT-1?on=2026-10-08", ok (format (Entry("ACT-1", Some on))))
     Assert.Equal("/review/2026-10-08", ok (format (Review on)))
     Assert.Equal("/more/people", ok (format (Settings(Some People))))
+    Assert.Equal("/week/2026-10-05?project=helix", ok (format (Week(DateOnly(2026, 10, 5), Some "helix"))))
+    Assert.Equal("/periods/2026-10-01", ok (format (Period(DateOnly(2026, 10, 1)))))
+    Assert.Equal("/projects/PRJ%201", ok (format (Project "PRJ 1")))
+    Assert.Equal("/projects", ok (format Projects))
     // Defaults are omitted; declared parameters appear in declaration order.
     Assert.Equal("/reports", ok (format (Reports allReports)))
 
@@ -194,6 +204,8 @@ let ``a shared link opens the same view another day and never carries the page's
     Assert.Equal(Day(on, None), explicit on Today)
     Assert.Equal(Month(2026, 10), explicit on ThisMonth)
     Assert.Equal(Review on, explicit on ReviewToday)
+    Assert.Equal(Week(on, None), explicit on ThisWeek)
+    Assert.Equal(Period on, explicit on ThisPeriod)
     Assert.Equal(Reports { allReports with From = Some(DateOnly(2026, 10, 1)); To = Some(DateOnly(2026, 10, 31)) }, explicit on (Reports allReports))
     Assert.Equal(Track, explicit on Track)
     Assert.Equal("/", ofFragment "")

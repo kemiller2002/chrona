@@ -182,8 +182,9 @@ for the diagnosis, the evidence, and one unexercised watch item.
   the tab across the GitHub round trip (`chrona.returnTo`, read once). The
   Pages site root keeps the fragment (`forward.js`), and CI opens deep links
   cold against the assembled site and, after each deploy, the live one
-  (`playwright.pages.config.js`). The week, period and project views are the
-  next slice; candidate review comes with WI-0038.
+  (`playwright.pages.config.js`). The week (`#/week/…`), the timesheet period
+  (`#/periods/…`) and the projects (`#/projects`, `#/projects/<id>`) are
+  places of their own; candidate review comes with WI-0038.
 - Not built: the iPhone VoiceOver pass (WI-0068),
   the Summa transport (WI-0061), submission and approval screens (need actors and
   authorization, WI-0030 after Fides), and reports over stored data across

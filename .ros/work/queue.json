@@ -1057,10 +1057,10 @@
         "domain"
       ],
       "priority": "medium",
-      "status": "ready",
+      "status": "complete",
       "attachments": [],
       "createdAt": "2026-10-08T10:08:15.124Z",
-      "updatedAt": "2026-10-08T10:08:21.610Z",
+      "updatedAt": "2026-10-08T10:16:39.299Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

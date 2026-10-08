@@ -14,6 +14,8 @@ Captured 2026-10-08 (WI-0025) from the missing and partial rows of [`implementat
 | 7 | WI-0032 | Chrona 07: authoritative storage on Arca - partitioned layout, repository concurrency, integrity and manual edits (CHX-021, CHX-210, CHX-220, CHX-380, CHX-390, CHX-410, CHX-240 remainder) | WI-0028, WI-0030, arca slice 6 (GitHub adapter, ARCA-API/OUT) (GitHub adapter) and arca slice 8 (integrity, ARCA-INT) (integrity) |
 | 8 | WI-0033 | Chrona 08: offline use, persisted timer and sync reconciliation (CHX-101, CHX-102, CHX-105, CHX-200, CHX-230) | WI-0032 and arca slice 9 (offline queue, ARCA-OFF) (offline queue) |
 | 9 | WI-0034 | Chrona 09: rebuildable derived state - indexes, totals, approval and publication projections (CHX-400) | WI-0032 and arca slice 10 (derived indexes and migration, ARCA-MIG) |
+| 9b | WI-0059 | Chrona 08e: offline change queue on IndexedDB through Arca's `EchelonFoundry.Arca.Limen` adapter - one queue owner across tabs, durability mode in sync state, WI-0058's `sharedDevicePolicy` carried over, first-run migration (Limen LCP-059, 065, 066, 070, 073) | WI-0033, WI-0058, arca WI-0016 and WI-0020 released, limen WI-0166 (Limen 0.8.0) |
+| 9c | WI-0057 | Chrona 08c: offline start from a read cache - activities by month, the derived activity index, reference data and roster, as of their change token and revalidated online (Limen LCP-082..087) | WI-0034, WI-0059, arca WI-0021 and WI-0022 released |
 | 10 | WI-0035 | Chrona 10: conflict resolution and review of outside edits in the application (CHX-260, CHX-410, CHX-320 remainders) | WI-0032 and WI-0029 |
 | 11 | WI-0036 | Chrona 11: timesheet periods (CHX-150) | WI-0032 |
 | 12 | WI-0037 | Chrona 12: consume Summa's Chrona-to-Summa contracts package through conditor.json; Chrona.Integration and publication transport (CHX-170 remainder, CHX-180, CHX-063 remainder, CHX-450 remainder) | summa item "Summa 01: Chrona-to-Summa contracts package" (the contracts package; the receiving application owns the contract, so Summa owns it, user decision 2026-10-08) and WI-0032 |
@@ -27,3 +29,7 @@ The backlog itself lives in `.ros/work/queue.json` and is managed only through t
 Added 2026-10-08 by WI-0027: WI-0043 (above) and WI-0044, the legacy import on Arca, captured only so it is not forgotten; it runs after WI-0032 and only if production legacy records appear.
 
 Added 2026-10-08 by WI-0035: the product UI built in memory (WI-0046, WI-0047) left WI-0035 with the write path's conflict resolution and outside-edit review; its browser reliability, accessibility, quick-entry and visual-regression remainder moved to WI-0054.
+
+Added 2026-10-08 by WI-0060: WI-0059 and WI-0057 (above) follow WI-0033's localStorage queue and WI-0058's shared-device sign-out. They come from kemiller2002/limen `docs/requirements/LIMEN-INDEXEDDB-REQUIREMENTS.md` (LCP-043..087) and DF-LIMEN-2026-0005. Those place the IndexedDB queue store and the read cache in Arca's `EchelonFoundry.Arca.Limen` package.
+
+Known hazard until WI-0059: the queue is saved to localStorage as one snapshot. Two Chrona tabs can therefore overwrite each other's unsent entries, because the last save wins.

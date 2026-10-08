@@ -143,13 +143,23 @@ let private commandContext (ctx: Ctx) (model: Model) (zone: Zone) : Ledger.Comma
 
 /// Sends what became authoritative to the store.
 let private commitWith (ctx: Ctx) (activities: Activity list) (references: Reference.Item list) (attestations: Review.Attestation list) (model: Model) =
+    // The command's audit entries go with its records (WI-0056).
+    let entries = model.Ledger.Audit |> List.skip (min model.Store.Audited model.Ledger.Audit.Length)
+    let known = activities @ (model.Ledger.Activities |> Map.toList |> List.map snd)
+
     let request =
         { emptyRequest (ctx.NewId "COMMIT") with
             Activities = activities
             References = references
-            Attestations = attestations }
+            Attestations = attestations
+            Audit = AuditRecord.place known entries }
 
-    { model with Store = { model.Store with Pending = model.Store.Pending @ [ request ] } }, [ Store request ]
+    { model with
+        Store =
+            { model.Store with
+                Pending = model.Store.Pending @ [ request ]
+                Audited = model.Ledger.Audit.Length } },
+    [ Store request ]
 
 let private commit (ctx: Ctx) (activities: Activity list) (references: Reference.Item list) (model: Model) =
     commitWith ctx activities references [] model
@@ -754,14 +764,20 @@ let private applyRequest (request: StoreRequest) (model: Model) =
         request.Members
         |> List.fold (fun members (m: Access.Membership) -> Map.add m.Principal.PrincipalId m members) model.Roster.Members
 
+    let audited =
+        request.Audit |> List.map _.Entry |> List.filter (fun entry -> not (List.contains entry model.Ledger.Audit))
+
     { model with
         Ledger =
-            { model.Ledger with
-                Activities = request.Activities |> List.fold (fun activities a -> Map.add a.ActivityId a activities) model.Ledger.Activities }
+            { Activities = request.Activities |> List.fold (fun activities a -> Map.add a.ActivityId a activities) model.Ledger.Activities
+              Audit = model.Ledger.Audit @ audited }
         References =
             { model.References with
                 Items = request.References |> List.fold (fun items item -> Map.add (item.Kind, item.Id) item items) model.References.Items }
         Attestations = model.Attestations @ (request.Attestations |> List.filter (fun a -> not (List.contains a model.Attestations)))
+        Store =
+            { model.Store with
+                Audited = model.Store.Audited + audited.Length }
         Roster =
             { model.Roster with
                 Members = request.RemovedMembers |> List.fold (fun members id -> Map.remove id members) members } }
@@ -878,16 +894,31 @@ let private acceptOutsideEdit (ctx: Ctx) (activityId: string) (model: Model) =
         match Persistence.acceptance (commandContext ctx model zone) model.Roster trusted held with
         | Error problems -> withProblems OutsideEditForm problems model, []
         | Ok accepted ->
+            // Accepting is audited like any change to a record (25).
+            let entry: Ledger.AuditEntry =
+                { Performer = model.Session.ActorId
+                  At = ctx.Now
+                  Source = "chrona-web"
+                  Command = "accept-outside-edit"
+                  ActivityIds = [ activityId ]
+                  PriorRevisions = [ activityId, held.Revision ]
+                  ResultingRevisions = [ activityId, accepted.Revision ]
+                  Reason = None
+                  CorrelationId = None }
+
             let request =
                 { emptyRequest (ctx.NewId "COMMIT") with
                     Activities = [ accepted ]
-                    Accepted = [ held ] }
+                    Accepted = [ held ]
+                    Audit = AuditRecord.place [ accepted ] [ entry ] }
 
             let heldPath =
                 ActivityRecord.path held |> Result.toOption |> Option.map Arca.RelativePath.render
 
             { clear OutsideEditForm model with
-                Ledger = { model.Ledger with Activities = Map.add activityId accepted model.Ledger.Activities }
+                Ledger =
+                    { Activities = Map.add activityId accepted model.Ledger.Activities
+                      Audit = model.Ledger.Audit @ [ entry ] }
                 Store =
                     { model.Store with
                         Held = model.Store.Held |> List.filter (fun a -> a.ActivityId <> activityId)
@@ -896,7 +927,8 @@ let private acceptOutsideEdit (ctx: Ctx) (activityId: string) (model: Model) =
                             |> List.filter (function
                                 | ExternalEdit path -> Some path <> heldPath
                                 | _ -> true)
-                        Pending = model.Store.Pending @ [ request ] }
+                        Pending = model.Store.Pending @ [ request ]
+                        Audited = model.Ledger.Audit.Length + 1 }
                 Announcement = $"Accepted the outside change to \"{accepted.Classification.Description}\"." },
             [ Store request ]
 
@@ -1173,7 +1205,7 @@ let private storeOpened (contents: StoreContents) (model: Model) =
     { model with
         Ledger =
             { Activities = contents.Activities |> List.map (fun a -> a.ActivityId, a) |> Map.ofList
-              Audit = [] }
+              Audit = contents.Audit }
         References =
             { OrganizationId = model.Session.OrganizationId
               Items = contents.References |> List.map (fun item -> (item.Kind, item.Id), item) |> Map.ofList }
@@ -1190,6 +1222,7 @@ let private storeOpened (contents: StoreContents) (model: Model) =
                 Integrity = contents.Problems
                 Held = contents.Held
                 Months = contents.Months
+                Audited = contents.Audit.Length
                 Reading = model.Store.Reading |> List.filter (fun month -> not (List.contains month contents.Months))
                 History = contents.History
                 Index = contents.Index }

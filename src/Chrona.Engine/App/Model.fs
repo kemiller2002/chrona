@@ -42,7 +42,9 @@ type StoreRequest =
       /// they reviewed them: the store trusts them again only if they are
       /// still stored that way, and they are among `Activities` at their
       /// next revision.
-      Accepted: Activity list }
+      Accepted: Activity list
+      /// The command's audit entries, where each is kept (25, WI-0056).
+      Audit: AuditRecord.Audited list }
 
 /// A request with nothing in it yet.
 let emptyRequest (commitId: string) =
@@ -52,7 +54,8 @@ let emptyRequest (commitId: string) =
       Attestations = []
       Members = []
       RemovedMembers = []
-      Accepted = [] }
+      Accepted = []
+      Audit = [] }
 
 type StoreOutcome =
     | Committed
@@ -113,6 +116,8 @@ type StoreState =
       Conflicts: ConflictCase list
       /// Where the unsent changes stand.
       Sync: SyncState
+      /// How many of the ledger's audit entries were handed to the store.
+      Audited: int
       /// The months whose folders were read, as (year, month).
       Months: (int * int) list
       /// Months asked for and not read yet.
@@ -136,6 +141,8 @@ type StoreContents =
       Members: Access.Membership list
       /// Records edited outside Chrona, held for review (41).
       Held: Activity list
+      /// The audit trail of the records read, oldest first (25).
+      Audit: Ledger.AuditEntry list
       Problems: Diagnostic list
       /// The months whose folders were read, as (year, month).
       Months: (int * int) list
@@ -430,6 +437,7 @@ let initial (session: Session) (store: StoreKind) (now: DateTimeOffset) =
           Held = []
           Conflicts = []
           Sync = initialSync
+          Audited = 0
           Months = []
           Reading = []
           History = []

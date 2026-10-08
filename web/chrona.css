@@ -1216,3 +1216,8 @@ textarea.chrona-export {
 .chrona-conflicts__actions [hidden] {
   display: none;
 }
+
+/* Shown only when some revisions predate the stored audit trail (WI-0056). */
+#history-note:empty {
+  display: none;
+}

@@ -226,7 +226,8 @@ let private changeOf (request: StoreRequest) : Stored.Changed =
       References = request.References
       Attestations = request.Attestations
       Members = request.Members
-      Removed = request.RemovedMembers }
+      Removed = request.RemovedMembers
+      Audit = request.Audit }
 
 /// Browser localStorage through Limen's Storage requests, as Arca's
 /// LocalStorageQueue asks for it.
@@ -276,7 +277,8 @@ let private requestOf (folder: Namespace) (entry: QueueEntry) : StoreRequest opt
             References = changed.References
             Attestations = changed.Attestations
             Members = changed.Members
-            RemovedMembers = changed.Removed })
+            RemovedMembers = changed.Removed
+            Audit = changed.Audit })
 
 /// The most text the activity index may take; past it, the index is no
 /// longer kept with each change, and is rebuilt on request.
@@ -480,6 +482,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
           Attestations = Stored.attestations state.Stored
           Members = state.Stored.Members |> Map.toList |> List.map (fun (_, found) -> found.Membership)
           Held = state.Stored.Activities.HeldForReview |> Map.toList |> List.map (fun (_, found) -> found.Activity)
+          Audit = Stored.audit state.Stored
           Problems = Stored.problems state.Stored
           Months = state.Months |> Set.toList
           History = history state.Index
@@ -565,6 +568,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
         && changed.Attestations.IsEmpty
         && changed.Members.IsEmpty
         && changed.Removed.IsEmpty
+        && changed.Audit.IsEmpty
 
     /// Others' independent changes are shown once nothing of this page's own
     /// is waiting to be decided; unsent changes are shown over them.

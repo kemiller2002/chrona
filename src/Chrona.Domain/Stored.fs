@@ -30,6 +30,8 @@ type Stored =
       Attestations: Map<string, Review.Attestation>
       /// The organization's members, by principal id.
       Members: Map<string, StoredMember>
+      /// Audit entries, by namespace-relative path. They are immutable.
+      Audit: Map<string, AuditRecord.Audited>
       /// Integrity problems of reference items and attestations.
       Problems: Diagnostic list }
 
@@ -38,6 +40,7 @@ let empty =
       References = Map.empty
       Attestations = Map.empty
       Members = Map.empty
+      Audit = Map.empty
       Problems = [] }
 
 /// The key a reference item is tracked by.
@@ -95,6 +98,17 @@ let load (objects: StoredObject list) : Stored =
                 | Error diagnostic -> Error diagnostic))
         |> List.partition Result.isOk
 
+    let audits, auditProblems =
+        ofType AuditRecord.recordType
+        |> List.map (fun (key, stored) ->
+            decodeWith AuditRecord.schema AuditRecord.ofBody key stored
+            |> Result.bind (fun audited ->
+                match AuditRecord.path audited with
+                | Ok expected when expected = stored.Path -> Ok(RelativePath.render stored.Path, audited)
+                | Ok _ -> Error(MisplacedRecord(RelativePath.render stored.Path))
+                | Error diagnostic -> Error diagnostic))
+        |> List.partition Result.isOk
+
     let members, memberProblems =
         ofType MemberRecord.recordType
         |> List.map (fun (key, stored) ->
@@ -119,6 +133,7 @@ let load (objects: StoredObject list) : Stored =
                 && key.Type <> ReferenceRecord.recordType
                 && key.Type <> AttestationRecord.recordType
                 && key.Type <> MemberRecord.recordType
+                && key.Type <> AuditRecord.recordType
             | None -> true)
         |> List.map (fun stored -> InvalidStoredRecord(RelativePath.render stored.Path, "not a record Chrona keeps here"))
 
@@ -138,7 +153,8 @@ let load (objects: StoredObject list) : Stored =
       References = oks references |> List.map (fun found -> referenceKey found.Item, found) |> Map.ofList
       Attestations = oks attestations |> Map.ofList
       Members = oks members |> List.map (fun found -> found.Membership.Principal.PrincipalId, found) |> Map.ofList
-      Problems = errors referenceProblems @ errors attestationProblems @ errors memberProblems @ foreign }
+      Audit = oks audits |> Map.ofList
+      Problems = errors referenceProblems @ errors attestationProblems @ errors memberProblems @ errors auditProblems @ foreign }
 
 /// The organization's roster, from what was read.
 let roster (organizationId: string) (stored: Stored) : Access.Roster =
@@ -154,6 +170,13 @@ let catalogue (organizationId: string) (stored: Stored) : Reference.Catalogue =
 let attestations (stored: Stored) =
     stored.Attestations |> Map.toList |> List.map snd |> List.sortBy _.At
 
+/// The audit trail as stored, oldest first.
+let audit (stored: Stored) =
+    stored.Audit
+    |> Map.toList
+    |> List.map (fun (_, audited) -> audited.Entry)
+    |> List.sortBy (fun entry -> entry.At, entry.ResultingRevisions |> List.map snd |> List.fold max 0, entry.Command)
+
 /// The records one command changes.
 type Changed =
     { Activities: Activity.Activity list
@@ -162,7 +185,9 @@ type Changed =
       /// Memberships admitted or changed.
       Members: Access.Membership list
       /// Principals removed from the roster.
-      Removed: string list }
+      Removed: string list
+      /// The audit entries of the command, where each is kept.
+      Audit: AuditRecord.Audited list }
 
 /// Nothing changed.
 let nothing =
@@ -170,7 +195,8 @@ let nothing =
       References = []
       Attestations = []
       Members = []
-      Removed = [] }
+      Removed = []
+      Audit = [] }
 
 /// The Arca changes that store a command's records on top of what was read:
 /// activities as `Persistence.changes`, reference items and memberships
@@ -203,6 +229,13 @@ let changes (stored: Stored) (changed: Changed) : Result<Change list, Diagnostic
         | Error diagnostic, _
         | _, Error diagnostic -> Error [ diagnostic ]
 
+    let auditChange (audited: AuditRecord.Audited) =
+        match AuditRecord.path audited, AuditRecord.encode audited with
+        | Ok target, Ok _ when stored.Audit.ContainsKey(RelativePath.render target) -> Ok []
+        | Ok target, Ok content -> Ok [ Change.Create(target, content) ]
+        | Error diagnostic, _
+        | _, Error diagnostic -> Error [ diagnostic ]
+
     let removal (principalId: string) =
         match stored.Members.TryFind principalId with
         | Some found -> Ok [ Change.Delete(found.Path, found.Revision) ]
@@ -214,6 +247,7 @@ let changes (stored: Stored) (changed: Changed) : Result<Change list, Diagnostic
         @ (changed.Attestations |> List.map attestationChange)
         @ (changed.Members |> List.map memberChange)
         @ (changed.Removed |> List.map removal)
+        @ (changed.Audit |> List.map auditChange)
 
     match results |> List.collect (function Error problems -> problems | Ok _ -> []) with
     | [] -> Ok(results |> List.collect (function Ok found -> found | Error _ -> []))
@@ -240,6 +274,8 @@ let changedOf (changes: Change list) : Result<Changed, Diagnostic list> =
                 AttestationRecord.ofBody body |> Result.map (fun a -> { nothing with Attestations = [ a ] }) |> Result.mapError invalid
             elif key.Type = MemberRecord.recordType then
                 MemberRecord.ofBody body |> Result.map (fun m -> { nothing with Members = [ m ] }) |> Result.mapError invalid
+            elif key.Type = AuditRecord.recordType then
+                AuditRecord.ofBody body |> Result.map (fun a -> { nothing with Audit = [ a ] }) |> Result.mapError invalid
             else
                 Error(invalid "not a record Chrona keeps here")
         | _ -> Error(InvalidStoredRecord(where, "not a valid record"))
@@ -277,7 +313,8 @@ let changedOf (changes: Change list) : Result<Changed, Diagnostic list> =
               References = found |> List.collect _.References
               Attestations = found |> List.collect _.Attestations
               Members = found |> List.collect _.Members
-              Removed = found |> List.collect _.Removed }
+              Removed = found |> List.collect _.Removed
+              Audit = found |> List.collect _.Audit }
     | problems -> Error problems
 
 /// What is stored with changes not yet stored laid over it, as the person
@@ -354,11 +391,21 @@ let overlay (changed: Changed) (stored: Stored) =
                 | Error _ -> map)
             stored.Attestations
 
+    let audit =
+        changed.Audit
+        |> List.fold
+            (fun map (audited: AuditRecord.Audited) ->
+                match AuditRecord.path audited with
+                | Ok path -> Map.add (RelativePath.render path) audited map
+                | Error _ -> map)
+            stored.Audit
+
     { stored with
         Activities = activities
         References = references
         Members = members
-        Attestations = attestations }
+        Attestations = attestations
+        Audit = audit }
 
 /// What was stored after a commit of these records landed with `receipt`.
 let committed (changed: Changed) (receipt: CommitReceipt) (stored: Stored) =
@@ -405,11 +452,21 @@ let committed (changed: Changed) (receipt: CommitReceipt) (stored: Stored) =
             stored.Members
         |> fun map -> changed.Removed |> List.fold (fun map principalId -> Map.remove principalId map) map
 
+    let audit' =
+        changed.Audit
+        |> List.fold
+            (fun map (audited: AuditRecord.Audited) ->
+                match AuditRecord.path audited with
+                | Ok target -> Map.add (RelativePath.render target) audited map
+                | Error _ -> map)
+            stored.Audit
+
     { stored with
         Activities = Persistence.committed changed.Activities receipt stored.Activities
         References = references'
         Attestations = attestations'
-        Members = members' }
+        Members = members'
+        Audit = audit' }
 
 /// The folders the application reads for an actor and a set of dates: the
 /// members, the reference folders, and the activity and attestation month
@@ -422,6 +479,7 @@ let folders (actorId: string) (dates: System.DateOnly list) : Result<RelativePat
         @ ReferenceRecord.folders ()
         @ (months |> List.map (ActivityRecord.monthFolder actorId))
         @ (months |> List.map (AttestationRecord.monthFolder actorId))
+        @ (months |> List.map (AuditRecord.monthFolder actorId))
 
     all
     |> List.fold (fun state next -> state |> Result.bind (fun found -> next |> Result.map (fun folder -> found @ [ folder ]))) (Ok [])

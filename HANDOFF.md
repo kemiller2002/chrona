@@ -52,7 +52,7 @@ for the diagnosis, the evidence, and one unexercised watch item.
 - Requirement coverage per section is tracked in
   [`docs/requirements/implementation-gap-analysis.md`](docs/requirements/implementation-gap-analysis.md)
   (`CHX-NNM` ids, baseline and current columns; `GapAnalysisTests` holds the
-  counts). 30 tested, 31 partial, 2 missing of 63 (baseline 0 / 7 / 56).
+  counts). 31 tested, 30 partial, 2 missing of 63 (baseline 0 / 7 / 56).
 - `src/Chrona.Domain` is the pure time domain: `Diagnostics`, `Time`,
   `Activity`, `Overlap`, `ManualEntry` (WI-0020), `Ledger` (WI-0021),
   `Timer` (WI-0022), `Billing` and `Review` (WI-0023), `Compatibility`
@@ -124,8 +124,9 @@ for the diagnosis, the evidence, and one unexercised watch item.
   a month not read yet is read only when the person goes to it. An
   administrator rebuilds it from the records under More (recovery, and for
   an organization from before it). Every projection the page shows is
-  computed from stored records alone. The audit trail is still kept only in
-  memory (WI-0056).
+  computed from stored records alone, the activity history included: each
+  command's audit entry is an immutable `chrona.audit` record written with
+  the records it audits (WI-0056).
 - Rosters, people and organizations (WI-0031): member records in each
   organization's folder; only the configuration's listed administrators
   set an organization up or administer it first (WI-0053); only members work;
@@ -133,8 +134,7 @@ for the diagnosis, the evidence, and one unexercised watch item.
   deployment lists its organizations and a person chooses one. Publication
   staging (ReadyForPublication) and Summa's invoice report
   (InvoicedExternally) are domain transitions; their transport is WI-0037.
-- Not built: the persisted timer and starting offline (WI-0055), the stored
-  audit trail (WI-0056), browser reliability, accessibility end to end, quick
+- Not built: the persisted timer and starting offline (WI-0055), browser reliability, accessibility end to end, quick
   entry and visual regression (WI-0054),
   `Chrona.Integration` (Summa owns the contract), submission and approval screens (need actors and
   authorization, WI-0030 after Fides), and reports over stored data across

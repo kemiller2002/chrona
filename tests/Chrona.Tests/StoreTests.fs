@@ -1276,11 +1276,19 @@ let ``every projection is rebuilt from the stored records alone`` () =
     let reader = Device(github, RepositoryVisibility.Private, "production")
     reader.Open()
 
-    // The activity screen's history is the in-memory audit trail, not yet
-    // stored (WI-0056); announcements are transitions, not state.
-    let ephemeral (key: string) = key = "announcement" || key = "detailHistory" || key = "copyStatus"
+    // Announcements are transitions, not state. The activity screen's
+    // history is read from the stored audit trail (WI-0056).
+    let ephemeral (key: string) = key = "announcement" || key = "copyStatus"
 
-    for route in [ "#/today/2026-10-07"; "#/review/2026-10-07"; "#/month/2026-10"; "#/reports"; "#/more" ] do
+    for route in
+        [ "#/today/2026-10-07"
+          "#/review/2026-10-07"
+          "#/month/2026-10"
+          "#/reports"
+          "#/more"
+          $"#/activity/{pairing}"
+          $"#/activity/{review}"
+          $"#/activity/{setup}" ] do
         device.Send(LocationMoved route)
         reader.Send(LocationMoved route)
         let view (d: Device) = Project.project d.Model |> List.filter (fst >> ephemeral >> not)
@@ -1409,3 +1417,59 @@ let ``the shared-device policy is ask unless the deployment says otherwise, and 
         """{"environment":"local","environmentName":"local","sharedDevicePolicy":"forget"}""" |> Deployment.parse
 
     Assert.True(Result.isError refused)
+
+// ---- The stored audit trail (WI-0056: 25, 40) ---------------------------------------------------
+
+let private auditPaths (github: InMemoryStore) =
+    storedPaths github |> List.filter (fun path -> path.Contains "/records/chrona.audit/")
+
+[<Fact>]
+let ``who changed what is stored with the records, once, beside the activity it concerns`` () =
+    let github = InMemoryStore()
+    let device = Device(github, RepositoryVisibility.Private, "production")
+    device.Open()
+    record device "09:00" "10:00" "Pairing"
+    let id = device.Model.Ledger.Activities |> Map.toList |> List.head |> fst
+    amendFrom device id "Pairing, corrected"
+
+    // One immutable record per command, in the person's month folder.
+    let paths = auditPaths github
+    Assert.Equal(2, paths.Length)
+    Assert.All(paths, fun path -> Assert.Contains("/records/chrona.audit/github_3a583231/2026/10/", path))
+
+    // A device that only read the records shows the same history.
+    let reader = Device(github, RepositoryVisibility.Private, "production")
+    reader.Open()
+    reader.Send(LocationMoved $"#/activity/{id}")
+
+    let actions =
+        match (Project.project reader.Model |> Map.ofList)["detailHistory"] with
+        | Chrona.Engine.View.Items rows ->
+            rows |> List.map (List.pick (function "action", Chrona.Engine.View.Text action -> Some action | _ -> None))
+        | other -> failwith $"%A{other}"
+
+    Assert.Equal<string list>([ "Amended"; "Recorded" ], actions)
+    Assert.Equal(Chrona.Engine.View.Value(Chrona.Engine.View.Text ""), (Project.project reader.Model |> Map.ofList)["detailHistoryNote"])
+    Assert.Equal("github:583231", reader.Model.Ledger.Audit.Head.Performer)
+
+[<Fact>]
+let ``a change refused as a conflict stores no audit entry`` () =
+    let github, first, second = twoDevices ()
+    record first "09:00" "10:00" "Pairing"
+    let before = auditPaths github
+    record second "09:30" "10:30" "Overlap"
+    Assert.Single(second.Model.Store.Conflicts) |> ignore
+    Assert.Equal<string list>(before, auditPaths github)
+
+[<Fact>]
+let ``accepting an outside edit is audited, and revisions made before the trail was stored say so`` () =
+    let github, second, id, _, _ = editedOutside (described "Edited on github.com")
+    second.Ui("acceptOutsideEdit", id, "")
+
+    let reader = Device(github, RepositoryVisibility.Private, "production")
+    reader.Open()
+    reader.Send(LocationMoved $"#/activity/{id}")
+    Assert.Contains(reader.Model.Ledger.Audit, fun entry -> entry.Command = "accept-outside-edit" && entry.ResultingRevisions = [ id, 3 ])
+
+    // Revision 2 was written on github.com: no entry tells of it.
+    Assert.Contains("before Chrona kept its history", (Project.project reader.Model |> Map.ofList)["detailHistoryNote"] |> function Chrona.Engine.View.Value(Chrona.Engine.View.Text t) -> t | other -> failwith $"%A{other}")

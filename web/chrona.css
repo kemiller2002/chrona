@@ -317,13 +317,21 @@ button.chrona-timer-chip {
 
 .chrona-day-nav {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.65rem;
   margin-block-end: 1.5rem;
 }
 
+/* Reflow at 320 CSS pixels (400% zoom): the date gives way, and the row
+   wraps rather than scrolling sideways (35). */
+.chrona-day-nav__date {
+  min-inline-size: 0;
+}
+
 .chrona-day-nav__date input {
   inline-size: auto;
+  max-inline-size: 100%;
 }
 
 .chrona-day-summary {

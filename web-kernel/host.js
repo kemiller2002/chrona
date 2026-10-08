@@ -11,6 +11,8 @@
 //   replaceAddress { url }    -> { kind: "Done" }  same-origin history.replaceState, no navigation
 //   broadcast { message }     -> { kind: "Done" }  to the origin's other tabs (BroadcastChannel)
 //   reload {}                 -> { kind: "Done" }  loads the page again (a newer Chrona; WI-0063)
+//   focus { target }          -> { kind: "Done" }  moves focus to the element with this id, when
+//                                                   the control the person used is gone (WI-0064)
 // Facts: { kind: "Broadcast", message } for a message another tab sent.
 //
 // Messages carry no token (Fides says only what happened). Session storage
@@ -21,7 +23,7 @@ import { defineCapability } from "../node_modules/@echelon-foundry/limen/dist/ke
 export const HOST_CAPABILITY = {
   id: "chrona.host",
   version: 1,
-  fingerprint: "chrona.host/1: tab storage, leave, replace address, broadcast, reload"
+  fingerprint: "chrona.host/1: tab storage, leave, replace address, broadcast, reload, focus"
 };
 
 const CHANNEL = "chrona.host";
@@ -33,7 +35,8 @@ const shapes = {
   leave: ["url"],
   replaceAddress: ["url"],
   broadcast: ["message"],
-  reload: []
+  reload: [],
+  focus: ["target"]
 };
 
 const decodeRequest = (value, path = "$") => {
@@ -100,6 +103,9 @@ export const hostCapability = () =>
           return { kind: "Done" };
         case "reload":
           document.defaultView.location.reload();
+          return { kind: "Done" };
+        case "focus":
+          document.getElementById(request.target)?.focus();
           return { kind: "Done" };
       }
       throw new Error(`chrona.host: unknown operation ${request.operation}`);

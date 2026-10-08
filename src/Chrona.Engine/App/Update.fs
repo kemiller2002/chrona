@@ -105,6 +105,9 @@ type Effect =
     | RebuildIndex
     /// Send this account's unsent changes now.
     | SendUnsent
+    /// Move focus to the control with this id: the control the person used
+    /// is gone from the page, and focus must not fall to the document (35).
+    | FocusControl of id: string
     /// Take over this browser's unsent changes once the tab holding them
     /// closes (WI-0067).
     | TakeOverQueue
@@ -1713,6 +1716,26 @@ let private step (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
     | Ui _ when not (canWork model) -> model, []
     | Ui(name, key, value, isChecked) -> authorized name key model (fun () -> onEvent ctx name key value isChecked model)
 
+/// Where focus goes after a timer control changed the timer: each control
+/// replaces the one pressed (Start gives way to Pause, Pause to Resume, Stop
+/// to the completion form), so focus moves to what took its place rather
+/// than falling to the document (35, scenario 43).
+let private focusAfter (msg: Msg) (model: Model) (next: Model) =
+    match msg with
+    | Ui(("startTimer" | "pauseTimer" | "resumeTimer" | "stopTimer"), _, _, _) ->
+        // The page that could not open the records has its own timer panel.
+        let gate = offlineTimer model
+
+        match model.Timer, next.Timer with
+        | Timer.Idle, Timer.Running _ -> Some "pause-timer"
+        | Timer.Running _, Timer.Paused _ -> Some(if gate then "offline-resume" else "resume-timer")
+        | Timer.Paused _, Timer.Running _ -> Some(if gate then "offline-pause" else "pause-timer")
+        | (Timer.Running _ | Timer.Paused _), Timer.Idle when gate -> Some "offline-timer-title"
+        | (Timer.Running _ | Timer.Paused _), Timer.Idle when next.Stopped.IsSome -> Some "completion-title"
+        | (Timer.Running _ | Timer.Paused _), Timer.Idle -> Some "start-timer"
+        | _ -> None
+    | _ -> None
+
 let update (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
     let next, effects = step ctx msg model
 
@@ -1726,6 +1749,8 @@ let update (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
             effects @ [ SaveTimer(timerKey next, after |> Option.map TimerRecord.encode) ]
         else
             effects
+
+    let effects = effects @ (focusAfter msg model next |> Option.map FocusControl |> Option.toList)
 
     match msg with
     // Signing out waits for the unsent changes it is sending.

@@ -82,3 +82,67 @@ export async function addEntry(page, { start, end, description, purpose = "Deliv
 }
 
 export { expect };
+
+// ---- A signed-in deployment: Fides' exchange and GitHub's authorize page as
+// Playwright routes (Fides is not deployed anywhere yet). -------------------
+
+const ORIGIN = "http://127.0.0.1:4321";
+export const PAGE = `${ORIGIN}/web/index.html`;
+export const ACCESS_TOKEN = "gho_CHRONABROWSERACCESSTOKEN0123456789";
+export const REFRESH_TOKEN = "ghr_CHRONABROWSERREFRESHTOKEN0123456789";
+
+// A deployment with sign-in and no data location.
+export const signInConfiguration = {
+  environment: "test",
+  environmentName: "test",
+  identity: { exchange: "https://fides.test", application: "chrona-test", provider: "github", clientId: "Iv23liBROWSER", redirectUri: PAGE }
+};
+
+const cors = {
+  "access-control-allow-origin": ORIGIN,
+  "access-control-allow-methods": "POST, OPTIONS",
+  "access-control-allow-headers": "content-type",
+  vary: "Origin",
+  "cache-control": "no-store"
+};
+
+// The deployment (with this configuration), Fides' exchange and GitHub's
+// authorize page, as the page reaches them. Returns the exchange paths called.
+export async function fakeDeployment(page, configuration) {
+  const exchanged = [];
+  await page.route("**/web/chrona.deployment.json", (route) => route.fulfill({ json: configuration }));
+  await page.route("https://fides.test/**", async (route) => {
+    const request = route.request();
+    if (request.method() === "OPTIONS") return route.fulfill({ status: 204, headers: cors });
+    const path = new URL(request.url()).pathname;
+    exchanged.push(path);
+    const body = JSON.parse(request.postData() ?? "{}");
+    if (path === "/v1/token" && body.code === "good-code") {
+      const at = (hours) => new Date(Date.now() + hours * 3600_000).toISOString().replace(/\.\d+Z$/, "Z");
+      return route.fulfill({
+        status: 200,
+        headers: cors,
+        contentType: "application/json",
+        body: JSON.stringify({
+          accessToken: ACCESS_TOKEN,
+          accessTokenExpiresAt: at(8),
+          refreshToken: REFRESH_TOKEN,
+          refreshTokenExpiresAt: at(24 * 180),
+          identity: { provider: "github", subject: "583231", login: "octocat", name: "The Octocat" }
+        })
+      });
+    }
+    if (path === "/v1/token") return route.fulfill({ status: 400, headers: cors, contentType: "application/json", body: '{"error":"code_rejected"}' });
+    if (path === "/v1/revoke") return route.fulfill({ status: 204, headers: cors });
+    return route.fulfill({ status: 404, headers: cors, contentType: "application/json", body: '{"error":"not_found"}' });
+  });
+  // GitHub's authorize page: the person approves, GitHub redirects back.
+  await page.route("https://github.com/login/oauth/authorize**", (route) => {
+    const url = new URL(route.request().url());
+    const back = new URL(url.searchParams.get("redirect_uri"));
+    back.searchParams.set("code", "good-code");
+    back.searchParams.set("state", url.searchParams.get("state"));
+    return route.fulfill({ status: 302, headers: { location: back.href } });
+  });
+  return exchanged;
+}

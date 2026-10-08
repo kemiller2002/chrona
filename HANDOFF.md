@@ -155,7 +155,12 @@ for the diagnosis, the evidence, and one unexercised watch item.
   Limen's coordination pack). Another tab says so, sends its own changes
   from the page, and can take the queue over when the holding tab closes.
   Without Web Locks, saves are fenced and the mode is shown.
-- Not built: accessibility and mobile end to end (WI-0064), visual regression (WI-0054),
+- Accessibility and mobile end to end (WI-0064): scenarios 42-44 in a real
+  browser, focus kept on the timer control that replaced the pressed one
+  (`chrona.host` focus), reflow at 320 CSS pixels, reduced motion, the week's
+  totals and a sync problem on a phone. The iPhone VoiceOver pass needs a
+  person (`docs/accessibility-voiceover-checklist.md`, WI-0068).
+- Not built: visual regression (WI-0054), the iPhone VoiceOver pass (WI-0068),
   the Summa transport (WI-0061), submission and approval screens (need actors and
   authorization, WI-0030 after Fides), and reports over stored data across
   people and organizations (WI-0039).
@@ -167,7 +172,7 @@ for the diagnosis, the evidence, and one unexercised watch item.
 
 ## Next action (time domain)
 
-Accessibility and mobile end to end (WI-0064) and visual regression (WI-0054); the Summa transport once Summa chooses it (WI-0061);
+Visual regression (WI-0054); the iPhone VoiceOver pass, by a person (WI-0068); the Summa transport once Summa chooses it (WI-0061);
 the real sign-in and storage check once a deployment exists (WI-0052).
 
 ## Unresolved questions

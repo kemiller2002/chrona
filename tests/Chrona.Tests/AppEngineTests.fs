@@ -151,8 +151,9 @@ let ``a running timer wakes the engine once a second and the display is computed
     let running, effects = play (chooseForTimer @ [ start, ui "startTimer" "" ]) ready
 
     match effects with
-    // The engine wakes itself, and the device keeps the timer (WI-0055).
-    | [ Wake(1, TickMs); SaveTimer(key, Some kept) ] ->
+    // The engine wakes itself, the device keeps the timer (WI-0055), and
+    // focus moves to Pause, which took Start's place (WI-0064).
+    | [ Wake(1, TickMs); SaveTimer(key, Some kept); FocusControl "pause-timer" ] ->
         Assert.Equal(Chrona.Domain.TimerRecord.key "org-1" "person-1", key)
         Assert.True(Chrona.Domain.TimerRecord.decode kept |> Result.isOk)
     | other -> failwith $"%A{other}"
@@ -175,9 +176,28 @@ let ``pausing stops the wake-ups; a wake-up from an earlier run is ignored`` () 
     Assert.Equal<Effect list>([], snd (update (ctxAt (at 11.0)) (Ticked 1) paused))
     Assert.Equal("00:10:00", textOf "timerElapsed" (fst (update (ctxAt (at 30.0)) (Ticked 1) paused)))
     let resumed, effects = update (ctxAt (at 20.0)) (ui "resumeTimer" "") paused
-    Assert.Equal<Effect list>([ Wake(2, TickMs) ], effects |> List.filter (function SaveTimer _ -> false | _ -> true))
+    Assert.Equal<Effect list>([ Wake(2, TickMs); FocusControl "pause-timer" ], effects |> List.filter (function SaveTimer _ -> false | _ -> true))
     Assert.Equal<Effect list>([], snd (update (ctxAt (at 21.0)) (Ticked 1) resumed))
     Assert.Equal("Paused", textOf "timerStateText" paused)
+
+[<Fact>]
+let ``focus moves to the control that takes the pressed one's place, never to the document`` () =
+    let focusOf effects = effects |> List.choose (function FocusControl id -> Some id | _ -> None)
+    let running, started = play (chooseForTimer @ [ start, ui "startTimer" "" ]) ready
+    Assert.Equal<string list>([ "pause-timer" ], focusOf started)
+    let paused, effects = update (ctxAt (at 1.0)) (ui "pauseTimer" "") running
+    Assert.Equal<string list>([ "resume-timer" ], focusOf effects)
+    let resumed, effects = update (ctxAt (at 2.0)) (ui "resumeTimer" "") paused
+    Assert.Equal<string list>([ "pause-timer" ], focusOf effects)
+    // Stopped and held: the completion form, by its heading.
+    let _, effects = update (ctxAt (at 32.0)) (ui "stopTimer" "") resumed
+    Assert.Equal<string list>([ "completion-title" ], focusOf effects)
+    // Stopped too soon to record: Start is back.
+    let _, effects = update (ctxAt (start.AddSeconds 10.0)) (ui "stopTimer" "") (fst (play (chooseForTimer @ [ start, ui "startTimer" "" ]) ready))
+    Assert.Equal<string list>([ "start-timer" ], focusOf effects)
+    // A command that changes nothing moves nothing.
+    let _, effects = update (ctxAt start) (ui "startTimer" "") ready
+    Assert.Empty(focusOf effects)
 
 [<Fact>]
 let ``stopping under thirty seconds records nothing, and says so`` () =

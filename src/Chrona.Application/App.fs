@@ -66,6 +66,8 @@ type Purpose =
     | ShellCheck
     /// Reloading the page for a newer Chrona.
     | Reloading
+    /// Moving focus to the control that replaced the one the person used.
+    | Focusing
 
 [<NoComparison; NoEquality>]
 type State =
@@ -204,6 +206,9 @@ let private requests (env: Env) (state: State) (effects: Update.Effect list) =
             | Update.CheckShell -> state, requests, immediate
             | Update.ReloadPage when negotiated host state -> minted Reloading, requests @ [ Host(id, "reload", []) ], immediate
             | Update.ReloadPage -> state, requests, immediate
+            | Update.FocusControl target when negotiated host state ->
+                minted Focusing, requests @ [ Host(id, "focus", [ "target", target ]) ], immediate
+            | Update.FocusControl _ -> state, requests, immediate
             | Update.TakeOverQueue ->
                 env.Store.TakeOver()
                 state, requests, immediate
@@ -359,6 +364,7 @@ let step (env: Env) (state: State) (inbound: Inbound) =
                 // The subscription took; its facts follow.
                 | (Lifecycle, state), _ -> state, None
                 | (Reloading, state), _ -> state, None
+                | (Focusing, state), _ -> state, None
                 | (BridgeCall, state), NotExecuted _ ->
                     answerBridge env id (Bridge.Read None)
                     state, None

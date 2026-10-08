@@ -251,7 +251,8 @@ let toActivities (now: DateTimeOffset) (newId: int -> string) (billability: Bill
                   WorkItemRef = None
                   ExternalRef = None
                   Evidence = []
-                  Lineage = [ stopped.Timer.TimerId ] })
+                  Lineage = [ stopped.Timer.TimerId ]
+                  Source = None })
         )
 
 /// Timers for the same actor whose timing overlaps, typically started on

@@ -126,7 +126,8 @@ let create (context: EntryContext) (existing: Activity list) (entry: ManualEntry
               WorkItemRef = entry.WorkItemRef
               ExternalRef = None
               Evidence = entry.Evidence
-              Lineage = [] }
+              Lineage = []
+              Source = None }
 
         match
             future

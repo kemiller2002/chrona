@@ -66,7 +66,8 @@ let private activity id (d: DateOnly) minutes billability review =
       WorkItemRef = None
       ExternalRef = None
       Evidence = []
-      Lineage = [] }
+      Lineage = []
+      Source = None }
 
 let private policies = [ Chrona.Domain.Billing.legacyDefault "ORG-1" ]
 

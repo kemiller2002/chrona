@@ -50,7 +50,8 @@ let private activity id (h, m) minutes =
       WorkItemRef = None
       ExternalRef = None
       Evidence = []
-      Lineage = [] }
+      Lineage = []
+      Source = None }
 
 let private evidence id = { Id = id; Url = $"https://example.test/{id}"; Kind = "url"; Label = id; CapturedAt = at 8 0; Hash = None }
 

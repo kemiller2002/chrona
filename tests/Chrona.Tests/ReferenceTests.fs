@@ -122,7 +122,8 @@ let private activity id classification =
       WorkItemRef = None
       ExternalRef = None
       Evidence = []
-      Lineage = [] }
+      Lineage = []
+      Source = None }
 
 [<Fact>]
 let ``the ledger enforces the assignment rules on record, amend, restore and split`` () =

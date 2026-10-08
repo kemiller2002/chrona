@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "repository": "chrona",
-  "nextSeq": 50,
+  "nextSeq": 51,
   "items": [
     {
       "id": "WI-0001",
@@ -792,8 +792,8 @@
     },
     {
       "id": "WI-0038",
-      "title": "Chrona 13: observation processing - accept, modify, reject, deduplicate, receipts (CHX-190, CHX-120 import path, CHX-250 import audit)",
-      "description": "Depends on WI-0032. Inbox processing with overlap checks on import and audited outcomes. Scenarios 25-30.",
+      "title": "Chrona 13: observation inboxes on Arca - reading producer inboxes, durable candidates and receipts, startup reconciliation (CHX-190 remainder, CHX-200)",
+      "description": "Depends on WI-0032. Inbox processing with overlap checks on import and audited outcomes. Scenarios 25-30. The pure processing rules are WI-0050; this item stores candidates and receipts through Arca and reads producer inboxes.",
       "tags": [
         "chrona",
         "order:13",
@@ -803,7 +803,7 @@
       "status": "captured",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:49.855Z",
-      "updatedAt": "2026-10-08T07:43:49.855Z",
+      "updatedAt": "2026-10-08T10:50:32.596Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",
@@ -1086,6 +1086,31 @@
       "attachments": [],
       "createdAt": "2026-10-08T10:08:15.442Z",
       "updatedAt": "2026-10-08T10:34:54.135Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0050",
+      "title": "Chrona 13a: observation processing in the pure domain - candidates, dispositions (pending, accepted, accepted with changes, rejected, duplicate, needs attention), source auto-accept policy, deduplication and receipts (CHX-190, CHX-120 import path, CHX-250 import audit; scenarios 25-30)",
+      "description": "The storage-independent part of WI-0038, per coordinator direction 2026-10-08. TimeObservation to TimeCandidate to ProcessingReceipt as pure rules: review by default unless a source policy allows auto-accept, rejected observations preserved with reason, invalid payloads distinguishable from rejected ones, deduplication by source and observation id and by content, receipts never issued before the candidate decision exists (receipt repair), accepted activities keep source system, observation id, work item, external URL and ingestion time, imports pass the same overlap and classification rules and are audited. Inbox storage, the receiver-owned Chrona.Integration contract assembly and reconciliation stay with WI-0038 and WI-0037.",
+      "tags": [
+        "chrona",
+        "observations",
+        "domain"
+      ],
+      "priority": "high",
+      "status": "ready",
+      "attachments": [],
+      "createdAt": "2026-10-08T10:50:27.295Z",
+      "updatedAt": "2026-10-08T10:50:32.891Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

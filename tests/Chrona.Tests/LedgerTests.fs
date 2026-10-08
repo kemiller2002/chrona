@@ -45,7 +45,8 @@ let private activity id (startH, startM) minutes =
       WorkItemRef = None
       ExternalRef = None
       Evidence = []
-      Lineage = [] }
+      Lineage = []
+      Source = None }
 
 let private ok result =
     match result with

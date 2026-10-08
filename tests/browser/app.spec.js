@@ -231,3 +231,24 @@ test.describe("on a phone", () => {
     }
   });
 });
+
+test("a running timer survives a reload and is recovered from its timestamps", async ({ app: page }) => {
+  await setUp(page);
+  await page.click(".chrona-nav__link:has-text('Track')");
+  await page.selectOption("#timer-activity-type", { label: "Research" });
+  await page.selectOption("#timer-project", { label: "HelixNote" });
+  await page.click("#start-timer");
+  await expect(page.locator("#timer-display")).toHaveText("00:00:02", { timeout: 5000 });
+
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-kernel", "running");
+  await expect(announcement(page)).toContainText("Your timer was recovered and is still running");
+  await expect(page.locator("#tracker")).toHaveAttribute("data-state", "running");
+  // Elapsed time continues from the original start, not from the reload.
+  await expect(page.locator("#timer-display")).toHaveText(/^00:00:0[3-9]$/, { timeout: 5000 });
+
+  await page.click("#stop-timer");
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-kernel", "running");
+  await expect(page.locator("#tracker")).not.toHaveAttribute("data-state", "running");
+});

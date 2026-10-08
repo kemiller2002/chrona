@@ -53,6 +53,10 @@ type Purpose =
     | Configuration
     /// A browser service Fides' client or Arca's adapter asked for (Bridge).
     | BridgeCall
+    /// Reading the device's kept timer (WI-0055), under this key.
+    | TimerLoad of key: string
+    /// Keeping or clearing it.
+    | TimerSave
 
 [<NoComparison; NoEquality>]
 type State =
@@ -170,6 +174,10 @@ let private requests (env: Env) (state: State) (effects: Update.Effect list) =
             | Update.RebuildIndex ->
                 env.Store.Rebuild()
                 state, requests, immediate
+            | Update.LoadTimer key ->
+                minted (TimerLoad key), requests @ [ StorageGet(id, key) ], immediate
+            | Update.SaveTimer(key, Some value) -> minted TimerSave, requests @ [ StorageSet(id, key, value) ], immediate
+            | Update.SaveTimer(key, None) -> minted TimerSave, requests @ [ StorageRemove(id, key) ], immediate
             | Update.SendUnsent ->
                 env.Store.SendNow()
                 state, requests, immediate
@@ -309,6 +317,12 @@ let step (env: Env) (state: State) (inbound: Inbound) =
                 | (_, _), _ -> raise (CapabilityFailed("Http", $"An Http result for {id}, which was not an Http request"))
             | StorageResponse(id, result) ->
                 match take id state with
+                | TimerLoad key, state ->
+                    match result with
+                    | StorageValue value -> state, Some(Update.TimerLoaded(key, value))
+                    | StorageFailed _ -> state, Some(Update.TimerLoaded(key, None))
+                // A timer the browser would not keep is still in the page; nothing else changes.
+                | TimerSave, state -> state, None
                 | BridgeCall, state ->
                     answerBridge
                         env

@@ -601,6 +601,26 @@ let private obligations (model: Model) =
               unsentDetail model.Store.Sync,
               "goMore"
 
+      // A running or paused timer that overlaps recorded time (10.5).
+      match model.Timer with
+      | Timer.Running active
+      | Timer.Paused active ->
+          for problem in Timer.overlapsRecorded model.Now active (model.Ledger.Activities |> Map.toList |> List.map snd) do
+              match problem with
+              | ConcurrentTimer activityId ->
+                  let label =
+                      model.Ledger.Activities.TryFind activityId
+                      |> Option.map (fun a -> quoted a.Classification.Description)
+                      |> Option.defaultValue activityId
+
+                  yield
+                      $"timer-overlap-{activityId}",
+                      $"Your timer overlaps {label}, recorded since it started",
+                      $"Perhaps it was recorded on another device. Stop the timer and keep only the time not already recorded ({code problem}).",
+                      "goTrack"
+              | _ -> ()
+      | Timer.Idle -> ()
+
       match model.Store.Held with
       | [] -> ()
       | held ->
@@ -1079,13 +1099,22 @@ let private identityView (model: Model) =
       text
           "signOutSummary"
           (let count = Update.unsentCount model
-           (if count = 1 then "1 change has" else $"{count} changes have")
-           + " not reached GitHub. Signing out must not leave them behind without your knowing.")
+           let changes = if count = 1 then "1 change has" else $"{count} changes have"
+
+           match count, Update.hasKeptTimer model with
+           | 0, true -> "Your timer is on this device. Signing out must not leave it behind without your knowing."
+           | _, true -> changes + " not reached GitHub, and your timer is on this device. Signing out must not leave them behind without your knowing."
+           | _ -> changes + " not reached GitHub. Signing out must not leave them behind without your knowing.")
       text "signOutNote" (identity.SignOutNote |> Option.defaultValue "")
       text
           "signOutDiscardText"
           (let count = Update.unsentCount model
-           (if count = 1 then "Discard 1 change?" else $"Discard {count} changes?")
+           let changes = if count = 1 then "1 change" else $"{count} changes"
+
+           (match count, Update.hasKeptTimer model with
+            | 0, true -> "Discard your timer?"
+            | _, true -> $"Discard {changes} and your timer?"
+            | _ -> $"Discard {changes}?")
            + " They will not be saved anywhere, and this cannot be undone.")
       flag "accountLocal" (identity.Mode = LocalOnly)
       text "accountLogin" model.Session.DisplayName
@@ -1094,6 +1123,20 @@ let private identityView (model: Model) =
       flag "screenOpening" (identity.Mode = SignedInMode && model.Store.Opening)
       flag "screenStoreFailed" (identity.Mode = SignedInMode && model.Store.Failure.IsSome)
       text "storeFailure" (model.Store.Failure |> Option.defaultValue "")
+      // Starting offline: the device's own timer and unsent changes (WI-0055).
+      flag "offlineTimer" (identity.Mode = SignedInMode && model.Store.Failure.IsSome && Update.hasKeptTimer model)
+      text
+          "offlineWaiting"
+          (match model.Store.Waiting with
+           | 0 -> ""
+           | 1 -> "1 change waits in this browser and is sent when your records open."
+           | n -> $"{n} changes wait in this browser and are sent when your records open.")
+      flag "offlineStopped" model.Stopped.IsSome
+      text
+          "offlineStoppedText"
+          (model.Stopped
+           |> Option.map (fun stopped -> $"Stopped: {Format.minutes stopped.TotalMinutes} held. Complete it once your records open.")
+           |> Option.defaultValue "")
       flag "hasStoreProblems" (not model.Store.Integrity.IsEmpty)
       text "storeProblemSummary" (plural model.Store.Integrity.Length "record needs attention" "records need attention")
       items

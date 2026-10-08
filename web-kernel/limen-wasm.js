@@ -79,8 +79,23 @@ export async function startPage(exportName, capabilities = []) {
     requireHandshake: true,
     capabilities
   });
+  // start() resolves once the initial reply's effects have all completed. A
+  // timer recovered at startup keeps re-arming its once-a-second wake-up, so
+  // that cascade never ends; the kernel is nonetheless running as soon as the
+  // handshake succeeds. The status is therefore published as soon as it
+  // leaves "starting", not only when start() resolves.
+  const publish = () => {
+    document.documentElement.dataset.kernel = kernel.status;
+  };
+  const watch = setInterval(() => {
+    if (kernel.status !== "unstarted" && kernel.status !== "starting") {
+      publish();
+      clearInterval(watch);
+    }
+  }, 50);
   await kernel.start();
-  document.documentElement.dataset.kernel = kernel.status;
+  clearInterval(watch);
+  publish();
 }
 
 // The Chrona application: its engine selects the schedule pack (the running

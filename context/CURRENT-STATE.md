@@ -37,6 +37,8 @@ and feel and its rules, rebuilt on Limen, Forma, Aegis and Folio
   shown.
 - Derived state (WI-0034): an activity index kept with every change and
   rebuildable from the records; months not read yet are read on demand.
+- The device's timer (WI-0055): kept in this browser per account, recovered
+  at startup, usable offline.
 - Audit trail as records (WI-0056): who changed what is stored with the
   records, immutable, and read back with them.
 - `Chrona.Engine` and `Chrona.Application`: the Limen engine and its Aegis
@@ -50,8 +52,7 @@ and feel and its rules, rebuilt on Limen, Forma, Aegis and Folio
 ## Not yet built
 
 Real sign-in and storage
-against a deployed Fides exchange (WI-0052), the persisted timer and
-starting offline (WI-0055), browser reliability and visual
+against a deployed Fides exchange (WI-0052), browser reliability and visual
 regression (WI-0054), and the Summa transport (WI-0061; the contract itself is installed and mapped, WI-0037). A deployment with a data
 location keeps its records on GitHub through Arca (WI-0032); a local
 deployment keeps them in the tab.

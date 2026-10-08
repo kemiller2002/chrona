@@ -305,6 +305,20 @@
             "modified"
           ],
           "reason": "The audit trail as records (WI-0056)"
+        },
+        "EXE-20261008T155702353Z-04d86325": {
+          "actor": {
+            "id": "anthropic/claude-code",
+            "kind": "agent",
+            "model": "unknown",
+            "provider": "anthropic",
+            "runtime": "claude-code"
+          },
+          "at": "2026-10-08T16:19:22.339Z",
+          "operations": [
+            "modified"
+          ],
+          "reason": "The device's timer (WI-0055)"
         }
       }
     },
@@ -326,7 +340,7 @@
     ],
     "title": "Records live on GitHub through Arca's provider behind the store port, every commit conditioned on the repository state and decided again when it moved",
     "updated": "2026-10-08",
-    "version": "1.5.0"
+    "version": "1.6.0"
   },
   {
     "created": "2026-10-05",

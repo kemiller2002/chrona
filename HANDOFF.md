@@ -52,7 +52,7 @@ for the diagnosis, the evidence, and one unexercised watch item.
 - Requirement coverage per section is tracked in
   [`docs/requirements/implementation-gap-analysis.md`](docs/requirements/implementation-gap-analysis.md)
   (`CHX-NNM` ids, baseline and current columns; `GapAnalysisTests` holds the
-  counts). 31 tested, 30 partial, 2 missing of 63 (baseline 0 / 7 / 56).
+  counts). 34 tested, 27 partial, 2 missing of 63 (baseline 0 / 7 / 56).
 - `src/Chrona.Domain` is the pure time domain: `Diagnostics`, `Time`,
   `Activity`, `Overlap`, `ManualEntry` (WI-0020), `Ledger` (WI-0021),
   `Timer` (WI-0022), `Billing` and `Review` (WI-0023), `Compatibility`
@@ -139,7 +139,12 @@ for the diagnosis, the evidence, and one unexercised watch item.
   `src/Chrona.Summa` maps Chrona's published, withdrawn, invoiced and
   adjustment facts onto it, and every golden vector round-trips. The
   transport, stored publication records and screens are WI-0061.
-- Not built: the persisted timer and starting offline (WI-0055), browser reliability, accessibility end to end, quick
+- The device's timer (WI-0055): the active or stopped timer is kept in this
+  browser per account (`TimerRecord`), recovered explicitly at startup, and
+  keeps working when the records cannot be opened; a timer overlapping time
+  recorded elsewhere is an obligation (`CHRONA.TIMER.CONCURRENT_CONFLICT`);
+  sign-out treats it as unsent work.
+- Not built: browser reliability, accessibility end to end, quick
   entry and visual regression (WI-0054),
   the Summa transport (WI-0061), submission and approval screens (need actors and
   authorization, WI-0030 after Fides), and reports over stored data across
@@ -152,8 +157,7 @@ for the diagnosis, the evidence, and one unexercised watch item.
 
 ## Next action (time domain)
 
-The persisted timer (WI-0055), then browser reliability and visual
-regression (WI-0054); the Summa transport once Summa chooses it (WI-0061);
+Browser reliability and visual regression (WI-0054); the Summa transport once Summa chooses it (WI-0061);
 the real sign-in and storage check once a deployment exists (WI-0052).
 
 ## Unresolved questions

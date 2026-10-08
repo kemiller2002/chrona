@@ -224,8 +224,10 @@ type private Device(github: InMemoryStore, visibility: RepositoryVisibility, env
                         None
                     | Bridge.LockAcquire _, _ when not browser.WebLocks -> Some(Bridge.LockOutcome "Unsupported")
                     | Bridge.LockAcquire(name, wait), _ ->
+                        // Web Locks are not re-entrant: a page asking again for
+                        // a lock it holds is told it is busy.
                         match browser.Held.TryGetValue name with
-                        | true, holder when not (obj.ReferenceEquals(holder, this)) ->
+                        | true, _ ->
                             if wait then
                                 browser.Waiting.Add(
                                     (name,
@@ -1888,4 +1890,20 @@ let ``a tab whose lock is taken stops keeping unsent changes in the browser, and
     record device "09:00" "10:00" "Pairing"
     Assert.Empty(queued browser)
     Assert.Equal(1, device.Model.Store.Pending.Length)
+
+[<Fact>]
+let ``a tab that opens the records again goes on holding the unsent changes it holds`` () =
+    let github = InMemoryStore()
+    let browser = Browser()
+    let device = Device(github, RepositoryVisibility.Private, "production", browser)
+    device.Open()
+    record device "08:00" "08:30" "Setup"
+    // Signed in again (another tab's sign-in, or a new session): the records
+    // open again in the same page, which already holds the lock.
+    device.Open()
+    Assert.Equal(HeldHere, device.Model.Store.Sync.Holder)
+    Assert.True(device.Model.Store.Sync.KeptInBrowser)
+    device.Offline <- true
+    record device "09:00" "10:00" "Pairing"
+    Assert.Equal(1, (queued browser).Length)
 

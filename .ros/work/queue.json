@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "repository": "chrona",
-  "nextSeq": 69,
+  "nextSeq": 70,
   "items": [
     {
       "id": "WI-0001",
@@ -1502,6 +1502,27 @@
       "attachments": [],
       "createdAt": "2026-10-08T17:40:38Z",
       "updatedAt": "2026-10-08T17:40:38Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0069",
+      "title": "Chrona 08g: a GitHub API fake for the browser suite, and the Chromium two-tab queue tests (CHX-021, CHX-230, CHX-370)",
+      "description": "Coordinator answer (2026-10-08) to WI-0067's open question: the reconstruction is no compromises, so the queue's two-tab behaviour is proven in a real browser too. Build a fake of the GitHub REST API that Arca's GitHub provider uses (identity, repository, branch ref, contents, history, compare, Git Data API commits), functional: a pure respond(state, request) -> { state, response } with I/O at the edge (a context-level Playwright route holding one cell, shared by every tab). On top of it: Chrona's records stored on GitHub end to end in Chromium, and two tabs of one browser where only the holder keeps and sends the queue, the waiting tab takes it over when the holder closes, and nothing is sent twice.",
+      "tags": [],
+      "priority": "high",
+      "status": "ready",
+      "attachments": [],
+      "createdAt": "2026-10-08T18:31:49Z",
+      "updatedAt": "2026-10-08T18:31:59Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

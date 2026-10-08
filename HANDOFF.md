@@ -155,6 +155,11 @@ for the diagnosis, the evidence, and one unexercised watch item.
   Limen's coordination pack). Another tab says so, sends its own changes
   from the page, and can take the queue over when the holding tab closes.
   Without Web Locks, saves are fenced and the mode is shown.
+- The GitHub API fake (WI-0069): `tests/browser/github-fake.js` is a pure
+  `respond(state, request)` over the endpoints Arca's GitHub provider uses,
+  served to every tab of a browser context by one Playwright route.
+  `app-github.spec.js` stores records on it and runs the two-tab queue in
+  Chromium.
 - Accessibility and mobile end to end (WI-0064): scenarios 42-44 in a real
   browser, focus kept on the timer control that replaced the pressed one
   (`chrona.host` focus), reflow at 320 CSS pixels, reduced motion, the week's

@@ -792,7 +792,7 @@
     },
     {
       "id": "WI-0038",
-      "title": "Chrona 13: observation inboxes on Arca - reading producer inboxes, durable candidates and receipts, startup reconciliation (CHX-190 remainder, CHX-200)",
+      "title": "Chrona 13: observation inboxes on Arca - reading producer inboxes, durable candidates and receipts, startup reconciliation (CHX-190 remainder, CHX-200, CHX-120 import path remainder, CHX-250 import audit remainder)",
       "description": "Depends on WI-0032. Inbox processing with overlap checks on import and audited outcomes. Scenarios 25-30. The pure processing rules are WI-0050; this item stores candidates and receipts through Arca and reads producer inboxes.",
       "tags": [
         "chrona",
@@ -803,7 +803,7 @@
       "status": "captured",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:49.855Z",
-      "updatedAt": "2026-10-08T10:50:32.596Z",
+      "updatedAt": "2026-10-08T11:00:45.350Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

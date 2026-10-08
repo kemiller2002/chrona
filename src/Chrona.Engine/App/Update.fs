@@ -357,6 +357,12 @@ let openDetail (model: Model) (activityId: string) : Detail option =
 /// Keeps the detail drafts in step with the route: opened when an activity
 /// screen is entered, dropped when it is left.
 let private followRoute (model: Model) =
+    // Entering the reports screen generates its export afresh.
+    let model =
+        match model.Route.Screen with
+        | ReportsScreen -> { model with Report = { model.Report with GeneratedAt = Some model.Now } }
+        | _ -> model
+
     match model.Route.Screen, model.Detail with
     | ActivityDetail id, Some detail when detail.ActivityId = id -> model
     | ActivityDetail id, _ -> { model with Detail = openDetail model id }
@@ -532,7 +538,7 @@ let reportFilter (model: Model) : Reports.Filter =
 let exportText (model: Model) =
     let header: Reports.Header =
         { OrganizationId = model.Session.OrganizationId
-          GeneratedAt = model.Now
+          GeneratedAt = model.Report.GeneratedAt |> Option.defaultValue model.Now
           Filter = reportFilter model }
 
     let all = model.Ledger.Activities |> Map.toList |> List.map snd
@@ -677,17 +683,17 @@ let private onEvent (ctx: Ctx) (name: string) (key: string option) (value: strin
         match Enum.TryParse<DayOfWeek>(value) with
         | true, day -> { model with PeriodConfig = { model.PeriodConfig with WeekStart = day } }, []
         | _ -> invalidArg (nameof value) $"Unknown day: {value}"
-    | "reportFrom" -> { model with Report = { model.Report with From = value } }, []
-    | "reportTo" -> { model with Report = { model.Report with To = value } }, []
-    | "reportProject" -> { model with Report = { model.Report with ProjectId = value } }, []
-    | "reportActivityType" -> { model with Report = { model.Report with ActivityTypeId = value } }, []
-    | "reportTag" -> { model with Report = { model.Report with Tag = value } }, []
-    | "reportMethod" -> { model with Report = { model.Report with Method = value } }, []
-    | "reportBillability" -> { model with Report = { model.Report with Billability = value } }, []
-    | "reportText" -> { model with Report = { model.Report with Text = value } }, []
-    | "reportIncludeRemoved" -> { model with Report = { model.Report with IncludeRemoved = checkedOn } }, []
-    | "reportGrouping" -> { model with Report = { model.Report with Grouping = value } }, []
-    | "reportFormat" -> { model with Report = { model.Report with Format = value }; CopyStatus = "" }, []
+    | "reportFrom" -> { model with Report = { model.Report with From = value; GeneratedAt = Some ctx.Now } }, []
+    | "reportTo" -> { model with Report = { model.Report with To = value; GeneratedAt = Some ctx.Now } }, []
+    | "reportProject" -> { model with Report = { model.Report with ProjectId = value; GeneratedAt = Some ctx.Now } }, []
+    | "reportActivityType" -> { model with Report = { model.Report with ActivityTypeId = value; GeneratedAt = Some ctx.Now } }, []
+    | "reportTag" -> { model with Report = { model.Report with Tag = value; GeneratedAt = Some ctx.Now } }, []
+    | "reportMethod" -> { model with Report = { model.Report with Method = value; GeneratedAt = Some ctx.Now } }, []
+    | "reportBillability" -> { model with Report = { model.Report with Billability = value; GeneratedAt = Some ctx.Now } }, []
+    | "reportText" -> { model with Report = { model.Report with Text = value; GeneratedAt = Some ctx.Now } }, []
+    | "reportIncludeRemoved" -> { model with Report = { model.Report with IncludeRemoved = checkedOn; GeneratedAt = Some ctx.Now } }, []
+    | "reportGrouping" -> { model with Report = { model.Report with Grouping = value; GeneratedAt = Some ctx.Now } }, []
+    | "reportFormat" -> { model with Report = { model.Report with Format = value; GeneratedAt = Some ctx.Now }; CopyStatus = "" }, []
     | "copyExport" -> { model with CopyStatus = "" }, [ CopyText(exportText model) ]
     | "printReport" -> model, [ Print ]
     | "goReports" -> navigate { Screen = ReportsScreen; Date = None } model
@@ -698,7 +704,8 @@ let private onEvent (ctx: Ctx) (name: string) (key: string option) (value: strin
             Report =
                 { model.Report with
                     From = Format.isoDate first
-                    To = Format.isoDate (first.AddMonths(1).AddDays -1) } },
+                    To = Format.isoDate (first.AddMonths(1).AddDays -1)
+                    GeneratedAt = Some ctx.Now } },
         [ Navigate(Routes.hash { Screen = ReportsScreen; Date = Some first }) ]
     | "attestStatement" -> { model with AttestStatement = value }, []
     | "attestDay" -> attestDay ctx model

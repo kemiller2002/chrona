@@ -2,7 +2,7 @@
 id: DF-CHRONA-2026-0005
 title: Records live on GitHub through Arca's provider behind the store port, every commit conditioned on the repository state and decided again when it moved
 status: accepted
-version: 1.9.0
+version: 1.9.1
 created: 2026-10-08
 updated: 2026-10-09
 owners:
@@ -368,3 +368,12 @@ and semantic conflicts surfaced.
 
 Arca publishes a Limen-native driver, a cheaper external-edit signal, or
 Fides/GitHub App tokens change what a commit can be attributed to.
+
+Arca's `OwnedQueue.Discard` and `QueueSignOut` match an entry to an account
+by its provider identity, falling back to its actor. Chrona records the
+person's display name as the provider identity, and two accounts can share
+one, so Chrona discards at sign-out by its own rule (14): by actor id, the
+stable identifier, keeping Arca's rule that an entry which may have landed
+is never discarded. Suggested to Arca: match accounts by a stable id (the
+actor id, or a provider subject), never by a display name. When Arca does,
+Chrona moves to `OwnedQueue.Discard`.

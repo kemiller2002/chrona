@@ -42,6 +42,13 @@ type Diagnostic =
     // Review, billing and publication (WI-0023).
     | ApprovalNotEnabled
     | StaleApproval of activityId: string
+    /// Time in a period that is submitted (awaiting approval) or closed is
+    /// not changed until the period is reopened (26, WI-0036).
+    | SubmittedPeriodRestriction of periodStart: System.DateOnly
+    /// A period with no recorded time of the person's to submit.
+    | NoTimeToSubmit of periodStart: System.DateOnly
+    /// No submission with this id is known.
+    | UnknownSubmission of submissionId: string
     | NotBillableActivity of activityId: string
     | AlreadyPublished of activityId: string
     | NotApproved of activityId: string
@@ -127,6 +134,9 @@ let code =
     | ConcurrentTimer _ -> "CHRONA.TIMER.CONCURRENT_CONFLICT"
     | ApprovalNotEnabled -> "CHRONA.REVIEW.APPROVAL_NOT_ENABLED"
     | StaleApproval _ -> "CHRONA.REVIEW.STALE_APPROVAL"
+    | SubmittedPeriodRestriction _ -> "CHRONA.REVIEW.SUBMITTED_PERIOD"
+    | NoTimeToSubmit _ -> "CHRONA.REVIEW.NOTHING_TO_SUBMIT"
+    | UnknownSubmission _ -> "CHRONA.REVIEW.UNKNOWN_SUBMISSION"
     | NotBillableActivity _ -> "CHRONA.PUBLICATION.NOT_BILLABLE"
     | AlreadyPublished _ -> "CHRONA.PUBLICATION.DUPLICATE"
     | NotApproved _ -> "CHRONA.PUBLICATION.NOT_APPROVED"

@@ -44,7 +44,12 @@ type StoreRequest =
       /// next revision.
       Accepted: Activity list
       /// The command's audit entries, where each is kept (25, WI-0056).
-      Audit: AuditRecord.Audited list }
+      Audit: AuditRecord.Audited list
+      /// The organization's period configuration, saved (WI-0036).
+      Periods: PeriodConfigRecord.StoredPeriods option
+      /// Periods' review steps made: a submission, approval, rejection or
+      /// reopening (WI-0036).
+      Reviews: PeriodReview.PeriodReview list }
 
 /// A request with nothing in it yet.
 let emptyRequest (commitId: string) =
@@ -55,6 +60,8 @@ let emptyRequest (commitId: string) =
       Members = []
       RemovedMembers = []
       Accepted = []
+      Periods = None
+      Reviews = []
       Audit = [] }
 
 type StoreOutcome =
@@ -206,7 +213,15 @@ type StoreContents =
       /// (derived, WI-0034).
       History: ActivityIndex.MonthTotal list
       /// What the activity index covers, or why it is not kept, for the person.
-      Index: string }
+      Index: string
+      /// The organization's period configuration, when it was ever saved
+      /// (WI-0036).
+      Periods: PeriodConfigRecord.StoredPeriods option
+      /// Periods' review steps read: this person's, and, for someone who
+      /// approves time, everyone's (WI-0036).
+      Reviews: PeriodReview.PeriodReview list
+      /// Other people's time that waits for this person's approval.
+      Reviewing: Activity list }
 
 /// The page's own address (its origin and path), for a link that opens a
 /// place from anywhere. Never its query: a sign-in callback's code and state
@@ -425,6 +440,8 @@ type Form =
     | AttestForm
     /// The organization's period settings.
     | PeriodForm
+    /// Submitting, approving, returning or reopening a period (WI-0036).
+    | ReviewForm
     /// Copying or printing a report.
     | ExportForm
     /// The organization's members.
@@ -485,8 +502,21 @@ type Model =
       /// Daily attestations, newest last; earlier ones are never replaced (16).
       Attestations: Review.Attestation list
       AttestStatement: string
-      /// The organization's timesheet periods (15).
+      /// The organization's timesheet periods (15), as edited under More.
       PeriodConfig: Periods.PeriodConfig
+      /// The period configuration as stored, when it was ever saved
+      /// (WI-0036); what the organization's periods follow.
+      PeriodsStored: PeriodConfigRecord.StoredPeriods option
+      /// Periods' review steps (WI-0036): this person's, and everyone's for
+      /// someone who approves.
+      Reviews: PeriodReview.PeriodReview list
+      /// Other people's time that waits for this person's approval.
+      Reviewing: Activity list
+      /// What the approver typed for each submission: a note to approve with,
+      /// or the reason to return it.
+      ReviewNotes: Map<string, string>
+      /// Why the person reopens their period.
+      ReopenReason: string
       Report: ReportDraft
       /// What happened to the last copy of an export, in words.
       CopyStatus: string
@@ -564,6 +594,11 @@ let initial (session: Session) (store: StoreKind) (now: DateTimeOffset) =
       Attestations = []
       AttestStatement = ""
       PeriodConfig = Periods.defaultConfig "UTC"
+      PeriodsStored = None
+      Reviews = []
+      Reviewing = []
+      ReviewNotes = Map.empty
+      ReopenReason = ""
       Report = emptyReport
       CopyStatus = ""
       NewNames = Map.empty

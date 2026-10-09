@@ -528,6 +528,15 @@ let private currentPeriod (model: Model) =
     let period = Periods.containing model.PeriodConfig (selectedDate model)
     Periods.summarize model.PeriodConfig [ billing model ] (Model.today model) mine period
 
+/// Someone on the roster by name.
+let private personName (model: Model) (actorId: string) =
+    model.Roster.Members.TryFind actorId |> Option.map _.Principal.DisplayName |> Option.defaultValue actorId
+
+/// Other people's submissions waiting for approval, oldest first (WI-0036).
+let private awaitingMine (model: Model) =
+    PeriodReview.awaitingApproval model.PeriodConfig.ApprovalRequired model.Reviews
+    |> List.filter (fun submission -> submission.ActorId <> model.Session.ActorId)
+
 let private periodLabel (period: Periods.Period) =
     let short (d: DateOnly) = d.ToString("MMM d", Globalization.CultureInfo.InvariantCulture)
     if period.Start = period.Finish then Format.longDate period.Start else $"{short period.Start} – {short period.Finish}"
@@ -577,7 +586,9 @@ let private periodView (model: Model) =
       text "periodSubmission" submission
       text "periodApproval" approval
       items "periodCadenceOptions" cadences
-      items "periodWeekStartOptions" days ]
+      items "periodWeekStartOptions" days
+      flag "periodSubmissionExpected" model.PeriodConfig.SubmissionExpected
+      flag "periodApprovalRequired" model.PeriodConfig.ApprovalRequired ]
 
 let private more (model: Model) =
     [ text "zoneId" (model.Zone |> Option.map _.Id |> Option.defaultValue "Not yet known")
@@ -604,6 +615,8 @@ let private activityLabel (activity: Activity) =
 /// What the change was, in a few words.
 let private conflictTitle (case: ConflictCase) =
     match case.Request.Activities, case.Request.References, case.Request.Members, case.Request.RemovedMembers with
+    | _ when case.Request.Periods.IsSome -> "Your change to the period settings was not saved"
+    | _ when not case.Request.Reviews.IsEmpty -> "Your period review was not saved"
     | [ activity ], [], [], [] when activity.Revision = 1 -> $"Your new entry {quoted activity.Classification.Description} was not saved"
     | [ activity ], [], [], [] -> $"Your change to {quoted activity.Classification.Description} was not saved"
     | [], (_ :: _), [], [] -> "Your change to the lists was not saved"
@@ -623,6 +636,7 @@ let private divergenceText (model: Model) (divergence: Reconcile.Divergence) =
         let name = model.Roster.Members.TryFind principalId |> Option.map _.Principal.DisplayName |> Option.defaultValue principalId
         $"{name} was already removed elsewhere."
     | Reconcile.OverlapsStored(mine, stored) -> $"{activityLabel mine} overlaps {activityLabel stored}, stored since."
+    | Reconcile.PeriodsChanged _ -> "The organization's period settings were changed elsewhere first. Review them under More and save again."
     | Reconcile.KeptChanging -> "The records kept changing elsewhere while it was being saved. Nothing was found wrong with it."
 
 /// The divergence the person can redo through a form, if any.
@@ -682,6 +696,7 @@ let private actionLabel =
     | "goTrack" -> "Complete it"
     | "openReview" -> "Review the day"
     | "goToday" -> "See the period"
+    | "approve" -> "Review it"
     | _ -> "See details"
 
 /// Unresolved work, as one projection rather than scattered warnings.
@@ -713,6 +728,15 @@ let private obligations (model: Model) =
               yield "period-approval", $"{Format.minutes minutes} awaits approval", $"In the period {label}.", "goToday"
           | Periods.RejectedTime minutes ->
               yield "period-rejected", $"{Format.minutes minutes} was rejected and needs correcting", $"In the period {label}.", "goToday"
+
+      // Other people's submissions waiting for this person's approval (34).
+      if permits model Access.ApproveTime then
+          for submission in awaitingMine model do
+              yield
+                  $"approval-{submission.SubmissionId}",
+                  $"{personName model submission.ActorId}'s time waits for your approval",
+                  $"The period {periodLabel submission.Period}, submitted {localStamp model submission.At}.",
+                  "approve"
 
       for case in model.Store.Conflicts do
           yield $"conflict-{case.Id}", conflictTitle case, "It changed elsewhere first. Keep what is stored, or redo yours on it.", "goMore"
@@ -1224,6 +1248,19 @@ let private cadenceLabel =
     | Periods.SemiMonthly -> "Twice a month"
     | Periods.Monthly -> "Monthly"
 
+/// The person's own period as reviewed, in words (14).
+let private reviewStateText (model: Model) (state: PeriodReview.PeriodState) =
+    match state with
+    | PeriodReview.Open -> "Open: not submitted."
+    | PeriodReview.AwaitingApproval submission ->
+        $"Submitted {localStamp model submission.At}; waiting for approval. Its time cannot be changed until it is approved, returned or reopened."
+    | PeriodReview.Closed({ Kind = PeriodReview.Approval } as approval) ->
+        let note = approval.Note |> Option.map (fun note -> $" \"{note}\"") |> Option.defaultValue ""
+        $"Approved by {personName model approval.By} {localStamp model approval.At}.{note} Closed: reopen it to change its time."
+    | PeriodReview.Closed submission -> $"Submitted {localStamp model submission.At}. Closed: reopen it to change its time."
+    | PeriodReview.Returned rejection ->
+        $"Returned by {personName model rejection.By} {localStamp model rejection.At}: {defaultArg rejection.Note String.Empty} Correct it and submit it again."
+
 /// A timesheet period's own page: its summary and its days (15).
 let private periodPage (model: Model) =
     let on =
@@ -1234,6 +1271,7 @@ let private periodPage (model: Model) =
     let period = Periods.containing model.PeriodConfig on
     let summary = Periods.summarize model.PeriodConfig [ billing model ] (Model.today model) (mine model) period
     let counted = mine model |> List.filter (fun a -> consumesTime a && Periods.contains period a.Occurrence.LocalDate)
+    let state = PeriodReview.stateOf model.PeriodConfig.ApprovalRequired model.Reviews model.Session.ActorId period
 
     [ flag "screenPeriod" (shows model (function Places.ThisPeriod | Places.Period _ -> true | _ -> false))
       text "periodPageTitle" (periodLabel period)
@@ -1244,7 +1282,28 @@ let private periodPage (model: Model) =
       text "periodPageUnclassified" (Format.minutes summary.UnclassifiedMinutes)
       text "periodPageSubmission" (submissionText summary.Submission)
       text "periodPageApproval" (approvalText summary.Approval)
-      items "periodDays" (dayRows model None period.Start period.Finish counted) ]
+      items "periodDays" (dayRows model None period.Start period.Finish counted)
+      // Submitting, reopening and approving (WI-0036).
+      text "periodReviewState" (reviewStateText model state)
+      flag "canSubmitPeriod" (not (PeriodReview.isHeld state) && not counted.IsEmpty && permits model Access.SubmitOwnTime)
+      flag "periodHeld" (PeriodReview.isHeld state)
+      text "reopenReason" model.ReopenReason
+      flag "hasReviewProblems" (model.Problems.ContainsKey ReviewForm)
+      items "reviewProblems" (problemItems model ReviewForm)
+      flag "hasApprovals" (permits model Access.ApproveTime && not (awaitingMine model).IsEmpty)
+      items
+          "approvals"
+          [ for submission in awaitingMine model do
+                let covered = submission.Covered |> List.map fst |> Set.ofList
+                let theirs = model.Reviewing |> List.filter (fun a -> covered.Contains a.ActivityId)
+
+                [ t "id" submission.SubmissionId
+                  t "who" (personName model submission.ActorId)
+                  t "period" (periodLabel submission.Period)
+                  t "total" (Format.minutes (theirs |> List.sumBy _.Minutes))
+                  t "count" (activities theirs.Length)
+                  t "note" (model.ReviewNotes.TryFind submission.SubmissionId |> Option.defaultValue "")
+                  f "cannotReject" (not (permits model Access.RejectTime)) ] ] ]
 
 let private projectState (item: Reference.Item) =
     if item.Status = Reference.Active then "Offered for new work" else "Archived: kept on past records"

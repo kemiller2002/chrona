@@ -747,10 +747,10 @@
         "periods"
       ],
       "priority": "medium",
-      "status": "captured",
+      "status": "ready",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:49.227Z",
-      "updatedAt": "2026-10-08T21:09:52.000Z",
+      "updatedAt": "2026-10-09T01:25:51.000Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

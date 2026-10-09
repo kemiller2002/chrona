@@ -291,7 +291,9 @@ let private changeOf (request: StoreRequest) : Stored.Changed =
       Attestations = request.Attestations
       Members = request.Members
       Removed = request.RemovedMembers
-      Audit = request.Audit }
+      Audit = request.Audit
+      Periods = request.Periods
+      Reviews = request.Reviews }
 
 /// Browser localStorage through Limen's Storage requests, as Arca's
 /// LimenQueue asks for it: the fallback store, and where an older Chrona kept
@@ -449,7 +451,9 @@ let private requestOf (folder: Namespace) (entry: QueueEntry) : StoreRequest opt
             Attestations = changed.Attestations
             Members = changed.Members
             RemovedMembers = changed.Removed
-            Audit = changed.Audit })
+            Audit = changed.Audit
+            Periods = changed.Periods
+            Reviews = changed.Reviews })
 
 /// The most text the activity index may take; past it, the index is no
 /// longer kept with each change, and is rebuilt on request.
@@ -608,10 +612,10 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                     | Ok key -> do! cached.Keep(ReadCache.entry key CacheSchema (now ()) (Fresh.read token objects))
         }
 
-    /// Reads the folders these dates need: each folder's records.
-    let read (provider: StorageProvider) (folder: Namespace) (actorId: string) (dates: DateOnly list) =
+    /// Reads these folders: each folder's records.
+    let readFolders (provider: StorageProvider) (folder: Namespace) (paths: Result<RelativePath list, Diagnostic>) =
         async {
-            match Stored.folders actorId dates with
+            match paths with
             | Error diagnostic -> return Error(Unopened.Refused(code diagnostic))
             | Ok folders ->
                 let mutable read = []
@@ -641,6 +645,54 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                 | None -> return Ok(read, problems)
         }
 
+    /// Reads the folders these dates need for this person.
+    let read (provider: StorageProvider) (folder: Namespace) (actorId: string) (dates: DateOnly list) =
+        readFolders provider folder (Stored.folders actorId dates)
+
+    /// For someone who approves time where approval is required: the other
+    /// members' review steps of periods in these months, and the time their
+    /// submissions waiting for approval cover (WI-0036).
+    let readReviewing (provider: StorageProvider) (folder: Namespace) (actorId: string) (dates: DateOnly list) (stored: Stored.Stored) =
+        async {
+            let mayApprove =
+                stored.Members.TryFind actorId
+                |> Option.exists (fun found ->
+                    found.Membership.Capabilities.Contains Access.ApproveTime
+                    || found.Membership.Capabilities.Contains Access.RejectTime)
+
+            let approvalRequired = stored.Periods |> Option.exists _.Periods.Config.ApprovalRequired
+            let others = stored.Members |> Map.toList |> List.map fst |> List.filter ((<>) actorId)
+
+            if not mayApprove || not approvalRequired || others.IsEmpty then
+                return Ok([], [])
+            else
+                let months =
+                    dates
+                    |> List.collect (fun date -> [ date.AddMonths -1; date ])
+                    |> List.map (fun date -> DateOnly(date.Year, date.Month, 1))
+                    |> List.distinct
+
+                let all (paths: Result<RelativePath, Diagnostic> list) =
+                    paths |> List.fold (fun state next -> state |> Result.bind (fun found -> next |> Result.map (fun one -> found @ [ one ]))) (Ok [])
+
+                match! readFolders provider folder (all [ for other in others do for month in months -> ReviewRecord.monthFolder other month ]) with
+                | Error reason -> return Error reason
+                | Ok(reviewFolders, problems) ->
+                    let reviews = Stored.load (reviewFolders |> List.collect snd) |> Stored.reviews
+
+                    let covered =
+                        PeriodReview.awaitingApproval true reviews
+                        |> List.filter (fun submission -> submission.ActorId <> actorId)
+                        |> List.collect (fun submission ->
+                            [ submission.Period.Start; submission.Period.Finish ]
+                            |> List.map (fun date -> submission.ActorId, DateOnly(date.Year, date.Month, 1)))
+                        |> List.distinct
+
+                    match! readFolders provider folder (all [ for other, month in covered -> ActivityRecord.monthFolder other month ]) with
+                    | Error reason -> return Error reason
+                    | Ok(activityFolders, more) -> return Ok(reviewFolders @ activityFolders, problems @ more)
+        }
+
     /// The repository state, then what the folders hold at it: validated,
     /// with records edited outside Chrona held for review. What was read is
     /// kept in the read cache, with which records were held.
@@ -649,7 +701,19 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
             match! provider.ChangeToken folder with
             | Error error -> return Error(unopened error)
             | Ok token ->
-                match! read provider folder actorId (months |> Set.toList |> List.map firstOf) with
+                let dates = months |> Set.toList |> List.map firstOf
+
+                let! found =
+                    async {
+                        match! read provider folder actorId dates with
+                        | Error reason -> return Error reason
+                        | Ok(own, incomplete) ->
+                            match! readReviewing provider folder actorId dates (Stored.load (own |> List.collect snd)) with
+                            | Error reason -> return Error reason
+                            | Ok(reviewing, more) -> return Ok(own @ reviewing, incomplete @ more)
+                    }
+
+                match found with
                 | Error reason -> return Error reason
                 | Ok(folders, incomplete) ->
                     let objects = folders |> List.collect snd
@@ -715,13 +779,20 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
 
     let contents (state: Opened) : StoreContents =
         let state = { state with Stored = shown state }
+        let actorId = state.Session.ActorId
+        let all = state.Stored.Activities.Activities |> Map.toList |> List.map (fun (_, found) -> found.Activity)
 
         { Name = state.Name
           Cached =
             match state.Basis with
             | CachedAt at -> Some at
             | ReadAt _ -> None
-          Activities = state.Stored.Activities.Activities |> Map.toList |> List.map (fun (_, found) -> found.Activity)
+          // The person's own time; others' is read only where it waits for
+          // their approval (WI-0036).
+          Activities = all |> List.filter (fun a -> a.ActorId = actorId)
+          Reviewing = all |> List.filter (fun a -> a.ActorId <> actorId)
+          Periods = state.Stored.Periods |> Option.map _.Periods
+          Reviews = Stored.reviews state.Stored
           References = state.Stored.References |> Map.toList |> List.map (fun (_, found) -> found.Item)
           Attestations = Stored.attestations state.Stored
           Members = state.Stored.Members |> Map.toList |> List.map (fun (_, found) -> found.Membership)
@@ -884,6 +955,8 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
         && changed.Members.IsEmpty
         && changed.Removed.IsEmpty
         && changed.Audit.IsEmpty
+        && changed.Periods.IsNone
+        && changed.Reviews.IsEmpty
 
     /// Others' independent changes are shown once nothing of this page's own
     /// is waiting to be decided; unsent changes are shown over them.

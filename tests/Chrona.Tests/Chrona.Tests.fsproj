@@ -25,6 +25,7 @@
     <Compile Include="LegacyRuleTests.fs" />
     <Compile Include="ReferenceTests.fs" />
     <Compile Include="PeriodTests.fs" />
+    <Compile Include="PeriodReviewTests.fs" />
     <Compile Include="ReportTests.fs" />
     <Compile Include="ObservationTests.fs" />
     <Compile Include="StorageTests.fs" />

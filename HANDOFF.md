@@ -123,6 +123,13 @@ for the diagnosis, the evidence, and one unexercised watch item.
   sent; signing out clears the account's cache unless its unsent work is
   kept under `ask`; "Clear this device" (More) clears the queue and the
   cache for every account. The persisted timer is WI-0055.
+- Periods under review (WI-0036): the period settings are the
+  organization's `chrona.configuration/periods.json` record; each period's
+  submission, approval, rejection and reopening is an immutable
+  `chrona.review` record. The period page submits the person's period and
+  reopens it with a reason; whoever approves sees other members' waiting
+  submissions there and approves or returns them. Time in a submitted or
+  closed period is held (`CHRONA.REVIEW.SUBMITTED_PERIOD`) until reopened.
 - Derived state (WI-0034): the activity index, an Arca derived index under
   `derived/indexes/activity-months.json` with one entry per activity record,
   is written in the same commit as the records it covers, so it is always

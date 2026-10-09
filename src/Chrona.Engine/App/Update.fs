@@ -196,6 +196,8 @@ let eventNames =
       "evidenceKind"; "evidenceUrl"; "evidenceLabel"; "evidenceSource"; "evidenceNotes"; "attachEvidence"; "unlinkEvidence"
       "mergeSelect"; "mergeActivityType"; "mergeProject"; "mergeDescription"; "mergePurpose"; "saveMerge"
       "attestStatement"; "attestDay"; "resolveObligation"; "periodCadence"; "periodWeekStart"
+      "periodSubmissionExpected"; "periodApprovalRequired"; "savePeriodSettings"; "submitPeriod"; "reopenReason"; "reopenPeriod"
+      "reviewNote"; "approveSubmission"; "rejectSubmission"
       "reportFrom"; "reportTo"; "reportProject"; "reportActivityType"; "reportTag"; "reportMethod"; "reportBillability"; "reportText"
       "reportIncludeRemoved"; "reportGrouping"; "reportFormat"; "copyExport"; "printReport"; "reportMonth"; "goReports"
       "copyLink"; "skipToContent"; "dayProject"; "previousWeek"; "nextWeek"; "weekProject"; "previousPeriod"; "nextPeriod" ]
@@ -214,6 +216,12 @@ let private commandContext (ctx: Ctx) (model: Model) (zone: Zone) : Ledger.Comma
       Zone = zone
       References = model.References
       CorrelationId = None }
+
+/// Sends a request to the store: it waits, pending, until answered.
+let private sendRequest (request: StoreRequest) (model: Model) =
+    { model with
+        Store = { model.Store with Pending = model.Store.Pending @ [ request ] } },
+    [ Store request ]
 
 /// Sends what became authoritative to the store.
 let private commitWith (ctx: Ctx) (activities: Activity list) (references: Reference.Item list) (attestations: Review.Attestation list) (model: Model) =
@@ -257,14 +265,6 @@ let private ofClassification (c: Classification) : ClassificationDraft =
 let private toggle (item: string) (on: bool) (items: string list) =
     if on then (if List.contains item items then items else items @ [ item ]) else items |> List.filter ((<>) item)
 
-/// Records activities one after another, all or nothing: the ledger only
-/// changes if every one is accepted.
-let private recordAll (context: Ledger.CommandContext) (ledger: Ledger.Ledger) (activities: Activity list) =
-    activities
-    |> List.fold
-        (fun state activity -> state |> Result.bind (fun l -> Ledger.execute context l (Ledger.Record activity)))
-        (Ok ledger)
-
 let private zoneOrProblem (model: Model) =
     match model.Zone with
     | Some zone -> Ok zone
@@ -275,6 +275,27 @@ let private changed (before: Ledger.Ledger) (after: Ledger.Ledger) =
     |> Map.toList
     |> List.filter (fun (id, a) -> before.Activities.TryFind id <> Some a)
     |> List.map snd
+
+/// Runs a ledger command, refused when it changes time in a period that is
+/// submitted or closed: the period is reopened first (WI-0036,
+/// `CHRONA.REVIEW.SUBMITTED_PERIOD`).
+let private execute (model: Model) (context: Ledger.CommandContext) (ledger: Ledger.Ledger) (command: Ledger.Command) =
+    Ledger.execute context ledger command
+    |> Result.bind (fun after ->
+        let touched = PeriodReview.touchedBy ledger.Activities (changed ledger after)
+
+        match PeriodReview.restrictions model.PeriodConfig model.Reviews touched with
+        | [] -> Ok after
+        | problems -> Error problems)
+
+/// Records activities one after another, all or nothing: the ledger only
+/// changes if every one is accepted.
+let private recordAll (model: Model) (context: Ledger.CommandContext) (ledger: Ledger.Ledger) (activities: Activity list) =
+    activities
+    |> List.fold
+        (fun state activity -> state |> Result.bind (fun l -> execute model context l (Ledger.Record activity)))
+        (Ok ledger)
+
 
 // ---- the timer ---------------------------------------------------------------
 
@@ -353,7 +374,7 @@ let private saveCompletion (ctx: Ctx) (model: Model) =
 
         let result =
             Timer.toActivities ctx.Now (fun i -> ctx.NewId $"ACT{i}") Billable reviewed
-            |> Result.bind (recordAll (commandContext ctx model zone) model.Ledger)
+            |> Result.bind (recordAll model (commandContext ctx model zone) model.Ledger)
 
         match result with
         | Error problems -> withProblems CompletionForm (List.distinct problems) model, []
@@ -413,7 +434,7 @@ let private saveManual (ctx: Ctx) (model: Model) =
 
             ManualEntry.create entryContext existing entry
             |> Result.bind (fun activity ->
-                Ledger.execute (commandContext ctx model zone) model.Ledger (Ledger.Record activity)
+                execute model (commandContext ctx model zone) model.Ledger (Ledger.Record activity)
                 |> Result.map (fun ledger -> activity, ledger))
 
     match result with
@@ -622,7 +643,7 @@ let private ledgerCommand (ctx: Ctx) (form: Form) (announcement: string) (comman
     | None, _ -> model, []
     | _, Error problems -> withProblems form problems model, []
     | Some d, Ok zone ->
-        match Ledger.execute (commandContext ctx model zone) model.Ledger (command d) with
+        match execute model (commandContext ctx model zone) model.Ledger (command d) with
         | Error problems -> withProblems form problems model, []
         | Ok ledger ->
             let next = { clear form model with Ledger = ledger; Announcement = announcement }
@@ -728,7 +749,7 @@ let private saveMerge (ctx: Ctx) (model: Model) =
 
         let newId = ctx.NewId "ACT"
 
-        match Ledger.execute (commandContext ctx model zone) model.Ledger (Ledger.Merge(sources, newId, classification)) with
+        match execute model (commandContext ctx model zone) model.Ledger (Ledger.Merge(sources, newId, classification)) with
         | Error problems -> withProblems MergeForm (List.distinct problems) model, []
         | Ok ledger ->
             { clear MergeForm model with
@@ -745,7 +766,14 @@ let private attestDay (ctx: Ctx) (model: Model) =
         let workflow = { Review.start model.Ledger with Attestations = model.Attestations }
         let date = selectedDate model
 
-        match Review.attest (commandContext ctx model zone) date model.AttestStatement workflow with
+        // A day in a submitted or closed period is attested before it is
+        // submitted, or after the period is reopened (WI-0036).
+        let attested =
+            match PeriodReview.restrictions model.PeriodConfig model.Reviews [ model.Session.ActorId, date ] with
+            | [] -> Review.attest (commandContext ctx model zone) date model.AttestStatement workflow
+            | problems -> Error problems
+
+        match attested with
         | Error problems -> withProblems AttestForm problems model, []
         | Ok(next, attestation) ->
             { clear AttestForm model with
@@ -753,6 +781,121 @@ let private attestDay (ctx: Ctx) (model: Model) =
                 AttestStatement = ""
                 Announcement = $"Attested {Format.longDate date}." }
             |> commitWith ctx [] [] [ attestation ]
+
+// ---- periods under review (WI-0036) ---------------------------------------------
+
+/// The period on screen: the period page's, or the one holding today.
+let selectedPeriod (model: Model) = Periods.containing model.PeriodConfig (selectedDate model)
+
+/// Saves the organization's period settings as edited (15): the stored
+/// configuration's next revision.
+let private savePeriodSettings (ctx: Ctx) (model: Model) =
+    let saved: PeriodConfigRecord.StoredPeriods =
+        { Config = model.PeriodConfig
+          Revision = model.PeriodsStored |> Option.map (fun stored -> stored.Revision + 1) |> Option.defaultValue 1
+          ChangedBy = model.Session.ActorId
+          ChangedAt = ctx.Now }
+
+    { clear PeriodForm model with
+        PeriodsStored = Some saved
+        Announcement = "Period settings saved." }
+    |> sendRequest { emptyRequest (ctx.NewId "COMMIT") with Periods = Some saved }
+
+/// Sends a review step with the activities it changed and its audit entry.
+let private sendReview (ctx: Ctx) (changedActivities: Activity list) (entries: Ledger.AuditEntry list) (review: PeriodReview.PeriodReview) (model: Model) =
+    sendRequest
+        { emptyRequest (ctx.NewId "COMMIT") with
+            Activities = changedActivities
+            Reviews = [ review ]
+            Audit = AuditRecord.place changedActivities entries }
+        { model with Reviews = model.Reviews @ [ review ] }
+
+/// Submits the person's period on screen (14).
+let private submitPeriod (ctx: Ctx) (model: Model) =
+    match zoneOrProblem model with
+    | Error problems -> withProblems ReviewForm problems model, []
+    | Ok zone ->
+        let period = selectedPeriod model
+
+        match PeriodReview.submit (commandContext ctx model zone) model.PeriodConfig model.Reviews (ctx.NewId "SUB") period model.Ledger with
+        | Error problems -> withProblems ReviewForm (List.distinct problems) model, []
+        | Ok(ledger, review) ->
+            let entries = ledger.Audit |> List.skip model.Ledger.Audit.Length
+
+            { clear ReviewForm model with
+                Ledger = ledger
+                Store = { model.Store with Audited = ledger.Audit.Length }
+                Announcement =
+                    if model.PeriodConfig.ApprovalRequired then
+                        $"Submitted {Format.longDate period.Start} to {Format.longDate period.Finish} for approval."
+                    else
+                        $"Submitted {Format.longDate period.Start} to {Format.longDate period.Finish}." }
+            |> sendReview ctx (changed model.Ledger ledger) entries review
+
+/// Reopens the person's own period on screen (14), with the reason:
+/// withdrawing a submission waiting for approval needs only that they may
+/// submit; reopening a closed period needs that they may reopen time.
+let private reopenPeriod (ctx: Ctx) (model: Model) =
+    let period = selectedPeriod model
+    let actorId = model.Session.ActorId
+
+    let needed =
+        match PeriodReview.stateOf model.PeriodConfig.ApprovalRequired model.Reviews actorId period with
+        | PeriodReview.AwaitingApproval _ -> Access.SubmitOwnTime
+        | _ -> Access.ReopenTime
+
+    match Access.authorize model.Roster model.Session.OrganizationId actorId needed, zoneOrProblem model with
+    | Error refusal, _ -> withProblems ReviewForm [ refusal ] model, []
+    | _, Error problems -> withProblems ReviewForm problems model, []
+    | Ok(), Ok zone ->
+        match PeriodReview.reopen (commandContext ctx model zone) model.PeriodConfig model.Reviews actorId period model.ReopenReason model.Ledger with
+        | Error problems -> withProblems ReviewForm (List.distinct problems) model, []
+        | Ok(ledger, review) ->
+            let entries = ledger.Audit |> List.skip model.Ledger.Audit.Length
+
+            { clear ReviewForm model with
+                Ledger = ledger
+                ReopenReason = ""
+                Store = { model.Store with Audited = ledger.Audit.Length }
+                Announcement = $"Reopened {Format.longDate period.Start} to {Format.longDate period.Finish}. Its time can be changed again." }
+            |> sendReview ctx (changed model.Ledger ledger) entries review
+
+/// Approves or returns another person's submission (14), over their time
+/// as read for review.
+let private decideSubmission (ctx: Ctx) (approve: bool) (submissionId: string) (model: Model) =
+    match zoneOrProblem model with
+    | Error problems -> withProblems ReviewForm problems model, []
+    | Ok zone ->
+        let theirs: Ledger.Ledger =
+            { Activities = model.Reviewing |> List.map (fun a -> a.ActivityId, a) |> Map.ofList
+              Audit = [] }
+
+        let note = model.ReviewNotes.TryFind submissionId |> Option.map _.Trim() |> Option.filter ((<>) "")
+        let context = commandContext ctx model zone
+
+        let decided =
+            if approve then
+                PeriodReview.approve context model.PeriodConfig model.Reviews submissionId note theirs
+            else
+                PeriodReview.reject context model.PeriodConfig model.Reviews submissionId (defaultArg note "") theirs
+
+        match decided with
+        | Error problems -> withProblems ReviewForm (List.distinct problems) model, []
+        | Ok(ledger, review) ->
+            let decidedActivities = changed theirs ledger
+            let names = model.Roster.Members.TryFind review.ActorId |> Option.map _.Principal.DisplayName |> Option.defaultValue review.ActorId
+
+            { clear ReviewForm model with
+                Reviewing =
+                    model.Reviewing
+                    |> List.map (fun a -> decidedActivities |> List.tryFind (fun d -> d.ActivityId = a.ActivityId) |> Option.defaultValue a)
+                ReviewNotes = model.ReviewNotes.Remove submissionId
+                Announcement =
+                    if approve then
+                        $"Approved {names}'s time, {Format.longDate review.Period.Start} to {Format.longDate review.Period.Finish}."
+                    else
+                        $"Returned {names}'s time, {Format.longDate review.Period.Start} to {Format.longDate review.Period.Finish}, for correction." }
+            |> sendReview ctx decidedActivities ledger.Audit review
 
 // ---- reports --------------------------------------------------------------------
 
@@ -1209,7 +1352,13 @@ let requirement (name: string) (key: string option) : (Access.Capability * Form)
     | "changeMemberAccess"
     | "removeMember" -> Some(Access.ManageOrganizationSettings, MemberForm)
     | "periodCadence"
-    | "periodWeekStart" -> Some(Access.ManageOrganizationSettings, PeriodForm)
+    | "periodWeekStart"
+    | "periodSubmissionExpected"
+    | "periodApprovalRequired"
+    | "savePeriodSettings" -> Some(Access.ManageOrganizationSettings, PeriodForm)
+    | "submitPeriod" -> Some(Access.SubmitOwnTime, ReviewForm)
+    | "approveSubmission" -> Some(Access.ApproveTime, ReviewForm)
+    | "rejectSubmission" -> Some(Access.RejectTime, ReviewForm)
     | "copyExport"
     | "printReport" -> Some(Access.ExportTime, ExportForm)
     | "acceptOutsideEdit" -> Some(Access.AmendOwnTime, OutsideEditForm)
@@ -1376,7 +1525,11 @@ let private onEvent (ctx: Ctx) (name: string) (key: string option) (value: strin
             | Some on -> navigate (Places.Review on) model
             | None -> invalidArg (nameof key) $"Unknown obligation: {key}"
         | [| "store" |] -> navigate (Places.Settings(Some Places.Changes)) model
-        | [| "period"; _ |] -> navigate Places.Today model
+        | [| "period"; _ |] -> navigate Places.ThisPeriod model
+        | [| "approval"; submissionId |] ->
+            match PeriodReview.awaitingApproval model.PeriodConfig.ApprovalRequired model.Reviews |> List.tryFind (fun s -> s.SubmissionId = submissionId) with
+            | Some submission -> navigate (Places.Period submission.Period.Start) model
+            | None -> navigate Places.ThisPeriod model
         | _ -> invalidArg (nameof key) $"Unknown obligation: {key}"
     | "periodCadence" ->
         let cadence =
@@ -1394,6 +1547,15 @@ let private onEvent (ctx: Ctx) (name: string) (key: string option) (value: strin
         match Enum.TryParse<DayOfWeek>(value) with
         | true, day -> { clear PeriodForm model with PeriodConfig = { model.PeriodConfig with WeekStart = day } }, []
         | _ -> invalidArg (nameof value) $"Unknown day: {value}"
+    | "periodSubmissionExpected" -> { clear PeriodForm model with PeriodConfig = { model.PeriodConfig with SubmissionExpected = checkedOn } }, []
+    | "periodApprovalRequired" -> { clear PeriodForm model with PeriodConfig = { model.PeriodConfig with ApprovalRequired = checkedOn } }, []
+    | "savePeriodSettings" -> savePeriodSettings ctx model
+    | "submitPeriod" -> submitPeriod ctx model
+    | "reopenReason" -> { model with ReopenReason = value }, []
+    | "reopenPeriod" -> reopenPeriod ctx model
+    | "reviewNote" -> { model with ReviewNotes = model.ReviewNotes.Add(defaultArg key "", value) }, []
+    | "approveSubmission" -> decideSubmission ctx true (defaultArg key "") model
+    | "rejectSubmission" -> decideSubmission ctx false (defaultArg key "") model
     | "reportFrom" -> report (fun r -> { r with From = value })
     | "reportTo" -> report (fun r -> { r with To = value })
     | "reportProject" -> report (fun r -> { r with ProjectId = value })
@@ -1622,6 +1784,14 @@ let private storeOpened (contents: StoreContents) (model: Model) =
                 History = contents.History
                 Index = contents.Index
                 Cached = contents.Cached }
+        // The organization's periods as saved, reckoned in its zone (WI-0036).
+        PeriodsStored = contents.Periods
+        PeriodConfig =
+            match contents.Periods with
+            | Some stored -> { stored.Config with ZoneId = model.PeriodConfig.ZoneId }
+            | None -> model.PeriodConfig
+        Reviews = contents.Reviews
+        Reviewing = contents.Reviewing
         // Said once, when they first open, with what recovering the timer
         // found; reading a further month is quiet.
         Announcement =

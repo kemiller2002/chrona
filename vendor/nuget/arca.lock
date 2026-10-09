@@ -2,10 +2,10 @@
 # file are the unmodified release assets named here, each proven against the
 # Registry SHA-256. NuGet restores these ids only from this folder (NuGet.config).
 system arca
-version 0.3.0
+version 0.4.0
 repository kemiller2002/arca
-tag v0.3.0
-release-manifest sha256:d3b73d5f4ca76b04f9b581e5fb7b138f724b4642f18361cbaf6f60b45a64f803
-package EchelonFoundry.Arca.Core 0.3.0 EchelonFoundry.Arca.Core.0.3.0.nupkg sha256:7c33d539219de08e404b6b83d148fc5398acdd502818b37eb0c6bc7a640c9601 https://github.com/kemiller2002/arca/releases/download/v0.3.0/EchelonFoundry.Arca.Core.0.3.0.nupkg
-package EchelonFoundry.Arca.GitHub 0.3.0 EchelonFoundry.Arca.GitHub.0.3.0.nupkg sha256:778290b4eb76dc33453003b0fc0995cce84fa57e6a6a66d1d2b2bdaee68bdba0 https://github.com/kemiller2002/arca/releases/download/v0.3.0/EchelonFoundry.Arca.GitHub.0.3.0.nupkg
-package EchelonFoundry.Arca.Limen 0.3.0 EchelonFoundry.Arca.Limen.0.3.0.nupkg sha256:75d4610922999b0ddd94dc415631f7f5c8435edc6a1aa9993a8f9bb0575138f9 https://github.com/kemiller2002/arca/releases/download/v0.3.0/EchelonFoundry.Arca.Limen.0.3.0.nupkg
+tag v0.4.0
+release-manifest sha256:f1ec5078b5c003a8200d3e13f3f840242bde065fe4ce0aeb61aecdb358237a37
+package EchelonFoundry.Arca.Core 0.4.0 EchelonFoundry.Arca.Core.0.4.0.nupkg sha256:b27b1f3b0d75c684cc86af173feb077efe852741653a52fc66aca0ddd8a0069f https://github.com/kemiller2002/arca/releases/download/v0.4.0/EchelonFoundry.Arca.Core.0.4.0.nupkg
+package EchelonFoundry.Arca.GitHub 0.4.0 EchelonFoundry.Arca.GitHub.0.4.0.nupkg sha256:2ded039e40ec161ebd5079ad2024c4b371c6921b920fbd28da16b14e3caa0e1b https://github.com/kemiller2002/arca/releases/download/v0.4.0/EchelonFoundry.Arca.GitHub.0.4.0.nupkg
+package EchelonFoundry.Arca.Limen 0.4.0 EchelonFoundry.Arca.Limen.0.4.0.nupkg sha256:26dc450db5428fa9f8df796967a0816ff2ad5a90bed142f993393a8ae3f94803 https://github.com/kemiller2002/arca/releases/download/v0.4.0/EchelonFoundry.Arca.Limen.0.4.0.nupkg

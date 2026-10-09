@@ -171,6 +171,30 @@
         </div>
       </aside>
     </template>
+    <!-- Arca 0.4.0: unsent changes from an earlier version that name no one. -->
+    <template data-if="hasEarlierUnsent">
+      <aside class="ef-alert chrona-notice" role="status" data-tone="attention" id="earlier-unsent">
+        <div class="ef-alert__icon" aria-hidden="true">!</div>
+        <div class="chrona-stack">
+          <p class="ef-alert__title">Unsent changes from an earlier version</p>
+          <p data-text="earlierUnsentText"></p>
+          <div class="chrona-form-actions">
+            <button type="button" class="chrona-action chrona-action--secondary" id="send-earlier" data-event="sendEarlier">They are mine: send them</button>
+            <button type="button" class="chrona-action chrona-action--secondary" id="keep-earlier" data-event="keepEarlier">Keep them</button>
+            <button type="button" class="chrona-action chrona-action--secondary" id="discard-earlier" data-event="discardEarlier">Discard them</button>
+          </div>
+          <template data-if="earlierConfirming">
+            <div class="chrona-stack" role="alert">
+              <p data-text="earlierDiscardText"></p>
+              <div class="chrona-form-actions">
+                <button type="button" class="chrona-action chrona-action--primary" id="discard-earlier-confirmed" data-event="discardEarlierConfirmed">Discard</button>
+                <button type="button" class="chrona-action chrona-action--secondary" id="discard-earlier-cancel" data-event="discardEarlierCancel">Cancel</button>
+              </div>
+            </div>
+          </template>
+        </div>
+      </aside>
+    </template>
     <!-- LCP-065: said before a change is made offline, not after. -->
     <template data-if="offlineInPage">
       <aside class="ef-alert chrona-notice" role="status" data-tone="attention" id="offline-in-page">

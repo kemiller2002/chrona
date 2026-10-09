@@ -1,0 +1,12 @@
+{
+  "schema": "praxis.instance/1",
+  "instanceId": "pxi-99a4e6d870a04e3ba9e0e07f8c76fe89",
+  "createdAt": "2026-10-09T03:37:36.673Z",
+  "createdWith": "3.11.0",
+  "repository": {
+    "provider": "github",
+    "repositoryId": null,
+    "repository": "kemiller2002/chrona"
+  },
+  "predecessors": []
+}

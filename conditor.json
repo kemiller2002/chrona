@@ -4,7 +4,7 @@
   "registryAuthority": {
     "kind": "resolved-release-set",
     "path": ".conditor/authority/resolved-release-set.json",
-    "sha256": "d6a26a57b1566ee9641d3d408b790d797845075ff683b52b8a574487e718841e"
+    "sha256": "94b37048d25a7c8ef67b9470f8ab66d529d52a5152baeeae6d6e1ca72df95ec4"
   },
   "components": [
     {
@@ -14,7 +14,7 @@
     },
     {
       "id": "praxis",
-      "version": "3.7.2",
+      "version": "3.11.0",
       "required": true
     },
     {
@@ -24,7 +24,7 @@
     },
     {
       "id": "arca",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "required": true
     },
     {

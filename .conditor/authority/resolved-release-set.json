@@ -2,8 +2,8 @@
   "schema": "echelon.resolved-release-set/v1",
   "profile": {
     "id": "echelon-current",
-    "version": "1.12.0",
-    "sha256": "5e2b136cd6d43489b000ec11d28a479f5596ab234bcae0e721d68614b6cc2094"
+    "version": "1.17.0",
+    "sha256": "a6b54740c7d47f3840ef792d2601c081d08dda8b5b4d96d53acd88d4cbc32cda"
   },
   "platform": "linux-x64",
   "resolver": {
@@ -11,42 +11,42 @@
     "version": "0.1.0"
   },
   "catalogSnapshot": {
-    "sha256": "88ef86a3d2e03964d60ae8452089d28ac4c0066961ce679de3872731c59bb933"
+    "sha256": "b1c3e173a1191a4653c02226f7b7bf2bffb942b2fdaf2ae13bb6fa69150d5618"
   },
   "components": [
     {
       "systemId": "praxis",
       "role": "host-tool",
       "required": true,
-      "version": "3.7.2",
+      "version": "3.11.0",
       "repository": "kemiller2002/praxis",
-      "tag": "v3.7.2",
-      "commit": "709bd98e533e783aef9fa78880570de5fb751520",
+      "tag": "v3.11.0",
+      "commit": "5673d6ab07aad07b51ceadaeb4230b1591800886",
       "releaseStage": "stable",
       "lifecycleState": "active",
       "distributionClass": "self-contained-native-cli",
       "executable": "praxis",
       "releaseManifest": {
         "schema": "echelon.release/v2",
-        "sha256": "05b86ca8f09b0a95e82fc94b23778747d0cbae5a26433b16ab83a64a87c4a0f2"
+        "sha256": "c535097a24754f58dac21947d822cbfdbb78277ff2e41cd72e320f86eb65b58e"
       },
       "distribution": {
         "mechanism": "github-release",
         "package": null,
-        "url": "https://github.com/kemiller2002/praxis/releases/tag/v3.7.2"
+        "url": "https://github.com/kemiller2002/praxis/releases/tag/v3.11.0"
       },
       "artifacts": [
         {
           "name": "praxis-linux-x64.tar.gz",
           "purpose": "executable",
           "platform": "linux-x64",
-          "sha256": "cb44a7b9d3ddd696bc412b3e82ed0dee88b47751fa4b8ec7b933e1f60809b3e3"
+          "sha256": "b107557ec0a33556c5c97abeddabd676a81afbcfd30a735d9e2fdd3d052038c2"
         },
         {
           "name": "native-checksums.txt",
           "purpose": "checksums",
           "platform": null,
-          "sha256": "745047814eb62c9245c534b7d96dec541a416514a87cc055b078fb231154633e"
+          "sha256": "05ffa0f06a2ce5fb85e8f8b026b70c9724dd20d6a5a4d02a8e16b415daf19378"
         }
       ]
     },
@@ -334,35 +334,35 @@
       "systemId": "forma",
       "role": "project-binding",
       "required": true,
-      "version": "0.4.1",
+      "version": "0.5.0",
       "repository": "kemiller2002/forma",
-      "tag": "v0.4.1",
-      "commit": "7a9b2ffc5ceee8eb96bf4015f0e62501fb8f78d9",
+      "tag": "v0.5.0",
+      "commit": "8a5a5993421fbfd808582f735dedcf2adea07010",
       "releaseStage": "stable",
       "lifecycleState": "active",
       "distributionClass": "web-package",
       "executable": null,
       "releaseManifest": {
         "schema": "echelon.release/v2",
-        "sha256": "a406c48bbff4576d363ab0f48888a9b1739466d63ec2471166988e85a3204c38"
+        "sha256": "489852fc9f6a6b992b948cee360a47ea1fdf7202ef680c52c7597fe67b46aad2"
       },
       "distribution": {
         "mechanism": "github-release",
         "package": "@echelon-foundry/design-system",
-        "url": "https://github.com/kemiller2002/forma/releases/tag/v0.4.1"
+        "url": "https://github.com/kemiller2002/forma/releases/tag/v0.5.0"
       },
       "artifacts": [
         {
-          "name": "echelon-foundry-design-system-0.4.1.tgz",
+          "name": "echelon-foundry-design-system-0.5.0.tgz",
           "purpose": "package",
           "platform": null,
-          "sha256": "32685421a759bdacf48943c8906ba2b2f57ae0218ea0a3c4f4de5d780a72ed76"
+          "sha256": "c4ad3ae525a85f55a9e9aec4f0e19c59b7f552cececb4224a0bbc3434f4f558f"
         },
         {
           "name": "forma-marketing.sha256",
           "purpose": "checksums",
           "platform": null,
-          "sha256": "0101d551cbcc53539fe5bf692d962c57a7bf64c5e0db80b0fac65c0c9a2fb79f"
+          "sha256": "c5e6007702a481e0ee89881241b93e4141d62742bc850d4ceacd3b79980ae469"
         }
       ]
     },
@@ -446,47 +446,47 @@
       "systemId": "arca",
       "role": "project-binding",
       "required": false,
-      "version": "0.3.0",
+      "version": "0.4.0",
       "repository": "kemiller2002/arca",
-      "tag": "v0.3.0",
-      "commit": "6f3acc7b18f7a3810a2a0c7d591842310e96514e",
+      "tag": "v0.4.0",
+      "commit": "a252caf9142f283d8442fb8a5e1ebc2c5212d1d1",
       "releaseStage": "stable",
       "lifecycleState": "active",
       "distributionClass": "nuget-library",
       "executable": null,
       "releaseManifest": {
         "schema": "echelon.release/v2",
-        "sha256": "d3b73d5f4ca76b04f9b581e5fb7b138f724b4642f18361cbaf6f60b45a64f803"
+        "sha256": "f1ec5078b5c003a8200d3e13f3f840242bde065fe4ce0aeb61aecdb358237a37"
       },
       "distribution": {
         "mechanism": "github-release",
         "package": null,
-        "url": "https://github.com/kemiller2002/arca/releases/tag/v0.3.0"
+        "url": "https://github.com/kemiller2002/arca/releases/tag/v0.4.0"
       },
       "artifacts": [
         {
-          "name": "EchelonFoundry.Arca.Core.0.3.0.nupkg",
+          "name": "EchelonFoundry.Arca.Core.0.4.0.nupkg",
           "purpose": "package",
           "platform": null,
-          "sha256": "7c33d539219de08e404b6b83d148fc5398acdd502818b37eb0c6bc7a640c9601"
+          "sha256": "b27b1f3b0d75c684cc86af173feb077efe852741653a52fc66aca0ddd8a0069f"
         },
         {
-          "name": "EchelonFoundry.Arca.GitHub.0.3.0.nupkg",
+          "name": "EchelonFoundry.Arca.GitHub.0.4.0.nupkg",
           "purpose": "package",
           "platform": null,
-          "sha256": "778290b4eb76dc33453003b0fc0995cce84fa57e6a6a66d1d2b2bdaee68bdba0"
+          "sha256": "2ded039e40ec161ebd5079ad2024c4b371c6921b920fbd28da16b14e3caa0e1b"
         },
         {
-          "name": "EchelonFoundry.Arca.Limen.0.3.0.nupkg",
+          "name": "EchelonFoundry.Arca.Limen.0.4.0.nupkg",
           "purpose": "package",
           "platform": null,
-          "sha256": "75d4610922999b0ddd94dc415631f7f5c8435edc6a1aa9993a8f9bb0575138f9"
+          "sha256": "26dc450db5428fa9f8df796967a0816ff2ad5a90bed142f993393a8ae3f94803"
         },
         {
           "name": "checksums.txt",
           "purpose": "checksums",
           "platform": null,
-          "sha256": "c9cbda29cbf4f1a222b49e7ab031fffba89362e490c0845ee20c77807af418a5"
+          "sha256": "b1e79d2dddbd4c2209d345ae9b47278e622ddb1bc8c53bb03e2312fe2975620a"
         }
       ]
     },

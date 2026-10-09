@@ -122,7 +122,11 @@ type SyncState =
       Durability: Durability
       /// Something about the kept changes the person must be told (moved
       /// from localStorage, waiting to be moved, lost by the browser).
-      Notice: string option }
+      Notice: string option
+      /// Unsent changes from an earlier version of Chrona that do not say
+      /// whose they are (Arca 0.4.0): neither sent nor discarded until the
+      /// person decides.
+      Earlier: int }
 
 let initialSync =
     { Offline = false
@@ -130,7 +134,8 @@ let initialSync =
       Note = None
       Holder = HeldHere
       Durability = InIndexedDb
-      Notice = None }
+      Notice = None
+      Earlier = 0 }
 
 /// The build of a page that was not built for a deployment: it is never
 /// compared with what is deployed.
@@ -485,6 +490,15 @@ type Form =
     /// Accepting or rejecting an observation's candidate (WI-0038).
     | CandidateForm
 
+/// Unsent changes from an earlier version, naming no one: what the person
+/// chose to do with them.
+type EarlierDecision =
+    | Undecided
+    /// Left as they are, in this browser.
+    | KeptEarlier
+    /// Asked to discard them; waiting for the confirmation.
+    | ConfirmingEarlierDiscard
+
 [<NoComparison>]
 type Model =
     { /// Where the person is (CHX-460): the place the address names. While
@@ -560,6 +574,9 @@ type Model =
       CandidateDraftFor: string
       /// Why the candidate on screen is rejected.
       CandidateReason: string
+      /// What the person decided about unsent changes from an earlier
+      /// version that name no one (Arca 0.4.0).
+      Earlier: EarlierDecision
       Report: ReportDraft
       /// What happened to the last copy of an export, in words.
       CopyStatus: string
@@ -647,6 +664,7 @@ let initial (session: Session) (store: StoreKind) (now: DateTimeOffset) =
       CandidateDraft = emptyClassification
       CandidateDraftFor = ""
       CandidateReason = ""
+      Earlier = Undecided
       Report = emptyReport
       CopyStatus = ""
       NewNames = Map.empty

@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-09T01:25:51.000Z",
+  "updatedAt": "2026-10-09T02:07:20.000Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -2672,10 +2672,31 @@
     {
       "id": "WI-0036",
       "type": "task",
-      "state": "active",
-      "semanticState": "active",
-      "evidence": [],
-      "updatedAt": "2026-10-09T01:25:51.000Z",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Domain/PeriodReview.fs"
+        },
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Domain/ReviewRecord.fs"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/PeriodReviewTests.fs"
+        },
+        {
+          "type": "tests",
+          "path": "tests/browser/app-github.spec.js"
+        },
+        {
+          "type": "documentation",
+          "path": "research/decisions/DF-CHRONA-2026-0005--records-on-github-through-arca-behind-the-store-port.md"
+        }
+      ],
+      "updatedAt": "2026-10-09T02:07:20.000Z",
       "telemetryExecutionIds": [
         "EXE-20261009T012552338Z-e58b9a1f"
       ],
@@ -2698,7 +2719,9 @@
           "status": "verified",
           "mechanism": "git-remote-observation"
         }
-      }
+      },
+      "completedAt": "2026-10-09T02:07:20.000Z",
+      "conclusion": "Period settings and review steps stored on Arca; held periods enforced; submit, approve, return and reopen in the app"
     }
   ]
 }

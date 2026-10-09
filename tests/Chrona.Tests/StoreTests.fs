@@ -2616,6 +2616,8 @@ let ``a submitted period holds its time until it is reopened, and that is stored
     reader.Open()
     Assert.Equal(Chrona.Domain.Activity.Reopened, reader.Model.Ledger.Activities[id].Review)
     Assert.Equal(2, reader.Model.Reviews.Length)
+    // Each step's audit entry is stored with the time it changed (25).
+    Assert.Equal<string list>([ "reopen"; "submit" ], reader.Model.Ledger.Audit |> List.map _.Command |> List.filter (fun c -> c = "submit" || c = "reopen") |> List.sort)
     Assert.Equal<string list>([ "Late"; "Setup" ], descriptions reader)
 
 [<Fact>]

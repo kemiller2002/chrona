@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "repository": "chrona",
-  "nextSeq": 71,
+  "nextSeq": 74,
   "items": [
     {
       "id": "WI-0001",
@@ -1599,6 +1599,31 @@
       "attachments": [],
       "createdAt": "2026-10-08T21:46:25.000Z",
       "updatedAt": "2026-10-08T21:58:11.000Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0073",
+      "title": "Move Chrona to Arca 0.4.0 through Conditor: namespace-scoped change tokens for reads, writes and the read cache, and sign-out discard by stable account id (arca WI-0018, arca#33)",
+      "description": "Arca 0.4.0 (echelon-current 1.16.0). Reads and writes conditioned on the organization folder's namespace token (provider.NamespaceState, Fresh.read state, Operation.requireNamespaceToken), so commits by other applications no longer invalidate Chrona's reads, decisions or read cache (ReadCache.revalidate with ProviderObservation.Current state). Unsent changes queued for an AccountId (OfflineQueue.enqueueFor, AccountId.ofIdentity); sign-out discards by stable account (QueueSignOut.unsentOfAccount, OwnedQueue.DiscardAccount), with Legacy only for entries queued before 0.4.0. CHX-021, CHX-230.",
+      "tags": [
+        "chrona",
+        "arca",
+        "conditor"
+      ],
+      "priority": "high",
+      "status": "ready",
+      "attachments": [],
+      "createdAt": "2026-10-09T02:35:51.000Z",
+      "updatedAt": "2026-10-09T02:35:55.000Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

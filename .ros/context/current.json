@@ -2791,7 +2791,27 @@
       "telemetryExecutionIds": [
         "EXE-20261009T023556300Z-7aa2d7d5"
       ],
-      "blockReason": "Conditor refuses echelon-current 1.16.0: praxis 3.7.2 -> 3.10.0 is not a qualified lifecycle change; asked the coordinator"
+      "blockReason": "Conditor refuses echelon-current 1.16.0: praxis 3.7.2 -> 3.10.0 is not a qualified lifecycle change; asked the coordinator",
+      "latestCheckpoint": {
+        "id": "53c6052f18ec4f81707ea6b3",
+        "recordedAt": "2026-10-09T04:33:36.000Z",
+        "executionId": "EXE-20261009T023556300Z-7aa2d7d5",
+        "repository": "chrona",
+        "branch": "chore/arca-0.4.0",
+        "commit": "0438045ec3277c0214edf6a618c0af6c490b2a56",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/chrona"
+        },
+        "remoteBranch": "chore/arca-0.4.0",
+        "remoteCommit": "0438045ec3277c0214edf6a618c0af6c490b2a56",
+        "summary": "Arca 0.4.1 and Praxis 3.11.0 adopted through Conditor 0.8.2 (echelon-current 1.18.0); namespace-conditioned writes, account-id sign-out, earlier-version entries decided by the person; .NET 414 and Chromium 69 pass",
+        "nextAction": "Open the PR and merge through gated-merge.sh",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      }
     }
   ]
 }

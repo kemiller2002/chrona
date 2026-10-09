@@ -476,6 +476,66 @@ test("someone who is not an administrator is refused the administrators' parts o
   await expect(member.locator("#screen-problem")).toHaveCount(0);
 });
 
+// ---- periods under review (WI-0036) ------------------------------------------
+
+test("a member submits their period, the administrator approves it, and the member's period is closed", async ({ context, github }) => {
+  // The administrator adds a member, requires approval and saves it.
+  const admin = await signedIn(context);
+  await references(admin);
+  await admin.fill("#member-id", "42");
+  await admin.fill("#member-name", "Hubot");
+  await admin.selectOption("#member-access", "ownTime");
+  await admin.click("#admit");
+  await expect(admin.locator("#people")).toContainText("Hubot");
+  await admin.check("#period-submission-expected");
+  await admin.check("#period-approval-required");
+  await admin.click("#save-period-settings");
+  await expect(headline(admin)).toHaveText("All changes saved");
+  expect(Object.keys(headFiles(github.current())).some((path) => path.endsWith("records/chrona.configuration/periods.json"))).toBe(true);
+  await admin.close();
+
+  // The member records time and submits the period.
+  signInAs("42", "hubot");
+  const member = await signedIn(context);
+  await record(member, "08:10", "09:02", "Hubot's research");
+  await expect(headline(member)).toHaveText("All changes saved");
+  await member.goto("/web/index.html#/periods");
+  await member.click("#submit-period");
+  await expect(member.locator("#period-review-state")).toContainText("waiting for approval");
+  await expect(headline(member)).toHaveText("All changes saved");
+  // Its time is held: a new entry in it is refused with the stable code.
+  await member.click(".chrona-nav__link:has-text('Track')");
+  await member.selectOption("#manual-activity-type", { label: "Research" });
+  await member.selectOption("#manual-project", { label: "HelixNote" });
+  await member.fill("#manual-start-date", await member.evaluate(() => new Date().toLocaleDateString("en-CA")));
+  await member.fill("#manual-start-time", "10:00");
+  await member.fill("#manual-end-time", "10:30");
+  await member.fill("#manual-description", "Too late");
+  await member.fill("#manual-purpose", "Ship the slice");
+  await member.click("#save-manual");
+  await expect(member.locator('[data-code="CHRONA.REVIEW.SUBMITTED_PERIOD"]')).toBeVisible();
+  await member.close();
+
+  // The administrator sees it waiting, and approves it with a note.
+  signInAs("583231", "octocat");
+  const approver = await signedIn(context);
+  await approver.goto("/web/index.html#/periods");
+  await expect(approver.locator("#approvals")).toContainText("Hubot");
+  await approver.fill("#approvals input", "Looks right");
+  await approver.click("#approvals button:has-text('Approve')");
+  await expect(approver.locator("#approvals")).toHaveCount(0);
+  await expect(headline(approver)).toHaveText("All changes saved");
+  await approver.close();
+
+  // The member's period is closed, approved by the administrator.
+  signInAs("42", "hubot");
+  const back = await signedIn(context);
+  await back.goto("/web/index.html#/periods");
+  await expect(back.locator("#period-review-state")).toContainText("Approved by octocat");
+  await expect(back.locator("#period-review-state")).toContainText("Looks right");
+  expect(Object.keys(headFiles(github.current())).filter((path) => path.includes("records/chrona.review/"))).toHaveLength(2);
+});
+
 // ---- the organization in the address (CHX-460, WI-0071) -----------------------
 
 test.describe("a deployment of two organizations", () => {

@@ -2,7 +2,7 @@
 id: DF-CHRONA-2026-0005
 title: Records live on GitHub through Arca's provider behind the store port, every commit conditioned on the repository state and decided again when it moved
 status: accepted
-version: 1.9.1
+version: 1.10.0
 created: 2026-10-08
 updated: 2026-10-09
 owners:
@@ -128,13 +128,23 @@ provenance:
         model: unknown
         runtime: claude-code
       reason: "Opening offline from the read cache (WI-0057)"
+    EXE-20261009T012552338Z-e58b9a1f:
+      operations: [modified]
+      at: 2026-10-09T03:00:00.000Z
+      actor:
+        kind: agent
+        id: anthropic/claude-code
+        provider: anthropic
+        model: unknown
+        runtime: claude-code
+      reason: "Periods under review on Arca (WI-0036)"
 ---
 
 # DF-CHRONA-2026-0005 — Records on GitHub through Arca
 
 - **Date:** 2026-10-08
 - **Status:** accepted
-- **Work items:** WI-0028, WI-0051, WI-0032, WI-0053, WI-0035, WI-0033, WI-0034, WI-0058, WI-0056, WI-0055, WI-0067, WI-0059, WI-0057
+- **Work items:** WI-0028, WI-0051, WI-0032, WI-0053, WI-0035, WI-0033, WI-0034, WI-0058, WI-0056, WI-0055, WI-0067, WI-0059, WI-0057, WI-0036
 
 ## Context
 
@@ -329,6 +339,30 @@ and semantic conflicts surfaced.
    configuration lists set an organization up or become its first
    administrators (WI-0053); one without a listed administrator is held
    until a listed account confirms.
+
+16. **Periods under review (WI-0036).** The organization's period
+    configuration is `records/chrona.configuration/periods.json`, mutable
+    under its revision (a counter in the record): cadence (with a biweekly
+    anchor), week start, whether time is submitted and whether submitted
+    time is approved. The time zone is the organization's and is not
+    stored there. Absent, the defaults apply. Saving it is the next
+    revision; a save made from a stale read is a conflict
+    (`PeriodsChanged`), never an overwrite. Each step of a person's period
+    review (submission, approval, rejection, reopening) is an immutable
+    `records/chrona.review/<person>/<yyyy>/<MM>/<kind>-<start>-<instant>.json`,
+    filed under the month the period starts, and read with that month and
+    the next. The activities' review states change with the step, without a
+    new content revision (WI-0023); deciding a commit again accepts such a
+    change when only the review state differs and the step is legal from
+    the state stored now. The period's state is its last step: open,
+    waiting for approval, closed (submitted without approval, or approved),
+    or returned. While a period waits or is closed, its time is not added
+    to, changed, moved or attested (`CHRONA.REVIEW.SUBMITTED_PERIOD`) until
+    it is reopened with a reason: by its person while it waits, otherwise
+    by someone who may reopen time. Someone who may approve or reject time
+    also reads, where approval is required, the other members' review
+    steps for the months open and the time their waiting submissions
+    cover; that time is shown only for review, never mixed into their own.
 
 ## Consequences
 

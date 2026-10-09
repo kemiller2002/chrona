@@ -518,7 +518,34 @@ let private richViews () =
 
         send { state with Model = Some signedIn } (event "admitMember" None "")
 
-    [ activity; review; month; today; project; view restricted; view troubled; view administering ]
+    // The period page of someone who approves, with another person's
+    // submission waiting and a refusal shown where it was made (WI-0036).
+    let reviewing =
+        let model = state.Model.Value
+        let theirs = { model.Ledger.Activities[first] with ActorId = "github:42"; ActivityId = "ACT-theirs" }
+        let config = { model.PeriodConfig with ApprovalRequired = true }
+        let period = Chrona.Domain.Periods.containing config theirs.Occurrence.LocalDate
+
+        let submission: Chrona.Domain.PeriodReview.PeriodReview =
+            { Kind = Chrona.Domain.PeriodReview.Submission
+              ActorId = "github:42"
+              Period = period
+              SubmissionId = "SUB-1"
+              By = "github:42"
+              At = model.Now
+              Covered = [ theirs.ActivityId, theirs.Revision ]
+              Note = None }
+
+        let waiting =
+            { model with
+                PeriodConfig = config
+                Reviews = [ submission ]
+                Reviewing = [ theirs ]
+                Problems = model.Problems.Add(ReviewForm, [ Chrona.Domain.Diagnostics.SubmittedPeriodRestriction period.Start ]) }
+
+        view (send { state with Model = Some waiting } (locationChanged $"#/periods/{period.Start:``yyyy-MM-dd``}"))
+
+    [ activity; review; month; today; project; view restricted; view troubled; view administering; reviewing ]
 
 [<Fact>]
 let ``the application page binds only what its engine projects and sends only what it handles`` () =

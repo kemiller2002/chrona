@@ -20,6 +20,7 @@
     <Compile Include="Billing.fs" />
     <Compile Include="Review.fs" />
     <Compile Include="Periods.fs" />
+    <Compile Include="PeriodReview.fs" />
     <Compile Include="Reports.fs" />
     <Compile Include="Observations.fs" />
     <Compile Include="Compatibility.fs" />
@@ -32,6 +33,8 @@
     <Compile Include="ReferenceRecord.fs" />
     <Compile Include="AttestationRecord.fs" />
     <Compile Include="AuditRecord.fs" />
+    <Compile Include="PeriodConfigRecord.fs" />
+    <Compile Include="ReviewRecord.fs" />
     <Compile Include="TimerRecord.fs" />
     <Compile Include="MemberRecord.fs" />
     <Compile Include="Persistence.fs" />

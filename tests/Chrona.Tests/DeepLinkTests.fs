@@ -245,7 +245,10 @@ let ``where a deployment serves several organizations, the address names the one
                   Problems = []
                   Months = []
                   History = []
-                  Index = "" }
+                  Index = ""
+                  Periods = None
+                  Reviews = []
+                  Reviewing = [] }
         )
 
     let _, effects = (opened, []) |> step (ui "goMore" "")

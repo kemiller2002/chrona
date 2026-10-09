@@ -1130,6 +1130,49 @@
               <div class="ef-facts__item"><dt>Approval</dt><dd data-text="periodPageApproval"></dd></div>
             </dl>
           </section>
+          <!-- WI-0036: submitting, reopening and approving periods (14). -->
+          <section class="ef-surface chrona-card" aria-labelledby="period-review-title" id="period-review">
+            <h2 class="chrona-section-title" id="period-review-title">Your timesheet</h2>
+            <p class="chrona-intro" role="status" id="period-review-state" data-text="periodReviewState"></p>
+            <template data-if="canSubmitPeriod">
+              <div class="chrona-form-actions">
+                <button type="button" class="chrona-action chrona-action--primary" id="submit-period" data-event="submitPeriod">Submit this period</button>
+              </div>
+            </template>
+            <template data-if="periodHeld">
+              <div class="ef-field">
+                <label class="ef-field__label" for="reopen-reason">Why reopen it <span aria-hidden="true">*</span></label>
+                <input class="ef-input" id="reopen-reason" type="text" aria-required="true" data-event="reopenReason" data-on="input" data-bind-value="reopenReason" />
+              </div>
+              <div class="chrona-form-actions">
+                <button type="button" class="chrona-action chrona-action--secondary" id="reopen-period" data-event="reopenPeriod">Reopen this period</button>
+              </div>
+            </template>
+            <template data-if="hasReviewProblems">
+              <ul class="chrona-problems" role="alert" id="review-problems"><template data-each="reviewProblems" data-key="id"><li data-bind-data-code="code" data-text="text"></li></template></ul>
+            </template>
+          </section>
+          <template data-if="hasApprovals">
+            <section class="ef-surface chrona-card" aria-labelledby="approvals-title" id="approvals">
+              <h2 class="chrona-section-title" id="approvals-title">Waiting for your approval</h2>
+              <ul class="chrona-conflicts">
+                <template data-each="approvals" data-key="id">
+                  <li class="chrona-conflicts__item">
+                    <p><strong data-text="who"></strong>: <span data-text="period"></span></p>
+                    <p><span data-text="total"></span> in <span data-text="count"></span></p>
+                    <div class="ef-field">
+                      <label class="ef-field__label">Note, or why it is returned</label>
+                      <input class="ef-input" type="text" data-event="reviewNote" data-on="input" data-bind-value="note" />
+                    </div>
+                    <div class="chrona-conflicts__actions">
+                      <button type="button" class="chrona-action chrona-action--primary" data-event="approveSubmission">Approve</button>
+                      <button type="button" class="chrona-action chrona-action--secondary" data-event="rejectSubmission" data-bind-disabled="cannotReject">Return for correction</button>
+                    </div>
+                  </li>
+                </template>
+              </ul>
+            </section>
+          </template>
         </div>
       </section>
     </template>
@@ -1432,7 +1475,7 @@
 
             <section class="ef-surface chrona-card" aria-labelledby="period-settings-title">
               <h2 class="chrona-section-title" id="period-settings-title">Timesheet period</h2>
-              <p class="chrona-intro">How the organization's time is grouped for review. Kept in this tab until storage exists.</p>
+              <p class="chrona-intro">How the organization's time is grouped for review, saved with its records.</p>
               <label class="ef-select-field">
                 <span class="ef-field__label">Period</span>
                 <span class="ef-select">
@@ -1451,6 +1494,11 @@
                   <span class="ef-select__indicator" aria-hidden="true"></span>
                 </span>
               </label>
+              <label class="ef-checkbox"><input class="ef-checkbox__input" type="checkbox" id="period-submission-expected" data-event="periodSubmissionExpected" data-bind-checked="periodSubmissionExpected" /><span class="ef-checkbox__box" aria-hidden="true"></span><span class="ef-checkbox__text"><span class="ef-checkbox__label">Time is submitted at the end of each period</span></span></label>
+              <label class="ef-checkbox"><input class="ef-checkbox__input" type="checkbox" id="period-approval-required" data-event="periodApprovalRequired" data-bind-checked="periodApprovalRequired" /><span class="ef-checkbox__box" aria-hidden="true"></span><span class="ef-checkbox__text"><span class="ef-checkbox__label">Submitted time is approved</span></span></label>
+              <div class="chrona-form-actions">
+                <button type="button" class="chrona-action chrona-action--secondary" id="save-period-settings" data-event="savePeriodSettings">Save period settings</button>
+              </div>
               <template data-if="hasPeriodProblems">
                 <div class="ef-alert chrona-notice" role="alert" data-tone="attention" id="period-problems">
                   <div class="ef-alert__icon" aria-hidden="true">!</div>

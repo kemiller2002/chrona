@@ -28,6 +28,8 @@ type Divergence =
     | MembershipChanged of mine: Access.Membership * stored: Access.Membership option
     /// The member to remove was already removed.
     | MemberGone of principalId: string
+    /// The organization's period configuration was changed elsewhere first.
+    | PeriodsChanged of mine: Periods.PeriodConfig * stored: Periods.PeriodConfig option
     /// The person's time overlaps time stored since.
     | OverlapsStored of mine: Activity * stored: Activity
     /// The repository moved on every attempt; nothing was found wrong.
@@ -41,6 +43,7 @@ let diagnostic =
     | ReferenceChanged(mine, _) -> SemanticConflict(Reference.kindName mine.Kind, mine.Id)
     | MembershipChanged(mine, _) -> SemanticConflict("member", mine.Principal.PrincipalId)
     | MemberGone principalId -> SemanticConflict("member", principalId)
+    | PeriodsChanged _ -> SemanticConflict("configuration", PeriodConfigRecord.Id)
     | OverlapsStored(_, stored) -> OverlapsActivity stored.ActivityId
     | KeptChanging -> StoreKeptChanging
 
@@ -50,6 +53,24 @@ let private follows (stored: int option) (revision: int) =
     match stored with
     | Some current -> revision = current + 1
     | None -> revision = 1
+
+/// Whether a review transition is legal from the state stored (14): a
+/// submission from time not submitted, reopened or rejected; an approval or
+/// rejection of submitted time; a reopening of reviewed time.
+let private legalReview (stored: ReviewState) (mine: ReviewState) =
+    match stored, mine with
+    | (Unsubmitted | Reopened | Rejected _), Submitted -> true
+    | Submitted, (Approved | Rejected _) -> true
+    | (Submitted | Approved | Rejected _), Reopened -> true
+    | _ -> false
+
+/// A review step leaves the activity's content and revision as they are
+/// (WI-0023): it fits what is stored when only the review state differs
+/// and the step is legal from the state stored now (WI-0036).
+let private reviewOnly (stored: Activity option) (mine: Activity) =
+    match stored with
+    | Some found -> found.Revision = mine.Revision && { mine with Review = found.Review } = found && legalReview found.Review mine.Review
+    | None -> false
 
 /// The change decided again on what is stored: the records still to write,
 /// or every divergence found. A record already stored exactly as asked (an
@@ -68,7 +89,9 @@ let decide (stored: Stored.Stored) (change: Stored.Changed) : Result<Stored.Chan
 
     let changedActivities =
         pending
-        |> List.filter (fun mine -> not (follows (storedActivity mine.ActivityId |> Option.map _.Revision) mine.Revision))
+        |> List.filter (fun mine ->
+            not (follows (storedActivity mine.ActivityId |> Option.map _.Revision) mine.Revision)
+            && not (reviewOnly (storedActivity mine.ActivityId) mine))
         |> List.map (fun mine -> ActivityChanged(mine, storedActivity mine.ActivityId))
 
     let changedReferences =
@@ -80,6 +103,17 @@ let decide (stored: Stored.Stored) (change: Stored.Changed) : Result<Stored.Chan
         members
         |> List.filter (fun mine -> not (follows (storedMember mine.Principal.PrincipalId |> Option.map _.Revision) mine.Revision))
         |> List.map (fun mine -> MembershipChanged(mine, storedMember mine.Principal.PrincipalId))
+
+    // The configuration is the next revision of the one stored, or was
+    // already stored exactly so (an earlier attempt landed).
+    let storedPeriods = stored.Periods |> Option.map _.Periods
+    let periods = change.Periods |> Option.filter (fun mine -> storedPeriods <> Some mine)
+
+    let changedPeriods =
+        periods
+        |> Option.filter (fun mine -> not (follows (storedPeriods |> Option.map _.Revision) mine.Revision))
+        |> Option.map (fun mine -> PeriodsChanged(mine.Config, storedPeriods |> Option.map _.Config))
+        |> Option.toList
 
     let gone =
         change.Removed |> List.filter (stored.Members.ContainsKey >> not) |> List.map MemberGone
@@ -100,13 +134,21 @@ let decide (stored: Stored.Stored) (change: Stored.Changed) : Result<Stored.Chan
             |> List.choose (fun id -> others |> List.tryFind (fun other -> other.ActivityId = id))
             |> List.map (fun other -> OverlapsStored(mine, other)))
 
-    match changedActivities @ changedReferences @ changedMembers @ gone @ overlapping with
+    match changedActivities @ changedReferences @ changedMembers @ changedPeriods @ gone @ overlapping with
     | [] ->
         Ok
             { change with
                 Activities = pending
                 References = references
                 Members = members
+                Periods = periods
+                // A review step already stored (an earlier attempt landed) is not written again.
+                Reviews =
+                    change.Reviews
+                    |> List.filter (fun review ->
+                        match ReviewRecord.path review with
+                        | Ok path -> not (stored.Reviews.ContainsKey(RelativePath.render path))
+                        | Error _ -> true)
                 // An audit entry already stored (an earlier attempt landed) is not written again.
                 Audit =
                     change.Audit

@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-09T02:37:09.000Z",
+  "updatedAt": "2026-10-09T03:51:38.000Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -2726,33 +2726,60 @@
     {
       "id": "WI-0038",
       "type": "task",
-      "state": "active",
-      "semanticState": "active",
-      "evidence": [],
-      "updatedAt": "2026-10-09T02:37:09.000Z",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Integration/Inbox.fs"
+        },
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Application/Store.fs"
+        },
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Domain/CandidateRecord.fs"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/IntakeTests.fs"
+        },
+        {
+          "type": "tests",
+          "path": "tests/browser/app-github.spec.js"
+        },
+        {
+          "type": "documentation",
+          "path": "research/decisions/DF-CHRONA-2026-0005--records-on-github-through-arca-behind-the-store-port.md"
+        }
+      ],
+      "updatedAt": "2026-10-09T03:51:38.000Z",
       "telemetryExecutionIds": [
         "EXE-20261009T023709515Z-21115e9f"
       ],
       "latestCheckpoint": {
-        "id": "289c6d4be0e71de27dee935a",
-        "recordedAt": "2026-10-09T03:36:47.000Z",
+        "id": "3f38d72cb03abbe23656923b",
+        "recordedAt": "2026-10-09T03:51:34.000Z",
         "executionId": "EXE-20261009T023709515Z-21115e9f",
         "repository": "chrona",
-        "branch": "feature/observation-inboxes",
-        "commit": "8cdf18105ba4d593e0b5cc804f4a807c90811cf4",
+        "branch": "chore/wi-0038-complete",
+        "commit": "b8ff6fcba9bbcedae6b4b752652d16abb51972c1",
         "remote": {
           "name": "origin",
           "url": "https://github.com/kemiller2002/chrona"
         },
-        "remoteBranch": "feature/observation-inboxes",
-        "remoteCommit": "8cdf18105ba4d593e0b5cc804f4a807c90811cf4",
-        "summary": "Inboxes, candidates, receipts and their screens implemented; .NET, Chromium and deep-link suites pass locally",
-        "nextAction": "Re-render the visual baselines on CI, review them, then gate and merge",
+        "remoteBranch": "main",
+        "remoteCommit": "b8ff6fcba9bbcedae6b4b752652d16abb51972c1",
+        "summary": "Merged to main through the gate (#82, b8ff6fc): every check on 56c7947 succeeded",
+        "nextAction": "Record completion",
         "verification": {
           "status": "verified",
           "mechanism": "git-remote-observation"
         }
-      }
+      },
+      "completedAt": "2026-10-09T03:51:38.000Z",
+      "conclusion": "Producers' inboxes read into candidates and receipts on Arca; candidates reviewed, accepted or rejected in the app"
     },
     {
       "id": "WI-0073",

@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "repository": "chrona",
-  "nextSeq": 74,
+  "nextSeq": 75,
   "items": [
     {
       "id": "WI-0001",
@@ -1624,6 +1624,27 @@
       "attachments": [],
       "createdAt": "2026-10-09T02:35:51.000Z",
       "updatedAt": "2026-10-09T02:35:55.000Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0074",
+      "title": "Chrona: observation source policies and receipt integrity - trusted sources a deployment configures to auto-accept, and receipts without their candidate detected (CHX-190, CHX-390 remainders)",
+      "description": "Left after WI-0038. Observations.ingest applies a source policy (auto-accept with a default activity type and business purpose, needing attention when the time cannot be recorded), but a deployment cannot configure one, so every source is reviewed (CHX-190 remainder): add per-organization source policies to the deployment configuration or a stored record, applied when the inbox is read, with the accepted activity written in the same commit as its candidate and receipt for the person it names. Detect, on load, a receipt that names a candidate that is not stored (written outside Chrona), and show it where records needing attention are listed (CHX-390 remainder).",
+      "tags": [],
+      "priority": "medium",
+      "status": "captured",
+      "attachments": [],
+      "createdAt": "2026-10-09T03:34:27.000Z",
+      "updatedAt": "2026-10-09T03:34:27.000Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

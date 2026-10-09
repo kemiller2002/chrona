@@ -12,7 +12,7 @@
 // as they would without a network and the browser logs each one; this suite
 // therefore keeps its own guard, which allows only those.
 import { test as base, expect } from "@playwright/test";
-import { fakeDeployment, PAGE, signInAs } from "./support.js";
+import { fakeDeployment, PAGE, signInAs, afternoon } from "./support.js";
 import { serveGitHub, repository, headFiles, history } from "./github-fake.js";
 
 const configuration = {
@@ -29,6 +29,8 @@ const test = base.extend({
   // Every page of the context fails the test on an error it reports, except
   // the browser's own note of a request that failed while offline.
   context: async ({ context }, use) => {
+    // Time recorded "today" at fixed hours is in the past whenever this runs.
+    await context.clock.setFixedTime(afternoon());
     const problems = [];
     context.on("page", (page) => {
       page.on("console", (message) => {
@@ -183,8 +185,10 @@ test("with two tabs open, only the tab holding the unsent changes keeps them, in
   const queued = await inIndexedDb(first);
   expect(queued).toHaveLength(1);
   expect(JSON.stringify(queued)).toContain("Pairing");
-  // Read from GitHub, so conditioned on the repository state it was read at.
-  expect(queued[0].operation.expectedChangeToken).toEqual(expect.any(String));
+  // Read from GitHub, so conditioned on the state of the organization's
+  // folder it was read at (Arca 0.4.0), and naming its account.
+  expect(queued[0].operation.expectedNamespaceToken).toEqual(expect.any(String));
+  expect(queued[0].operation.accountId).toBe("actor:github:583231");
   expect(await legacy(first)).toEqual([]);
   expect(history(github.current()).length).toBe(before);
 

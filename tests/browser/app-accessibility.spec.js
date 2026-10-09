@@ -6,7 +6,7 @@
 // on a phone. iPhone VoiceOver needs a person with an iPhone: its checklist
 // is docs/accessibility-voiceover-checklist.md.
 import { test as base } from "@playwright/test";
-import { test, expect, setUp, fakeDeployment, PAGE } from "./support.js";
+import { test, expect, setUp, fakeDeployment, PAGE, afternoon } from "./support.js";
 
 test.use({ timezoneId: "America/New_York" });
 
@@ -219,6 +219,8 @@ test.describe("at 320 CSS pixels wide (a 1280-pixel window at 400% zoom)", () =>
   test.use({ viewport: { width: 320, height: 640 } });
 
   test("every screen reflows into one column: nothing scrolls sideways or is cut off", async ({ app: page }) => {
+    // 00:10 today is in the past whenever this runs.
+    await page.clock.setFixedTime(afternoon());
     await setUp(page);
     await page.click(".chrona-tabbar__link:has-text('Track')");
     await page.selectOption("#manual-activity-type", { label: "Research" });

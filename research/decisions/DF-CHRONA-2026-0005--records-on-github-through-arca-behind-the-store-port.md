@@ -2,7 +2,7 @@
 id: DF-CHRONA-2026-0005
 title: Records live on GitHub through Arca's provider behind the store port, every commit conditioned on the repository state and decided again when it moved
 status: accepted
-version: 1.11.0
+version: 1.12.0
 created: 2026-10-08
 updated: 2026-10-09
 owners:
@@ -148,6 +148,16 @@ provenance:
         model: unknown
         runtime: claude-code
       reason: "Observation inboxes, candidates and receipts (WI-0038)"
+    EXE-20261009T023556300Z-7aa2d7d5:
+      operations: [modified]
+      at: 2026-10-09T05:00:00.000Z
+      actor:
+        kind: agent
+        id: anthropic/claude-code
+        provider: anthropic
+        model: unknown
+        runtime: claude-code
+      reason: "Arca 0.4.0: namespace-scoped conditions and sign-out by account id (WI-0073)"
 ---
 
 # DF-CHRONA-2026-0005 — Records on GitHub through Arca
@@ -409,15 +419,38 @@ and semantic conflicts surfaced.
     rule, including the submitted-period restriction. Accepted time is
     `Imported <source>`, billability pending a person's decision.
 
+18. **Arca 0.4.0 (WI-0073).** Every write is conditioned on the state of
+    the organization's folder (`provider.NamespaceState`,
+    `Operation.requireNamespaceToken`; the read cache is kept with
+    `Fresh.read` of that state), so another application's commit elsewhere
+    in a shared repository no longer makes Chrona decide again; a change
+    inside the folder (`StaleNamespaceToken`) is decided again as before.
+    After a commit, the folder's state is observed again: when GitHub's head
+    is still that commit it is the next condition; otherwise someone
+    committed since, and the next write is held to the repository at the
+    commit (`requireChangeToken`), never to a folder state Chrona did not
+    read. Queued changes name their account (`OfflineQueue.enqueueFor` with
+    `AccountId.ofActor` of Chrona's actor id, "github:<numeric id>"), and
+    sign-out counts and discards by it (`QueueSignOut.unsentOfAccount`,
+    `OwnedQueue.DiscardAccount`, `Legacy = None`), never by a display name;
+    an entry that may have landed is still never discarded. An entry queued
+    before 0.4.0 is attributed to the actor it records itself when the
+    queue loads, never to whoever is signed in. One that records no usable
+    actor is neither sent nor discarded: the page says unsent changes from
+    an earlier version are here, and the person sends them as theirs, keeps
+    them, or discards them after a confirmation. Arca 0.4.0's
+    `OfflineQueue.revise` drops the account id; Chrona stamps it again
+    until Arca 0.4.1. Do not go back below Arca 0.4.0 while conditioned
+    changes are queued: an older Arca would read them without their
+    condition. Chrona erases nothing; an erased record (Arca's tombstone) is
+    read as gone, and an erased receipt as received.
+
 ## Consequences
 
-- Any commit to the repository (including other applications' in a shared
-  repository) makes the next Chrona commit decide again. That is the
-  requirement's choice: correctness over fewer reloads, kept by decision
-  on 2026-10-08. A repository of Chrona's own is the recommended setup and
-  avoids the extra reloads; the check is not narrowed to Chrona's own
-  paths unless Arca supports that safely. Arca's backlog has WI-0018 for
-  namespace-scoped change tokens.
+- Until Arca 0.4.0, any commit to the repository (including other
+  applications' in a shared repository) made the next Chrona commit decide
+  again: correctness over fewer reloads, decided on 2026-10-08. From
+  WI-0073, only a change inside the organization's folder does (item 18).
 - An outside edit that claims a state only Chrona gives stays held: it is
   repaired in the repository, not accepted in the application.
 - Manual-edit detection reads each loaded activity's history; derived
@@ -454,5 +487,5 @@ person's display name as the provider identity, and two accounts can share
 one, so Chrona discards at sign-out by its own rule (14): by actor id, the
 stable identifier, keeping Arca's rule that an entry which may have landed
 is never discarded. Suggested to Arca: match accounts by a stable id (the
-actor id, or a provider subject), never by a display name. When Arca does,
-Chrona moves to `OwnedQueue.Discard`.
+actor id, or a provider subject), never by a display name. Arca 0.4.0 does
+(ARCA-OFF-007), and Chrona moved to `OwnedQueue.DiscardAccount` (item 18).

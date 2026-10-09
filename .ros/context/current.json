@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-08T23:59:48.000Z",
+  "updatedAt": "2026-10-09T00:59:20.000Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -2622,10 +2622,27 @@
     {
       "id": "WI-0057",
       "type": "task",
-      "state": "active",
-      "semanticState": "active",
-      "evidence": [],
-      "updatedAt": "2026-10-08T23:59:48.000Z",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Application/Store.fs"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/StoreTests.fs"
+        },
+        {
+          "type": "tests",
+          "path": "tests/browser/app-github.spec.js"
+        },
+        {
+          "type": "documentation",
+          "path": "research/decisions/DF-CHRONA-2026-0005--records-on-github-through-arca-behind-the-store-port.md"
+        }
+      ],
+      "updatedAt": "2026-10-09T00:59:20.000Z",
       "telemetryExecutionIds": [
         "EXE-20261008T235949355Z-28e2b305"
       ],
@@ -2648,7 +2665,9 @@
           "status": "verified",
           "mechanism": "git-remote-observation"
         }
-      }
+      },
+      "completedAt": "2026-10-09T00:59:20.000Z",
+      "conclusion": "The records open offline from the read cache through Arca 0.3.0's IndexedDbReadCache; changes made there are decided again on GitHub's records; sign-out follows SignOut.plan; Clear this device runs LimenDevice.clear"
     }
   ]
 }

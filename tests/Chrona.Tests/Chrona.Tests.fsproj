@@ -28,6 +28,7 @@
     <Compile Include="PeriodReviewTests.fs" />
     <Compile Include="ReportTests.fs" />
     <Compile Include="ObservationTests.fs" />
+    <Compile Include="IntakeTests.fs" />
     <Compile Include="StorageTests.fs" />
     <Compile Include="PersistenceTests.fs" />
     <Compile Include="SignInTests.fs" />
@@ -53,6 +54,7 @@
     <ProjectReference Include="../../src/Chrona.Engine/Chrona.Engine.fsproj" />
     <ProjectReference Include="../../src/Chrona.Application/Chrona.Application.fsproj" />
     <ProjectReference Include="../../src/Chrona.Summa/Chrona.Summa.fsproj" />
+    <ProjectReference Include="../../src/Chrona.Integration/Chrona.Integration.fsproj" />
   </ItemGroup>
 
 </Project>

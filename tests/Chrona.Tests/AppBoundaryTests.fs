@@ -51,6 +51,7 @@ let private envWith (answer: StoreRequest -> StoreOutcome) =
                     bridge.Start(async { return [ Chrona.Engine.App.Update.StoreAnswered(request.CommitId, answer request) ] })
               Read = fun _ -> ()
               Rebuild = fun () -> ()
+              ReadInboxes = fun () -> ()
               SendNow = fun () -> ()
               Discard = fun () -> ()
               TakeOver = fun () -> ()
@@ -545,7 +546,51 @@ let private richViews () =
 
         view (send { state with Model = Some waiting } (locationChanged $"#/periods/{period.Start:``yyyy-MM-dd``}"))
 
-    [ activity; review; month; today; project; view restricted; view troubled; view administering; reviewing ]
+    // Observations' candidates (WI-0038): one waiting with evidence and a
+    // link, one decided, from two sources, a refusal shown where it was
+    // made, and a file in the inbox that is not an observation.
+    let observing =
+        let model = state.Model.Value
+        let at = model.Now
+
+        let observation: Chrona.Domain.Observations.Observation =
+            { ObservationId = "obs-1"
+              SourceSystem = "github"
+              OrganizationId = model.Session.OrganizationId
+              ProjectId = model.Ledger.Activities[first].Classification.ProjectId
+              ActorId = Some model.Session.ActorId
+              WorkItemId = Some "PR-7"
+              ExternalUrl = Some "https://example.test/pr/7"
+              Timing = Chrona.Domain.Observations.ObservedInterval(at.AddHours -2.0, at.AddHours -1.0)
+              Description = Some "Reviewed the pull request"
+              Evidence = [ "commit", "abc123" ]
+              ObservedAt = at }
+
+        let waiting: Chrona.Domain.Observations.Candidate =
+            { CandidateId = "CAND-github-obs-1"
+              Observation = observation
+              ReceivedAt = at
+              Disposition = Chrona.Domain.Observations.Pending
+              Revision = 1
+              Decisions = [ { By = "chrona"; At = at; Disposition = Chrona.Domain.Observations.Pending } ] }
+
+        let decided =
+            { waiting with
+                CandidateId = "CAND-jira-obs-2"
+                Observation = { observation with SourceSystem = "jira"; ObservationId = "obs-2"; Evidence = [] }
+                Disposition = Chrona.Domain.Observations.Rejected "Not mine"
+                Revision = 2 }
+
+        let observed =
+            { model with
+                Candidates = [ waiting; decided ]
+                Inbox = { idleInbox with Invalid = [ "github", "broken", [ "the payload is not JSON" ] ]; LastRun = Some at }
+                Problems = model.Problems.Add(CandidateForm, [ Chrona.Domain.Diagnostics.MissingField "activityType" ]) }
+
+        let opened = { state with Model = Some observed }
+        [ view (send opened (locationChanged "#/candidates?status=all")); view (send opened (locationChanged "#/candidates/CAND-github-obs-1")) ]
+
+    [ activity; review; month; today; project; view restricted; view troubled; view administering; reviewing ] @ observing
 
 [<Fact>]
 let ``the application page binds only what its engine projects and sends only what it handles`` () =
@@ -822,3 +867,49 @@ let ``a page built for a deployment asks which build is served, and offers a rel
     Assert.Empty effects'
     Assert.Equal(Some "d4e5f6", next.Shell.Newer)
     Assert.Equal("A newer Chrona is ready. Reload to use it.", next.Announcement)
+
+/// Limen mounts one element for each `data-if` or `data-each` template: the
+/// first. A second root would never be shown (as the period's reopen button
+/// was not, until WI-0038 found it).
+[<Fact>]
+let ``every conditional or repeated part of the page is one element, as Limen mounts it`` () =
+    let html = Text.RegularExpressions.Regex.Replace(readRepoFile "web/index.html", "<!--.*?-->", "", Text.RegularExpressions.RegexOptions.Singleline)
+    let voids = set [ "area"; "base"; "br"; "col"; "embed"; "hr"; "img"; "input"; "link"; "meta"; "source"; "track"; "wbr" ]
+    let tags = Text.RegularExpressions.Regex.Matches(html, "<(/?)([a-zA-Z][a-zA-Z0-9-]*)([^>]*)>")
+
+    // Open elements, innermost first: the tag, the binding a template
+    // carries, and the root elements found directly inside it so far.
+    let mutable open' : (string * string option * string list) list = []
+    let mutable found = []
+
+    for tag in tags do
+        let closing = tag.Groups[1].Value = "/"
+        let name = tag.Groups[2].Value.ToLowerInvariant()
+        let attributes = tag.Groups[3].Value
+
+        if closing then
+            let rec pop stack =
+                match stack with
+                | (top, binding, roots) :: rest ->
+                    match binding with
+                    | Some bound when List.length roots <> 1 -> found <- found @ [ bound, roots ]
+                    | _ -> ()
+
+                    if top = name then rest else pop rest
+                | [] -> []
+
+            open' <- pop open'
+        else
+            match open' with
+            | (top, (Some _ as binding), roots) :: rest -> open' <- (top, binding, roots @ [ name ]) :: rest
+            | _ -> ()
+
+            if not (voids.Contains name) && not (attributes.TrimEnd().EndsWith "/") then
+                let binding =
+                    match Text.RegularExpressions.Regex.Match(attributes, "data-(?:if|each)=\"([^\"]+)\"") with
+                    | m when name = "template" && m.Success -> Some m.Groups[1].Value
+                    | _ -> None
+
+                open' <- (name, binding, []) :: open'
+
+    Assert.Empty(found)

@@ -37,7 +37,9 @@ let private generated (seed: int) =
     let maybe (value: unit -> 'a) = if random.Next 2 = 0 then None else Some(value ())
     let date () = DateOnly(random.Next(1, 10000), random.Next(1, 13), 1).AddDays(random.Next 28)
 
-    match random.Next 18 with
+    match random.Next 20 with
+    | 18 -> Candidates { Status = pick candidateStatuses; Source = maybe (fun () -> pick awkward) }
+    | 19 -> Candidate(pick [ "CAND-github-1"; "CAND-jira-PROJ 7"; "ünïcode/slash" ])
     | 12 -> ThisWeek
     | 13 -> Week(date (), maybe (fun () -> pick awkward))
     | 14 -> ThisPeriod
@@ -66,7 +68,7 @@ let private generated (seed: int) =
               Grouping = pick [ "project"; "activityType"; "tag"; "day" ]
               Format = pick [ "csv"; "json" ] }
     | 9 -> Settings None
-    | 10 -> Settings(Some(pick [ References; PeriodSettings; Changes; Account; People; ActivityIndex ]))
+    | 10 -> Settings(Some(pick [ References; PeriodSettings; Changes; Account; People; ActivityIndex; Inboxes ]))
     | _ -> SignIn(maybe (fun () -> pick [ "/"; "/day/2026-10-08?project=helix"; "/reports?q=a%20b" ]))
 
 [<Fact>]
@@ -103,6 +105,11 @@ let ``addresses are relative fragment links in Limen's canonical form`` () =
     Assert.Equal("/periods/2026-10-01", ok (formatAt (Period(DateOnly(2026, 10, 1)))))
     Assert.Equal("/projects/PRJ%201", ok (formatAt (Project "PRJ 1")))
     Assert.Equal("/projects", ok (formatAt Projects))
+    // Observations' candidates (WI-0038): awaiting is the default status.
+    Assert.Equal("/candidates", ok (formatAt (Candidates awaitingCandidates)))
+    Assert.Equal("/candidates?status=decided&source=git%20hub", ok (formatAt (Candidates { Status = "decided"; Source = Some "git hub" })))
+    Assert.Equal("/candidates/CAND-github-1", ok (formatAt (Candidate "CAND-github-1")))
+    Assert.Equal("/more/inbox", ok (formatAt (Settings(Some Inboxes))))
     // The organization is named last, where a deployment serves several.
     Assert.Equal("/day/2026-10-08?project=helix&org=org_eu", ok (format { Place = Day(on, Some "helix"); Organization = Some "org_eu" }))
     Assert.Equal("/more/people?org=org_eu", ok (format { Place = Settings(Some People); Organization = Some "org_eu" }))
@@ -163,11 +170,12 @@ let ``an address that names nothing, or names it wrongly, is a route error and n
     Assert.Equal(RouteError.NotFound, error "/nowhere")
     Assert.Equal(RouteError.NotFound, error "/day")
     // The first structural match decides: a wrong part of More is invalid, not another page.
-    Assert.Equal(RouteError.Invalid(Names.Section, "section", "billing", "one of references|periods|changes|account"), error "/more/billing")
+    Assert.Equal(RouteError.Invalid(Names.Section, "section", "billing", "one of references|periods|changes|account|inbox"), error "/more/billing")
     Assert.Equal(RouteError.Invalid(Names.Day, "on", "2026-02-30", "date"), error "/day/2026-02-30")
     Assert.Equal(RouteError.Invalid(Names.Month, "period", "2026-13", "month"), error "/month/2026-13")
     Assert.Equal(RouteError.Invalid(Names.Reports, "group", "colour", "one of project|type|tag|day"), error "/reports?group=colour")
     Assert.Equal(RouteError.Invalid(Names.Reports, "removed", "yes", "bool"), error "/reports?removed=yes")
+    Assert.Equal(RouteError.Invalid(Names.Candidates, "status", "maybe", "one of awaiting|decided|all"), error "/candidates?status=maybe")
     Assert.Equal(RouteError.Invalid(Names.Reports, "q", "a,b", "a single value"), error "/reports?q=a&q=b")
     Assert.Equal(RouteError.Malformed "path", error "/day/%ZZ")
     Assert.Equal(RouteError.Malformed "length", error ("/reports?q=" + String('a', 9000)))

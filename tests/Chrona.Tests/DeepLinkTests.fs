@@ -208,6 +208,66 @@ let ``someone else's activity is refused, not shown`` () =
     Assert.True(flagOf "screenActivity" mine)
     Assert.Equal("Pairing", textOf "detailTitle" mine)
 
+/// A candidate an observation made (WI-0038), of this person or of someone else.
+let private observedBy (actorId: string option) (id: string) : Observations.Candidate =
+    let at = DateTimeOffset(2026, 10, 8, 9, 0, 0, TimeSpan.FromHours -4.0)
+
+    { CandidateId = id
+      Observation =
+        { ObservationId = id
+          SourceSystem = "github"
+          OrganizationId = "local"
+          ProjectId = "PRJ-1"
+          ActorId = actorId
+          WorkItemId = None
+          ExternalUrl = None
+          Timing = Observations.ObservedDuration 30
+          Description = Some "Reviewed a pull request"
+          Evidence = []
+          ObservedAt = at }
+      ReceivedAt = at
+      Disposition = Observations.Pending
+      Revision = 1
+      Decisions = [] }
+
+[<Fact>]
+let ``a candidate's link opens it for its person, is refused to anyone else, and one that does not exist is not found`` () =
+    let model = working ()
+
+    let observed =
+        { model with
+            Candidates =
+                [ observedBy (Some model.Session.ActorId) "CAND-mine"
+                  observedBy None "CAND-unassigned"
+                  observedBy (Some "github:42") "CAND-theirs" ] }
+
+    for id in [ "CAND-mine"; "CAND-unassigned" ] do
+        let opened, _ = (observed, []) |> step (LocationMoved $"#/candidates/{id}")
+        Assert.True(flagOf "screenCandidate" opened, id)
+        Assert.Equal("Reviewed a pull request", textOf "candidateTitle" opened)
+        Assert.Equal("Reviewed a pull request", opened.CandidateDraft.Description)
+        Assert.True(flagOf "candidateDecidable" opened)
+
+    let refused, _ = (observed, []) |> step (LocationMoved "#/candidates/CAND-theirs")
+    Assert.True(flagOf "screenProblem" refused)
+    Assert.Equal("Not permitted", textOf "problemTitle" refused)
+    Assert.False(flagOf "screenCandidate" refused)
+
+    let missing, _ = (observed, []) |> step (LocationMoved "#/candidates/CAND-nowhere")
+    Assert.True(flagOf "screenProblem" missing)
+    Assert.Equal("not-found", textOf "problemKind" missing)
+
+    // The list shows only what the person may decide, awaiting first.
+    let listed, _ = (observed, []) |> step (LocationMoved "#/candidates")
+    Assert.True(flagOf "screenCandidates" listed)
+
+    let ids =
+        match view listed |> Map.find "candidateList" with
+        | Chrona.Engine.View.Items rows -> rows |> List.map (fun row -> row |> List.pick (function "id", Chrona.Engine.View.Text id -> Some id | _ -> None))
+        | other -> failwith $"%A{other}"
+
+    Assert.Equal<string list>([ "CAND-mine"; "CAND-unassigned" ], ids)
+
 // ---- the organization in the address -------------------------------------------------
 
 let private twoOrganizations =
@@ -248,7 +308,8 @@ let ``where a deployment serves several organizations, the address names the one
                   Index = ""
                   Periods = None
                   Reviews = []
-                  Reviewing = [] }
+                  Reviewing = []
+                  Candidates = [] }
         )
 
     let _, effects = (opened, []) |> step (ui "goMore" "")

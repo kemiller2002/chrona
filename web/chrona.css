@@ -1174,15 +1174,19 @@ textarea.chrona-export {
   list-style: none;
 }
 
+/* The list sits in More's narrow column: the person's name has a row of
+   its own, so the access select never squeezes it to a letter a line. */
 .chrona-members__item {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem 0.75rem;
 }
 
 .chrona-members__item p {
+  grid-column: 1 / -1;
   margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .chrona-members__account {
@@ -1290,6 +1294,39 @@ textarea.chrona-export {
   border-color: var(--ef-color-text-inverse);
   background: transparent;
   color: var(--ef-color-text-inverse);
+}
+
+/* ---- observations' candidates (WI-0038) -------------------------------------- */
+
+.chrona-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-block: 0 1rem;
+}
+
+.chrona-filters .chrona-chip {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.chrona-filters .chrona-chip[aria-current="page"] {
+  border-color: var(--ef-color-accent-primary);
+  background: var(--ef-color-accent-primary);
+  color: var(--ef-color-surface-primary);
+}
+
+.chrona-candidate-reject {
+  margin-block-start: 1.5rem;
+  border-block-start: 1px solid var(--ef-color-border-subtle);
+  padding-block-start: 1rem;
+}
+
+.chrona-subtitle {
+  margin: 1.25rem 0 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
 }
 
 /* ---- addresses (CHX-460) ------------------------------------------------------ */

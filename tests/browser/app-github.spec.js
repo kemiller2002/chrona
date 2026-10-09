@@ -58,8 +58,9 @@ async function signedIn(context) {
 }
 
 // Reference data, added through More (each addition is one commit).
-async function references(page) {
-  await page.click(".chrona-nav__link:has-text('More')");
+// On a phone, More is in the tab bar.
+async function references(page, navigation = ".chrona-nav__link") {
+  await page.click(`${navigation}:has-text('More')`);
   await page.fill("#new-project-name", "HelixNote");
   await page.click("#add-project");
   await expect(page.locator("#projects .ef-checkbox__label")).toHaveText(["HelixNote"]);
@@ -568,5 +569,96 @@ test.describe("a deployment of two organizations", () => {
     // An organization the deployment does not serve is not found.
     await other.goto("/web/index.html#/more?org=org_none");
     await expect(other.locator("#problem-title")).toHaveText("Not found");
+  });
+});
+
+// ---- observation inboxes (WI-0038, requirement 18) ------------------------------
+
+// Version 1 of the time-observation contract, as a producer writes it.
+const observationText = (id, projectId, description) =>
+  JSON.stringify({
+    contract: "chrona.time-observation",
+    version: 1,
+    observationId: id,
+    sourceSystem: "github",
+    organizationId: "org_acme",
+    projectId,
+    actorId: "github:583231",
+    workItemId: "PR-7",
+    externalUrl: "https://example.test/pull/7",
+    timing: { kind: "duration", minutes: 45 },
+    description,
+    evidence: [{ kind: "pull-request", reference: "https://example.test/pull/7" }],
+    observedAt: new Date(Date.now() - 60 * 60 * 1000).toISOString()
+  });
+
+const dataset = "deployments/test/chrona/datasets/org_acme";
+
+test("an observation a producer files becomes a candidate, and accepting it makes it the person's time", async ({ context, github }) => {
+  const page = await signedIn(context);
+  await references(page);
+  await expect(headline(page)).toHaveText("All changes saved");
+  const projectPath = Object.keys(headFiles(github.current())).find((path) => /\/records\/[^/]+\/project\/[^/]+\.json$/.test(path));
+  const projectId = projectPath.split("/").pop().replace(/\.json$/, "");
+
+  // A producer files an observation, and a payload that is not one.
+  github.commit({
+    [`${dataset}/inbox/github/obs-1.json`]: observationText("obs-1", projectId, "Reviewed pull request 7"),
+    [`${dataset}/inbox/github/broken.json`]: "{}"
+  });
+
+  await page.goto("/web/index.html#/more/inbox");
+  await page.click("#read-inboxes");
+  await expect(page.locator("#inbox-status")).toContainText("1 observation was received");
+  await expect(page.locator("#inbox-invalid")).toContainText("inbox/github/broken.json");
+  const files = headFiles(github.current());
+  expect(Object.keys(files)).toContain(`${dataset}/records/chrona.candidate/open/CAND-github-obs-1.json`);
+  expect(Object.keys(files)).toContain(`${dataset}/records/chrona.receipt/github/obs-1.json`);
+  expect(Object.keys(files)).toContain(`${dataset}/records/chrona.receipt/github/broken.json`);
+  expect(Object.keys(files)).not.toContain(`${dataset}/inbox/github/obs-1.json`);
+
+  // It waits for the person's decision, on Today and in the candidates.
+  await page.click(".chrona-nav__link:has-text('Today')");
+  await expect(page.locator("#obligations")).toContainText("1 observation awaits your decision");
+  await page.goto("/web/index.html#/candidates");
+  await page.click("#candidate-list a:has-text('Reviewed pull request 7')");
+  await expect(page).toHaveURL(/#\/candidates\/CAND-github-obs-1$/);
+  await expect(page.locator("#candidate-timing")).toContainText("45");
+
+  await page.selectOption("#candidate-activity-type", { label: "Research" });
+  await page.fill("#candidate-purpose", "Code review");
+  await page.click("#accept-candidate");
+  await expect(page.locator("p[role=status][aria-live=polite]")).toHaveText(/^Accepted /);
+  await expect(page.locator("#candidate-state")).toHaveText("Accepted");
+  await expect(headline(page)).toHaveText("All changes saved");
+
+  const after = Object.keys(headFiles(github.current()));
+  expect(after).not.toContain(`${dataset}/records/chrona.candidate/open/CAND-github-obs-1.json`);
+  expect(after.some((path) => path.startsWith(`${dataset}/records/chrona.candidate/decided/`))).toBe(true);
+  expect(stored(github, "Reviewed pull request 7")).toHaveLength(1);
+});
+
+test.describe("on a phone", () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+
+  test("a candidate's page fits the screen, and its link opens it cold through sign-in", async ({ context, github }) => {
+    const page = await signedIn(context);
+    await references(page, ".chrona-tabbar__link");
+    const projectFile = () => Object.keys(headFiles(github.current())).find((path) => /\/records\/[^/]+\/project\/[^/]+\.json$/.test(path));
+    await expect.poll(projectFile).toBeTruthy();
+    const projectPath = projectFile();
+    const projectId = projectPath.split("/").pop().replace(/\.json$/, "");
+    github.commit({ [`${dataset}/inbox/github/obs-2.json`]: observationText("obs-2", projectId, "Paired on the release") });
+    await page.close();
+
+    // Opened cold from its link: sign-in, the inbox read, then the candidate.
+    const cold = await context.newPage();
+    await cold.goto("/web/index.html#/candidates/CAND-github-obs-2");
+    await expect(cold.locator("html")).toHaveAttribute("data-kernel", "running");
+    await cold.click("#sign-in-button");
+    await expect(cold.locator("#candidate-title")).toHaveText("Paired on the release", { timeout: 20_000 });
+    await expect(cold).toHaveURL(/#\/candidates\/CAND-github-obs-2$/);
+    await expect(cold.locator("#accept-candidate")).toBeVisible();
+    expect(await cold.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(0);
   });
 });

@@ -43,7 +43,7 @@
 | WI-0035 | Chrona 10: conflict resolution and review of outside edits in the application (CHX-260, CHX-410, CHX-320 remainders) | complete | chrona, order:10, ui, limen, forma | high |
 | WI-0036 | Chrona 11: timesheet periods on Arca - persisted period configuration, closed periods and their effect on submission and approval (CHX-150 remainder) | complete | chrona, order:11, periods | medium |
 | WI-0037 | Chrona 12: consume Summa's Chrona-to-Summa billing contract through Conditor and map Chrona onto it (CHX-170, CHX-450 remainders) | complete | chrona, order:12, integration, summa, contracts, depends:summa | high |
-| WI-0038 | Chrona 13: observation inboxes on Arca - reading producer inboxes, durable candidates and receipts, startup reconciliation (CHX-190 remainder, CHX-200, CHX-120 import path remainder, CHX-250 import audit remainder) | captured | chrona, order:13, observations | medium |
+| WI-0038 | Chrona 13: observation inboxes on Arca - reading producer inboxes, durable candidates and receipts, startup reconciliation (CHX-190 remainder, CHX-200, CHX-120 import path remainder, CHX-250 import audit remainder) | active | chrona, order:13, observations | medium |
 | WI-0039 | Chrona 14: search, reporting and export on stored data - rebuildable search indexes and reports across people and organizations (CHX-270, CHX-280, CHX-290 remainders) | captured | chrona, order:14, reporting, folio | medium |
 | WI-0040 | Chrona 15: telemetry privacy, remaining scenario tests and the production completion gate (CHX-420, CHX-430, CHX-440, CHX-001, CHX-002, CHX-004 remainders) | captured | chrona, order:15, quality, gate | medium |
 | WI-0041 | Stop the Chromium install from hanging the browser-suite CI (unbounded apt-get update in playwright install --with-deps) | complete | ci, playwright, reliability | high |
@@ -78,4 +78,5 @@
 | WI-0070 | Chrona 16f: re-render the visual baselines routinely - a workflow that renders them with CI's pinned Chromium and opens a pull request (CHX-005) | complete |  | high |
 | WI-0071 | Chrona 17: deep links - every navigable state in the URL on Limen's URL-state semantics (CHX-460) | complete | chrona, routing, limen | high |
 | WI-0072 | Move Chrona to Limen 0.9.0 through Conditor: Limen.Routing from the attested package in place of the interim copy, @echelon-foundry/limen 0.9.0, the route inventory validated against contract/routes.schema.json (CHX-460) | complete | chrona, limen, conditor | high |
-| WI-0073 | Move Chrona to Arca 0.4.0 through Conditor: namespace-scoped change tokens for reads, writes and the read cache, and sign-out discard by stable account id (arca WI-0018, arca#33) | ready | chrona, arca, conditor | high |
+| WI-0073 | Move Chrona to Arca 0.4.0 through Conditor: namespace-scoped change tokens for reads, writes and the read cache, and sign-out discard by stable account id (arca WI-0018, arca#33) | blocked | chrona, arca, conditor | high |
+| WI-0074 | Chrona: observation source policies and receipt integrity - trusted sources a deployment configures to auto-accept, and receipts without their candidate detected (CHX-190, CHX-390 remainders) | captured |  | medium |

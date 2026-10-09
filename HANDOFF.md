@@ -130,6 +130,16 @@ for the diagnosis, the evidence, and one unexercised watch item.
   reopens it with a reason; whoever approves sees other members' waiting
   submissions there and approves or returns them. Time in a submitted or
   closed period is held (`CHRONA.REVIEW.SUBMITTED_PERIOD`) until reopened.
+- Observation inboxes (WI-0038): producers write `chrona.time-observation`
+  version 1 (`src/Chrona.Integration`) to `inbox/<source>/<id>.json` in the
+  organization's folder. Each time the records open from GitHub (and from
+  "Read the inboxes now" under More), up to 20 files a pass become
+  `chrona.candidate` records with an immutable `chrona.receipt`, the file
+  removed in the same commit; a payload that is not an observation gets a
+  receipt with its reasons and stays. Candidates are reviewed at
+  `#/candidates` and accepted (classified, under every ledger rule) or
+  rejected with a reason; a decided candidate moves to its decision month.
+  Source policies that auto-accept are WI-0074.
 - Derived state (WI-0034): the activity index, an Arca derived index under
   `derived/indexes/activity-months.json` with one entry per activity record,
   is written in the same commit as the records it covers, so it is always

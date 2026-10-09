@@ -14,6 +14,7 @@
     <Compile Include="AppProtocol.fs" />
     <Compile Include="Bridge.fs" />
     <Compile Include="Identity.fs" />
+    <Compile Include="Intake.fs" />
     <Compile Include="Store.fs" />
     <Compile Include="App.fs" />
     <Compile Include="Runtime.fs" />
@@ -45,6 +46,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../Chrona.Engine/Chrona.Engine.fsproj" />
+    <ProjectReference Include="../Chrona.Integration/Chrona.Integration.fsproj" />
   </ItemGroup>
 
 </Project>

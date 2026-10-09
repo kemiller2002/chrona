@@ -76,6 +76,9 @@ type Diagnostic =
     | OrganizationNotInitialized of id: string
     | NamespaceUnusable of root: string * detail: string
     | InvalidStoredRecord of path: string * detail: string
+    /// A problem recorded with a stored record, kept by its stable code
+    /// (an observation's, WI-0038).
+    | RecordedProblem of code: string
     | StorageOperationRefused of detail: string
     | UnstorableActivity of id: string * detail: string
     | UnstorableRecord of id: string * detail: string
@@ -160,6 +163,7 @@ let code =
     | OrganizationNotInitialized _ -> "CHRONA.STORAGE.ORGANIZATION_NOT_INITIALIZED"
     | NamespaceUnusable _ -> "CHRONA.STORAGE.NAMESPACE_UNUSABLE"
     | InvalidStoredRecord _ -> "CHRONA.STORAGE.INVALID_RECORD"
+    | RecordedProblem recorded -> recorded
     | StorageOperationRefused _ -> "CHRONA.STORAGE.OPERATION_REFUSED"
     | UnstorableActivity _ -> "CHRONA.STORAGE.UNSTORABLE_ACTIVITY"
     | UnstorableRecord _ -> "CHRONA.STORAGE.UNSTORABLE_RECORD"

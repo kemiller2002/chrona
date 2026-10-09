@@ -257,6 +257,7 @@ type private Device(github: InMemoryStore, visibility: RepositoryVisibility, env
             | ConfirmAdministrator -> store.Confirm()
             | ReadMonths dates -> store.Read dates
             | RebuildIndex -> store.Rebuild()
+            | ReadInboxes -> store.ReadInboxes()
             | SendUnsent -> store.SendNow()
             | TakeOverQueue -> store.TakeOver()
             | ClaimQueue -> store.Claim()
@@ -2711,3 +2712,132 @@ let ``a returned submission is open for correction, with the reason, and can be 
     match Chrona.Domain.PeriodReview.stateOf true back.Model.Reviews hubot.ActorId submission.Period with
     | Chrona.Domain.PeriodReview.AwaitingApproval again -> Assert.Equal(2, again.Covered.Length)
     | other -> failwith $"%A{other}"
+
+// ---- Producers' inboxes (WI-0038, requirement 18) -------------------------------------
+
+let private orgPath (path: string) = $"deployments/chrona/datasets/org_acme/{path}"
+
+/// A producer files a payload in the organization's inbox, outside Chrona.
+let private fileInInbox (github: InMemoryStore) (source: string) (id: string) (text: string) =
+    github.WriteExternally((folderOf (configuration "production")).Location, orgPath $"inbox/{source}/{id}.json", Some text)
+
+let private observedWork (id: string) (projectId: string) (startTime: int) : Chrona.Integration.TimeObservationV1.TimeObservation =
+    let begins = DateTimeOffset(2026, 10, 7, startTime, 0, 0, TimeSpan.FromHours -4.0)
+
+    { ObservationId = id
+      SourceSystem = "github"
+      OrganizationId = "org_acme"
+      ProjectId = projectId
+      ActorId = Some octocat.ActorId
+      WorkItemId = Some "PR-7"
+      ExternalUrl = Some "https://example.test/pull/7"
+      Timing = Chrona.Integration.TimeObservationV1.Interval(begins, begins.AddMinutes 45.0)
+      Description = Some $"Reviewed {id}"
+      Evidence = []
+      ObservedAt = begins.AddMinutes 45.0 }
+
+/// An organization with reference data, and a producer's four files: two
+/// observations, one that is not one, and one for another organization.
+let private withInbox () =
+    let github = InMemoryStore()
+    let first = Device(github, RepositoryVisibility.Private, "production")
+    first.Open()
+    record first "08:00" "08:30" "Setup"
+    let projectId = project first.Model
+    let serialize = Chrona.Integration.TimeObservationV1.serialize
+    fileInInbox github "github" "obs-1" (serialize (observedWork "obs-1" projectId 13))
+    fileInInbox github "github" "obs-2" (serialize (observedWork "obs-2" projectId 15))
+    fileInInbox github "github" "broken" """{"contract":"chrona.time-observation","version":1}"""
+    fileInInbox github "github" "elsewhere" (serialize { observedWork "elsewhere" projectId 16 with OrganizationId = "org_other" })
+    github, first
+
+[<Fact>]
+let ``observations a producer files become candidates with receipts when the records open, and leave the inbox`` () =
+    let github, _ = withInbox ()
+    let commits = github.State.History.Length
+
+    let device = Device(github, RepositoryVisibility.Private, "production")
+    device.Open()
+
+    let paths = storedPaths github
+    // One commit for each file: a candidate, its receipt and the file's
+    // removal land together; a payload that is not an observation gets its
+    // receipt, and stays for its producer to see.
+    Assert.Equal(commits + 4, github.State.History.Length)
+
+    for id in [ "obs-1"; "obs-2" ] do
+        Assert.Contains(orgPath $"records/chrona.candidate/open/CAND-github-{id}.json", paths)
+        Assert.Contains(orgPath $"records/chrona.receipt/github/{id}.json", paths)
+        Assert.DoesNotContain(orgPath $"inbox/github/{id}.json", paths)
+
+    for id in [ "broken"; "elsewhere" ] do
+        Assert.Contains(orgPath $"records/chrona.receipt/github/{id}.json", paths)
+        Assert.Contains(orgPath $"inbox/github/{id}.json", paths)
+
+    Assert.Equal<string list>([ "CAND-github-obs-1"; "CAND-github-obs-2" ], device.Model.Candidates |> List.map _.CandidateId |> List.sort)
+    Assert.Equal(2, device.Model.Inbox.Received)
+    Assert.Equal<string list>([ "broken"; "elsewhere" ], device.Model.Inbox.Invalid |> List.map (fun (_, id, _) -> id))
+    Assert.Contains("org_other", device.Model.Inbox.Invalid |> List.collect (fun (_, _, reasons) -> reasons) |> String.concat " ")
+    Assert.False(device.Model.Inbox.Running)
+
+    // Read again, nothing is received twice: the refused files are shown
+    // with their receipts' reasons, and nothing is written.
+    device.Ui("readInboxes", "")
+    Assert.Equal(commits + 4, github.State.History.Length)
+    Assert.Equal(2, device.Model.Inbox.Invalid.Length)
+    Assert.Equal(2, device.Model.Candidates.Length)
+
+[<Fact>]
+let ``a candidate accepted becomes the person's time and leaves the open folder; one rejected keeps its reason`` () =
+    let github, _ = withInbox ()
+    let device = Device(github, RepositoryVisibility.Private, "production")
+    device.Open()
+
+    device.Send(LocationMoved "#/candidates/CAND-github-obs-1")
+    // The draft opens with what the observation proposes.
+    Assert.Equal("Reviewed obs-1", device.Model.CandidateDraft.Description)
+    device.Ui("candidateActivityType", activityType device.Model)
+    device.Ui("candidatePurpose", "Code review")
+    device.Ui("acceptCandidate", "")
+    Assert.Empty(device.Model.Store.Pending)
+    Assert.Empty(device.Model.Store.Conflicts)
+
+    device.Send(LocationMoved "#/candidates/CAND-github-obs-2")
+    device.Ui("candidateReason", "Pairing, already recorded")
+    device.Ui("rejectCandidate", "")
+    Assert.Empty(device.Model.Store.Pending)
+
+    let paths = storedPaths github
+    Assert.DoesNotContain(orgPath "records/chrona.candidate/open/CAND-github-obs-1.json", paths)
+    Assert.Contains(orgPath "records/chrona.candidate/decided/2026/10/CAND-github-obs-1.json", paths)
+    Assert.Contains(orgPath "records/chrona.candidate/decided/2026/10/CAND-github-obs-2.json", paths)
+
+    // Another device reads the decisions and the time.
+    let other = Device(github, RepositoryVisibility.Private, "production")
+    other.Open()
+    let imported = other.Model.Ledger.Activities |> Map.toList |> List.map snd |> List.filter (fun a -> a.EntryMethod = Activity.Imported "github")
+    let accepted = imported |> List.exactlyOne
+    Assert.Equal(45, accepted.Minutes)
+    Assert.Equal(Some "obs-1", accepted.Source |> Option.map _.ObservationId)
+
+    match other.Model.Candidates |> List.sortBy _.CandidateId with
+    | [ one; two ] ->
+        Assert.Equal(Observations.Accepted [ accepted.ActivityId ], one.Disposition)
+        Assert.Equal(Observations.Rejected "Pairing, already recorded", two.Disposition)
+    | others -> failwith $"%A{others}"
+
+[<Fact>]
+let ``accepting time in a submitted period is refused until it is reopened, and the candidate waits`` () =
+    let github, first = withInbox ()
+    first.Ui("submitPeriod", "")
+    Assert.Empty(first.Model.Store.Pending)
+
+    let device = Device(github, RepositoryVisibility.Private, "production")
+    device.Open()
+    device.Send(LocationMoved "#/candidates/CAND-github-obs-1")
+    device.Ui("candidateActivityType", activityType device.Model)
+    device.Ui("candidatePurpose", "Code review")
+    device.Ui("acceptCandidate", "")
+
+    Assert.Equal<string list>([ "CHRONA.REVIEW.SUBMITTED_PERIOD" ], device.Model.Problems[CandidateForm] |> List.map code)
+    Assert.True(storedPaths github |> List.contains (orgPath "records/chrona.candidate/open/CAND-github-obs-1.json"))

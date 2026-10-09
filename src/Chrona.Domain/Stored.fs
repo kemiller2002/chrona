@@ -21,6 +21,12 @@ type StoredConfiguration =
       Path: RelativePath
       Revision: Revision }
 
+/// A candidate as read from storage.
+type StoredCandidate =
+    { Candidate: Observations.Candidate
+      Path: RelativePath
+      Revision: Revision }
+
 /// A membership as read from storage.
 type StoredMember =
     { Membership: Access.Membership
@@ -42,6 +48,8 @@ type Stored =
       Periods: StoredConfiguration option
       /// Periods' review steps, by namespace-relative path. They are immutable.
       Reviews: Map<string, PeriodReview.PeriodReview>
+      /// Observations' candidates read, by candidate id (WI-0038).
+      Candidates: Map<string, StoredCandidate>
       /// Integrity problems of reference items and attestations.
       Problems: Diagnostic list }
 
@@ -53,6 +61,7 @@ let empty =
       Audit = Map.empty
       Periods = None
       Reviews = Map.empty
+      Candidates = Map.empty
       Problems = [] }
 
 /// The key a reference item is tracked by.
@@ -148,6 +157,21 @@ let load (objects: StoredObject list) : Stored =
                 | Error diagnostic -> Error diagnostic))
         |> List.partition Result.isOk
 
+    let candidates, candidateProblems =
+        ofType CandidateRecord.recordType
+        |> List.map (fun (key, stored) ->
+            decodeWith CandidateRecord.schema CandidateRecord.ofBody key stored
+            |> Result.bind (fun candidate ->
+                match CandidateRecord.path candidate with
+                | Ok expected when expected = stored.Path ->
+                    Ok
+                        { Candidate = candidate
+                          Path = stored.Path
+                          Revision = stored.Revision }
+                | Ok _ -> Error(MisplacedRecord(RelativePath.render stored.Path))
+                | Error diagnostic -> Error diagnostic))
+        |> List.partition Result.isOk
+
     let members, memberProblems =
         ofType MemberRecord.recordType
         |> List.map (fun (key, stored) ->
@@ -175,6 +199,7 @@ let load (objects: StoredObject list) : Stored =
                 && key.Type <> AuditRecord.recordType
                 && key.Type <> PeriodConfigRecord.recordType
                 && key.Type <> ReviewRecord.recordType
+                && key.Type <> CandidateRecord.recordType
             | None -> true)
         |> List.map (fun stored -> InvalidStoredRecord(RelativePath.render stored.Path, "not a record Chrona keeps here"))
 
@@ -197,6 +222,7 @@ let load (objects: StoredObject list) : Stored =
       Audit = oks audits |> Map.ofList
       Periods = oks periods |> List.tryHead
       Reviews = oks reviews |> Map.ofList
+      Candidates = oks candidates |> List.map (fun found -> found.Candidate.CandidateId, found) |> Map.ofList
       Problems =
         errors referenceProblems
         @ errors attestationProblems
@@ -204,6 +230,7 @@ let load (objects: StoredObject list) : Stored =
         @ errors auditProblems
         @ errors periodProblems
         @ errors reviewProblems
+        @ errors candidateProblems
         @ foreign }
 
 /// The organization's roster, from what was read.
@@ -245,7 +272,14 @@ type Changed =
       /// The period configuration saved.
       Periods: PeriodConfigRecord.StoredPeriods option
       /// Periods' review steps made.
-      Reviews: PeriodReview.PeriodReview list }
+      Reviews: PeriodReview.PeriodReview list
+      /// Observations' candidates made or decided (WI-0038).
+      Candidates: Observations.Candidate list
+      /// Processing receipts issued; each written once.
+      Receipts: Observations.Receipt list
+      /// Producer inbox files done with, at the revision read: removed with
+      /// their receipt.
+      Consumed: (RelativePath * Revision) list }
 
 /// Nothing changed.
 let nothing =
@@ -256,7 +290,10 @@ let nothing =
       Removed = []
       Audit = []
       Periods = None
-      Reviews = [] }
+      Reviews = []
+      Candidates = []
+      Receipts = []
+      Consumed = [] }
 
 /// The Arca changes that store a command's records on top of what was read:
 /// activities as `Persistence.changes`, reference items and memberships
@@ -312,6 +349,23 @@ let changes (stored: Stored) (changed: Changed) : Result<Change list, Diagnostic
         | Error diagnostic, _
         | _, Error diagnostic -> Error [ diagnostic ]
 
+    let candidateChange (candidate: Observations.Candidate) =
+        match CandidateRecord.path candidate, CandidateRecord.encode candidate with
+        | Ok target, Ok content ->
+            match stored.Candidates.TryFind candidate.CandidateId with
+            | Some found when found.Path = target -> Ok [ Change.Update(target, content, found.Revision) ]
+            // Decided: it moves from the open folder to its month.
+            | Some found -> Ok [ Change.Delete(found.Path, found.Revision); Change.Create(target, content) ]
+            | None -> Ok [ Change.Create(target, content) ]
+        | Error diagnostic, _
+        | _, Error diagnostic -> Error [ diagnostic ]
+
+    let receiptChange (receipt: Observations.Receipt) =
+        match ReceiptRecord.path receipt, ReceiptRecord.encode receipt with
+        | Ok target, Ok content -> Ok [ Change.Create(target, content) ]
+        | Error diagnostic, _
+        | _, Error diagnostic -> Error [ diagnostic ]
+
     let removal (principalId: string) =
         match stored.Members.TryFind principalId with
         | Some found -> Ok [ Change.Delete(found.Path, found.Revision) ]
@@ -326,6 +380,9 @@ let changes (stored: Stored) (changed: Changed) : Result<Change list, Diagnostic
         @ (changed.Audit |> List.map auditChange)
         @ (changed.Periods |> Option.toList |> List.map periodsChange)
         @ (changed.Reviews |> List.map reviewChange)
+        @ (changed.Candidates |> List.map candidateChange)
+        @ (changed.Receipts |> List.map receiptChange)
+        @ (changed.Consumed |> List.map (fun (path, revision) -> Ok [ Change.Delete(path, revision) ]))
 
     match results |> List.collect (function Error problems -> problems | Ok _ -> []) with
     | [] -> Ok(results |> List.collect (function Ok found -> found | Error _ -> []))
@@ -358,6 +415,10 @@ let changedOf (changes: Change list) : Result<Changed, Diagnostic list> =
                 PeriodConfigRecord.ofBody "" body |> Result.map (fun p -> { nothing with Periods = Some p }) |> Result.mapError invalid
             elif key.Type = ReviewRecord.recordType then
                 ReviewRecord.ofBody body |> Result.map (fun review -> { nothing with Reviews = [ review ] }) |> Result.mapError invalid
+            elif key.Type = CandidateRecord.recordType then
+                CandidateRecord.ofBody body |> Result.map (fun c -> { nothing with Candidates = [ c ] }) |> Result.mapError invalid
+            elif key.Type = ReceiptRecord.recordType then
+                ReceiptRecord.ofBody body |> Result.map (fun receipt -> { nothing with Receipts = [ receipt ] }) |> Result.mapError invalid
             else
                 Error(invalid "not a record Chrona keeps here")
         | _ -> Error(InvalidStoredRecord(where, "not a valid record"))
@@ -369,6 +430,9 @@ let changedOf (changes: Change list) : Result<Changed, Diagnostic list> =
             | Some principalId -> Ok { nothing with Removed = [ principalId ] }
             | None -> Error(InvalidStoredRecord(RelativePath.render path, "not a member's record id"))
         | Some key when key.Type = ActivityRecord.recordType -> Ok nothing
+        // A decided candidate leaves the open folder; it is carried by its create.
+        | Some key when key.Type = CandidateRecord.recordType -> Ok nothing
+        | _ when (RelativePath.segments path |> List.tryHead |> Option.map Segment.value) = Some "inbox" -> Ok nothing
         | _ -> Error(InvalidStoredRecord(RelativePath.render path, "not a record Chrona removes"))
 
     // Derived state written with the records (the activity index) is not a record.
@@ -398,7 +462,12 @@ let changedOf (changes: Change list) : Result<Changed, Diagnostic list> =
               Removed = found |> List.collect _.Removed
               Audit = found |> List.collect _.Audit
               Periods = found |> List.tryPick _.Periods
-              Reviews = found |> List.collect _.Reviews }
+              Reviews = found |> List.collect _.Reviews
+              Candidates = found |> List.collect _.Candidates
+              Receipts = found |> List.collect _.Receipts
+              // Read back from a queued operation, an inbox file's removal is
+              // its delete there; it is decided again from the inbox.
+              Consumed = [] }
     | problems -> Error problems
 
 /// What is stored with changes not yet stored laid over it, as the person
@@ -502,6 +571,17 @@ let overlay (changed: Changed) (stored: Stored) =
                 | Error _ -> map)
             stored.Reviews
 
+    let candidates =
+        changed.Candidates
+        |> List.fold
+            (fun map (candidate: Observations.Candidate) ->
+                match CandidateRecord.path candidate with
+                | Ok path ->
+                    let revision = map |> Map.tryFind candidate.CandidateId |> Option.map (fun (found: StoredCandidate) -> found.Revision) |> Option.defaultValue unsent
+                    Map.add candidate.CandidateId ({ Candidate = candidate; Path = path; Revision = revision }: StoredCandidate) map
+                | Error _ -> map)
+            stored.Candidates
+
     { stored with
         Activities = activities
         References = references
@@ -509,7 +589,8 @@ let overlay (changed: Changed) (stored: Stored) =
         Attestations = attestations
         Audit = audit
         Periods = periods
-        Reviews = reviews }
+        Reviews = reviews
+        Candidates = candidates }
 
 /// What was stored after a commit of these records landed with `receipt`.
 let committed (changed: Changed) (receipt: CommitReceipt) (stored: Stored) =
@@ -586,6 +667,18 @@ let committed (changed: Changed) (receipt: CommitReceipt) (stored: Stored) =
                 | Error _ -> map)
             stored.Reviews
 
+    let candidates' =
+        changed.Candidates
+        |> List.fold
+            (fun map (candidate: Observations.Candidate) ->
+                match CandidateRecord.path candidate with
+                | Ok target ->
+                    match revisionOf target with
+                    | Some revision -> Map.add candidate.CandidateId { Candidate = candidate; Path = target; Revision = revision } map
+                    | None -> map
+                | Error _ -> map)
+            stored.Candidates
+
     { stored with
         Activities = Persistence.committed changed.Activities receipt stored.Activities
         References = references'
@@ -593,7 +686,8 @@ let committed (changed: Changed) (receipt: CommitReceipt) (stored: Stored) =
         Members = members'
         Audit = audit'
         Periods = periods'
-        Reviews = reviews' }
+        Reviews = reviews'
+        Candidates = candidates' }
 
 /// The folders the application reads for an actor and a set of dates: the
 /// members, the reference folders, the organization's configuration, and
@@ -613,11 +707,12 @@ let folders (actorId: string) (dates: System.DateOnly list) : Result<RelativePat
     let all =
         [ MemberRecord.folder () ]
         @ ReferenceRecord.folders ()
-        @ [ PeriodConfigRecord.folder () ]
+        @ [ PeriodConfigRecord.folder (); CandidateRecord.openFolder () ]
         @ (months |> List.map (ActivityRecord.monthFolder actorId))
         @ (months |> List.map (AttestationRecord.monthFolder actorId))
         @ (months |> List.map (AuditRecord.monthFolder actorId))
         @ (reviewMonths |> List.map (ReviewRecord.monthFolder actorId))
+        @ (months |> List.map CandidateRecord.decidedFolder)
 
     all
     |> List.fold (fun state next -> state |> Result.bind (fun found -> next |> Result.map (fun folder -> found @ [ folder ]))) (Ok [])

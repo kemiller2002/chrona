@@ -5,7 +5,23 @@
 //
 // The page's clock is fixed (dates, the day's title and the timer read it),
 // and the records are entered through the page, so every render is the same.
-import { test, expect, setUp, fakeDeployment, signInConfiguration } from "../browser/support.js";
+import { test, expect, setUp, fakeDeployment, signInConfiguration, PAGE } from "../browser/support.js";
+import { serveGitHub, repository, headFiles } from "../browser/github-fake.js";
+import { test as base } from "@playwright/test";
+
+// Against GitHub, a folder not made yet is a 404 the browser logs itself:
+// these pages fail on any other error.
+const onGitHub = base.extend({
+  page: async ({ page }, use) => {
+    const problems = [];
+    page.on("console", (message) => {
+      if (message.type() === "error" && !message.text().startsWith("Failed to load resource")) problems.push(message.text());
+    });
+    page.on("pageerror", (error) => problems.push(error.message));
+    await use(page);
+    expect(problems, "the page reported errors").toEqual([]);
+  }
+});
 
 const morning = new Date("2026-09-10T14:41:00-04:00");
 const date = "2026-09-10";
@@ -103,6 +119,59 @@ for (const [width, viewport] of [
       await page.click("#stop-timer");
       await expect(page.locator("#completion")).toBeVisible();
       await capture(page, "completion", width);
+    });
+
+    // Observations' candidates (WI-0038): they come from a producer's inbox
+    // on GitHub, so this deployment keeps its records there (the fake).
+    onGitHub("the candidates keep their look", async ({ page }) => {
+      const dataset = "deployments/test/chrona/datasets/org_acme";
+      await fakeDeployment(page, {
+        environment: "test",
+        environmentName: "test",
+        location: { owner: "acme", repository: "chrona-data", branch: "main", basePath: "deployments/test" },
+        identity: { exchange: "https://fides.test", application: "chrona-test", provider: "github", clientId: "Iv23liBROWSER", redirectUri: PAGE },
+        organizations: [{ id: "org_acme", displayName: "Acme Consulting", slug: "acme", timeZone: "America/New_York", administrators: ["583231"] }]
+      });
+      const github = await serveGitHub(page.context(), repository({ owner: "acme", name: "chrona-data" }));
+      await page.clock.setFixedTime(morning);
+      await page.goto("/web/index.html#/more");
+      await expect(page.locator("html")).toHaveAttribute("data-kernel", "running");
+      await page.click("#sign-in-button");
+      await expect(page.locator("#screen-more")).toBeVisible({ timeout: 20_000 });
+      await setUp(page);
+      const projectFile = () => Object.keys(headFiles(github.current())).find((path) => /\/records\/[^/]+\/project\/[^/]+\.json$/.test(path));
+      await expect.poll(projectFile).toBeTruthy();
+      const projectId = projectFile().split("/").pop().replace(/\.json$/, "");
+      const observed = (id, start, minutes, description) =>
+        JSON.stringify({
+          contract: "chrona.time-observation",
+          version: 1,
+          observationId: id,
+          sourceSystem: id.startsWith("jira") ? "jira" : "github",
+          organizationId: "org_acme",
+          projectId,
+          actorId: "github:583231",
+          workItemId: "PR-7",
+          externalUrl: "https://example.test/pull/7",
+          timing: { kind: "interval", start, finish: new Date(new Date(start).getTime() + minutes * 60_000).toISOString() },
+          description,
+          evidence: [{ kind: "pull-request", reference: "https://example.test/pull/7" }],
+          observedAt: "2026-09-10T13:00:00.000Z"
+        });
+      github.commit({
+        [`${dataset}/inbox/github/obs-1.json`]: observed("obs-1", "2026-09-10T12:15:00.000Z", 45, "Reviewed the ledger pull request"),
+        [`${dataset}/inbox/jira/jira-2.json`]: observed("jira-2", "2026-09-10T13:30:00.000Z", 30, "Triaged the import backlog"),
+        [`${dataset}/inbox/github/broken.json`]: "{}"
+      });
+      await page.click("#read-inboxes");
+      await expect(page.locator("#inbox-invalid")).toBeVisible();
+      await capture(page, "more-inbox", width);
+      await go(page, "#/candidates", "#screen-candidates");
+      await expect(page.locator("#candidate-list li")).toHaveCount(2);
+      await capture(page, "candidates", width);
+      await go(page, "#/candidates/CAND-github-obs-1", "#screen-candidate");
+      await expect(page.locator("#accept-candidate")).toBeVisible();
+      await capture(page, "candidate", width);
     });
 
     test("the sign-in page keeps its look", async ({ page }) => {

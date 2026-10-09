@@ -73,6 +73,8 @@ type StorePort =
       Read: DateOnly list -> unit
       /// Rebuild the activity index from the stored records.
       Rebuild: unit -> unit
+      /// Read the producers' inboxes now (WI-0038).
+      ReadInboxes: unit -> unit
       /// Send this account's unsent changes now.
       SendNow: unit -> unit
       /// Discard this account's unsent changes from this device.
@@ -101,6 +103,7 @@ let inMemory (bridge: Bridge) : StorePort =
       Commit = fun request -> bridge.Start(async { return [ Update.StoreAnswered(request.CommitId, Committed) ] })
       Read = fun _ -> ()
       Rebuild = fun () -> ()
+      ReadInboxes = fun () -> ()
       SendNow = fun () -> ()
       Discard = fun () -> bridge.Start(async { return [ Update.UnsentDiscarded 0 ] })
       TakeOver = fun () -> ()
@@ -243,6 +246,13 @@ type private Opened =
       /// The activity index as last read or written (WI-0034).
       Index: Indexed }
 
+/// What became of one inbox file (WI-0038).
+type private Taken =
+    /// Received: its candidate and receipt are stored, the file removed.
+    | TakenIn
+    /// Not an observation: its receipt says why, and the file stays.
+    | NotObservation of reasons: string list
+
 let private describeFailure =
     function
     | StorageFailure.Refused(WriteRefusal.CredentialUnavailable _) -> "You are not signed in to GitHub any more. Sign in again; nothing was saved."
@@ -293,7 +303,10 @@ let private changeOf (request: StoreRequest) : Stored.Changed =
       Removed = request.RemovedMembers
       Audit = request.Audit
       Periods = request.Periods
-      Reviews = request.Reviews }
+      Reviews = request.Reviews
+      Candidates = request.Candidates
+      Receipts = []
+      Consumed = [] }
 
 /// Browser localStorage through Limen's Storage requests, as Arca's
 /// LimenQueue asks for it: the fallback store, and where an older Chrona kept
@@ -453,7 +466,8 @@ let private requestOf (folder: Namespace) (entry: QueueEntry) : StoreRequest opt
             RemovedMembers = changed.Removed
             Audit = changed.Audit
             Periods = changed.Periods
-            Reviews = changed.Reviews })
+            Reviews = changed.Reviews
+            Candidates = changed.Candidates })
 
 /// The most text the activity index may take; past it, the index is no
 /// longer kept with each change, and is rebuilt on request.
@@ -511,6 +525,11 @@ let private indexAfter (indexed: Indexed) (operation: Operation) (receipt: Commi
 /// The longest wait between attempts to reach GitHub.
 [<Literal>]
 let MaxRetryMs = 60000
+
+/// How many inbox files one pass takes in (WI-0038): a pass holds the
+/// store's turn, so a person's own changes wait at most this many commits.
+[<Literal>]
+let InboxBatch = 20
 
 /// The first wait after GitHub could not be reached.
 [<Literal>]
@@ -793,6 +812,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
           Reviewing = all |> List.filter (fun a -> a.ActorId <> actorId)
           Periods = state.Stored.Periods |> Option.map _.Periods
           Reviews = Stored.reviews state.Stored
+          Candidates = state.Stored.Candidates |> Map.toList |> List.map (fun (_, found) -> found.Candidate)
           References = state.Stored.References |> Map.toList |> List.map (fun (_, found) -> found.Item)
           Attestations = Stored.attestations state.Stored
           Members = state.Stored.Members |> Map.toList |> List.map (fun (_, found) -> found.Membership)
@@ -957,6 +977,9 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
         && changed.Audit.IsEmpty
         && changed.Periods.IsNone
         && changed.Reviews.IsEmpty
+        && changed.Candidates.IsEmpty
+        && changed.Receipts.IsEmpty
+        && changed.Consumed.IsEmpty
 
     /// Others' independent changes are shown once nothing of this page's own
     /// is waiting to be decided; unsent changes are shown over them.
@@ -1038,6 +1061,13 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
     /// showed: set once the opening jobs exist (below).
     let mutable reopen: unit -> Async<Update.Msg list> = fun () -> async.Return []
 
+    /// Reads the producers' inboxes after the records open (WI-0038): set
+    /// once the inbox job exists (below).
+    let mutable readInboxes: unit -> unit = ignore
+
+    /// The inboxes wait until this page's own unsent changes are sent.
+    let mutable inboxDeferred = false
+
     /// GitHub could not be reached: try again after a back-off, once.
     let rec scheduleRetry () =
         if not retrying then
@@ -1084,6 +1114,11 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                     match OfflineQueue.next state.Queue with
                     | None ->
                         retryMs <- FirstRetryMs
+
+                        if inboxDeferred then
+                            inboxDeferred <- false
+                            readInboxes ()
+
                         let! state = save (OfflineQueue.prune state.Queue)
                         return messages @ [ sync state false ]
                     | Some entry ->
@@ -1374,8 +1409,11 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
             | CachedAt _ ->
                 scheduleRetry ()
                 return [ Update.StoreOpened(contents state); Update.StoreResumed resumed; sync state true ]
-            | ReadAt _ when resumed.IsEmpty -> return [ Update.StoreOpened(contents state); sync state false ]
+            | ReadAt _ when resumed.IsEmpty ->
+                readInboxes ()
+                return [ Update.StoreOpened(contents state); sync state false ]
             | ReadAt _ ->
+                inboxDeferred <- true
                 serial drain
                 return [ Update.StoreOpened(contents state); Update.StoreResumed resumed; sync state false ]
         }
@@ -1653,7 +1691,14 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
 
                     let! shared = common |> List.map RelativePath.render |> showAll
 
-                    if shared |> List.exists Option.isNone then
+                    // Candidates kept by a Chrona before WI-0038 are not
+                    // cached yet: shown once GitHub is read again.
+                    let optional = CandidateRecord.openFolder () |> Result.toOption
+
+                    let missing =
+                        List.zip common shared |> List.exists (fun (path, shown) -> shown.IsNone && Some path <> optional)
+
+                    if missing then
                         return None
                     else
                         let mutable entries = shared |> List.choose id
@@ -1900,6 +1945,255 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                         | Error reason -> return [ Update.IndexRebuilt reason ]
                         | Ok next -> return refreshed next @ [ Update.IndexRebuilt summary ]
         }
+
+    // ---- Producers' inboxes (WI-0038) -------------------------------------------
+
+    /// What reading the inboxes last found on this page.
+    let mutable inboxStatus = idleInbox
+
+    /// A folder's files and subfolders; a folder that does not exist has none.
+    let entriesOf (state: Opened) (path: RelativePath) =
+        async {
+            match! state.Provider.List state.Folder path with
+            | Error failure -> return Error failure
+            | Ok listing ->
+                let files = listing.Entries |> List.filter (fun entry -> not entry.IsFolder) |> List.map _.Path
+                let folders = listing.Entries |> List.filter _.IsFolder |> List.map _.Path
+                return Ok(files, folders)
+        }
+
+    let lastSegment (path: RelativePath) =
+        let rendered = RelativePath.render path
+        rendered.Substring(rendered.LastIndexOf '/' + 1)
+
+    let receive (state: Opened) (sourceSystem: string) (observationId: string) (path: RelativePath) =
+        async {
+            match! state.Provider.Read state.Folder path with
+            | Error failure -> return Error failure
+            // Taken away meanwhile: by its producer, or by another page's pass.
+            | Ok ReadOutcome.Absent -> return Ok None
+            | Ok(ReadOutcome.Found found) ->
+                let known: Observations.Inbox =
+                    { Observations.empty with Candidates = state.Stored.Candidates |> Map.map (fun _ stored -> stored.Candidate) }
+
+                let consumed = [ path, found.Revision ]
+
+                return
+                    Ok(
+                        Some(
+                            match Intake.decide (now ()) state.Organization.Id known sourceSystem observationId found.Content with
+                            // Its file stays, for its producer to see beside the receipt.
+                            | Intake.Refused receipt -> { Stored.nothing with Receipts = [ receipt ] }, NotObservation(Intake.reasonsOf receipt |> Option.defaultValue [])
+                            | Intake.Received(Observations.NewCandidate(candidate, receipt)) ->
+                                { Stored.nothing with
+                                    Candidates = [ candidate ]
+                                    Receipts = [ receipt ]
+                                    Consumed = consumed },
+                                TakenIn
+                            | Intake.Received(Observations.ReceiptRepair receipt) ->
+                                { Stored.nothing with
+                                    Receipts = [ receipt ]
+                                    Consumed = consumed },
+                                TakenIn
+                            | Intake.Received(Observations.AlreadyReceived _) -> { Stored.nothing with Consumed = consumed }, TakenIn
+                        )
+                    )
+        }
+
+    /// One inbox file, made durable in one commit conditioned on the records
+    /// as read: the candidate, its receipt and the file's removal land
+    /// together or not at all, so a receipt never claims a candidate that is
+    /// not stored (expansion 19). When the repository moved meanwhile, it is
+    /// read again and the file decided again on it, once.
+    let rec takeIn (state: Opened) (sourceSystem: string) (observationId: string) (path: RelativePath) (alreadyReceived: bool) (again: bool) =
+        async {
+            let! decided =
+                if alreadyReceived then
+                    async {
+                        match! state.Provider.Read state.Folder path with
+                        | Error failure -> return Error failure
+                        | Ok ReadOutcome.Absent -> return Ok None
+                        | Ok(ReadOutcome.Found found) -> return Ok(Some({ Stored.nothing with Consumed = [ path, found.Revision ] }, TakenIn))
+                    }
+                else
+                    receive state sourceSystem observationId path
+
+            match state.Basis, decided with
+            | CachedAt _, _ -> return state, Error "GitHub cannot be reached."
+            | _, Error failure -> return state, Error(describeFailure failure)
+            | _, Ok None -> return state, Ok None
+            | ReadAt token, Ok(Some(changed, taken)) ->
+                match Stored.changes state.Stored changed, operationContext state.Session (newKey "inbox") (now ()) with
+                | Error diagnostics, _
+                | _, Error diagnostics -> return state, Error(describeAll diagnostics)
+                | Ok changes, Ok context ->
+                    let summary = $"receive observation {sourceSystem}/{observationId}"
+
+                    match Storage.operation state.Folder context summary changes with
+                    | Error diagnostics -> return state, Error(describeAll diagnostics)
+                    | Ok operation ->
+                        match! state.Provider.Commit(Operation.requireChangeToken token operation) with
+                        | Ok receipt ->
+                            let next =
+                                { state with
+                                    Basis = ReadAt receipt.ChangeToken
+                                    Stored = Stored.committed changed receipt state.Stored }
+
+                            let! next = afterCommit next operation receipt
+                            opened <- Some next
+                            return next, Ok(Some taken)
+                        | Error(StorageFailure.StaleChangeToken _)
+                        | Error(StorageFailure.Conflicted _) when not again ->
+                            match! refresh state [] with
+                            | Error reason -> return state, Error reason
+                            | Ok fresh -> return! takeIn fresh sourceSystem observationId path alreadyReceived true
+                        | Error failure -> return state, Error(describeFailure failure)
+        }
+
+    /// One pass over the organization's inboxes (requirement 18): at most
+    /// `InboxBatch` files, in path order; the rest wait for the next pass,
+    /// which follows at once. Only while the records are read from GitHub
+    /// and nothing of this page's own waits to be sent, so a pass never
+    /// moves the repository under a queued change.
+    let rec inboxJob () =
+        async {
+            match opened with
+            | Some({ Basis = ReadAt _ } as state) when not (state.Queue.Entries |> List.exists unsent) ->
+                bridge.Emit [ Update.InboxReconciled { inboxStatus with Running = true } ]
+
+                let finish (state: Opened) (status: InboxStatus) (changed: bool) =
+                    inboxStatus <- { status with Running = false; LastRun = Some(now ()) }
+                    (if changed then refreshed state else []) @ [ Update.InboxReconciled inboxStatus ]
+
+                let failed (reason: string) =
+                    finish state { inboxStatus with Failed = inboxStatus.Failed + 1 } false
+                    @ [ Update.StoreReadFailed $"The inboxes could not be read: {reason}" ]
+
+                match RelativePath.parse Chrona.Integration.Inbox.Folder with
+                | Error _ -> return finish state inboxStatus false
+                | Ok root ->
+                    match! entriesOf state root with
+                    | Error failure -> return failed (describeFailure failure)
+                    | Ok(_, sources) ->
+                        // Every file in every source's inbox, with whether a
+                        // receipt is stored for it already.
+                        let mutable found = []
+                        let mutable failure = None
+
+                        for source in sources |> List.sortBy RelativePath.render do
+                            if failure.IsNone then
+                                let sourceSystem = lastSegment source
+
+                                match! entriesOf state source with
+                                | Error error -> failure <- Some error
+                                | Ok(files, _) ->
+                                    let! receipts =
+                                        async {
+                                            match ReceiptRecord.sourceFolder sourceSystem with
+                                            | Error _ -> return Ok Set.empty
+                                            | Ok folder ->
+                                                match! entriesOf state folder with
+                                                | Error error -> return Error error
+                                                | Ok(stored, _) -> return Ok(stored |> List.map lastSegment |> Set.ofList)
+                                        }
+
+                                    match receipts with
+                                    | Error error -> failure <- Some error
+                                    | Ok receipts ->
+                                        for file in files |> List.sortBy RelativePath.render do
+                                            let name = lastSegment file
+                                            found <- found @ [ sourceSystem, name, file, receipts.Contains name ]
+
+                        match failure with
+                        | Some error -> return failed (describeFailure error)
+                        | None ->
+                            let named =
+                                found
+                                |> List.map (fun (sourceSystem, name, file, received) ->
+                                    match Chrona.Integration.Inbox.ofPath (RelativePath.render file) with
+                                    | Some(_, observationId) when (ReceiptRecord.keyOf sourceSystem observationId |> Result.isOk) ->
+                                        Ok(sourceSystem, observationId, file, received)
+                                    | _ -> Error(sourceSystem, name, [ "the file's name cannot name an observation: use <observationId>.json" ]))
+
+                            // A file with a receipt is either received already
+                            // (its removal did not land) or not an observation,
+                            // kept for its producer with the receipt's reasons.
+                            let mutable invalid = named |> List.choose (function Error unnamed -> Some unnamed | Ok _ -> None)
+                            let mutable work = []
+                            let mutable failure = None
+
+                            for sourceSystem, observationId, file, received in named |> List.choose Result.toOption do
+                                if failure.IsNone then
+                                    if not received then
+                                        work <- work @ [ sourceSystem, observationId, file, false ]
+                                    else
+                                        match ReceiptRecord.pathOf sourceSystem observationId with
+                                        | Error _ -> ()
+                                        | Ok receiptPath ->
+                                            match! state.Provider.Read state.Folder receiptPath with
+                                            | Error error -> failure <- Some error
+                                            | Ok ReadOutcome.Absent -> work <- work @ [ sourceSystem, observationId, file, false ]
+                                            | Ok(ReadOutcome.Found stored) ->
+                                                match Record.decode Record.DefaultMaxBytes stored.Content |> Result.toOption with
+                                                | Some record ->
+                                                    match ReceiptRecord.ofBody record.Body with
+                                                    | Ok receipt ->
+                                                        match Intake.reasonsOf receipt with
+                                                        | Some reasons -> invalid <- invalid @ [ sourceSystem, observationId, reasons ]
+                                                        | None -> work <- work @ [ sourceSystem, observationId, file, true ]
+                                                    | Error reason -> invalid <- invalid @ [ sourceSystem, observationId, [ $"its receipt cannot be read: {reason}" ] ]
+                                                | None -> invalid <- invalid @ [ sourceSystem, observationId, [ "its receipt cannot be read" ] ]
+
+                            match failure with
+                            | Some error -> return failed (describeFailure error)
+                            | None ->
+                                let batch = work |> List.truncate InboxBatch
+                                let mutable state = state
+                                let mutable received = 0
+                                let mutable failed = 0
+                                let mutable changed = false
+                                let mutable stop = false
+
+                                for sourceSystem, observationId, file, alreadyReceived in batch do
+                                    if not stop then
+                                        let! next, outcome = takeIn state sourceSystem observationId file alreadyReceived false
+                                        state <- next
+
+                                        match outcome with
+                                        | Ok None -> ()
+                                        | Ok(Some TakenIn) ->
+                                            changed <- true
+                                            received <- received + 1
+                                        | Ok(Some(NotObservation reasons)) ->
+                                            changed <- true
+                                            invalid <- invalid @ [ sourceSystem, observationId, reasons ]
+                                        | Error _ ->
+                                            failed <- failed + 1
+                                            // GitHub out of reach: the rest wait for the next pass.
+                                            stop <- (match state.Basis with
+                                                     | CachedAt _ -> true
+                                                     | ReadAt _ -> false)
+
+                                let waiting = work.Length - batch.Length
+
+                                let status =
+                                    { inboxStatus with
+                                        Received = inboxStatus.Received + received
+                                        Waiting = waiting
+                                        Failed = failed
+                                        Invalid = invalid }
+
+                                let messages = finish state status changed
+
+                                // More waits, and this pass got through: the next follows.
+                                if waiting > 0 && changed && failed = 0 then
+                                    serial inboxJob
+
+                                return messages
+            | _ -> return []
+        }
+
+    readInboxes <- fun () -> serial inboxJob
 
     /// Signing out discards this account's unsent changes from this device,
     /// as the person confirmed (WI-0058). Another account's are untouched,
@@ -2227,6 +2521,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                 memory.Commit request
       Read = fun dates -> if requested then serial (readJob dates)
       Rebuild = fun () -> if requested then serial rebuildJob
+      ReadInboxes = fun () -> if requested then readInboxes ()
       SendNow =
         fun () ->
             if requested then

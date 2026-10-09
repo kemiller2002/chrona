@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- EchelonFoundry.Chrona.Integration (requirement 18, WI-0038): the
+       contract Chrona owns as the receiver of time observations. Receiver
+       owned, transport independent and versioned on its own: each contract
+       version is its own module, read side by side; serialization is
+       explicit; the boundary validates structure only (domain rules are
+       Chrona's); and the place a producer puts an observation is built from
+       checked segments only. Pure F#: no transport, clock, storage or I/O.
+       It does not reference Chrona's domain. -->
+
+  <PropertyGroup>
+    <PackageId>EchelonFoundry.Chrona.Integration</PackageId>
+    <Version>1.0.0</Version>
+    <Description>The receiver-owned contract for time observations sent to Chrona.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Contract.fs" />
+    <Compile Include="TimeObservationV1.fs" />
+    <Compile Include="Inbox.fs" />
+  </ItemGroup>
+
+</Project>

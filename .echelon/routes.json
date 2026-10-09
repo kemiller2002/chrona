@@ -503,6 +503,74 @@
       "guards": [
         "signedIn"
       ],
+      "name": "candidates",
+      "params": [
+        {
+          "default": "awaiting",
+          "in": "query",
+          "name": "status",
+          "required": false,
+          "type": "enum",
+          "values": [
+            "awaiting",
+            "decided",
+            "all"
+          ]
+        },
+        {
+          "default": null,
+          "in": "query",
+          "name": "source",
+          "required": false,
+          "type": "string",
+          "values": null
+        },
+        {
+          "default": null,
+          "in": "query",
+          "name": "org",
+          "required": false,
+          "type": "string",
+          "values": null
+        }
+      ],
+      "pattern": "/candidates",
+      "requires": [],
+      "returnTarget": true
+    },
+    {
+      "guards": [
+        "signedIn"
+      ],
+      "name": "candidate",
+      "params": [
+        {
+          "default": null,
+          "in": "path",
+          "name": "id",
+          "required": true,
+          "type": "string",
+          "values": null
+        },
+        {
+          "default": null,
+          "in": "query",
+          "name": "org",
+          "required": false,
+          "type": "string",
+          "values": null
+        }
+      ],
+      "pattern": "/candidates/{id:string}",
+      "requires": [
+        "candidate"
+      ],
+      "returnTarget": true
+    },
+    {
+      "guards": [
+        "signedIn"
+      ],
       "name": "settings.all",
       "params": [
         {
@@ -574,7 +642,8 @@
             "references",
             "periods",
             "changes",
-            "account"
+            "account",
+            "inbox"
           ]
         },
         {

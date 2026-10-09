@@ -2,7 +2,7 @@
 id: DF-CHRONA-2026-0005
 title: Records live on GitHub through Arca's provider behind the store port, every commit conditioned on the repository state and decided again when it moved
 status: accepted
-version: 1.10.0
+version: 1.11.0
 created: 2026-10-08
 updated: 2026-10-09
 owners:
@@ -138,6 +138,16 @@ provenance:
         model: unknown
         runtime: claude-code
       reason: "Periods under review on Arca (WI-0036)"
+    EXE-20261009T023709515Z-21115e9f:
+      operations: [modified]
+      at: 2026-10-09T04:00:00.000Z
+      actor:
+        kind: agent
+        id: anthropic/claude-code
+        provider: anthropic
+        model: unknown
+        runtime: claude-code
+      reason: "Observation inboxes, candidates and receipts (WI-0038)"
 ---
 
 # DF-CHRONA-2026-0005 — Records on GitHub through Arca
@@ -363,6 +373,41 @@ and semantic conflicts surfaced.
     also reads, where approval is required, the other members' review
     steps for the months open and the time their waiting submissions
     cover; that time is shown only for review, never mixed into their own.
+
+17. **Observation inboxes (WI-0038).** A producer writes one observation
+    as `inbox/<sourceSystem>/<observationId>.json` inside the
+    organization's folder, in the receiver-owned contract
+    `chrona.time-observation` version 1 (`Chrona.Integration`): every field
+    stated (absent optional ones as null), instants with their offset, an
+    interval or a number of minutes, at most 64 KiB; an unknown field, an
+    unknown version or a payload filed under another source or id is
+    refused with every reason, never guessed. Each time the records open
+    from GitHub (and when the person asks, under More), Chrona reads the
+    inboxes, at most 20 files a pass in path order, the next pass following
+    at once, and only while nothing of the page's own waits to be sent. An
+    observation becomes a candidate (`records/chrona.candidate/open/<id>.json`)
+    with its receipt (`records/chrona.receipt/<source>/<id>.json`) and the
+    file's removal, all in **one** commit conditioned on the records as
+    read: the candidate is never without its receipt, nor the receipt
+    without the candidate, which is stronger than the domain's
+    candidate-then-receipt order; a candidate found without its receipt
+    (written by another tool) is still repaired with the receipt alone. A
+    payload that is not an observation for this organization gets a receipt
+    with the reasons, and its file stays beside it for the producer. A
+    stale token reads the records again and decides the file again, once.
+    Receipts are immutable. A candidate is mutable under its revision (a
+    counter in the record): accepting or rejecting it moves it to
+    `records/chrona.candidate/decided/<yyyy>/<MM>/<id>.json` (the month of
+    its decision) in the same commit as the activity it made and its audit
+    entries; a decision made from a stale read is a conflict
+    (`CandidateChanged`). Open candidates are read with the organization's
+    common folders, decided ones with each month read; duplicates are
+    therefore found among open candidates and those decided in the months
+    read. A person sees the candidates observed of them and those that name
+    no one; accepting needs `RecordOwnTime`, a classification (activity
+    type, project, description, business purpose) and passes every ordinary
+    rule, including the submitted-period restriction. Accepted time is
+    `Imported <source>`, billability pending a person's decision.
 
 ## Consequences
 

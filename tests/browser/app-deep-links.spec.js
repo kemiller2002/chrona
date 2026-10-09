@@ -40,7 +40,10 @@ test("every place opens cold from its address", async ({ page }) => {
     ["#/more/people", "#screen-more", null, null],
     ["#/week/2026-09-28", "#screen-week", "#week-title", "Sep 28 – Oct 4"],
     ["#/periods/2026-09-28", "#screen-period", "#period-page-title", "Sep 28 – Oct 4"],
-    ["#/projects", "#screen-projects", "#projects-title", "Projects"]
+    ["#/projects", "#screen-projects", "#projects-title", "Projects"],
+    ["#/candidates", "#screen-candidates", "#candidates-title", "Candidates"],
+    ["#/candidates?status=decided&source=github", "#screen-candidates", "#candidates-title", "Candidates"],
+    ["#/more/inbox", "#screen-more", null, null]
   ];
 
   for (const [fragment, screen, heading, text] of places) {
@@ -94,7 +97,9 @@ test("an address that names nothing shows the not-found page, and its way home",
     ["#/entries/ACT-none", "Not found"],
     ["#/day/2026-10-01?project=PRJ-none", "Not found"],
     ["#/projects/PRJ-none", "Not found"],
-    ["#/week/2026-09-28?project=PRJ-none", "Not found"]
+    ["#/week/2026-09-28?project=PRJ-none", "Not found"],
+    ["#/candidates/CAND-none", "Not found"],
+    ["#/candidates?status=maybe", "Page not found"]
   ]) {
     await open(page, fragment);
     await expect(page.locator("#screen-problem"), fragment).toBeVisible();

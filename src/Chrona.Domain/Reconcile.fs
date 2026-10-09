@@ -28,6 +28,8 @@ type Divergence =
     | MembershipChanged of mine: Access.Membership * stored: Access.Membership option
     /// The member to remove was already removed.
     | MemberGone of principalId: string
+    /// An observation's candidate was decided elsewhere first (WI-0038).
+    | CandidateChanged of mine: Observations.Candidate * stored: Observations.Candidate option
     /// The organization's period configuration was changed elsewhere first.
     | PeriodsChanged of mine: Periods.PeriodConfig * stored: Periods.PeriodConfig option
     /// The person's time overlaps time stored since.
@@ -44,6 +46,7 @@ let diagnostic =
     | MembershipChanged(mine, _) -> SemanticConflict("member", mine.Principal.PrincipalId)
     | MemberGone principalId -> SemanticConflict("member", principalId)
     | PeriodsChanged _ -> SemanticConflict("configuration", PeriodConfigRecord.Id)
+    | CandidateChanged(mine, _) -> SemanticConflict("candidate", mine.CandidateId)
     | OverlapsStored(_, stored) -> OverlapsActivity stored.ActivityId
     | KeptChanging -> StoreKeptChanging
 
@@ -115,6 +118,14 @@ let decide (stored: Stored.Stored) (change: Stored.Changed) : Result<Stored.Chan
         |> Option.map (fun mine -> PeriodsChanged(mine.Config, storedPeriods |> Option.map _.Config))
         |> Option.toList
 
+    let storedCandidate (id: string) = stored.Candidates.TryFind id |> Option.map _.Candidate
+    let candidates = change.Candidates |> List.filter (fun mine -> storedCandidate mine.CandidateId <> Some mine)
+
+    let changedCandidates =
+        candidates
+        |> List.filter (fun mine -> not (follows (storedCandidate mine.CandidateId |> Option.map _.Revision) mine.Revision))
+        |> List.map (fun mine -> CandidateChanged(mine, storedCandidate mine.CandidateId))
+
     let gone =
         change.Removed |> List.filter (stored.Members.ContainsKey >> not) |> List.map MemberGone
 
@@ -134,11 +145,12 @@ let decide (stored: Stored.Stored) (change: Stored.Changed) : Result<Stored.Chan
             |> List.choose (fun id -> others |> List.tryFind (fun other -> other.ActivityId = id))
             |> List.map (fun other -> OverlapsStored(mine, other)))
 
-    match changedActivities @ changedReferences @ changedMembers @ changedPeriods @ gone @ overlapping with
+    match changedActivities @ changedReferences @ changedMembers @ changedPeriods @ changedCandidates @ gone @ overlapping with
     | [] ->
         Ok
             { change with
                 Activities = pending
+                Candidates = candidates
                 References = references
                 Members = members
                 Periods = periods

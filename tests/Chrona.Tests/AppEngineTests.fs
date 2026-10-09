@@ -838,7 +838,8 @@ let ``a page coming back restarts the timer's wake-ups from its timestamps and s
                   Index = ""
                   Periods = None
                   Reviews = []
-                  Reviewing = [] })
+                  Reviewing = []
+                  Candidates = [] })
             ready
 
     Assert.Equal(Some start, cached.Store.Cached)

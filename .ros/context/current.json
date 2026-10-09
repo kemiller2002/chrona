@@ -2678,7 +2678,27 @@
       "updatedAt": "2026-10-09T01:25:51.000Z",
       "telemetryExecutionIds": [
         "EXE-20261009T012552338Z-e58b9a1f"
-      ]
+      ],
+      "latestCheckpoint": {
+        "id": "cf2476f89619f170d9bb0547",
+        "recordedAt": "2026-10-09T01:55:43.000Z",
+        "executionId": "EXE-20261009T012552338Z-e58b9a1f",
+        "repository": "chrona",
+        "branch": "feature/periods-on-arca",
+        "commit": "3ccbbda1d9077c9b59b1618c3b164938127ca994",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/chrona"
+        },
+        "remoteBranch": "feature/periods-on-arca",
+        "remoteCommit": "3ccbbda1d9077c9b59b1618c3b164938127ca994",
+        "summary": "Period configuration and review records on Arca, held periods, submit/approve/return/reopen; 390 .NET, 66 Chromium, 4 Pages green locally",
+        "nextAction": "Re-render the period and More baselines, open the PR, gate, merge with sha",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      }
     }
   ]
 }

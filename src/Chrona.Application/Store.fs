@@ -2093,7 +2093,8 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
             match! state.Provider.Read state.Folder path with
             | Error failure -> return Error failure
             // Taken away meanwhile: by its producer, or by another page's pass.
-            | Ok ReadOutcome.Absent -> return Ok None
+            | Ok ReadOutcome.Absent
+            | Ok(ReadOutcome.Erased _) -> return Ok None
             | Ok(ReadOutcome.Found found) ->
                 let known: Observations.Inbox =
                     { Observations.empty with Candidates = state.Stored.Candidates |> Map.map (fun _ stored -> stored.Candidate) }
@@ -2134,7 +2135,8 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                     async {
                         match! state.Provider.Read state.Folder path with
                         | Error failure -> return Error failure
-                        | Ok ReadOutcome.Absent -> return Ok None
+                        | Ok ReadOutcome.Absent
+                        | Ok(ReadOutcome.Erased _) -> return Ok None
                         | Ok(ReadOutcome.Found found) -> return Ok(Some({ Stored.nothing with Consumed = [ path, found.Revision ] }, TakenIn))
                     }
                 else
@@ -2154,17 +2156,20 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                     match Storage.operation state.Folder context summary changes with
                     | Error diagnostics -> return state, Error(describeAll diagnostics)
                     | Ok operation ->
-                        match! state.Provider.Commit(Operation.requireChangeToken token operation) with
+                        match! state.Provider.Commit(require token operation) with
                         | Ok receipt ->
+                            let! condition = conditionAfter state receipt
+
                             let next =
                                 { state with
-                                    Basis = ReadAt receipt.ChangeToken
+                                    Basis = ReadAt condition
                                     Stored = Stored.committed changed receipt state.Stored }
 
                             let! next = afterCommit next operation receipt
                             opened <- Some next
                             return next, Ok(Some taken)
                         | Error(StorageFailure.StaleChangeToken _)
+                        | Error(StorageFailure.StaleNamespaceToken _)
                         | Error(StorageFailure.Conflicted _) when not again ->
                             match! refresh state [] with
                             | Error reason -> return state, Error reason
@@ -2255,6 +2260,9 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                                             match! state.Provider.Read state.Folder receiptPath with
                                             | Error error -> failure <- Some error
                                             | Ok ReadOutcome.Absent -> work <- work @ [ sourceSystem, observationId, file, false ]
+                                            // Its receipt was erased for retention: it was
+                                            // received; only the file is left to remove.
+                                            | Ok(ReadOutcome.Erased _) -> work <- work @ [ sourceSystem, observationId, file, true ]
                                             | Ok(ReadOutcome.Found stored) ->
                                                 match Record.decode Record.DefaultMaxBytes stored.Content |> Result.toOption with
                                                 | Some record ->
@@ -2438,7 +2446,12 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                                         kept.Entries
                                         |> List.map (fun entry ->
                                             if earlier entry then
-                                                { entry with Operation = { entry.Operation with AccountId = Some(AccountId.toWire who.Account) } }
+                                                // Theirs, as they said: made by them, of their account.
+                                                { entry with
+                                                    Operation =
+                                                        { entry.Operation with
+                                                            ActorId = state.Session.ActorId
+                                                            AccountId = Some(AccountId.toWire who.Account) } }
                                             else
                                                 entry) }
                             else

@@ -65,6 +65,8 @@ type Msg =
     /// instead" there): these, kept before it did, are now that tab's to
     /// send (WI-0059, LCP-060).
     | UnsentHandedOver of commitIds: string list
+    /// Chrona's data was cleared from this browser, or why it was not.
+    | DeviceCleared of Result<unit, string>
     /// The device's kept timer under this key, if any (WI-0055).
     | TimerLoaded of key: string * value: string option
     /// The records could not be opened; this many of this account's changes
@@ -87,6 +89,14 @@ type Msg =
     /// A page event: its name, the enclosing item's key, the control's value
     /// and, for a checkbox, whether it is checked.
     | Ui of name: string * key: string option * value: string * isChecked: bool option
+
+/// What signing out did with this account's unsent work (WI-0058). What the
+/// device keeps of the account follows it (WI-0057, LCP-070, LCP-086).
+type UnsentChoice =
+    | NothingUnsent
+    | SentUnsent
+    | KeptUnsent
+    | DiscardedUnsent
 
 /// What the engine asks the edge to do.
 type Effect =
@@ -116,6 +126,14 @@ type Effect =
     | SignIn of Retention
     /// Clear every token this tab holds and revoke it at the provider.
     | SignOut
+    /// The account leaves this device: what the device keeps of it (its
+    /// read cache) goes, unless its unsent work was kept here, under the
+    /// deployment's shared-device policy (WI-0057). `unsent`: how much work
+    /// was unsent when the person chose.
+    | LeaveDevice of UnsentChoice * unsent: int
+    /// Clear Chrona's data from this browser, for every account: the queue
+    /// and the read cache (LCP-070, LCP-086).
+    | ClearDevice
     /// Open the organization's records at the deployment's location, as this
     /// session, reading what these dates need.
     | OpenStore of Deployment.DeploymentConfig * Session * dates: DateOnly list
@@ -161,6 +179,7 @@ let ThisDevice = "this-browser"
 let eventNames =
     [ "signIn"; "signInRetention"; "signOut"; "retryStore"; "chooseOrganization"; "confirmAdministrator"; "reloadShell"
       "signOutSend"; "signOutKeep"; "signOutDiscard"; "signOutDiscardConfirmed"; "signOutCancel"; "takeOverQueue"
+      "clearDevice"; "clearDeviceConfirmed"; "clearDeviceCancel"
       "memberId"; "memberName"; "memberAccess"; "admitMember"; "changeMemberAccess"; "removeMember"
       "keepStored"; "retryChange"; "redoChange"; "acceptOutsideEdit"; "rebuildIndex"
       "goToday"; "goTrack"; "goMore"; "showDate"; "previousDay"; "nextDay"
@@ -1509,7 +1528,7 @@ let private pageReturned (model: Model) =
         | Durable _ when canWork model -> [ ReadMonths [] ]
         | _ -> []
 
-    let unsent = if model.Store.Pending.IsEmpty then [] else [ SendUnsent ]
+    let unsent = if model.Store.Pending.IsEmpty && model.Store.Cached.IsNone then [] else [ SendUnsent ]
     let shell = if model.Shell.Build = Development then [] else [ CheckShell ]
     // The tab holding this browser's unsent changes may have closed meanwhile:
     // asked first, so what is sent next includes what it kept.
@@ -1601,7 +1620,8 @@ let private storeOpened (contents: StoreContents) (model: Model) =
                 Waiting = 0
                 Reading = model.Store.Reading |> List.filter (fun month -> not (List.contains month contents.Months))
                 History = contents.History
-                Index = contents.Index }
+                Index = contents.Index
+                Cached = contents.Cached }
         // Said once, when they first open, with what recovering the timer
         // found; reading a further month is quiet.
         Announcement =
@@ -1706,6 +1726,15 @@ let private policy (model: Model) =
 let canKeepUnsent (model: Model) =
     policy model = Deployment.Ask && model.Store.Conflicts.IsEmpty && unsentWork model > 0
 
+/// Clearing Chrona's data from this browser: where records were read from
+/// GitHub, and only when nothing of this account's would be lost with it.
+let canClearDevice (model: Model) =
+    (match model.Store.Kind with
+     | Durable _ -> true
+     | InMemory -> false)
+    && unsentWork model = 0
+    && model.Store.Conflicts.IsEmpty
+
 /// Sending them now: when there are some to send. Whether GitHub can be
 /// reached is found out by trying; if not, the choice comes back.
 let canSendUnsent (model: Model) = not model.Store.Pending.IsEmpty
@@ -1720,7 +1749,7 @@ let private afterSending (model: Model) =
     | Some SendingUnsent when model.Store.Pending.IsEmpty && model.Store.Conflicts.IsEmpty && hasKeptTimer model ->
         choose "Your changes are stored. Your timer is still on this device: keep it for this account, or discard it."
     | Some SendingUnsent when model.Store.Pending.IsEmpty && model.Store.Conflicts.IsEmpty ->
-        { model with Identity = { identity with SignOut = None; SignOutNote = None } }, [ SignOut ]
+        { model with Identity = { identity with SignOut = None; SignOutNote = None } }, [ LeaveDevice(SentUnsent, 0); SignOut ]
     | Some SendingUnsent when model.Store.Pending.IsEmpty ->
         choose "Some changes were not saved because they changed elsewhere first. Resolve them under More, or discard them."
     | Some SendingUnsent when model.Store.Sync.Offline -> choose "GitHub cannot be reached, so they could not be sent."
@@ -1746,20 +1775,26 @@ let private onIdentityEvent (name: string) (value: string) (model: Model) =
     // Unsent changes are never left behind unknowingly (WI-0058).
     | "signOut", SignedInMode when unsentWork model > 0 ->
         { model with Identity = { identity with SignOut = Some ChoosingUnsent; SignOutNote = None } }, []
-    | "signOut", SignedInMode -> model, [ SignOut ]
+    | "signOut", SignedInMode -> model, [ LeaveDevice(NothingUnsent, 0); SignOut ]
     | "signOutSend", SignedInMode when identity.SignOut = Some ChoosingUnsent && canSendUnsent model ->
         { model with Identity = { identity with SignOut = Some SendingUnsent; SignOutNote = None } }, [ SendUnsent ]
     | "signOutKeep", SignedInMode when identity.SignOut = Some ChoosingUnsent && canKeepUnsent model ->
         { model with
             Identity = { identity with SignOut = None }
             Announcement = $"Your unsent work is kept on this device for {model.Session.DisplayName}." },
-        [ SignOut ]
+        [ LeaveDevice(KeptUnsent, unsentWork model); SignOut ]
     | "signOutDiscard", SignedInMode when identity.SignOut = Some ChoosingUnsent ->
         { model with Identity = { identity with SignOut = Some ConfirmingDiscard } }, []
     | "signOutDiscardConfirmed", SignedInMode when identity.SignOut = Some ConfirmingDiscard ->
         { model with Identity = { identity with SignOut = Some DiscardingUnsent } }, [ DiscardUnsent ]
     | "signOutCancel", SignedInMode when identity.SignOut.IsSome && identity.SignOut <> Some DiscardingUnsent ->
         { model with Identity = { identity with SignOut = None; SignOutNote = None } }, []
+    | "clearDevice", SignedInMode when canClearDevice model ->
+        { model with Identity = { identity with DeviceClear = Some ConfirmingClear; DeviceNote = None } }, []
+    | "clearDeviceConfirmed", SignedInMode when identity.DeviceClear = Some ConfirmingClear && canClearDevice model ->
+        { model with Identity = { identity with DeviceClear = Some Clearing } }, [ ClearDevice ]
+    | "clearDeviceCancel", SignedInMode when identity.DeviceClear = Some ConfirmingClear ->
+        { model with Identity = { identity with DeviceClear = None } }, []
     | "retryStore", SignedInMode when model.Store.Failure.IsSome -> openStore model
     | "confirmAdministrator", SignedInMode when model.Store.Confirmation |> Option.exists snd ->
         { model with Store = { model.Store with Opening = true; Confirmation = None } }, [ ConfirmAdministrator ]
@@ -1982,6 +2017,13 @@ let private step (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
             | _ -> model.Announcement
 
         { model with Store = { model.Store with Sync = sync }; Announcement = announcement }, []
+    | DeviceCleared(Ok()) ->
+        { model with
+            Identity = { model.Identity with DeviceClear = None; DeviceNote = None }
+            Announcement = "Chrona's data was cleared from this browser." },
+        [ SignOut ]
+    | DeviceCleared(Error reason) ->
+        { model with Identity = { model.Identity with DeviceClear = None; DeviceNote = Some reason } }, []
     | UnsentHandedOver commitIds ->
         let handed = Set.ofList commitIds
         let pending, moved = model.Store.Pending |> List.partition (fun request -> not (handed.Contains request.CommitId))
@@ -2004,7 +2046,7 @@ let private step (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
             Stopped = None
             Identity = { model.Identity with SignOut = None; SignOutNote = None }
             Announcement = (if count = 1 then "1 unsent change was discarded." else $"{count} unsent changes were discarded.") },
-        timer @ [ SignOut ]
+        timer @ [ LeaveDevice(DiscardedUnsent, count); SignOut ]
     | UnsentWaiting(count, notice) ->
         // Reading them may have moved them from localStorage (WI-0059).
         let sync = { model.Store.Sync with Notice = notice |> Option.orElse model.Store.Sync.Notice }
@@ -2013,7 +2055,9 @@ let private step (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
         let model = { model with Shell = { model.Shell with Build = build } }
         model, (if build = Development then [] else [ CheckShell ])
     | PageReturned -> pageReturned model
-    | ConnectionChanged true when not model.Store.Pending.IsEmpty -> model, [ SendUnsent ]
+    // Back online: unsent changes are sent, and records shown from the read
+    // cache are read from GitHub again (WI-0057).
+    | ConnectionChanged true when not model.Store.Pending.IsEmpty || model.Store.Cached.IsSome -> model, [ SendUnsent ]
     | ConnectionChanged true -> model, []
     // Offline means the browser has no network: what waits is said to wait.
     | ConnectionChanged false -> { model with Store = { model.Store with Sync = { model.Store.Sync with Offline = true } } }, []
@@ -2060,6 +2104,9 @@ let private step (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
          | "signOutDiscard"
          | "signOutDiscardConfirmed"
          | "signOutCancel"
+         | "clearDevice"
+         | "clearDeviceConfirmed"
+         | "clearDeviceCancel"
          | "retryStore"
          | "chooseOrganization"
          | "confirmAdministrator") as name,

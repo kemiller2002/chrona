@@ -177,12 +177,19 @@ type StoreState =
       Index: string
       /// The organization has no administrator the deployment lists: why,
       /// and whether this person, being listed, may confirm themselves.
-      Confirmation: (string * bool) option }
+      Confirmation: (string * bool) option
+      /// Shown from this browser's read cache while GitHub cannot be
+      /// reached: when GitHub last gave them (WI-0057).
+      Cached: DateTimeOffset option }
 
 /// What the store read from the organization's folder.
 type StoreContents =
     { /// Where the records live, for the person: `owner/repository`.
       Name: string
+      /// Shown from this browser's read cache while GitHub cannot be
+      /// reached: when GitHub last gave them (WI-0057). None when read from
+      /// GitHub now.
+      Cached: DateTimeOffset option
       Activities: Activity list
       References: Reference.Item list
       Attestations: Review.Attestation list
@@ -337,10 +344,23 @@ type SignOutStep =
     /// Discarding them; signed out once they are gone.
     | DiscardingUnsent
 
+/// Clearing Chrona's data from this browser ("Clear this device"; WI-0057,
+/// Limen LCP-070, LCP-086): the unsent-changes queue and the read cache,
+/// for every account, then signing out.
+type DeviceClearStep =
+    /// The person confirms; nothing is cleared yet.
+    | ConfirmingClear
+    /// Clearing; signed out once it is done.
+    | Clearing
+
 type IdentityState =
     { Mode: IdentityMode
       /// Signing out, while changes are unsent.
       SignOut: SignOutStep option
+      /// Clearing this device.
+      DeviceClear: DeviceClearStep option
+      /// Why the device could not be cleared, for the person.
+      DeviceNote: string option
       /// Why sending them did not finish, for the person.
       SignOutNote: string option
       Retention: Retention
@@ -372,6 +392,8 @@ type IdentityChange =
 let initialIdentity =
     { Mode = Configuring
       SignOut = None
+      DeviceClear = None
+      DeviceNote = None
       SignOutNote = None
       Retention = ThisPage
       Notice = None
@@ -523,7 +545,8 @@ let initial (session: Session) (store: StoreKind) (now: DateTimeOffset) =
           Reading = []
           History = []
           Index = ""
-          Confirmation = None }
+          Confirmation = None
+          Cached = None }
       Zone = None
       Now = now
       Ledger = Ledger.empty

@@ -52,7 +52,7 @@ for the diagnosis, the evidence, and one unexercised watch item.
 - Requirement coverage per section is tracked in
   [`docs/requirements/implementation-gap-analysis.md`](docs/requirements/implementation-gap-analysis.md)
   (`CHX-NNM` ids, baseline and current columns; `GapAnalysisTests` holds the
-  counts). 36 tested, 26 partial, 2 missing of 64 (baseline 0 / 7 / 57).
+  counts). 37 tested, 25 partial, 2 missing of 64 (baseline 0 / 7 / 57).
 - `src/Chrona.Domain` is the pure time domain: `Diagnostics`, `Time`,
   `Activity`, `Overlap`, `ManualEntry` (WI-0020), `Ledger` (WI-0021),
   `Timer` (WI-0022), `Billing` and `Review` (WI-0023), `Compatibility`
@@ -116,8 +116,13 @@ for the diagnosis, the evidence, and one unexercised watch item.
   retries, the queue survives refresh and restart and is sent after the
   records open, and a change the repository moved under is decided again
   and revised or becomes a conflict. The sync state is shown. Opening the
-  records still needs GitHub; the persisted timer is WI-0055, and starting
-  offline from an IndexedDB read cache is WI-0057 (waits on Limen).
+  records needs GitHub or this browser's read cache (WI-0057): starting
+  while GitHub cannot be reached, the records open as GitHub last gave them
+  (Arca's `IndexedDbReadCache`, per account and folder), marked "as of";
+  changes made there are decided again on GitHub's records before they are
+  sent; signing out clears the account's cache unless its unsent work is
+  kept under `ask`; "Clear this device" (More) clears the queue and the
+  cache for every account. The persisted timer is WI-0055.
 - Derived state (WI-0034): the activity index, an Arca derived index under
   `derived/indexes/activity-months.json` with one entry per activity record,
   is written in the same commit as the records it covers, so it is always

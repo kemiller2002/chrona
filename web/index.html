@@ -1559,6 +1559,29 @@
                   <template data-if="signOutDiscarding">
                     <p class="chrona-intro" role="status">Discarding…</p>
                   </template>
+                  <!-- WI-0057, LCP-070, LCP-086: nothing of this account's is unsent. -->
+                  <template data-if="canClearDevice">
+                    <button type="button" class="chrona-action chrona-action--secondary" id="clear-device" data-event="clearDevice">Clear this device</button>
+                  </template>
+                  <template data-if="clearDeviceConfirming">
+                    <div class="ef-alert chrona-notice" role="alertdialog" aria-labelledby="clear-device-title" data-tone="attention" id="clear-device-confirm">
+                      <div class="ef-alert__icon" aria-hidden="true">!</div>
+                      <div class="chrona-stack">
+                        <p class="ef-alert__title" id="clear-device-title">Clear Chrona's data from this browser and sign out?</p>
+                        <p class="chrona-intro">What this browser keeps to open your records offline is removed, for every account who signed in here. Your records on GitHub are untouched. Close Chrona's other tabs first.</p>
+                        <div class="chrona-conflicts__actions">
+                          <button type="button" class="chrona-action chrona-action--primary" id="clear-device-confirmed" data-event="clearDeviceConfirmed">Clear and sign out</button>
+                          <button type="button" class="chrona-link" data-event="clearDeviceCancel">Keep them</button>
+                        </div>
+                      </div>
+                    </div>
+                  </template>
+                  <template data-if="clearDeviceClearing">
+                    <p class="chrona-intro" role="status" id="clear-device-clearing">Clearing this browser…</p>
+                  </template>
+                  <template data-if="hasDeviceNote">
+                    <p class="chrona-intro" role="alert" id="device-note" data-text="deviceNote"></p>
+                  </template>
                 </div>
               </template>
               <template data-if="hasStoreProblems">

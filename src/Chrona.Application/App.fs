@@ -206,6 +206,12 @@ let private requests (env: Env) (state: State) (effects: Update.Effect list) =
             | Update.SignOut ->
                 env.Identity.SignOut()
                 state, requests, immediate
+            | Update.LeaveDevice(choice, unsent) ->
+                env.Store.SignedOut choice unsent
+                state, requests, immediate
+            | Update.ClearDevice ->
+                env.Store.ClearDevice()
+                state, requests, immediate
             | Update.Store request ->
                 env.Store.Commit request
                 state, requests, immediate

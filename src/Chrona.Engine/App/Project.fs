@@ -207,6 +207,16 @@ let private queueMode (kind: StoreKind) (sync: SyncState) =
 let private offlineInPage (sync: SyncState) =
     sync.Offline && sync.Holder = HeldHere && not sync.KeptInBrowser
 
+/// A moment as a date and clock time in the person's zone: when the records
+/// shown from the read cache were read from GitHub (WI-0057), or when an
+/// entry was recorded.
+let private localStamp (model: Model) (instant: DateTimeOffset) =
+    match model.Zone with
+    | Some zone ->
+        let o = occurrence zone instant
+        $"{Format.longDate o.LocalDate}, {Format.clock o.LocalTime}"
+    | None -> instant.ToString("u")
+
 let private storeLines (model: Model) =
     let store = model.Store
 
@@ -219,6 +229,18 @@ let private storeLines (model: Model) =
     | Some(Conflict _), _ -> "attention", "Not saved: changed elsewhere", "Resolve it under More."
     | Some(Failed detail), _ -> "attention", "Not saved", detail
     | Some(OutcomeUnknown detail), _ -> "attention", "Save outcome unknown", detail
+    // Shown from the read cache, never as current (LCP-084).
+    | _, _ when store.Cached.IsSome ->
+        let waiting =
+            if store.Pending.IsEmpty then
+                ""
+            else
+                plural store.Pending.Length "change waits" "changes wait" + " to be sent. "
+
+        "attention",
+        "Offline: your records as of " + localStamp model store.Cached.Value,
+        waiting
+        + "GitHub cannot be reached, so these are your records as GitHub last gave them to this browser. Changes you make are kept and checked against GitHub's records before they are sent."
     | _, _ when not store.Pending.IsEmpty && store.Sync.Offline ->
         "attention",
         "Offline: " + plural store.Pending.Length "change waits" "changes wait" + " to be sent",
@@ -766,13 +788,6 @@ let private commandLabel =
     | "evidence-unlink" -> "Evidence unlinked"
     | "accept-outside-edit" -> "Outside change accepted"
     | other -> other
-
-let private localStamp (model: Model) (instant: DateTimeOffset) =
-    match model.Zone with
-    | Some zone ->
-        let o = occurrence zone instant
-        $"{Format.longDate o.LocalDate}, {Format.clock o.LocalTime}"
-    | None -> instant.ToString("u")
 
 let private detailView (model: Model) =
     let found =
@@ -1399,6 +1414,12 @@ let private identityView (model: Model) =
             | _, true -> $"Discard {changes} and your timer?"
             | _ -> $"Discard {changes}?")
            + " They will not be saved anywhere, and this cannot be undone.")
+      // Clearing this device (WI-0057).
+      flag "canClearDevice" (Update.canClearDevice model && identity.DeviceClear.IsNone && identity.SignOut.IsNone)
+      flag "clearDeviceConfirming" (identity.DeviceClear = Some ConfirmingClear)
+      flag "clearDeviceClearing" (identity.DeviceClear = Some Clearing)
+      flag "hasDeviceNote" identity.DeviceNote.IsSome
+      text "deviceNote" (identity.DeviceNote |> Option.defaultValue "")
       flag "accountLocal" (identity.Mode = LocalOnly)
       text "accountLogin" model.Session.DisplayName
       text "accountProvider" (match model.Session.Kind with SignedIn provider -> provider | LocalSession -> "")

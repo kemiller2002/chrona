@@ -182,6 +182,8 @@ test("with two tabs open, only the tab holding the unsent changes keeps them, in
   const queued = await inIndexedDb(first);
   expect(queued).toHaveLength(1);
   expect(JSON.stringify(queued)).toContain("Pairing");
+  // Read from GitHub, so conditioned on the repository state it was read at.
+  expect(queued[0].operation.expectedChangeToken).toEqual(expect.any(String));
   expect(await legacy(first)).toEqual([]);
   expect(history(github.current()).length).toBe(before);
 
@@ -345,6 +347,75 @@ test("an older localStorage queue that cannot be read is left exactly as it is, 
   await expect(page.locator("#queue-notice")).toContainText("Unsent changes kept in this browser's older storage cannot be read. They were left exactly as they are.");
   expect(await page.evaluate((key) => localStorage.getItem(key), QUEUE)).toBe("{not a queue");
   await expect(headline(page)).toHaveText("All changes saved");
+});
+
+// ---- opening offline from the read cache (WI-0057) --------------------------
+
+test("with GitHub out of reach, a new tab opens the records from this browser's read cache, and a change made there is sent once GitHub is back", async ({ context, github }) => {
+  const first = await signedIn(context);
+  await references(first);
+  await record(first, "08:10", "09:02", "Visual engineering research");
+  await expect(headline(first)).toHaveText("All changes saved");
+  const before = history(github.current()).length;
+  await first.close();
+
+  // GitHub cannot be reached; the page itself still loads.
+  github.reachable(false);
+  const page = await context.newPage();
+  await page.goto("/web/index.html");
+  await expect(page.locator("html")).toHaveAttribute("data-kernel", "running");
+  await page.click("#sign-in-button");
+  await expect(page.locator(".chrona-shell")).toBeVisible({ timeout: 20_000 });
+  await expect(headline(page)).toHaveText(/^Offline: your records as of /);
+  await page.click(".chrona-nav__link:has-text('Today')");
+  await expect(page.locator("#day-records .chrona-record__title")).toHaveText(["Visual engineering research"]);
+
+  // A change made from the cache waits, conditioned on nothing cached.
+  await record(page, "09:18", "11:04", "HelixNote development");
+  expect(history(github.current()).length).toBe(before);
+  const waiting = await inIndexedDb(page);
+  expect(waiting).toHaveLength(1);
+  expect(waiting[0].operation.expectedChangeToken ?? null).toBeNull();
+
+  // GitHub back: the records are read from it, the change decided on them
+  // and sent once.
+  github.reachable(true);
+  await expect(headline(page)).toHaveText("All changes saved", { timeout: 30_000 });
+  expect(history(github.current()).length).toBe(before + 1);
+  expect(stored(github, "HelixNote development")).toHaveLength(1);
+  expect(await kept(page)).toEqual([]);
+});
+
+test("signing out clears this account's read cache, so the next start with GitHub out of reach cannot open the records", async ({ context, github }) => {
+  const first = await signedIn(context);
+  await references(first);
+  await expect(headline(first)).toHaveText("All changes saved");
+  await first.click(".chrona-nav__link:has-text('More')");
+  await first.click("#sign-out");
+  await expect(first.locator("#sign-in")).toBeVisible();
+  await first.close();
+
+  github.reachable(false);
+  const page = await unopened(context);
+  await expect(page.locator("#store-failure")).toHaveText("GitHub could not be reached.");
+});
+
+test("clearing this device removes what it keeps to open offline, then signs out", async ({ context, github }) => {
+  const first = await signedIn(context);
+  await references(first);
+  await expect(headline(first)).toHaveText("All changes saved");
+  await first.click(".chrona-nav__link:has-text('More')");
+  await first.click("#clear-device");
+  await expect(first.locator("#clear-device-confirm")).toBeVisible();
+  await first.click("#clear-device-confirmed");
+  await expect(first.locator("#sign-in")).toBeVisible({ timeout: 20_000 });
+  const databases = await first.evaluate(async () => (await indexedDB.databases()).map((database) => database.name).filter((name) => name.startsWith("chrona/")));
+  expect(databases).toEqual([]);
+  await first.close();
+
+  github.reachable(false);
+  const page = await unopened(context);
+  await expect(page.locator("#store-failure")).toHaveText("GitHub could not be reached.");
 });
 
 // ---- deep links to stored records (CHX-460, WI-0071) -------------------------

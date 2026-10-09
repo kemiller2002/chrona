@@ -56,7 +56,9 @@ let private envWith (answer: StoreRequest -> StoreOutcome) =
               TakeOver = fun () -> ()
               Claim = fun () -> ()
               Reconnect = fun () -> ()
-              Lost = fun () -> () }
+              Lost = fun () -> ()
+              SignedOut = fun _ _ -> ()
+              ClearDevice = fun () -> () }
           Build = Chrona.Engine.App.Model.Development }
 
     env, requests

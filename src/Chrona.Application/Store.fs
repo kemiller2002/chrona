@@ -37,6 +37,20 @@ open Chrona.Engine.App
 open Chrona.Engine.App.Model
 open Chrona.Application.Bridge
 
+/// Why the records could not be read, for the person: GitHub could not be
+/// reached (the read cache may stand in, WI-0057), or it refused (it never
+/// may: a refusal is never answered with what was cached).
+[<RequireQualifiedAccess>]
+type Unopened =
+    | Unreachable of reason: string
+    | Refused of reason: string
+
+/// The reason, for the person.
+let reasonOf =
+    function
+    | Unopened.Unreachable reason
+    | Unopened.Refused reason -> reason
+
 /// What the store needs from where the data lives.
 [<NoComparison; NoEquality>]
 type Backend =
@@ -45,7 +59,7 @@ type Backend =
       /// The repository's facts for the signed-in credential: its visibility
       /// and whether it may be read and written (ARCA-AUTH-003, 2.7). A
       /// refusal says why, for the person.
-      Resolve: DataLocation -> Async<Result<CapabilitySnapshot, string>> }
+      Resolve: DataLocation -> Async<Result<CapabilitySnapshot, Unopened>> }
 
 /// The store port the application drives.
 [<NoComparison; NoEquality>]
@@ -71,7 +85,12 @@ type StorePort =
       /// The browser closed the queue's database under the page: open it again.
       Reconnect: unit -> unit
       /// This tab no longer holds this browser's unsent changes.
-      Lost: unit -> unit }
+      Lost: unit -> unit
+      /// The account leaves this device: its read cache goes unless its
+      /// unsent work was kept here (WI-0057, Arca's SignOut.plan).
+      SignedOut: Update.UnsentChoice -> int -> unit
+      /// Clear Chrona's data from this browser, for every account.
+      ClearDevice: unit -> unit }
 
 /// A store that keeps nothing: every commit is acknowledged at once. For a
 /// deployment that configures no location.
@@ -87,7 +106,9 @@ let inMemory (bridge: Bridge) : StorePort =
       TakeOver = fun () -> ()
       Claim = fun () -> ()
       Reconnect = fun () -> ()
-      Lost = fun () -> () }
+      Lost = fun () -> ()
+      SignedOut = fun _ _ -> ()
+      ClearDevice = fun () -> bridge.Start(async { return [ Update.DeviceCleared(Ok()) ] }) }
 
 // ---- GitHub, through the bridge ----------------------------------------------------
 
@@ -101,10 +122,10 @@ let private methodName =
 
 let private describeResolve =
     function
-    | ResolveError.CredentialUnavailable _ -> "You are not signed in to GitHub any more. Sign in again."
-    | ResolveError.CredentialRejected -> "GitHub refused your sign-in. Sign in again."
-    | ResolveError.RepositoryNotFound repository -> $"Your GitHub account cannot see {repository}."
-    | ResolveError.Call _ -> "GitHub could not be reached."
+    | ResolveError.CredentialUnavailable _ -> Unopened.Refused "You are not signed in to GitHub any more. Sign in again."
+    | ResolveError.CredentialRejected -> Unopened.Refused "GitHub refused your sign-in. Sign in again."
+    | ResolveError.RepositoryNotFound repository -> Unopened.Refused $"Your GitHub account cannot see {repository}."
+    | ResolveError.Call _ -> Unopened.Unreachable "GitHub could not be reached."
 
 /// Arca's GitHub adapter, its requests sent as Limen Http requests, its waits
 /// as `limen.schedule` timeouts, its tokens from Fides. A 401 is reported to
@@ -178,6 +199,18 @@ type private Indexed =
       /// Why it is not kept, or where it is known to differ from the records.
       Note: string option }
 
+/// What the records shown were read at.
+[<NoComparison; NoEquality>]
+type private Basis =
+    /// Read from GitHub at this change token: every write is conditioned on
+    /// it.
+    | ReadAt of ChangeToken
+    /// Shown from the read cache, as GitHub last gave them at this time.
+    /// Nothing is conditioned on a cached value (LCP-085): changes made now
+    /// are queued and decided again on what GitHub holds before they are
+    /// sent.
+    | CachedAt of DateTimeOffset
+
 /// The organization's records as opened.
 [<NoComparison; NoEquality>]
 type private Opened =
@@ -185,9 +218,13 @@ type private Opened =
       Folder: Namespace
       Provider: StorageProvider
       Name: string
-      /// The repository state the records were read at (21).
-      Token: ChangeToken
+      /// What the records were read at: GitHub's change token (21), or the
+      /// read cache while GitHub cannot be reached (WI-0057).
+      Basis: Basis
       Stored: Stored.Stored
+      /// Each folder's records as GitHub holds them at the basis's token, for
+      /// the read cache; empty while shown from the cache.
+      Read: Map<string, StoredObject list>
       /// The months read so far.
       Months: Set<int * int>
       /// The organization as the deployment configures it.
@@ -222,6 +259,13 @@ let private describeFailure =
     | StorageFailure.WrongLocation _ -> "The store is not serving the configured repository."
     | StorageFailure.IntegrityRefused(path, _) -> $"{path} could not be changed safely: it is not a valid record."
     | StorageFailure.ProviderFailed(_, _, detail) -> $"GitHub could not be reached ({detail})."
+
+/// A failure to read, as a reason the records could not be opened.
+let private unopened (failure: StorageFailure) =
+    match failure with
+    | StorageFailure.ProviderFailed(_, true, _)
+    | StorageFailure.RateLimited _ -> Unopened.Unreachable(describeFailure failure)
+    | _ -> Unopened.Refused(describeFailure failure)
 
 let private describeAll (diagnostics: Diagnostic list) =
     diagnostics |> List.map code |> List.distinct |> String.concat ", "
@@ -307,6 +351,19 @@ let private limenHost (bridge: Bridge) (now: unit -> DateTimeOffset) : Arca.Lime
 /// IndexedDB, then localStorage, then this page's memory.
 let private queueOptions = Arca.Limen.QueueOptions.standard
 
+/// The version of Chrona's records in the read cache (WI-0057): raised when
+/// a record format changes, so an entry of the old one is never shown.
+[<Literal>]
+let private CacheSchema = 1
+
+/// The cache partition that lists a folder's records held for review.
+[<Literal>]
+let private HeldPrefix = "held-for-review:"
+
+/// The cache partition that holds the activity index.
+[<Literal>]
+let private IndexPartition = "derived:activity-index"
+
 /// Where a queue Chrona holds is kept, for the person.
 let private durabilityOf (queue: Arca.Limen.OwnedQueue) =
     match queue.Mode with
@@ -362,6 +419,17 @@ let private unsent (entry: QueueEntry) =
     | EntryState.Synchronized _
     | EntryState.Abandoned _ -> false
     | _ -> true
+
+/// The queue kept in this browser with this page's own unsent changes after
+/// it, in order and renumbered after it. A change already kept (the same
+/// change, by its idempotency key) is not doubled.
+let private laidOver (kept: OfflineQueue) (mine: QueueEntry list) =
+    let known = kept.Entries |> List.map _.Operation.IdempotencyKey |> Set.ofList
+    let added = mine |> List.filter (fun entry -> not (known.Contains entry.Operation.IdempotencyKey))
+
+    { kept with
+        NextSequence = kept.NextSequence + int64 added.Length
+        Entries = kept.Entries @ (added |> List.mapi (fun index entry -> { entry with Sequence = kept.NextSequence + int64 index })) }
 
 /// The records a queued entry carries.
 let private recordsOf (folder: Namespace) (entry: QueueEntry) =
@@ -501,46 +569,90 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                 }
             )
 
-    /// Reads the folders these dates need.
-    let read (provider: StorageProvider) (folder: Namespace) (actorId: string) (dates: DateOnly list) : Async<Result<StoredObject list * Diagnostic list, string>> =
+    /// What this page asks of Limen: the store and coordination packs.
+    let host = limenHost bridge now
+
+    /// The read cache in IndexedDB (WI-0057), once opened: None where the
+    /// browser has none, and the records then simply need GitHub to open.
+    let mutable cache: Arca.Limen.IndexedDbCache option option = None
+
+    let readCache () =
+        async {
+            match cache with
+            | Some opened -> return opened
+            | None ->
+                let! result = Arca.Limen.IndexedDbReadCache.openCache host Arca.Limen.IndexedDbReadCache.DefaultBudget
+                let opened = Result.toOption result
+                cache <- Some opened
+                return opened
+        }
+
+    /// The queue's stores in order, freeing the read cache's space when a
+    /// save meets the browser's quota (LCP-087).
+    let queueOptions () =
+        async {
+            let! cached = readCache ()
+            return { queueOptions with FreeSpace = cached |> Option.map _.FreeSpace }
+        }
+
+    /// Keeps what was just read from GitHub in the read cache, one entry per
+    /// partition, best-effort: a failure never fails the read (LCP-083).
+    let keepRead (account: string) (folder: Namespace) (token: ChangeToken) (partitions: (string * StoredObject list) list) =
+        async {
+            match! readCache () with
+            | None -> ()
+            | Some cached ->
+                for partition, objects in partitions do
+                    match ReadCache.key account folder partition with
+                    | Error _ -> ()
+                    | Ok key -> do! cached.Keep(ReadCache.entry key CacheSchema (now ()) (Fresh.read token objects))
+        }
+
+    /// Reads the folders these dates need: each folder's records.
+    let read (provider: StorageProvider) (folder: Namespace) (actorId: string) (dates: DateOnly list) =
         async {
             match Stored.folders actorId dates with
-            | Error diagnostic -> return Error(code diagnostic)
+            | Error diagnostic -> return Error(Unopened.Refused(code diagnostic))
             | Ok folders ->
-                let mutable objects = []
+                let mutable read = []
                 let mutable problems = []
                 let mutable failure = None
 
                 for path in folders do
                     if failure.IsNone then
                         match! provider.List folder path with
-                        | Error error -> failure <- Some(describeFailure error)
+                        | Error error -> failure <- Some(unopened error)
                         | Ok listing ->
                             let files, incomplete = Persistence.recordFiles path listing
                             problems <- problems @ incomplete
+                            let mutable objects = []
 
                             for file in files do
                                 if failure.IsNone then
                                     match! provider.Read folder file with
                                     | Ok(ReadOutcome.Found found) -> objects <- objects @ [ found ]
                                     | Ok ReadOutcome.Absent -> ()
-                                    | Error error -> failure <- Some(describeFailure error)
+                                    | Error error -> failure <- Some(unopened error)
+
+                            read <- read @ [ path, objects ]
 
                 match failure with
                 | Some reason -> return Error reason
-                | None -> return Ok(objects, problems)
+                | None -> return Ok(read, problems)
         }
 
     /// The repository state, then what the folders hold at it: validated,
-    /// with records edited outside Chrona held for review.
+    /// with records edited outside Chrona held for review. What was read is
+    /// kept in the read cache, with which records were held.
     let load (provider: StorageProvider) (folder: Namespace) (actorId: string) (months: Set<int * int>) =
         async {
             match! provider.ChangeToken folder with
-            | Error error -> return Error(describeFailure error)
+            | Error error -> return Error(unopened error)
             | Ok token ->
                 match! read provider folder actorId (months |> Set.toList |> List.map firstOf) with
                 | Error reason -> return Error reason
-                | Ok(objects, incomplete) ->
+                | Ok(folders, incomplete) ->
+                    let objects = folders |> List.collect snd
                     let stored = Stored.load objects
                     let mutable histories = Map.empty
                     let mutable failure = None
@@ -549,18 +661,33 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                         if failure.IsNone then
                             match! provider.History folder found.Path with
                             | Ok history -> histories <- histories.Add(RelativePath.render found.Path, history)
-                            | Error error -> failure <- Some(describeFailure error)
+                            | Error error -> failure <- Some(unopened error)
 
                     match failure with
                     | Some reason -> return Error reason
                     | None ->
                         let activities = Persistence.holdExternalEdits histories stored.Activities
 
+                        let held =
+                            activities.HeldForReview |> Map.toList |> List.map (fun (_, found) -> RelativePath.render found.Path) |> Set.ofList
+
+                        do!
+                            keepRead
+                                actorId
+                                folder
+                                token
+                                (folders
+                                 |> List.collect (fun (path, inFolder) ->
+                                     [ RelativePath.render path, inFolder
+                                       HeldPrefix + RelativePath.render path,
+                                       inFolder |> List.filter (fun found -> held.Contains(RelativePath.render found.Path)) ]))
+
                         return
                             Ok(
                                 token,
                                 { stored with
-                                    Activities = { activities with Problems = incomplete @ activities.Problems } }
+                                    Activities = { activities with Problems = incomplete @ activities.Problems } },
+                                folders |> List.map (fun (path, inFolder) -> RelativePath.render path, inFolder) |> Map.ofList
                             )
         }
 
@@ -590,6 +717,10 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
         let state = { state with Stored = shown state }
 
         { Name = state.Name
+          Cached =
+            match state.Basis with
+            | CachedAt at -> Some at
+            | ReadAt _ -> None
           Activities = state.Stored.Activities.Activities |> Map.toList |> List.map (fun (_, found) -> found.Activity)
           References = state.Stored.References |> Map.toList |> List.map (fun (_, found) -> found.Item)
           Attestations = Stored.attestations state.Stored
@@ -652,25 +783,96 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                       Note = Some "The activity index cannot be read. An administrator can rebuild it from the records under More." }
         }
 
-    /// Reads the state again: the same months, plus any these dates add.
+    /// Keeps the activity index as read in the read cache, with the change
+    /// token the folders were read at.
+    let keepIndex (state: Opened) (token: ChangeToken) =
+        async {
+            match state.Index.Index, state.Index.Revision, Derived.path ActivityIndex.definition with
+            | Some index, Some revision, Ok path ->
+                do!
+                    keepRead
+                        state.Session.ActorId
+                        state.Folder
+                        token
+                        [ IndexPartition, [ ({ Path = path; Content = Derived.encode index; Revision = revision }: StoredObject) ] ]
+            | _ -> ()
+        }
+
+    /// Reads the state again from GitHub: the same months, plus any these
+    /// dates add. From the read cache, this is what makes the records
+    /// current again.
     let refresh (state: Opened) (dates: DateOnly list) =
         async {
             let months = state.Months + (dates |> List.map monthOf |> Set.ofList)
 
             match! load state.Provider state.Folder state.Session.ActorId months with
-            | Error reason -> return Error reason
-            | Ok(token, stored) ->
+            | Error reason -> return Error(reasonOf reason)
+            | Ok(token, stored, read) ->
                 let! indexed = readIndex state.Provider state.Folder state.Session.ActorId months stored state.Index
 
                 let next =
                     { state with
-                        Token = token
+                        Basis = ReadAt token
                         Stored = stored
+                        Read = read
                         Months = months
                         Index = indexed }
 
+                do! keepIndex next token
                 opened <- Some next
                 return Ok next
+        }
+
+    /// What GitHub holds after a commit this page made: the folders it
+    /// touched, as read plus the commit's changes at the receipt's revisions.
+    /// Every commit is conditioned on the whole repository's token, so that
+    /// is the repository at the receipt's token, and it is kept in the read
+    /// cache as such (LCP-083). `state` is the state after the commit.
+    let afterCommit (state: Opened) (operation: Operation) (receipt: CommitReceipt) =
+        async {
+            let revisionOf path =
+                receipt.Revisions.TryFind(RelativePath.render path) |> Option.flatten
+
+            let indexPath = Derived.path ActivityIndex.definition |> Result.toOption
+            let mutable read = state.Read
+            let mutable touched = Set.empty
+            let mutable index = None
+
+            for change in operation.Changes do
+                let path = Change.path change
+                let rendered = RelativePath.render path
+
+                let stored =
+                    match Change.content change, revisionOf path with
+                    | Some content, Some revision -> Some({ Path = path; Content = content; Revision = revision }: StoredObject)
+                    | _ -> None
+
+                if Some path = indexPath then
+                    index <- stored
+                else
+                    match read |> Map.tryFindKey (fun folder _ -> rendered.StartsWith(folder + "/", StringComparison.Ordinal)) with
+                    | Some folder ->
+                        let others = read[folder] |> List.filter (fun found -> found.Path <> path)
+                        read <- read.Add(folder, others @ Option.toList stored)
+                        touched <- touched.Add folder
+                    | None -> ()
+
+            let held =
+                state.Stored.Activities.HeldForReview |> Map.toList |> List.map (fun (_, found) -> RelativePath.render found.Path) |> Set.ofList
+
+            do!
+                keepRead
+                    state.Session.ActorId
+                    state.Folder
+                    receipt.ChangeToken
+                    ((touched
+                      |> Set.toList
+                      |> List.collect (fun folder ->
+                          [ folder, read[folder]
+                            HeldPrefix + folder, read[folder] |> List.filter (fun found -> held.Contains(RelativePath.render found.Path)) ]))
+                     @ (index |> Option.map (fun found -> IndexPartition, [ found ]) |> Option.toList))
+
+            return { state with Read = read }
         }
 
     // ---- The queue of unsent changes (WI-0033) ----------------------------------
@@ -692,15 +894,17 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
         let durability = state.Owned |> Option.map durabilityOf |> Option.defaultValue InPage
 
         Update.SyncChanged
-            { Offline = offline
+            { // Shown from the read cache: GitHub could not be reached.
+              Offline =
+                offline
+                || (match state.Basis with
+                    | CachedAt _ -> true
+                    | ReadAt _ -> false)
               KeptInBrowser = state.Owned.IsSome && durability <> InPage
               Note = state.Note
               Holder = state.Holder
               Durability = durability
               Notice = state.Notice }
-
-    /// What Arca's LimenQueue asks of this page.
-    let host = limenHost bridge now
 
     /// The queues this page holds, by lock: held until the page goes, the
     /// person signs out, or another tab takes one over. A Web Lock is not
@@ -757,6 +961,10 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
     /// becomes a conflict for the person.
     let attempts = 3
 
+    /// Opens the records from GitHub again, in place of what the read cache
+    /// showed: set once the opening jobs exist (below).
+    let mutable reopen: unit -> Async<Update.Msg list> = fun () -> async.Return []
+
     /// GitHub could not be reached: try again after a back-off, once.
     let rec scheduleRetry () =
         if not retrying then
@@ -782,7 +990,13 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
             async {
                 match opened with
                 | None -> return messages
-                | Some state ->
+                // Shown from the read cache: nothing is sent until the records
+                // are read from GitHub again, and every change made meanwhile
+                // is decided again on them first.
+                | Some { Basis = CachedAt _ } ->
+                    let! reopened = reopen ()
+                    return messages @ reopened
+                | Some({ Basis = ReadAt token } as state) ->
                     let save queue =
                         async {
                             let! saved = persist state queue
@@ -822,14 +1036,21 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                                 match recordsOf state.Folder entry with
                                 | Error _ -> return! finish state (Ok queue) (fun _ -> [ answer Committed ])
                                 | Ok changed ->
+                                    let operation = OfflineQueue.operationOf state.Folder entry.Operation
+
                                     let next =
                                         { state with
-                                            Token = receipt.ChangeToken
+                                            Basis = ReadAt receipt.ChangeToken
                                             Stored = Stored.committed changed receipt (Stored.overlay changed state.Stored)
                                             Index =
-                                                match OfflineQueue.operationOf state.Folder entry.Operation with
+                                                match operation with
                                                 | Ok operation -> indexAfter state.Index operation receipt
                                                 | Error _ -> state.Index }
+
+                                    let! next =
+                                        match operation with
+                                        | Ok operation -> afterCommit next operation receipt
+                                        | Error _ -> async.Return next
 
                                     let again = decided.ContainsKey entry.Sequence
 
@@ -875,6 +1096,25 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                                                 OutcomeUnknown
                                                     "GitHub did not say whether the change was saved. It will be checked before anything is sent again."
                                             ) ]
+                        // Made while the records were shown from the read cache:
+                        // conditioned on nothing, so it is decided again on what
+                        // GitHub holds before it is sent, as a change the
+                        // repository moved under is (WI-0057, LCP-085).
+                        | EntryState.Pending, Ok operation when operation.ExpectedChangeToken.IsNone ->
+                            let paths = operation.Changes |> List.map (Change.path >> RelativePath.render)
+
+                            let queue =
+                                { state.Queue with
+                                    Entries =
+                                        state.Queue.Entries
+                                        |> List.map (fun queued ->
+                                            if queued.Sequence = entry.Sequence then
+                                                { queued with State = EntryState.Conflicted paths }
+                                            else
+                                                queued) }
+
+                            let! _ = save queue
+                            return! step messages
                         | EntryState.Conflicted _, Ok operation ->
                             // The repository moved under it: Chrona's rules
                             // decide it again on what is stored now (21).
@@ -894,6 +1134,11 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                                 match! refresh state dates with
                                 | Error _ -> return offline state
                                 | Ok fresh ->
+                                    let freshToken =
+                                        match fresh.Basis with
+                                        | ReadAt token -> token
+                                        | CachedAt _ -> token
+
                                     match Reconcile.decide fresh.Stored changed with
                                     | Error divergences ->
                                         return!
@@ -921,7 +1166,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                                             |> Result.bind (fun changes ->
                                                 Operation.create fresh.Folder operation.Metadata changes
                                                 |> Result.mapError (fun _ -> [ StorageOperationRefused "the revised change does not validate" ]))
-                                            |> Result.map (Operation.requireChangeToken fresh.Token)
+                                            |> Result.map (Operation.requireChangeToken freshToken)
 
                                         match revised with
                                         | Error diagnostics ->
@@ -939,7 +1184,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                                                 return! step messages
                         | _, Ok operation ->
                             // Write-ahead: in flight is kept before it is sent.
-                            match OfflineQueue.markInFlight entry.Sequence state.Token state.Queue with
+                            match OfflineQueue.markInFlight entry.Sequence token state.Queue with
                             | Error _ -> return messages @ [ answer (Failed "The queued change could not be sent.") ]
                             | Ok inFlight ->
                                 let! state = save inFlight
@@ -995,8 +1240,15 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                             Note = (if owned.Mode = Arca.Limen.DurabilityMode.MemoryOnly then Some memoryOnlyNote else None)
                             Notice = notice }
 
+                    // This page's own unsent changes (made from the read cache,
+                    // or in the page while another tab held the queue) follow
+                    // what is kept.
+                    let mine = state.Queue.Entries |> List.filter unsent
+
                     match result with
-                    | Ok None -> return kept
+                    | Ok None when mine.IsEmpty -> return kept
+                    // Kept before anything is sent (write-ahead).
+                    | Ok None -> return! persist kept kept.Queue
                     | Ok(Some queue) when
                         queue.Entries |> List.exists (fun entry -> unsent entry && entry.Operation.ActorId <> state.Session.ActorId)
                         ->
@@ -1005,7 +1257,11 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                                 Owned = None
                                 Notice = notice
                                 Note = Some "Another account left changes in this browser that have not been sent; they are kept for that account." }
-                    | Ok(Some queue) -> return { kept with Queue = OfflineQueue.recover queue }
+                    | Ok(Some queue) when mine.IsEmpty -> return { kept with Queue = OfflineQueue.recover queue }
+                    | Ok(Some queue) ->
+                        // Decisions were counted by the old numbers.
+                        decided.Clear()
+                        return! persist kept (laidOver (OfflineQueue.recover queue) mine)
                     | Error failure -> return { state with Owned = None; Notice = notice; Note = Some(describeQueueStore failure) }
                 }
 
@@ -1020,7 +1276,8 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                     match held.TryGetValue lock with
                     | true, owned -> return! keep owned state
                     | _ ->
-                        match! Arca.Limen.LimenQueue.own host queueOptions state.Folder with
+                        let! options = queueOptions ()
+                        match! Arca.Limen.LimenQueue.own host options state.Folder with
                         | Arca.Limen.QueueOpening.Owned owned ->
                             held[lock] <- owned
                             return! keep owned state
@@ -1039,9 +1296,13 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
             retryMs <- FirstRetryMs
             let resumed = state.Queue.Entries |> List.filter unsent |> List.choose (requestOf state.Folder)
 
-            if resumed.IsEmpty then
-                return [ Update.StoreOpened(contents state); sync state false ]
-            else
+            match state.Basis with
+            // From the read cache: GitHub is tried again after a back-off.
+            | CachedAt _ ->
+                scheduleRetry ()
+                return [ Update.StoreOpened(contents state); Update.StoreResumed resumed; sync state true ]
+            | ReadAt _ when resumed.IsEmpty -> return [ Update.StoreOpened(contents state); sync state false ]
+            | ReadAt _ ->
                 serial drain
                 return [ Update.StoreOpened(contents state); Update.StoreResumed resumed; sync state false ]
         }
@@ -1052,10 +1313,10 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
             let readManifest () =
                 async {
                     match Layout.manifestPath with
-                    | Error error -> return Error(LocationError.describe error)
+                    | Error error -> return Error(Unopened.Refused(LocationError.describe error))
                     | Ok path ->
                         match! provider.Read folder path with
-                        | Error failure -> return Error(describeFailure failure)
+                        | Error failure -> return Error(unopened failure)
                         | Ok stored -> return Ok(Storage.openNamespace folder stored)
                 }
 
@@ -1065,13 +1326,13 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
             | Ok(Error [ NamespaceNotInitialized _ ]) ->
                 match initialize () with
                 | Error [ PublicProductionRepository ] ->
-                    return Error "Production records are never started in a public repository. Use a private repository."
-                | Error diagnostics -> return Error($"The records could not be set up ({describeAll diagnostics}).")
+                    return Error(Unopened.Refused "Production records are never started in a public repository. Use a private repository.")
+                | Error diagnostics -> return Error(Unopened.Refused $"The records could not be set up ({describeAll diagnostics}).")
                 | Ok operation ->
                     match! provider.Commit operation with
                     | Ok _ -> return Ok()
-                    | Error failure -> return Error(describeFailure failure)
-            | Ok(Error diagnostics) -> return Error($"The configured folder cannot be used ({describeAll diagnostics}).")
+                    | Error failure -> return Error(unopened failure)
+            | Ok(Error diagnostics) -> return Error(Unopened.Refused $"The configured folder cannot be used ({describeAll diagnostics}).")
         }
 
     /// The repository, if the signed-in account can keep records in it.
@@ -1079,14 +1340,16 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
         async {
             match! backend.Resolve location with
             | Error reason -> return Error reason
-            | Ok snapshot when not snapshot.CanRead -> return Error $"Your GitHub account cannot read {snapshot.Repository}."
-            | Ok snapshot when not snapshot.CanWrite -> return Error $"Your GitHub account cannot write to {snapshot.Repository}."
-            | Ok snapshot when snapshot.Archived -> return Error $"{snapshot.Repository} is archived."
+            | Ok snapshot when not snapshot.CanRead -> return Error(Unopened.Refused $"Your GitHub account cannot read {snapshot.Repository}.")
+            | Ok snapshot when not snapshot.CanWrite -> return Error(Unopened.Refused $"Your GitHub account cannot write to {snapshot.Repository}.")
+            | Ok snapshot when snapshot.Archived -> return Error(Unopened.Refused $"{snapshot.Repository} is archived.")
             | Ok snapshot ->
                 match snapshot.Branch with
                 | BranchAccess.Writable -> return Ok snapshot
-                | BranchAccess.Missing -> return Error $"The data branch {BranchName.value location.Branch} does not exist in {snapshot.Repository}."
-                | BranchAccess.NotWritable _ -> return Error $"The data branch {BranchName.value location.Branch} does not accept direct changes."
+                | BranchAccess.Missing ->
+                    return Error(Unopened.Refused $"The data branch {BranchName.value location.Branch} does not exist in {snapshot.Repository}.")
+                | BranchAccess.NotWritable _ ->
+                    return Error(Unopened.Refused $"The data branch {BranchName.value location.Branch} does not accept direct changes.")
         }
 
     /// Makes the session's person the organization's administrator: the
@@ -1098,21 +1361,25 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
             let membership = Governance.administrator (principalOf state.Session) roster
             let changed = { Stored.nothing with Members = [ membership ] }
 
-            match Stored.changes state.Stored changed, operationContext state.Session (newKey "appoint") (now ()) with
-            | Ok changes, Ok context ->
+            match state.Basis, Stored.changes state.Stored changed, operationContext state.Session (newKey "appoint") (now ()) with
+            // Appointing is a write: never from the read cache (LCP-085).
+            | CachedAt _, _, _ -> return Error "An administrator can be appointed only while GitHub can be reached."
+            | ReadAt token, Ok changes, Ok context ->
                 match Storage.operation state.Folder context "appoint an administrator" changes with
                 | Error diagnostics -> return Error($"The administrator could not be recorded ({describeAll diagnostics}).")
                 | Ok operation ->
-                    match! state.Provider.Commit(Operation.requireChangeToken state.Token operation) with
+                    match! state.Provider.Commit(Operation.requireChangeToken token operation) with
                     | Ok receipt ->
-                        return
-                            Ok
-                                { state with
-                                    Token = receipt.ChangeToken
-                                    Stored = Stored.committed changed receipt state.Stored }
+                        let next =
+                            { state with
+                                Basis = ReadAt receipt.ChangeToken
+                                Stored = Stored.committed changed receipt state.Stored }
+
+                        let! next = afterCommit next operation receipt
+                        return Ok next
                     | Error failure -> return Error(describeFailure failure)
-            | Error diagnostics, _
-            | _, Error diagnostics -> return Error($"The administrator could not be recorded ({describeAll diagnostics}).")
+            | _, Error diagnostics, _
+            | _, _, Error diagnostics -> return Error($"The administrator could not be recorded ({describeAll diagnostics}).")
         }
 
     /// Why an organization waits for a listed administrator, for this person.
@@ -1127,27 +1394,30 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
         | false, _ ->
             $"{organization.DisplayName} has no administrator from this deployment's configuration. One of its listed administrators (GitHub accounts {accounts}) must sign in and confirm first."
 
-    let openJob (config: Deployment.DeploymentConfig) (session: Session) (dates: DateOnly list) () =
+    /// Where the deployment keeps this session's organization.
+    let prepare (config: Deployment.DeploymentConfig) (session: Session) =
+        match Storage.binding config, Deployment.organization config session.OrganizationId with
+        | Ok binding, Some organization ->
+            match Storage.applicationNamespace binding, Storage.organizationNamespace config binding organization.Id with
+            | Ok application, Ok folder -> Ok(binding, application, folder, organization)
+            | Error diagnostic, _
+            | _, Error diagnostic -> Error(code diagnostic)
+        | Error diagnostic, _ -> Error(code diagnostic)
+        | _, None -> Error $"the deployment does not serve {session.OrganizationId}"
+
+    /// Opens the records from GitHub; what was read is kept in the read
+    /// cache. This page's own unsent changes (`carried`) follow what this
+    /// browser keeps.
+    let openFresh (config: Deployment.DeploymentConfig) (session: Session) (dates: DateOnly list) (carried: QueueEntry list) =
         async {
             let at = now ()
-
-            let prepared =
-                match Storage.binding config, Deployment.organization config session.OrganizationId with
-                | Ok binding, Some organization ->
-                    match Storage.applicationNamespace binding, Storage.organizationNamespace config binding organization.Id with
-                    | Ok application, Ok folder -> Ok(binding, application, folder, organization)
-                    | Error diagnostic, _
-                    | _, Error diagnostic -> Error(code diagnostic)
-                | Error diagnostic, _ -> Error(code diagnostic)
-                | _, None -> Error $"the deployment does not serve {session.OrganizationId}"
-
             let context () = operationContext session (newKey "open") at
 
-            match prepared with
-            | Error reason -> return [ Update.StoreUnavailable $"This deployment's storage is not configured correctly ({reason})." ]
+            match prepare config session with
+            | Error reason -> return Error(Unopened.Refused $"This deployment's storage is not configured correctly ({reason}).")
             | Ok(binding, application, folder, organization) ->
                 match! resolve binding.Location with
-                | Error reason -> return [ Update.StoreUnavailable reason ]
+                | Error reason -> return Error reason
                 | Ok home ->
                     let applicationProvider = backend.Provider binding.Location
 
@@ -1155,13 +1425,13 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                         ensure applicationProvider application (fun () ->
                             context () |> Result.bind (Storage.initializeApplication binding home.Visibility None))
                     with
-                    | Error reason -> return [ Update.StoreUnavailable reason ]
+                    | Error reason -> return Error reason
                     | Ok() ->
                         let separate = folder.Location <> binding.Location
                         let! own = if separate then resolve folder.Location else async.Return(Ok home)
 
                         match own with
-                        | Error reason -> return [ Update.StoreUnavailable reason ]
+                        | Error reason -> return Error reason
                         | Ok repository ->
                             let provider = if separate then backend.Provider folder.Location else applicationProvider
                             let manifest = Organization.create organization.Id organization.DisplayName organization.Slug organization.TimeZone at
@@ -1169,12 +1439,12 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                             let! existing =
                                 async {
                                     match Layout.manifestPath with
-                                    | Error error -> return Error(LocationError.describe error)
+                                    | Error error -> return Error(Unopened.Refused(LocationError.describe error))
                                     | Ok path ->
                                         match! provider.Read folder path with
                                         | Ok ReadOutcome.Absent -> return Ok false
                                         | Ok(ReadOutcome.Found _) -> return Ok true
-                                        | Error failure -> return Error(describeFailure failure)
+                                        | Error failure -> return Error(unopened failure)
                                 }
 
                             let decideFor isNew roster =
@@ -1183,32 +1453,33 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                             let nobody: Access.Roster = { OrganizationId = organization.Id; Members = Map.empty }
 
                             match existing, decideFor true nobody with
-                            | Error reason, _ -> return [ Update.StoreUnavailable reason ]
+                            | Error reason, _ -> return Error reason
                             // Nothing is written for someone who may not set it up.
-                            | Ok false, Governance.Refused reason -> return [ Update.StoreUnavailable reason ]
+                            | Ok false, Governance.Refused reason -> return Error(Unopened.Refused reason)
                             | Ok isExisting, _ ->
                                 match!
                                     ensure provider folder (fun () ->
                                         context ()
                                         |> Result.bind (fun context -> Storage.initializeOrganization config binding repository.Visibility None context manifest))
                                 with
-                                | Error reason -> return [ Update.StoreUnavailable reason ]
+                                | Error reason -> return Error reason
                                 | Ok() ->
                                     let months = dates |> List.map monthOf |> Set.ofList
 
                                     match! load provider folder session.ActorId months with
-                                    | Error reason -> return [ Update.StoreUnavailable reason ]
-                                    | Ok(token, stored) ->
+                                    | Error reason -> return Error reason
+                                    | Ok(token, stored, read) ->
                                         let state =
                                             { Session = session
                                               Folder = folder
                                               Provider = provider
                                               Name = string folder.Location.Repository
-                                              Token = token
+                                              Basis = ReadAt token
                                               Stored = stored
+                                              Read = read
                                               Months = months
                                               Organization = organization
-                                              Queue = OfflineQueue.create OfflinePolicy.QueueWrites
+                                              Queue = { OfflineQueue.create OfflinePolicy.QueueWrites with Entries = carried }
                                               Owned = None
                                               Holder = HeldHere
                                               Note = None
@@ -1226,23 +1497,193 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                                                 { state.Index with Index = (if isExisting then None else Some ActivityIndex.empty) }
 
                                         let state = { state with Index = indexed }
+                                        do! keepIndex state token
 
                                         let roster = Stored.roster organization.Id stored
 
                                         match decideFor (not isExisting) roster with
-                                        | Governance.Proceed -> return! ready state
+                                        | Governance.Proceed ->
+                                            let! messages = ready state
+                                            return Ok messages
                                         | Governance.Found ->
                                             match! appoint state with
-                                            | Error reason -> return [ Update.StoreUnavailable reason ]
-                                            | Ok state -> return! ready state
+                                            | Error reason -> return Error(Unopened.Refused reason)
+                                            | Ok state ->
+                                                let! messages = ready state
+                                                return Ok messages
                                         | Governance.NeedsConfirmation canConfirm ->
                                             // Nothing is granted: the records stay closed
                                             // until a listed account confirms.
                                             opened <- None
                                             pending <- Some state
-                                            return [ Update.StoreNeedsConfirmation(confirmationReason organization canConfirm, canConfirm) ]
-                                        | Governance.Refused reason -> return [ Update.StoreUnavailable reason ]
+                                            return Ok [ Update.StoreNeedsConfirmation(confirmationReason organization canConfirm, canConfirm) ]
+                                        | Governance.Refused reason -> return Error(Unopened.Refused reason)
         }
+
+    /// Opens the records from the read cache while GitHub cannot be reached
+    /// (WI-0057, LCP-082..084): what GitHub last gave this account, shown as
+    /// of when it was read, never as current. The organization's people and
+    /// reference data must be cached; a month counts as read only when all
+    /// of its folders are. None when the cache cannot stand in.
+    let openCached (config: Deployment.DeploymentConfig) (session: Session) (dates: DateOnly list) (carried: QueueEntry list) =
+        async {
+            match prepare config session, Stored.folders session.ActorId [] with
+            | Error _, _
+            | _, Error _ -> return None
+            | Ok(_, _, folder, organization), Ok common ->
+                match! readCache () with
+                | None -> return None
+                | Some cached ->
+                    // A partition as GitHub last gave it: still shown, as of
+                    // its token, while GitHub cannot be reached (LCP-084).
+                    let show (partition: string) =
+                        async {
+                            match ReadCache.key session.ActorId folder partition with
+                            | Error _ -> return None
+                            | Ok key ->
+                                match! cached.Show key with
+                                | Ok(Some entry) ->
+                                    match ReadCache.revalidate ProviderObservation.Unreachable entry with
+                                    | Revalidation.Unverified shown -> return Some shown
+                                    | _ -> return None
+                                | _ -> return None
+                        }
+
+                    // One after another, on this page's own turn: never
+                    // Async.Parallel or Sequential, which leave the bridge's
+                    // thread.
+                    let showAll (partitions: string list) =
+                        async {
+                            let mutable shown = []
+
+                            for partition in partitions do
+                                let! one = show partition
+                                shown <- shown @ [ one ]
+
+                            return shown
+                        }
+
+                    let isHeld (entry: Cached<Arca.CacheEntry>) =
+                        (Cached.key entry).Partition.StartsWith(HeldPrefix, StringComparison.Ordinal)
+
+                    let objectsOf (entry: Cached<Arca.CacheEntry>) =
+                        (Cached.value entry).Records
+                        |> List.choose (fun (record: CachedRecord) ->
+                            RelativePath.parse record.Path
+                            |> Result.toOption
+                            // A cached record carries no revision: it is never
+                            // the basis of a write (LCP-085).
+                            |> Option.map (fun path ->
+                                ({ Path = path
+                                   Content = record.Content
+                                   Revision = Revision("cached:" + record.ContentHash) }: StoredObject)))
+
+                    let! shared = common |> List.map RelativePath.render |> showAll
+
+                    if shared |> List.exists Option.isNone then
+                        return None
+                    else
+                        let mutable entries = shared |> List.choose id
+                        let mutable months = Set.empty
+
+                        for month in dates |> List.map monthOf |> List.distinct do
+                            match Stored.folders session.ActorId [ firstOf month ] with
+                            | Ok all ->
+                                let own = all |> List.filter (fun path -> not (List.contains path common)) |> List.map RelativePath.render
+                                let! found = showAll own
+                                let! held = own |> List.map (fun path -> HeldPrefix + path) |> showAll
+
+                                if found |> List.forall Option.isSome then
+                                    months <- months.Add month
+                                    entries <- entries @ (found |> List.choose id) @ (held |> List.choose id)
+                            | Error _ -> ()
+
+                        let heldPaths =
+                            entries |> List.filter isHeld |> List.collect objectsOf |> List.map (fun found -> RelativePath.render found.Path) |> Set.ofList
+
+                        let stored = Stored.load (entries |> List.filter (isHeld >> not) |> List.collect objectsOf)
+                        let stored = { stored with Activities = Persistence.holdPaths heldPaths stored.Activities }
+                        let! index = show IndexPartition
+                        let unread = "The activity index is read again when GitHub can be reached."
+
+                        let indexed =
+                            match index |> Option.map objectsOf with
+                            | Some [ found ] ->
+                                match Derived.decode found.Content with
+                                | Ok index -> { Index = Some index; Revision = None; Note = None }
+                                | Error _ -> { Index = None; Revision = None; Note = Some unread }
+                            | _ -> { Index = None; Revision = None; Note = Some unread }
+
+                        let state =
+                            { Session = session
+                              Folder = folder
+                              Provider = backend.Provider folder.Location
+                              Name = string folder.Location.Repository
+                              // Shown as of the oldest partition it holds.
+                              Basis = CachedAt(entries |> List.map Cached.readAt |> List.min)
+                              Stored = stored
+                              Read = Map.empty
+                              Months = months
+                              Organization = organization
+                              Queue = { OfflineQueue.create OfflinePolicy.QueueWrites with Entries = carried }
+                              Owned = None
+                              Holder = HeldHere
+                              Note = None
+                              Notice = None
+                              Index = indexed }
+
+                        // Only an organization this person already works in
+                        // opens from the cache: setting one up, or confirming
+                        // an administrator, needs GitHub.
+                        match Governance.decide config.Environment organization false (Stored.roster organization.Id stored) session.ActorId with
+                        | Governance.Proceed ->
+                            let! messages = ready state
+                            return Some messages
+                        | _ -> return None
+        }
+
+    /// This page's own unsent changes, carried into the records opened next:
+    /// where this tab keeps nothing in the browser, they live only here.
+    let carriedOver () =
+        match opened with
+        | Some state when state.Owned.IsNone -> state.Queue.Entries |> List.filter unsent
+        | _ -> []
+
+    /// The deployment, session and dates the records were last opened for.
+    let mutable lastOpen: (Deployment.DeploymentConfig * Session * DateOnly list) option = None
+
+    let openJob (config: Deployment.DeploymentConfig) (session: Session) (dates: DateOnly list) () =
+        async {
+            let carried = carriedOver ()
+
+            let! fresh = openFresh config session dates carried
+
+            match fresh with
+            | Ok messages -> return messages
+            | Error(Unopened.Refused reason) -> return [ Update.StoreUnavailable reason ]
+            | Error(Unopened.Unreachable reason) ->
+                match! openCached config session dates carried with
+                | Some messages -> return messages
+                | None -> return [ Update.StoreUnavailable reason ]
+        }
+
+    // From the read cache, the records are opened from GitHub again once it
+    // can be reached; until then they stay as shown.
+    reopen <-
+        fun () ->
+            async {
+                match lastOpen, opened with
+                | Some(config, session, dates), Some({ Basis = CachedAt _ } as shown) ->
+                    let dates = dates @ (shown.Months |> Set.toList |> List.map firstOf)
+
+                    match! openFresh config session dates (carriedOver ()) with
+                    | Ok messages -> return messages
+                    | Error(Unopened.Unreachable _) ->
+                        scheduleRetry ()
+                        return [ sync shown true ]
+                    | Error(Unopened.Refused reason) -> return [ Update.StoreUnavailable reason ]
+                | _ -> return []
+            }
 
     /// A listed account confirms itself as the administrator of an
     /// organization that has none from the configuration.
@@ -1314,7 +1755,15 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                             | Ok operation ->
                                 // Conditioned on the repository state the records
                                 // were read at, and queued before it is sent.
-                                match OfflineQueue.enqueue (now ()) (Operation.requireChangeToken state.Token operation) state.Queue with
+                                // From the read cache it is conditioned on
+                                // nothing, and decided again on what GitHub
+                                // holds before it is sent (LCP-085).
+                                let queued =
+                                    match state.Basis with
+                                    | ReadAt token -> Operation.requireChangeToken token operation
+                                    | CachedAt _ -> operation
+
+                                match OfflineQueue.enqueue (now ()) queued state.Queue with
                                 | Error _ -> return answer (Failed "This change could not be queued.")
                                 | Ok(queued, _) ->
                                     let! state = persist { state with Stored = real } queued
@@ -1433,11 +1882,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                     return [ sync state false ]
                 | Ok kept ->
                     let before = kept |> Option.map OfflineQueue.recover |> Option.defaultValue (OfflineQueue.create OfflinePolicy.QueueWrites)
-
-                    let queue =
-                        { before with
-                            NextSequence = before.NextSequence + int64 mine.Length
-                            Entries = before.Entries @ (mine |> List.mapi (fun index entry -> { entry with Sequence = before.NextSequence + int64 index })) }
+                    let queue = laidOver before mine
 
                     // Decisions were counted by the old numbers.
                     decided.Clear()
@@ -1477,7 +1922,8 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
 
                 bridge.Start(
                     async {
-                        match! Arca.Limen.LimenQueue.takeOver host queueOptions state.Folder with
+                        let! options = queueOptions ()
+                        match! Arca.Limen.LimenQueue.takeOver host options state.Folder with
                         | Arca.Limen.QueueOpening.Owned owned -> serial (adoptJob owned lock)
                         | _ ->
                             serial (fun () ->
@@ -1504,7 +1950,8 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
         async {
             match opened with
             | Some state when state.Holder = HeldElsewhere false ->
-                match! Arca.Limen.LimenQueue.own host queueOptions state.Folder with
+                let! options = queueOptions ()
+                match! Arca.Limen.LimenQueue.own host options state.Folder with
                 | Arca.Limen.QueueOpening.Owned owned -> return! adoptJob owned (lockOf state.Folder) ()
                 | _ -> return []
             | _ -> return []
@@ -1526,7 +1973,8 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                     do! previous.Release()
                 | _ -> ()
 
-                match! Arca.Limen.LimenQueue.own host queueOptions state.Folder with
+                let! options = queueOptions ()
+                match! Arca.Limen.LimenQueue.own host options state.Folder with
                 | Arca.Limen.QueueOpening.Owned owned ->
                     held[lock] <- owned
                     // Loaded first: the store reports what it found.
@@ -1574,6 +2022,75 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
             | _ -> return []
         }
 
+    /// What leaving the device does with the account's read cache, under the
+    /// deployment's shared-device policy (LCP-070, LCP-086): it goes, unless
+    /// the person kept their unsent work here under `ask`, so that the
+    /// account opens offline and sees it in context.
+    let leaveJob (choice: Update.UnsentChoice) (unsent: int) () =
+        async {
+            match lastOpen with
+            | None -> return []
+            | Some(config, session, _) ->
+                let policy =
+                    match config.SharedDevice with
+                    | Deployment.Ask -> SharedDevicePolicy.Ask
+                    | Deployment.DiscardOnSignOut -> SharedDevicePolicy.DiscardOnSignOut
+
+                let count, chosen =
+                    match choice with
+                    | Update.NothingUnsent
+                    | Update.SentUnsent -> 0, None
+                    | Update.KeptUnsent -> max 1 unsent, Some SignOutChoice.Keep
+                    | Update.DiscardedUnsent -> max 1 unsent, Some SignOutChoice.Discard
+
+                match SignOut.plan policy count chosen with
+                | Ok plan when plan.ClearCache ->
+                    match! readCache () with
+                    | Some cached -> do! cached.Store.Clear(CacheScope.Account session.ActorId) |> Async.Ignore
+                    | None -> ()
+                | _ -> ()
+
+                return []
+        }
+
+    /// Clears Chrona's data from this browser: the queue and the read cache,
+    /// for every account (LimenDevice.clear). Refused while anything of
+    /// another account's waits unsent here; blocked while another tab holds
+    /// the databases open.
+    let clearJob () =
+        async {
+            let others =
+                match opened with
+                | Some state -> state.Queue.Entries |> List.exists (fun entry -> unsent entry && entry.Operation.ActorId <> state.Session.ActorId)
+                | None -> false
+
+            let otherKept =
+                match opened with
+                | Some state -> state.Note = Some "Another account left changes in this browser that have not been sent; they are kept for that account."
+                | None -> false
+
+            if others || otherKept then
+                return
+                    [ Update.DeviceCleared(
+                          Error "Another account's unsent changes are kept in this browser; clearing it would lose them. That account can send them first."
+                      ) ]
+            else
+                // This tab lets go of what it holds first.
+                for owned in List.ofSeq held.Values do
+                    do! owned.Release()
+
+                held.Clear()
+
+                match! Arca.Limen.LimenDevice.clear host with
+                | Ok() ->
+                    cache <- None
+                    opened <- opened |> Option.map (fun state -> { state with Owned = None })
+                    return [ Update.DeviceCleared(Ok()) ]
+                | Error(_, ReadCacheFailure.Blocked) ->
+                    return [ Update.DeviceCleared(Error "Another Chrona tab has this browser's data open. Close Chrona's other tabs, then try again.") ]
+                | Error(name, _) -> return [ Update.DeviceCleared(Error $"This browser could not clear Chrona's data ({name}). Try again.") ]
+        }
+
     // Until the engine opens storage (a deployment that configures a
     // location), commits are kept in memory and acknowledged at once.
     let memory = inMemory bridge
@@ -1601,7 +2118,8 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                         let! kept = owned.Store.Load()
                         return count kept, None
                     | _ ->
-                        match! Arca.Limen.LimenQueue.own host queueOptions folder with
+                        let! options = queueOptions ()
+                        match! Arca.Limen.LimenQueue.own host options folder with
                         | Arca.Limen.QueueOpening.Owned owned ->
                             // The first load may move an older localStorage queue.
                             let! kept = owned.Store.Load()
@@ -1615,6 +2133,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
       Open =
         fun config session dates ->
             requested <- true
+            lastOpen <- Some(config, session, dates)
 
             serial (fun () ->
                 async {
@@ -1644,4 +2163,6 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
       TakeOver = fun () -> if requested then serial takeOverJob
       Claim = fun () -> if requested then serial claimJob
       Reconnect = fun () -> if requested then serial reconnectJob
-      Lost = fun () -> if requested then serial lostJob }
+      Lost = fun () -> if requested then serial lostJob
+      SignedOut = fun choice unsent -> if requested then serial (leaveJob choice unsent)
+      ClearDevice = fun () -> if requested then serial clearJob else memory.ClearDevice() }

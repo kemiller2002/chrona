@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-08T23:52:13.000Z",
+  "updatedAt": "2026-10-09T00:59:20.000Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -2618,6 +2618,56 @@
       },
       "completedAt": "2026-10-08T23:52:13.000Z",
       "conclusion": "The offline queue lives in IndexedDB through Arca 0.3.0's LimenQueue on Limen 0.9.0's store pack, with take-over, hand-over, claim on return and the localStorage migration; covered in .NET and Chromium (PR #74)"
+    },
+    {
+      "id": "WI-0057",
+      "type": "task",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Application/Store.fs"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/StoreTests.fs"
+        },
+        {
+          "type": "tests",
+          "path": "tests/browser/app-github.spec.js"
+        },
+        {
+          "type": "documentation",
+          "path": "research/decisions/DF-CHRONA-2026-0005--records-on-github-through-arca-behind-the-store-port.md"
+        }
+      ],
+      "updatedAt": "2026-10-09T00:59:20.000Z",
+      "telemetryExecutionIds": [
+        "EXE-20261008T235949355Z-28e2b305"
+      ],
+      "latestCheckpoint": {
+        "id": "a31f500a3928dbe9c03e1c4a",
+        "recordedAt": "2026-10-09T00:51:03.000Z",
+        "executionId": "EXE-20261008T235949355Z-28e2b305",
+        "repository": "chrona",
+        "branch": "feature/read-cache",
+        "commit": "223c9f6c2b6316065f4849a6cecbe19cfe318952",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/chrona"
+        },
+        "remoteBranch": "feature/read-cache",
+        "remoteCommit": "223c9f6c2b6316065f4849a6cecbe19cfe318952",
+        "summary": "Read cache through Arca.Limen IndexedDbReadCache: offline start, decide-again on reconnect, sign-out plan, clear this device; 379 .NET, 65 Chromium, 4 Pages green locally",
+        "nextAction": "Open the PR, gate every PR check on the head, merge with sha, record completion",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      },
+      "completedAt": "2026-10-09T00:59:20.000Z",
+      "conclusion": "The records open offline from the read cache through Arca 0.3.0's IndexedDbReadCache; changes made there are decided again on GitHub's records; sign-out follows SignOut.plan; Clear this device runs LimenDevice.clear"
     }
   ]
 }

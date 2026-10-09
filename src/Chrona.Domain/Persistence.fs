@@ -204,15 +204,12 @@ let ledgerOf (snapshot: Snapshot) : Ledger.Ledger =
 
 // ---- Manual edits (41) ---------------------------------------------------------
 
-/// Holds for review every activity whose newest commit was made outside
-/// Arca. `histories` is each read record's history, newest first.
-let holdExternalEdits (histories: Map<string, HistoryEntry list>) (snapshot: Snapshot) =
+/// Holds the activities at these paths for review: the records a read from
+/// GitHub found edited outside Chrona. Kept with the read cache, so that a
+/// start from the cache holds them too (WI-0057).
+let holdPaths (paths: Set<string>) (snapshot: Snapshot) =
     let edited =
-        snapshot.Activities
-        |> Map.filter (fun _ found ->
-            match histories.TryFind(RelativePath.render found.Path) with
-            | Some({ Origin = CommitOrigin.External } :: _) -> true
-            | _ -> false)
+        snapshot.Activities |> Map.filter (fun _ found -> paths.Contains(RelativePath.render found.Path))
 
     { snapshot with
         Activities = snapshot.Activities |> Map.filter (fun id _ -> not (edited.ContainsKey id))
@@ -220,6 +217,20 @@ let holdExternalEdits (histories: Map<string, HistoryEntry list>) (snapshot: Sna
         Problems =
             snapshot.Problems
             @ (edited |> Map.toList |> List.map (fun (_, found) -> ExternalEdit(RelativePath.render found.Path))) }
+
+/// Holds for review every activity whose newest commit was made outside
+/// Arca. `histories` is each read record's history, newest first.
+let holdExternalEdits (histories: Map<string, HistoryEntry list>) (snapshot: Snapshot) =
+    let edited =
+        histories
+        |> Map.filter (fun _ history ->
+            match history with
+            | { Origin = CommitOrigin.External } :: _ -> true
+            | _ -> false)
+        |> Map.keys
+        |> Set.ofSeq
+
+    holdPaths edited snapshot
 
 /// A state an outside edit claims that only Chrona's own transitions give:
 /// a review or publication state comes with its submission, approval or

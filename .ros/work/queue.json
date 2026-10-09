@@ -1252,12 +1252,17 @@
       "id": "WI-0057",
       "title": "Chrona 08c: offline start with a read cache (CHX-230 remainder)",
       "description": "Depends on Limen's IndexedDB capability (its requirements are being written in the limen repository) and WI-0033. When GitHub cannot be reached at startup, open the organization's records from a read-only cache in IndexedDB so recording can start offline. GitHub stays the only authority: the cache is a rebuildable projection of what was last read (records with their revisions and the change token they were read at), never written to except from GitHub reads, discarded and rebuilt whenever it cannot be trusted, kept per account and organization, and cleared by the shared-device policy at sign-out. Changes made from it go through the offline queue, decided again on reconnect. No read cache on localStorage (coordinator decision 2026-10-08). Requirement 23 (CHX-230). Requirements (2026-10-08): kemiller2002/limen docs/requirements/LIMEN-INDEXEDDB-REQUIREMENTS.md LCP-082..LCP-087; DF-LIMEN-2026-0005 section 4 places the cache in Arca: a pure read-cache port in Arca.Core (Cached and Fresh are different types, so a cached value can never condition a write) with an IndexedDB adapter in EchelonFoundry.Arca.Limen (Arca WI-0021, WI-0022). Cache per account and organization the partitions already read: activities by month, the derived activity index (WI-0034), reference data and the roster, each stamped with its change token and content hashes; show them as of that token offline; revalidate the shown partitions when GitHub is reachable (refresh or mark stale). Clearing follows WI-0058's sharedDevicePolicy: discardOnSignOut clears the account's cache at sign-out; ask clears it unless the person keeps their unsent changes on this device, in which case the account's cache is kept with them (LCP-070, LCP-086). Also depends on Arca WI-0021/WI-0022 released and WI-0059.",
-      "tags": [],
+      "tags": [
+        "chrona",
+        "offline",
+        "limen",
+        "indexeddb"
+      ],
       "priority": "medium",
-      "status": "captured",
+      "status": "complete",
       "attachments": [],
       "createdAt": "2026-10-08T15:09:22Z",
-      "updatedAt": "2026-10-08T15:27:27Z",
+      "updatedAt": "2026-10-09T00:59:20.000Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

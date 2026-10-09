@@ -166,7 +166,8 @@ let ``signing out leaves nothing of the person in the page`` () =
     // The change is stored first: nothing is left unsent.
     let model, _ = (model, []) |> step (StoreAnswered(model.Store.Pending.Head.CommitId, Committed))
     let model, effects = (model, []) |> step (Ui("signOut", None, "", None))
-    Assert.Equal<Effect list>([ SignOut ], effects)
+    // The account leaves the device too: its read cache goes (WI-0057).
+    Assert.Equal<Effect list>([ LeaveDevice(NothingUnsent, 0); SignOut ], effects)
 
     let model, _ = (model, []) |> step (IdentityChanged(SignedOutWith(Some "signed_out")))
     Assert.True(model.References.Items.IsEmpty)

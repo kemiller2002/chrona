@@ -153,6 +153,15 @@ computers people share, nothing of one account stays behind for the next.
 Unsent changes are kept per account; another account signing in on the same
 browser never sees or sends them.
 
+The browser also keeps what GitHub last gave each account (its read cache,
+in IndexedDB), so that the records open when GitHub cannot be reached at
+the start, shown "as of" when they were read. Signing out clears the
+account's read cache, except with `ask` when the person keeps unsent
+changes here: then it stays with them. "Clear this device", under More,
+removes the unsent-changes queue and the read cache for every account who
+signed in on the browser, then signs out; it is offered only when nothing
+of the signed-in account's is unsent.
+
 ## Storage
 
 With a `location`, the records open after sign-in. Chrona reads the

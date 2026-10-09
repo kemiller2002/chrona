@@ -235,6 +235,7 @@ let ``where a deployment serves several organizations, the address names the one
         |> step (
             StoreOpened
                 { Name = "acme/chrona-data"
+                  Cached = None
                   Activities = []
                   References = []
                   Attestations = []

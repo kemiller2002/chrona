@@ -347,6 +347,20 @@
             "modified"
           ],
           "reason": "The queue in IndexedDB through Arca.Limen (WI-0059)"
+        },
+        "EXE-20261008T235949355Z-28e2b305": {
+          "actor": {
+            "id": "anthropic/claude-code",
+            "kind": "agent",
+            "model": "unknown",
+            "provider": "anthropic",
+            "runtime": "claude-code"
+          },
+          "at": "2026-10-09T01:30:00.000Z",
+          "operations": [
+            "modified"
+          ],
+          "reason": "Opening offline from the read cache (WI-0057)"
         }
       }
     },
@@ -367,8 +381,8 @@
       "architecture"
     ],
     "title": "Records live on GitHub through Arca's provider behind the store port, every commit conditioned on the repository state and decided again when it moved",
-    "updated": "2026-10-08",
-    "version": "1.8.0"
+    "updated": "2026-10-09",
+    "version": "1.9.0"
   },
   {
     "created": "2026-10-08",

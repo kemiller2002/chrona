@@ -818,6 +818,31 @@ let ``a page coming back restarts the timer's wake-ups from its timestamps and s
     Assert.Empty(handed.Store.Pending)
     Assert.Equal("Your unsent changes moved to the other Chrona tab, which now sends them.", handed.Announcement)
 
+    // Shown from the read cache: back online, or returning to the page,
+    // reads the records from GitHub again (WI-0057).
+    let cached, _ =
+        update
+            (ctxAt start)
+            (StoreOpened
+                { Name = "acme/chrona-data"
+                  Cached = Some start
+                  Activities = []
+                  References = []
+                  Attestations = []
+                  Members = []
+                  Held = []
+                  Audit = []
+                  Problems = []
+                  Months = []
+                  History = []
+                  Index = "" })
+            ready
+
+    Assert.Equal(Some start, cached.Store.Cached)
+    Assert.Equal<Effect list>([ SendUnsent ], snd (update (ctxAt start) (ConnectionChanged true) cached))
+    Assert.Contains(SendUnsent, snd (update (ctxAt start) PageReturned cached))
+    Assert.StartsWith("Offline: your records as of", textOf "storeHeadline" cached)
+
     // A deployment that stores nothing never has unsent changes to keep.
     Assert.Equal(InMemory, ready.Store.Kind)
     Assert.Equal("None", textOf "queueMode" ready)

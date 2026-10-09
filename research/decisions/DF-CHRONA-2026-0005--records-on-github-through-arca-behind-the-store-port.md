@@ -2,9 +2,9 @@
 id: DF-CHRONA-2026-0005
 title: Records live on GitHub through Arca's provider behind the store port, every commit conditioned on the repository state and decided again when it moved
 status: accepted
-version: 1.8.0
+version: 1.9.0
 created: 2026-10-08
-updated: 2026-10-08
+updated: 2026-10-09
 owners:
   - chrona
 review_cycle: on-trigger
@@ -118,13 +118,23 @@ provenance:
         model: unknown
         runtime: claude-code
       reason: "The queue in IndexedDB through Arca.Limen (WI-0059)"
+    EXE-20261008T235949355Z-28e2b305:
+      operations: [modified]
+      at: 2026-10-09T01:30:00.000Z
+      actor:
+        kind: agent
+        id: anthropic/claude-code
+        provider: anthropic
+        model: unknown
+        runtime: claude-code
+      reason: "Opening offline from the read cache (WI-0057)"
 ---
 
 # DF-CHRONA-2026-0005 — Records on GitHub through Arca
 
 - **Date:** 2026-10-08
 - **Status:** accepted
-- **Work items:** WI-0028, WI-0051, WI-0032, WI-0053, WI-0035, WI-0033, WI-0034, WI-0058, WI-0056, WI-0055, WI-0067, WI-0059
+- **Work items:** WI-0028, WI-0051, WI-0032, WI-0053, WI-0035, WI-0033, WI-0034, WI-0058, WI-0056, WI-0055, WI-0067, WI-0059, WI-0057
 
 ## Context
 
@@ -284,6 +294,34 @@ and semantic conflicts surfaced.
     account's pending, conflicted or refused entries, by Chrona's actor id
     (never a display name), and never one that may have landed (Arca's
     LCP-070 rule).
+15. **The read cache (WI-0057, Arca 0.3.0's `IndexedDbReadCache`, Limen
+    LCP-082..087).** Every read from GitHub is kept, best-effort, in this
+    browser's IndexedDB: one entry per folder (keyed by the account's actor
+    id, the organization's namespace and the folder), a second per folder
+    listing the records held for review, and the activity index, each
+    stamped with the change token it was read at. A commit this page makes
+    updates the folders it touched at the receipt's token, which is exact
+    because every commit is conditioned on the whole repository's token.
+    When GitHub cannot be reached at the start (never when it refuses),
+    the records open from the cache: the organization's people and
+    reference data must be there, a month only when all of its folders
+    are, and the records held for review are held again. They are shown
+    "as of" when GitHub last gave them, never as current, and the sync
+    state is offline. Nothing is conditioned on a cached value (LCP-085):
+    a change made there is queued with no change token, and before it is
+    sent, once the records are read from GitHub again, it is decided again
+    like a change the repository moved under (sent once, or a visible
+    conflict). GitHub is tried again after a back-off, when the browser
+    is back online, or when the person returns to the page. The queue
+    frees the cache's space when a save meets the quota (LCP-087).
+    Signing out follows Arca's `SignOut.plan` under the deployment's
+    shared-device policy: the account's cache is cleared, except under
+    `ask` when the person keeps unsent work here, so the account opens
+    offline and sees it in context. "Clear this device" (More) runs
+    `LimenDevice.clear`, removing the queue and the cache for every
+    account, then signs out; it is offered only when nothing of this
+    account's is unsent, and refused while another account's unsent
+    changes are kept here or another tab holds the databases.
 4. **Bounded reads.** A change to a month not yet read reads that month
    first, so it is never checked against less than what is stored.
 5. **The organization.** A storing deployment lists the organizations it

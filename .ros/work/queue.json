@@ -800,10 +800,10 @@
         "observations"
       ],
       "priority": "medium",
-      "status": "ready",
+      "status": "complete",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:49.855Z",
-      "updatedAt": "2026-10-09T02:37:08.000Z",
+      "updatedAt": "2026-10-09T03:51:38.000Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

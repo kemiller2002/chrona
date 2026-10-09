@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-09T02:37:09.000Z",
+  "updatedAt": "2026-10-09T03:51:38.000Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -2726,10 +2726,35 @@
     {
       "id": "WI-0038",
       "type": "task",
-      "state": "active",
-      "semanticState": "active",
-      "evidence": [],
-      "updatedAt": "2026-10-09T02:37:09.000Z",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Integration/Inbox.fs"
+        },
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Application/Store.fs"
+        },
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Domain/CandidateRecord.fs"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/IntakeTests.fs"
+        },
+        {
+          "type": "tests",
+          "path": "tests/browser/app-github.spec.js"
+        },
+        {
+          "type": "documentation",
+          "path": "research/decisions/DF-CHRONA-2026-0005--records-on-github-through-arca-behind-the-store-port.md"
+        }
+      ],
+      "updatedAt": "2026-10-09T03:51:38.000Z",
       "telemetryExecutionIds": [
         "EXE-20261009T023709515Z-21115e9f"
       ],
@@ -2752,7 +2777,9 @@
           "status": "verified",
           "mechanism": "git-remote-observation"
         }
-      }
+      },
+      "completedAt": "2026-10-09T03:51:38.000Z",
+      "conclusion": "Producers' inboxes read into candidates and receipts on Arca; candidates reviewed, accepted or rejected in the app"
     },
     {
       "id": "WI-0073",

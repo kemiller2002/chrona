@@ -66,6 +66,20 @@ export const yesterday = () => {
 };
 
 
+// Three in the afternoon of today in New York: a page clock fixed there makes
+// a time earlier in the day a past time whenever the suite runs (after
+// midnight in New York, 08:10 today would otherwise be in the future and
+// refused as CHRONA.ENTRY.FUTURE_TIME).
+export const afternoon = () => {
+  const now = new Date();
+  const day = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
+  const offset = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", timeZoneName: "longOffset" })
+    .formatToParts(now)
+    .find((part) => part.type === "timeZoneName")
+    .value.replace("GMT", "");
+  return new Date(`${day}T15:00:00${offset || "+00:00"}`);
+};
+
 // Adds a manual entry on `date` (yesterday by default) from the Track screen.
 export async function addEntry(page, { start, end, description, purpose = "Delivery", date = yesterday() }) {
   await page.selectOption("#manual-activity-type", { label: "Research" });
@@ -136,7 +150,9 @@ export async function fakeDeployment(page, configuration) {
         contentType: "application/json",
         body: JSON.stringify({
           accessToken: ACCESS_TOKEN,
-          accessTokenExpiresAt: at(8),
+          // A day, so a page clock fixed later today (`afternoon`) still
+          // finds the token current.
+          accessTokenExpiresAt: at(24),
           refreshToken: REFRESH_TOKEN,
           refreshTokenExpiresAt: at(24 * 180),
           identity

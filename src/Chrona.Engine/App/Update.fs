@@ -155,6 +155,10 @@ type Effect =
     /// Take this browser's unsent changes over from the tab holding them
     /// ("use this tab instead"; WI-0067, WI-0059).
     | TakeOverQueue
+    /// Send the unsent changes from an earlier version as this person's.
+    | SendEarlier
+    /// Discard the unsent changes from an earlier version.
+    | DiscardEarlier
     /// Ask again to hold this browser's unsent changes: the tab holding them
     /// may have closed (WI-0059).
     | ClaimQueue
@@ -183,6 +187,7 @@ let ThisDevice = "this-browser"
 let eventNames =
     [ "signIn"; "signInRetention"; "signOut"; "retryStore"; "chooseOrganization"; "confirmAdministrator"; "reloadShell"
       "signOutSend"; "signOutKeep"; "signOutDiscard"; "signOutDiscardConfirmed"; "signOutCancel"; "takeOverQueue"
+      "sendEarlier"; "keepEarlier"; "discardEarlier"; "discardEarlierConfirmed"; "discardEarlierCancel"
       "clearDevice"; "clearDeviceConfirmed"; "clearDeviceCancel"
       "memberId"; "memberName"; "memberAccess"; "admitMember"; "changeMemberAccess"; "removeMember"
       "keepStored"; "retryChange"; "redoChange"; "acceptOutsideEdit"; "rebuildIndex"
@@ -2406,6 +2411,16 @@ let private step (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
             Announcement = "Taking over the unsent changes from the other tab." },
         [ TakeOverQueue ]
     | Ui("takeOverQueue", _, _, _) -> model, []
+    // Unsent changes from an earlier version that name no one: only the
+    // person decides whose they are (Arca 0.4.0, ARCA-OFF-007).
+    | Ui("sendEarlier", _, _, _) when model.Store.Sync.Earlier > 0 ->
+        { model with Earlier = Undecided; Announcement = "Sending the earlier changes as yours." }, [ SendEarlier ]
+    | Ui("keepEarlier", _, _, _) -> { model with Earlier = KeptEarlier }, []
+    | Ui("discardEarlier", _, _, _) when model.Store.Sync.Earlier > 0 -> { model with Earlier = ConfirmingEarlierDiscard }, []
+    | Ui("discardEarlierCancel", _, _, _) -> { model with Earlier = Undecided }, []
+    | Ui("discardEarlierConfirmed", _, _, _) when model.Earlier = ConfirmingEarlierDiscard ->
+        { model with Earlier = Undecided; Announcement = "Discarding the earlier changes." }, [ DiscardEarlier ]
+    | Ui(("sendEarlier" | "discardEarlier" | "discardEarlierConfirmed"), _, _, _) -> model, []
     | Ui(("signIn"
          | "signInRetention"
          | "signOut"

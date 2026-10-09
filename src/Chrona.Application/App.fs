@@ -245,6 +245,12 @@ let private requests (env: Env) (state: State) (effects: Update.Effect list) =
             | Update.TakeOverQueue ->
                 env.Store.TakeOver()
                 state, requests, immediate
+            | Update.SendEarlier ->
+                env.Store.SendEarlier()
+                state, requests, immediate
+            | Update.DiscardEarlier ->
+                env.Store.DiscardEarlier()
+                state, requests, immediate
             | Update.ClaimQueue ->
                 env.Store.Claim()
                 state, requests, immediate

@@ -82,6 +82,12 @@ type StorePort =
       /// Take this browser's unsent changes over from the tab holding them
       /// ("use this tab instead"; WI-0059).
       TakeOver: unit -> unit
+      /// Send the unsent changes from an earlier version, naming no one, as
+      /// this person's (the person said they are theirs).
+      SendEarlier: unit -> unit
+      /// Discard the unsent changes from an earlier version that cannot have
+      /// landed (the person confirmed).
+      DiscardEarlier: unit -> unit
       /// Ask again to hold them: the tab that held them may have closed.
       Claim: unit -> unit
       /// The browser closed the queue's database under the page: open it again.
@@ -107,6 +113,8 @@ let inMemory (bridge: Bridge) : StorePort =
       SendNow = fun () -> ()
       Discard = fun () -> bridge.Start(async { return [ Update.UnsentDiscarded 0 ] })
       TakeOver = fun () -> ()
+      SendEarlier = fun () -> ()
+      DiscardEarlier = fun () -> ()
       Claim = fun () -> ()
       Reconnect = fun () -> ()
       Lost = fun () -> ()
@@ -202,12 +210,40 @@ type private Indexed =
       /// Why it is not kept, or where it is known to differ from the records.
       Note: string option }
 
+/// What a write is conditioned on (Arca 0.4.0, ARCA-CON-005): the state of
+/// Chrona's own folder, so another application's commit elsewhere in a shared
+/// repository moves nothing under it. After a commit whose folder state
+/// cannot be observed at exactly the commit (someone committed since), the
+/// next write falls back to the repository's state at the commit.
+[<NoComparison; NoEquality>]
+type private Condition =
+    | InNamespace of NamespaceState
+    | InRepository of ChangeToken
+
+/// The repository's change token a condition was observed at.
+let private changeTokenOf =
+    function
+    | InNamespace state -> state.RepositoryToken
+    | InRepository token -> token
+
+/// Holds an operation to the condition.
+let private require (condition: Condition) (operation: Operation) =
+    match condition with
+    | InNamespace state -> Operation.requireNamespaceToken state.NamespaceToken operation
+    | InRepository token -> Operation.requireChangeToken token operation
+
+/// What was read under the condition, for the read cache.
+let private freshOf (condition: Condition) (objects: StoredObject list) =
+    match condition with
+    | InNamespace state -> Fresh.read state objects
+    | InRepository token -> Fresh.readRepositoryWide token objects
+
 /// What the records shown were read at.
 [<NoComparison; NoEquality>]
 type private Basis =
-    /// Read from GitHub at this change token: every write is conditioned on
-    /// it.
-    | ReadAt of ChangeToken
+    /// Read from GitHub at this state of the folder: every write is
+    /// conditioned on it.
+    | ReadAt of Condition
     /// Shown from the read cache, as GitHub last gave them at this time.
     /// Nothing is conditioned on a cached value (LCP-085): changes made now
     /// are queued and decided again on what GitHub holds before they are
@@ -265,6 +301,7 @@ let private describeFailure =
     | StorageFailure.OutcomeUnknown _ -> "GitHub did not say whether the change was saved."
     | StorageFailure.ObjectTooLarge(path, _, _) -> $"{path} is too large to store."
     | StorageFailure.StaleChangeToken _ -> "The repository changed while saving."
+    | StorageFailure.StaleNamespaceToken _ -> "The organization's records changed while saving."
     | StorageFailure.RateLimited _ -> "GitHub's rate limit is used up for now. Try again shortly."
     | StorageFailure.WrongLocation _ -> "The store is not serving the configured repository."
     | StorageFailure.IntegrityRefused(path, _) -> $"{path} could not be changed safely: it is not a valid record."
@@ -416,6 +453,10 @@ let private noticeOf (queue: Arca.Limen.OwnedQueue) =
         | texts -> Some(String.concat " " texts)
 
 /// Why a queue this tab holds is kept in this page only.
+/// Why unsent changes from an earlier version are neither sent nor held.
+let private earlierNote =
+    "Unsent changes from an earlier version of Chrona are in this browser, and they do not say whose they are. Send them as yours, keep them, or discard them under More."
+
 let private memoryOnlyNote =
     "This browser offers no storage Chrona can use for unsent changes (IndexedDB and localStorage are unavailable or full), so they live in this page only."
 
@@ -434,6 +475,44 @@ let private unsent (entry: QueueEntry) =
     | EntryState.Synchronized _
     | EntryState.Abandoned _ -> false
     | _ -> true
+
+// ---- Whose unsent changes (Arca 0.4.0, ARCA-OFF-007) -------------------------------
+
+/// The stable account of a Chrona actor id ("github:<numeric id>"), never a
+/// display name: two people may share one.
+let private accountOfActor (actorId: string) =
+    ActorId.create actorId |> Result.toOption |> Option.map AccountId.ofActor
+
+/// Entries queued without an account id (before Arca 0.4.0) stamped with
+/// the account of the actor each one records itself; never with whoever is
+/// signed in now. An entry that records no usable actor stays unstamped.
+let private stamped (queue: OfflineQueue) =
+    { queue with
+        Entries =
+            queue.Entries
+            |> List.map (fun entry ->
+                match entry.Operation.AccountId, accountOfActor entry.Operation.ActorId with
+                | None, Some account -> { entry with Operation = { entry.Operation with AccountId = Some(AccountId.toWire account) } }
+                | _ -> entry) }
+
+/// The person signing out or working now, matched by account id only: an
+/// entry from an earlier version that names no account is never theirs on a
+/// guess (`Legacy = None`).
+let private accountOf (session: Session) : Arca.Limen.SignOutAccount option =
+    accountOfActor session.ActorId |> Option.map (fun account -> { Account = account; Legacy = None })
+
+/// An unsent entry that names no account: from an earlier version, with no
+/// actor to attribute it to. The person decides what becomes of it.
+let private earlier (entry: QueueEntry) =
+    unsent entry && entry.Operation.AccountId.IsNone
+
+/// An unsent entry of another account than this session's.
+let private othersOf (session: Session) (entry: QueueEntry) =
+    unsent entry
+    && entry.Operation.AccountId.IsSome
+    && (match accountOf session with
+        | Some who -> not (Arca.Limen.QueueSignOut.belongsToAccount who entry)
+        | None -> true)
 
 /// The queue kept in this browser with this page's own unsent changes after
 /// it, in order and renumbered after it. A change already kept (the same
@@ -620,7 +699,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
 
     /// Keeps what was just read from GitHub in the read cache, one entry per
     /// partition, best-effort: a failure never fails the read (LCP-083).
-    let keepRead (account: string) (folder: Namespace) (token: ChangeToken) (partitions: (string * StoredObject list) list) =
+    let keepRead (account: string) (folder: Namespace) (token: Condition) (partitions: (string * StoredObject list) list) =
         async {
             match! readCache () with
             | None -> ()
@@ -628,7 +707,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                 for partition, objects in partitions do
                     match ReadCache.key account folder partition with
                     | Error _ -> ()
-                    | Ok key -> do! cached.Keep(ReadCache.entry key CacheSchema (now ()) (Fresh.read token objects))
+                    | Ok key -> do! cached.Keep(ReadCache.entry key CacheSchema (now ()) (freshOf token objects))
         }
 
     /// Reads these folders: each folder's records.
@@ -654,7 +733,10 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                                 if failure.IsNone then
                                     match! provider.Read folder file with
                                     | Ok(ReadOutcome.Found found) -> objects <- objects @ [ found ]
-                                    | Ok ReadOutcome.Absent -> ()
+                                    // Chrona erases nothing; a record erased by
+                                    // another tool is gone, not a problem.
+                                    | Ok ReadOutcome.Absent
+                                    | Ok(ReadOutcome.Erased _) -> ()
                                     | Error error -> failure <- Some(unopened error)
 
                             read <- read @ [ path, objects ]
@@ -717,9 +799,10 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
     /// kept in the read cache, with which records were held.
     let load (provider: StorageProvider) (folder: Namespace) (actorId: string) (months: Set<int * int>) =
         async {
-            match! provider.ChangeToken folder with
+            match! provider.NamespaceState folder with
             | Error error -> return Error(unopened error)
-            | Ok token ->
+            | Ok observed ->
+                let token = InNamespace observed
                 let dates = months |> Set.toList |> List.map firstOf
 
                 let! found =
@@ -876,7 +959,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
 
     /// Keeps the activity index as read in the read cache, with the change
     /// token the folders were read at.
-    let keepIndex (state: Opened) (token: ChangeToken) =
+    let keepIndex (state: Opened) (token: Condition) =
         async {
             match state.Index.Index, state.Index.Revision, Derived.path ActivityIndex.definition with
             | Some index, Some revision, Ok path ->
@@ -914,11 +997,22 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                 return Ok next
         }
 
+    /// What the next write is conditioned on after a commit this page made:
+    /// the folder's state at exactly that commit when GitHub's head is still
+    /// the commit; otherwise someone committed since, and the next write is
+    /// held to the repository at the commit, as before Arca 0.4.0, so it is
+    /// never conditioned on a folder state this page did not read.
+    let conditionAfter (state: Opened) (receipt: CommitReceipt) =
+        async {
+            match! state.Provider.NamespaceState state.Folder with
+            | Ok observed when observed.RepositoryToken = receipt.ChangeToken -> return InNamespace observed
+            | _ -> return InRepository receipt.ChangeToken
+        }
+
     /// What GitHub holds after a commit this page made: the folders it
-    /// touched, as read plus the commit's changes at the receipt's revisions.
-    /// Every commit is conditioned on the whole repository's token, so that
-    /// is the repository at the receipt's token, and it is kept in the read
-    /// cache as such (LCP-083). `state` is the state after the commit.
+    /// touched, as read plus the commit's changes at the receipt's revisions,
+    /// kept in the read cache under the condition the commit leaves
+    /// (LCP-083). `state` is the state after the commit.
     let afterCommit (state: Opened) (operation: Operation) (receipt: CommitReceipt) =
         async {
             let revisionOf path =
@@ -955,7 +1049,9 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                 keepRead
                     state.Session.ActorId
                     state.Folder
-                    receipt.ChangeToken
+                    (match state.Basis with
+                     | ReadAt condition -> condition
+                     | CachedAt _ -> InRepository receipt.ChangeToken)
                     ((touched
                       |> Set.toList
                       |> List.collect (fun folder ->
@@ -986,6 +1082,10 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
     let refreshed (state: Opened) =
         if jobs.Count = 0 then [ Update.StoreOpened(contents state) ] else []
 
+    /// Unsent changes from an earlier version, naming no one, waiting for
+    /// the person to send, keep or discard them.
+    let mutable earlierWaiting = 0
+
     let sync (state: Opened) (offline: bool) =
         let durability = state.Owned |> Option.map durabilityOf |> Option.defaultValue InPage
 
@@ -1000,7 +1100,8 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
               Note = state.Note
               Holder = state.Holder
               Durability = durability
-              Notice = state.Notice }
+              Notice = state.Notice
+              Earlier = earlierWaiting }
 
     /// The queues this page holds, by lock: held until the page goes, the
     /// person signs out, or another tab takes one over. A Web Lock is not
@@ -1145,10 +1246,11 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                                 | Error _ -> return! finish state (Ok queue) (fun _ -> [ answer Committed ])
                                 | Ok changed ->
                                     let operation = OfflineQueue.operationOf state.Folder entry.Operation
+                                    let! condition = conditionAfter state receipt
 
                                     let next =
                                         { state with
-                                            Basis = ReadAt receipt.ChangeToken
+                                            Basis = ReadAt condition
                                             Stored = Stored.committed changed receipt (Stored.overlay changed state.Stored)
                                             Index =
                                                 match operation with
@@ -1208,7 +1310,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                         // conditioned on nothing, so it is decided again on what
                         // GitHub holds before it is sent, as a change the
                         // repository moved under is (WI-0057, LCP-085).
-                        | EntryState.Pending, Ok operation when operation.ExpectedChangeToken.IsNone ->
+                        | EntryState.Pending, Ok operation when operation.ExpectedChangeToken.IsNone && operation.ExpectedNamespaceToken.IsNone ->
                             let paths = operation.Changes |> List.map (Change.path >> RelativePath.render)
 
                             let queue =
@@ -1274,7 +1376,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                                             |> Result.bind (fun changes ->
                                                 Operation.create fresh.Folder operation.Metadata changes
                                                 |> Result.mapError (fun _ -> [ StorageOperationRefused "the revised change does not validate" ]))
-                                            |> Result.map (Operation.requireChangeToken freshToken)
+                                            |> Result.map (require freshToken)
 
                                         match revised with
                                         | Error diagnostics ->
@@ -1292,7 +1394,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                                                 return! step messages
                         | _, Ok operation ->
                             // Write-ahead: in flight is kept before it is sent.
-                            match OfflineQueue.markInFlight entry.Sequence token state.Queue with
+                            match OfflineQueue.markInFlight entry.Sequence (changeTokenOf token) state.Queue with
                             | Error _ -> return messages @ [ answer (Failed "The queued change could not be sent.") ]
                             | Ok inFlight ->
                                 let! state = save inFlight
@@ -1353,13 +1455,21 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                     // what is kept.
                     let mine = state.Queue.Entries |> List.filter unsent
 
-                    match result with
+                    match result |> Result.map (Option.map stamped) with
                     | Ok None when mine.IsEmpty -> return kept
                     // Kept before anything is sent (write-ahead).
                     | Ok None -> return! persist kept kept.Queue
-                    | Ok(Some queue) when
-                        queue.Entries |> List.exists (fun entry -> unsent entry && entry.Operation.ActorId <> state.Session.ActorId)
-                        ->
+                    // From an earlier version, naming no one: nothing is sent
+                    // or discarded until the person decides.
+                    | Ok(Some queue) when queue.Entries |> List.exists earlier ->
+                        earlierWaiting <- queue.Entries |> List.filter earlier |> List.length
+
+                        return
+                            { state with
+                                Owned = None
+                                Notice = notice
+                                Note = Some earlierNote }
+                    | Ok(Some queue) when queue.Entries |> List.exists (othersOf state.Session) ->
                         return
                             { state with
                                 Owned = None
@@ -1378,6 +1488,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
             // holds is not asked for again (opening the records again would
             // otherwise read as another tab's).
             let lock = lockOf state.Folder
+            earlierWaiting <- 0
 
             let! state =
                 async {
@@ -1479,11 +1590,13 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                 match Storage.operation state.Folder context "appoint an administrator" changes with
                 | Error diagnostics -> return Error($"The administrator could not be recorded ({describeAll diagnostics}).")
                 | Ok operation ->
-                    match! state.Provider.Commit(Operation.requireChangeToken token operation) with
+                    match! state.Provider.Commit(require token operation) with
                     | Ok receipt ->
+                        let! condition = conditionAfter state receipt
+
                         let next =
                             { state with
-                                Basis = ReadAt receipt.ChangeToken
+                                Basis = ReadAt condition
                                 Stored = Stored.committed changed receipt state.Stored }
 
                         let! next = afterCommit next operation receipt
@@ -1554,7 +1667,8 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                                     | Ok path ->
                                         match! provider.Read folder path with
                                         | Ok ReadOutcome.Absent -> return Ok false
-                                        | Ok(ReadOutcome.Found _) -> return Ok true
+                                        | Ok(ReadOutcome.Found _)
+                                        | Ok(ReadOutcome.Erased _) -> return Ok true
                                         | Error failure -> return Error(unopened failure)
                                 }
 
@@ -1878,10 +1992,15 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                                 // holds before it is sent (LCP-085).
                                 let queued =
                                     match state.Basis with
-                                    | ReadAt token -> Operation.requireChangeToken token operation
+                                    | ReadAt token -> require token operation
                                     | CachedAt _ -> operation
 
-                                match OfflineQueue.enqueue (now ()) queued state.Queue with
+                                let enqueued =
+                                    match accountOf state.Session with
+                                    | Some who -> OfflineQueue.enqueueFor who.Account (now ()) queued state.Queue
+                                    | None -> OfflineQueue.enqueue (now ()) queued state.Queue
+
+                                match enqueued with
                                 | Error _ -> return answer (Failed "This change could not be queued.")
                                 | Ok(queued, _) ->
                                     let! state = persist { state with Stored = real } queued
@@ -1971,7 +2090,8 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
             match! state.Provider.Read state.Folder path with
             | Error failure -> return Error failure
             // Taken away meanwhile: by its producer, or by another page's pass.
-            | Ok ReadOutcome.Absent -> return Ok None
+            | Ok ReadOutcome.Absent
+            | Ok(ReadOutcome.Erased _) -> return Ok None
             | Ok(ReadOutcome.Found found) ->
                 let known: Observations.Inbox =
                     { Observations.empty with Candidates = state.Stored.Candidates |> Map.map (fun _ stored -> stored.Candidate) }
@@ -2012,7 +2132,8 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                     async {
                         match! state.Provider.Read state.Folder path with
                         | Error failure -> return Error failure
-                        | Ok ReadOutcome.Absent -> return Ok None
+                        | Ok ReadOutcome.Absent
+                        | Ok(ReadOutcome.Erased _) -> return Ok None
                         | Ok(ReadOutcome.Found found) -> return Ok(Some({ Stored.nothing with Consumed = [ path, found.Revision ] }, TakenIn))
                     }
                 else
@@ -2032,17 +2153,20 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                     match Storage.operation state.Folder context summary changes with
                     | Error diagnostics -> return state, Error(describeAll diagnostics)
                     | Ok operation ->
-                        match! state.Provider.Commit(Operation.requireChangeToken token operation) with
+                        match! state.Provider.Commit(require token operation) with
                         | Ok receipt ->
+                            let! condition = conditionAfter state receipt
+
                             let next =
                                 { state with
-                                    Basis = ReadAt receipt.ChangeToken
+                                    Basis = ReadAt condition
                                     Stored = Stored.committed changed receipt state.Stored }
 
                             let! next = afterCommit next operation receipt
                             opened <- Some next
                             return next, Ok(Some taken)
                         | Error(StorageFailure.StaleChangeToken _)
+                        | Error(StorageFailure.StaleNamespaceToken _)
                         | Error(StorageFailure.Conflicted _) when not again ->
                             match! refresh state [] with
                             | Error reason -> return state, Error reason
@@ -2133,6 +2257,9 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                                             match! state.Provider.Read state.Folder receiptPath with
                                             | Error error -> failure <- Some error
                                             | Ok ReadOutcome.Absent -> work <- work @ [ sourceSystem, observationId, file, false ]
+                                            // Its receipt was erased for retention: it was
+                                            // received; only the file is left to remove.
+                                            | Ok(ReadOutcome.Erased _) -> work <- work @ [ sourceSystem, observationId, file, true ]
                                             | Ok(ReadOutcome.Found stored) ->
                                                 match Record.decode Record.DefaultMaxBytes stored.Content |> Result.toOption with
                                                 | Some record ->
@@ -2205,18 +2332,30 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
             match opened with
             | None -> return [ Update.UnsentDiscarded 0 ]
             | Some state ->
-                let discardable (entry: QueueEntry) =
-                    entry.Operation.ActorId = state.Session.ActorId
-                    && (match entry.State with
-                        | EntryState.Pending
-                        | EntryState.Conflicted _
-                        | EntryState.Refused _ -> true
-                        | _ -> false)
+                // Matched by the account's stable id (Arca 0.4.0): an entry
+                // from an earlier version that names no one is never
+                // discarded here, nor one in flight or of unknown outcome.
+                match accountOf state.Session with
+                | None -> return [ Update.UnsentDiscarded 0; sync state false ]
+                | Some who ->
+                    let queue = stamped state.Queue
 
-                let mine, kept = state.Queue.Entries |> List.partition discardable
-                let! saved = persist state { state.Queue with Entries = kept |> List.filter unsent }
-                opened <- Some saved
-                return [ Update.UnsentDiscarded mine.Length; sync saved false ]
+                    match state.Owned with
+                    | Some owned ->
+                        match! owned.DiscardAccount who queue with
+                        | Ok(kept, count) ->
+                            let saved = { state with Queue = kept }
+                            opened <- Some saved
+                            return [ Update.UnsentDiscarded count; sync saved false ]
+                        | Error failure ->
+                            let saved = { state with Note = Some(describeQueueStore failure) }
+                            opened <- Some saved
+                            return [ Update.UnsentDiscarded 0; sync saved false ]
+                    | None ->
+                        let kept, count = Arca.Limen.QueueSignOut.discardAccount who queue
+                        let! saved = persist state kept
+                        opened <- Some saved
+                        return [ Update.UnsentDiscarded count; sync saved false ]
         }
 
     /// This tab now holds the queue: the person took it over from the tab
@@ -2239,16 +2378,22 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                     let state = { here with Owned = None; Note = Some(describeQueueStore failure) }
                     opened <- Some state
                     return [ sync state false ]
-                | Ok(Some kept) when kept.Entries |> List.exists (fun entry -> unsent entry && entry.Operation.ActorId <> state.Session.ActorId) ->
+                | Ok(Some kept) when kept.Entries |> List.exists earlier || (stamped kept).Entries |> List.exists (othersOf state.Session) ->
                     let state =
                         { here with
                             Owned = None
-                            Note = Some "Another account left changes in this browser that have not been sent; they are kept for that account." }
+                            Note =
+                                Some(
+                                    if (stamped kept).Entries |> List.exists earlier then
+                                        earlierNote
+                                    else
+                                        "Another account left changes in this browser that have not been sent; they are kept for that account."
+                                ) }
 
                     opened <- Some state
                     return [ sync state false ]
                 | Ok kept ->
-                    let before = kept |> Option.map OfflineQueue.recover |> Option.defaultValue (OfflineQueue.create OfflinePolicy.QueueWrites)
+                    let before = kept |> Option.map (stamped >> OfflineQueue.recover) |> Option.defaultValue (OfflineQueue.create OfflinePolicy.QueueWrites)
                     let queue = laidOver before mine
 
                     // Decisions were counted by the old numbers.
@@ -2279,6 +2424,53 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
     /// "Use this tab instead" (OQ-LIMEN-IDB-001): takes the queue over from
     /// the tab holding it, outside the job queue. That tab hears LockLost and
     /// its next save is fenced and writes nothing.
+    /// The person decided about unsent changes from an earlier version that
+    /// name no one: sent as theirs (each stamped with their account), or
+    /// discarded where they cannot have landed; one in flight or of unknown
+    /// outcome stays, to be reconciled. Then the queue is opened again.
+    let earlierJob (send: bool) () =
+        async {
+            match opened with
+            | Some state ->
+                match held.TryGetValue(lockOf state.Folder), accountOf state.Session with
+                | (true, owned), Some who ->
+                    match! owned.Store.Load() with
+                    | Ok(Some kept) ->
+                        let decided =
+                            if send then
+                                { kept with
+                                    Entries =
+                                        kept.Entries
+                                        |> List.map (fun entry ->
+                                            if earlier entry then
+                                                // Theirs, as they said: made by them, of their account.
+                                                { entry with
+                                                    Operation =
+                                                        { entry.Operation with
+                                                            ActorId = state.Session.ActorId
+                                                            AccountId = Some(AccountId.toWire who.Account) } }
+                                            else
+                                                entry) }
+                            else
+                                let mayHaveLanded (entry: QueueEntry) =
+                                    match entry.State with
+                                    | EntryState.InFlight _
+                                    | EntryState.OutcomeUnknown _ -> true
+                                    | _ -> false
+
+                                { kept with Entries = kept.Entries |> List.filter (fun entry -> not (earlier entry) || mayHaveLanded entry) }
+
+                        match! owned.Store.Save decided with
+                        | Ok() -> return! ready state
+                        | Error failure ->
+                            let state = { state with Note = Some(describeQueueStore failure) }
+                            opened <- Some state
+                            return [ sync state false ]
+                    | _ -> return! ready state
+                | _ -> return! ready state
+            | None -> return []
+        }
+
     let takeOverJob () =
         async {
             match opened with
@@ -2428,7 +2620,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
         async {
             let others =
                 match opened with
-                | Some state -> state.Queue.Entries |> List.exists (fun entry -> unsent entry && entry.Operation.ActorId <> state.Session.ActorId)
+                | Some state -> state.Queue.Entries |> List.exists (fun entry -> earlier entry || othersOf state.Session entry)
                 | None -> false
 
             let otherKept =
@@ -2475,7 +2667,10 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                 | Ok folder ->
                     let count (kept: Result<OfflineQueue option, QueueStoreFailure>) =
                         match kept with
-                        | Ok(Some kept) -> kept.Entries |> List.filter (fun entry -> unsent entry && entry.Operation.ActorId = session.ActorId) |> List.length
+                        | Ok(Some kept) ->
+                            match accountOf session with
+                            | Some who -> Arca.Limen.QueueSignOut.unsentOfAccount who (stamped kept)
+                            | None -> 0
                         | _ -> 0
 
                     // Read under the queue's lock, and let go again: the tab
@@ -2529,6 +2724,8 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                 serial drain
       Discard = fun () -> if requested then serial discardJob else memory.Discard()
       TakeOver = fun () -> if requested then serial takeOverJob
+      SendEarlier = fun () -> if requested then serial (earlierJob true)
+      DiscardEarlier = fun () -> if requested then serial (earlierJob false)
       Claim = fun () -> if requested then serial claimJob
       Reconnect = fun () -> if requested then serial reconnectJob
       Lost = fun () -> if requested then serial lostJob

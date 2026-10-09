@@ -1822,6 +1822,18 @@ let project (model: Model) : View =
       text "storeDetail" detail
       flag "queueElsewhere" (match model.Store.Sync.Holder with HeldElsewhere _ -> true | _ -> false)
       flag "queueWaiting" (model.Store.Sync.Holder = HeldElsewhere true)
+      // Unsent changes from an earlier version that name no one (Arca 0.4.0).
+      flag "hasEarlierUnsent" (model.Store.Sync.Earlier > 0 && model.Earlier <> KeptEarlier)
+      text
+          "earlierUnsentText"
+          (plural model.Store.Sync.Earlier "unsent change" "unsent changes"
+           + " from an earlier version of Chrona "
+           + (if model.Store.Sync.Earlier = 1 then "is" else "are")
+           + " in this browser, and Chrona cannot tell whose. Nothing is sent or discarded until you decide.")
+      flag "earlierConfirming" (model.Earlier = ConfirmingEarlierDiscard)
+      text
+          "earlierDiscardText"
+          ("Discard " + plural model.Store.Sync.Earlier "change" "changes" + "? They will not be saved anywhere, and this cannot be undone.")
       flag "offlineInPage" (offlineInPage model.Store.Sync)
       flag "hasQueueNotice" model.Store.Sync.Notice.IsSome
       text "queueNotice" (model.Store.Sync.Notice |> Option.defaultValue "")

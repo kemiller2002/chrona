@@ -60,6 +60,16 @@ delivery that never happened.
 - `--reason` is required, and completed or already abandoned work cannot be
   abandoned.
 
+### Branch policy
+
+`workProtocol.branchPolicy` in `ros.json` is `none` (the default) or
+`work-item-id`. With `work-item-id`, `./praxis validate` fails when meaningful
+changes exist on a branch whose name is not the ID of a work item in the work
+context, so each work item runs on a branch named for its ID (DER-01 of
+`requirements/PRAXIS-DUAL-ENTRY-RECONCILIATION.md`). Pull-request CI uses
+`GITHUB_HEAD_REF`; a detached HEAD with meaningful work fails. See
+[`identity.md`](https://github.com/kemiller2002/praxis/blob/v3.11.0/docs/identity.md#branch-policy-der-01).
+
 ## Quality evidence at completion
 
 Praxis owns the work lifecycle; it does not measure code quality. A repository
@@ -70,6 +80,12 @@ can make completion depend on quality evidence that other tools produce
 |---|---|---|
 | `dokimos-ratchet` | `dokimos.ratchet` 1.0.0 | `dokimos ratchet check --build-log LOG --json > FILE` |
 | `ordo-boundary` | `ordo.boundary-amplification/1` | `ordo boundary assess --map ... --expected ... --changed ... --json > FILE` |
+| `design-debt` | `praxis.design-debt/1` | the executor (PRX-QUAL-021) |
+| `verification-matrix` | `praxis.verification-matrix/1` | the executor (PRX-QUAL-022) |
+| `release-readiness` | `praxis.release-readiness/1` | the release process (PRX-QUAL-023) |
+
+The three `praxis.*` documents are defined under `$defs` in
+`schemas/praxis-completion-readiness.schema.json`.
 
 Praxis consumes these files; it never runs Dokimos or Ordo, never recomputes a
 Dokimos verdict, and never re-derives an Ordo recommendation. Supply them like
@@ -104,7 +120,8 @@ The gate is opt-in through `workProtocol.qualityEvidence` in `ros.json`
 - `dokimosBaseline` pins the Dokimos profile: a report measured against any
   other accepted baseline is unavailable, not a pass.
 - `requiredFacets` additionally requires `implementation-complete`,
-  `behavior-verified`, `architecture-verified` or `release-ready`.
+  `behavior-verified`, `architecture-verified`, `release-ready`,
+  `design-debt-declared` or `verification-matrix-satisfied`.
 - `workTypes` limits the policy to those work types (default: every type).
 - A present but invalid policy (an unknown member or value) fails closed:
   completion is refused rather than silently ungated.
@@ -114,9 +131,70 @@ before: nothing is evaluated, recorded, or printed. This default is tracked
 debt; it is retired, and newly initialized repositories default to
 `dokimos: required`, once Conditor installs Dokimos by default.
 
+### Risk metadata and completion obligations
+
+A work item can declare engineering-risk metadata (PRX-QUAL-020,
+`praxis.work-risk/1`), stored as `risk` on its queue item:
+
+```bash
+./praxis work update --id FEAT-142 --occurred-at TIMESTAMP \
+  --change-class persistence --risk-level high --state-impact \
+  --failure-posture fail-closed --tier domain --tier infrastructure \
+  --live-proof "hold survives a restart on a real machine"
+```
+
+- `--change-class` (repeatable, at least one): `stateful-control-plane`,
+  `persistence`, `release-bootstrap`, `security`, `remote-execution`,
+  `external-protocol`, `feature`, `refactor`, `documentation`, `tooling`.
+- `--risk-level`: `low`, `medium`, `high`, `critical`.
+- `--state-impact`, `--protocol-impact`, `--security-impact`: persistent-state,
+  external protocol/provider and security/privacy impact. Any of them needs
+  `--failure-posture fail-open|fail-closed|indeterminate`.
+- `--tier` (repeatable): the tiers the change is expected to own (`domain`,
+  `contracts`, `application`, `infrastructure`, `cli`).
+- `--live-proof TEXT`: the live or integration proof the work must show.
+
+Invalid values are refused and nothing is written. Praxis derives completion
+obligations from the declaration; `work context ID` shows the risk, the
+obligations and the evidence they require under
+`qualityEvidenceForCompletion` while the item is open:
+
+- **high or critical** work must declare its design debt
+  (`design-debt-declared`, PRX-QUAL-021);
+- **stateful control-plane, persistence, release/bootstrap, security or
+  remote-execution** work, or work declaring state, protocol or security
+  impact, must satisfy a verification matrix (`verification-matrix-satisfied`,
+  PRX-QUAL-022) over happy path, negative/failure, corruption/partial state,
+  compatibility/version skew and recovery/rollback; concurrency is added when
+  state is shared (persistence, control plane, remote execution or declared
+  state impact) and a representative live effect when a live proof is
+  declared or the change crosses a release, remote or external-protocol
+  boundary.
+
+An item with obligations is gated even when `qualityEvidence` is off; an item
+without risk metadata completes exactly as before. Supplying obligation
+evidence for any item brings it under the gate (failing evidence is never
+silently accepted).
+
+**Design debt** (`--evidence design-debt=PATH`): either `knownDebt: none`, or
+`declared` with entries naming the captured work item that pays the debt, its
+rationale, risk and the compromised boundary. An entry naming the item being
+completed, or anything that is not a recorded open work item, is untracked
+debt and refuses completion. A `prototype: true` declaration needs at least
+one entry, so a prototype cannot become canonical silently.
+
+**Verification matrix** (`--evidence verification-matrix=PATH`): one row per
+dimension, `met` (with evidence), `not-met` or `not-applicable` (with a
+reason). Every required dimension must be met and no row may be not-met.
+Evidence kinds are `build`, `unit-test`, `integration-test`, `command`,
+`location` and `live`: a row resting on compilation alone, or a matrix whose
+met rows rest only on unit tests and compilation, is not satisfied; a
+live-effect row needs `live` evidence; `location` references (`path` or
+`path:line`) must exist.
+
 ### Readiness facets
 
-Completion readiness has four independent facets, each `satisfied`,
+Completion readiness has six independent facets, each `satisfied`,
 `not-satisfied`, `unavailable` or `not-required`:
 
 - `implementation-complete` / `behavior-verified`: the `implementation` /
@@ -129,8 +207,14 @@ Completion readiness has four independent facets, each `satisfied`,
   its exit code, an Ordo assessment of a different work item, or two reports
   of the same type are unavailable. It is required whenever a source is
   `required`.
-- `release-ready`: no release evidence contract is consumed yet, so requiring
-  it is always unavailable.
+- `release-ready`: established by a `praxis.release-readiness/1` document
+  (`--evidence release-readiness=PATH`) naming the release (name, version,
+  commit), the checks run and the producer's verdict. Only verdict `ready`
+  with at least one check and every check `passed` satisfies it; a `ready`
+  verdict over a failed or skipped check is inconsistent and unavailable;
+  `not-ready` is not satisfied; absent evidence is unavailable when required.
+- `design-debt-declared` / `verification-matrix-satisfied`: judged from the
+  documents above; required by risk obligations or `requiredFacets`.
 
 A not-satisfied facet always blocks; an unavailable facet blocks when it is
 required. **Unavailable evidence is never treated as a pass.**
@@ -148,7 +232,10 @@ on its `work.completed` event and on the completed item in
 `.ros/context/current.json`, so `work context ID` shows it. The record names
 the policy, every facet's status, reasons and evidence, and the consumed
 fields of each source (Dokimos verdict, exit code, baseline path and digest;
-Ordo risk, recommendation and exception coverage). Both additions are
+Ordo risk, recommendation and exception coverage), the item's `risk` and
+`obligations`, and `consumedEvidence`: every evidence file the gate read, with
+the SHA-256 digest (`sha256:...`) of the exact bytes it decoded, or `null`
+when the file could not be read. Both additions are
 additive: events and items of repositories without a policy are unchanged.
 While the item is still open, `work context ID` lists the policy under
 `qualityEvidenceForCompletion`, including `requiredEvidenceTypes`. The
@@ -619,6 +706,38 @@ for why this stays a staging layer rather than repository-owned work-item
 authority (that boundary belongs to the external system; see below). For a
 worked, example-heavy walkthrough of every command, see
 [`work-backlog-guide.md`](https://github.com/kemiller2002/repository-operating-system/blob/main/docs/work-backlog-guide.md).
+
+### Backlog and live status must agree
+
+A backlog row and a live work item with the same ID are one obligation. A
+row that is still `captured`, `ready` or `blocked` is the pre-promotion
+record and never conflicts. A row whose status is terminal (`complete` or
+`abandoned`) must match the live item's state; otherwise `./praxis validate`
+and `./praxis work backlog-validate` fail with a `status_agreement` finding,
+because the merged view (where the live state wins) would hide the
+contradiction. When the row is a different obligation that reused the ID,
+give the row alone a new, never-used ID:
+
+```bash
+./praxis work reidentify --id WI-0061 --new-id WI-0061-REUSED \
+  --reason "a different obligation reused the ID" --occurred-at TIMESTAMP
+```
+
+The row records `reidentifiedFrom` and `reidentifiedReason`; the live item,
+its events and its telemetry are untouched. The command refuses any row that
+validation does not report, a used or invalid new ID, and a missing reason.
+Otherwise bring both records to the same state with the lifecycle commands.
+
+### Fixtures stay out of canonical state
+
+Tests and manual smoke tests of mutating commands (`add`, `work begin`,
+`work block`, ...) run against a scratch root (`praxis init` in a temporary
+directory, or `--root DIR`), never against a repository whose `.ros/` state
+is canonical: fixture items committed there become live work that the
+planner and `status` report to everyone. A CI step that fails when the test
+suite changes the checkout (`git status --porcelain --untracked-files=all`
+is not empty after the tests) catches a test that writes into the
+repository.
 
 ## Adapter contract
 

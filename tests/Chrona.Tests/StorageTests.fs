@@ -260,7 +260,8 @@ let ``renaming changes the name and slug, never the id or the folder`` () =
     let revision =
         match read ns path state with
         | ReadOutcome.Found found -> found.Revision
-        | ReadOutcome.Absent -> failwith "absent"
+        | ReadOutcome.Absent
+        | ReadOutcome.Erased _ -> failwith "absent"
 
     let renamed =
         renameOrganization ns (context "rename") revision "Acme Partners" "acme-partners" acme |> ok
@@ -330,7 +331,8 @@ let ``a folder that is not initialized, belongs to another application, or was c
     let content =
         match read app manifestPath state with
         | ReadOutcome.Found found -> found.Content
-        | ReadOutcome.Absent -> failwith "absent"
+        | ReadOutcome.Absent
+        | ReadOutcome.Erased _ -> failwith "absent"
 
     let copied = InMemory.writeExternally fresh.Location "deployments/staging/chrona/arca-manifest.json" (Some content) state
     Assert.Equal<string list>([ "CHRONA.STORAGE.NAMESPACE_UNUSABLE" ], openNamespace freshSpace (read freshSpace manifestPath copied) |> codes)
@@ -361,7 +363,8 @@ let ``a manifest edited outside Chrona is reported, not trusted`` () =
     let content =
         match read ns path state with
         | ReadOutcome.Found found -> found.Content
-        | ReadOutcome.Absent -> failwith "absent"
+        | ReadOutcome.Absent
+        | ReadOutcome.Erased _ -> failwith "absent"
 
     Assert.Equal<string list>([ "CHRONA.STORAGE.INVALID_RECORD" ], readAfter (content.Replace(",", ", ")))
 

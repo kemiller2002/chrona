@@ -106,7 +106,8 @@ let private readMonths (dates: DateOnly list) (state: InMemoryState) =
                 |> List.choose (fun path ->
                     match InMemory.read ns path state |> fst |> ok with
                     | ReadOutcome.Found found -> Some found
-                    | ReadOutcome.Absent -> None),
+                    | ReadOutcome.Absent
+                    | ReadOutcome.Erased _ -> None),
                 problems)
         |> List.unzip
 
@@ -132,7 +133,8 @@ let private september = DateOnly(2026, 9, 30)
 let private storedContent path (state: InMemoryState) =
     match InMemory.read ns path state |> fst |> ok with
     | ReadOutcome.Found found -> found
-    | ReadOutcome.Absent -> failwith "absent"
+    | ReadOutcome.Absent
+    | ReadOutcome.Erased _ -> failwith "absent"
 
 let private codes (diagnostics: Diagnostic list) = diagnostics |> List.map code |> List.sort
 

@@ -363,6 +363,8 @@ let describeDecode =
 let read (organizationId: string) (stored: ReadOutcome) : Result<OrganizationManifest, Diagnostic list> =
     match stored with
     | ReadOutcome.Absent -> Error [ OrganizationNotInitialized organizationId ]
+    // A manifest is never erased (Arca 0.4.0): an erased one is unusable.
+    | ReadOutcome.Erased erased -> Error [ InvalidStoredRecord(RelativePath.render erased.Path, "it was erased") ]
     | ReadOutcome.Found found ->
         let path = RelativePath.render found.Path
 

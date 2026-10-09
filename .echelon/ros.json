@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "tool": "ros",
   "package": "@echelon-foundry/repository-operating-system",
-  "installedVersion": "3.7.2",
+  "installedVersion": "3.11.0",
   "configurationVersion": 1,
   "profile": "greenfield",
   "managedArtifacts": [
     {
       "path": ".echelon/toolchain.json",
       "ownership": "shared",
-      "sha256": "3f4b52f72fb4b263ff86e1678a5be2e6908eff1dc76581a376463ddb42592160"
+      "sha256": "e7808278868a88e5c658055a0562465973bddcba936f7150eccc9fa2b868c38c"
     },
     {
       "path": ".editorconfig",
@@ -34,7 +34,7 @@
     {
       "path": ".gitignore",
       "ownership": "user-owned",
-      "sha256": "be04efa2499420ecc9b4702cdc1a36c02e2366746da19a1dcbb560b8e8f2e902"
+      "sha256": "ea8061cc0ca6e4b5da65d05a77ca5850e32354b83853cda50ef6caad01d0cdd5"
     },
     {
       "path": "AGENTS.md",
@@ -59,12 +59,12 @@
     {
       "path": "HANDOFF.md",
       "ownership": "shared",
-      "sha256": "13783c0ddcf497b6b67d016f19fbfe80b6533e8cf7d5c159f94a6ee005031176"
+      "sha256": "eb4e57f93fc9e6ef1246052d6e1cd6953c6325925f77b7163439d82c0be16986"
     },
     {
       "path": "PROJECT-CHARTER.md",
       "ownership": "shared",
-      "sha256": "e0da13b9d92f780054eb38b8cea23055baca3b1095261fe5dbc5311fd3daff34"
+      "sha256": "55c58fb131d330f46c3f711a82c1897e3e76fae74072706ee2bfc9d8f10862ab"
     },
     {
       "path": "README.md",
@@ -79,12 +79,12 @@
     {
       "path": "context/CURRENT-STATE.md",
       "ownership": "shared",
-      "sha256": "cdb0393d96bf3800fd8e8b4c99f95a350e2f8f4d200d1f1e1816b1346d46832b"
+      "sha256": "76fb24b35a5c3ee56abcca3aaf7a94dda5c64e64e72aa3633ad46662c079ee09"
     },
     {
       "path": "context/DECISIONS.md",
       "ownership": "shared",
-      "sha256": "edd9bfddfcab7e7654e7aaf6d05683facb4dac8e2f65cfa67dd4dca635c5b23d"
+      "sha256": "72526c1dc1c55677cd90a4cecf0e6b61b1f663f1b5a3353cb20cf558e8451bd1"
     },
     {
       "path": "context/KNOWN-RISKS.md",
@@ -134,7 +134,7 @@
     {
       "path": "docs/agent-provenance.md",
       "ownership": "tool-owned",
-      "sha256": "69a7b8884e97a345446133ca97a9baed4db4d9b38915ef3a3929f195ce4094cb"
+      "sha256": "c7dd695fb2b2452c8a047963a34afc1aeda3814b09a18db3cdb1d01acdf1e64e"
     },
     {
       "path": "docs/architecture/README.md",
@@ -149,12 +149,12 @@
     {
       "path": "docs/development-telemetry.md",
       "ownership": "tool-owned",
-      "sha256": "d689740b276b9f06eb352811e79c0625d5aa0b3ed61703a170366c5e79c787db"
+      "sha256": "935758d1fd3859555cae2ddf179ca5677b0bdb2880330eef9d842fe2d92bd9db"
     },
     {
       "path": "docs/fallback-reconciliation.md",
       "ownership": "tool-owned",
-      "sha256": "d10d1a749ba2b868b382981ff3d90c349bbc45911d9c0698ab25db71dda45f31"
+      "sha256": "efb9579419a803c2885c41ed5e23b0fcc2baf2c560ca13340b2c5aa2268bd0a6"
     },
     {
       "path": "docs/ordo-observation.md",
@@ -164,12 +164,12 @@
     {
       "path": "docs/remote-agent-contract.md",
       "ownership": "tool-owned",
-      "sha256": "5da19cff1009010ce49e8698c9569e511172e6ab66f72901c4ac36f6c7bb0ff7"
+      "sha256": "1d3e59d18ee338f31f1387b3c61f7724c99b93241b8fb5c1eb9c97efde97b408"
     },
     {
       "path": "docs/remote-protocol.md",
       "ownership": "tool-owned",
-      "sha256": "91835e62fe1496e907308758bebae320aca5ad5f65471c305189d7ec8b09de89"
+      "sha256": "627256968eb663181649da221fa0dd41b8e9ded3c97779ee43b248df3fb8510c"
     },
     {
       "path": "docs/work-adapter-contract.md",
@@ -179,7 +179,7 @@
     {
       "path": "docs/work-protocol.md",
       "ownership": "tool-owned",
-      "sha256": "8d85f304f8d93fa37cd3ae7736496ecca2bf095d9ff7cbcee95a9cc92a97a7ae"
+      "sha256": "f260212e3fbd31ffe5d9cc4bf84600f7d08e7279437d112fae69e18d89c56258"
     },
     {
       "path": "framework/REP-SPECIFICATION.md",
@@ -269,12 +269,12 @@
     {
       "path": "registries/decisions.json",
       "ownership": "generated",
-      "sha256": "54e6ffd90846dd4b75dab27b10ceb3f05189cf2bd53de8ce85955696c78ebd7b"
+      "sha256": "7f90b52d512b100c8548032f54384846ee4f24cd7453e7bf75658c2cf426871b"
     },
     {
       "path": "registries/evidence.json",
       "ownership": "generated",
-      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+      "sha256": "ba101c6f0944cc6bf0ae6535ea9bd0069801cadaff37a126a88ffd6a20e137d1"
     },
     {
       "path": "registries/experiments.json",
@@ -404,17 +404,27 @@
     {
       "path": "schemas/praxis-completion-readiness.schema.json",
       "ownership": "tool-owned",
-      "sha256": "4133dcfdf8cfc40edeb30a375f5f5087a48c56bc188bd23f2a50cd9c8fe04511"
+      "sha256": "aa4886b73db2593b0cdff705f56f7eedfc28a5a56b186d902add48fc3e8bca9f"
+    },
+    {
+      "path": "schemas/praxis-group-analysis.schema.json",
+      "ownership": "tool-owned",
+      "sha256": "cafb242c810aca49ccb5e07cb809395f36dfc16b3b83b0bea11cfec7ff879182"
+    },
+    {
+      "path": "schemas/praxis-group-verification.schema.json",
+      "ownership": "tool-owned",
+      "sha256": "0b311f1259b5936aba3641d584d76bce38a1651f6458a9614c343d6eeaafbfb9"
     },
     {
       "path": "schemas/praxis-remote-request.schema.json",
       "ownership": "tool-owned",
-      "sha256": "da8368301cac3a28b6d4d697c84aa2be0937f3a215b148eb20ca821c0b67d220"
+      "sha256": "8a9fb3633c853f285b604b1df10abc8fc6a0f9492618bf3e2ba189d1f94da3a5"
     },
     {
       "path": "schemas/praxis-remote-response.schema.json",
       "ownership": "tool-owned",
-      "sha256": "08509fd2edaa1d29242c60f0a91c0f0f7eb40661ef33f91393c5969873ad9534"
+      "sha256": "7890cdaf7addef18d9224071aa99819767fa831aec62e5b235d43e3f8a880e24"
     },
     {
       "path": "schemas/rep.schema.json",
@@ -464,7 +474,7 @@
     {
       "path": "schemas/work-protocol.schema.json",
       "ownership": "tool-owned",
-      "sha256": "0bc73b235bfec4c3ac1542f801d75dfaae564df926db35c465beb6b574dbaa74"
+      "sha256": "725a1855c2e30d3c0be9f08b2ac54797386ade352b415035e09986246fd0760f"
     },
     {
       "path": "telemetry/metrics.json",

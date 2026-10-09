@@ -78,3 +78,4 @@
 | WI-0070 | Chrona 16f: re-render the visual baselines routinely - a workflow that renders them with CI's pinned Chromium and opens a pull request (CHX-005) | complete |  | high |
 | WI-0071 | Chrona 17: deep links - every navigable state in the URL on Limen's URL-state semantics (CHX-460) | complete | chrona, routing, limen | high |
 | WI-0072 | Move Chrona to Limen 0.9.0 through Conditor: Limen.Routing from the attested package in place of the interim copy, @echelon-foundry/limen 0.9.0, the route inventory validated against contract/routes.schema.json (CHX-460) | complete | chrona, limen, conditor | high |
+| WI-0073 | Move Chrona to Arca 0.4.0 through Conditor: namespace-scoped change tokens for reads, writes and the read cache, and sign-out discard by stable account id (arca WI-0018, arca#33) | ready | chrona, arca, conditor | high |

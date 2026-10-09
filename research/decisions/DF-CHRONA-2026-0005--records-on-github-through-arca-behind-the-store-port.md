@@ -419,7 +419,7 @@ and semantic conflicts surfaced.
     rule, including the submitted-period restriction. Accepted time is
     `Imported <source>`, billability pending a person's decision.
 
-18. **Arca 0.4.0 (WI-0073).** Every write is conditioned on the state of
+18. **Arca 0.4.1 (WI-0073).** Every write is conditioned on the state of
     the organization's folder (`provider.NamespaceState`,
     `Operation.requireNamespaceToken`; the read cache is kept with
     `Fresh.read` of that state), so another application's commit elsewhere
@@ -438,9 +438,8 @@ and semantic conflicts surfaced.
     queue loads, never to whoever is signed in. One that records no usable
     actor is neither sent nor discarded: the page says unsent changes from
     an earlier version are here, and the person sends them as theirs, keeps
-    them, or discards them after a confirmation. Arca 0.4.0's
-    `OfflineQueue.revise` drops the account id; Chrona stamps it again
-    until Arca 0.4.1. Do not go back below Arca 0.4.0 while conditioned
+    them, or discards them after a confirmation. A change decided again
+    keeps its account (`OfflineQueue.revise`, Arca 0.4.1). Do not go back below Arca 0.4.0 while conditioned
     changes are queued: an older Arca would read them without their
     condition. Chrona erases nothing; an erased record (Arca's tombstone) is
     read as gone, and an erased receipt as received.

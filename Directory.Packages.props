@@ -14,8 +14,8 @@
     <PackageVersion Include="EchelonFoundry.Aegis.Core" Version="1.0.0" />
     <!-- Arca 0.3.0: attested GitHub release assets in vendor/nuget, installed
          and proven by Conditor (conditor.json, vendor/nuget/arca.lock). -->
-    <PackageVersion Include="EchelonFoundry.Arca.Core" Version="0.4.0" />
-    <PackageVersion Include="EchelonFoundry.Arca.GitHub" Version="0.4.0" />
+    <PackageVersion Include="EchelonFoundry.Arca.Core" Version="0.4.1" />
+    <PackageVersion Include="EchelonFoundry.Arca.GitHub" Version="0.4.1" />
     <!-- Fides 0.2.0, the same way (vendor/nuget/fides.lock): the WASM sign-in
          client and its bridge to Arca's token-provider port. Fides.Hosting
          is the exchange's server side and is not referenced. -->
@@ -35,7 +35,7 @@
          store pack (WI-0059, WI-0057). Arca.Limen asks for Limen.Store and
          Limen.Contract 0.8.0 or later; Chrona holds 0.9.0 (limen-fsharp),
          pinned here so restore takes exactly that. -->
-    <PackageVersion Include="EchelonFoundry.Arca.Limen" Version="0.4.0" />
+    <PackageVersion Include="EchelonFoundry.Arca.Limen" Version="0.4.1" />
     <PackageVersion Include="EchelonFoundry.Limen.Store" Version="0.9.0" />
     <PackageVersion Include="EchelonFoundry.Limen.Contract" Version="0.9.0" />
   </ItemGroup>

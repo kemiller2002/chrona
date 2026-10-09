@@ -130,14 +130,13 @@ for the diagnosis, the evidence, and one unexercised watch item.
   reopens it with a reason; whoever approves sees other members' waiting
   submissions there and approves or returns them. Time in a submitted or
   closed period is held (`CHRONA.REVIEW.SUBMITTED_PERIOD`) until reopened.
-- Arca 0.4.0 and Praxis 3.11.0 (WI-0073, through `conditor upgrade
-  --current`, echelon-current 1.17.0): writes are conditioned on the
+- Arca 0.4.1 and Praxis 3.11.0 (WI-0073, through `conditor upgrade
+  --current`, echelon-current 1.18.0): writes are conditioned on the
   organization's folder (namespace tokens), so other applications' commits
   in a shared repository no longer force a decide-again; queued changes
   name their account, and sign-out matches by it. Entries from before 0.4.0
   are attributed to the actor they record; any naming no one wait for the
-  person (send as theirs, keep, or discard). Arca 0.4.0's `revise` drops
-  the account id and Chrona re-stamps it; drop that when adopting 0.4.1.
+  person (send as theirs, keep, or discard).
 - Observation inboxes (WI-0038): producers write `chrona.time-observation`
   version 1 (`src/Chrona.Integration`) to `inbox/<source>/<id>.json` in the
   organization's folder. Each time the records open from GitHub (and from

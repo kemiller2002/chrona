@@ -483,10 +483,9 @@ let private unsent (entry: QueueEntry) =
 let private accountOfActor (actorId: string) =
     ActorId.create actorId |> Result.toOption |> Option.map AccountId.ofActor
 
-/// Entries queued without an account id (before Arca 0.4.0, or rebuilt by
-/// Arca 0.4.0's `revise`, which drops it) stamped with the account of the
-/// actor each one records itself; never with whoever is signed in now. An
-/// entry that records no usable actor stays unstamped.
+/// Entries queued without an account id (before Arca 0.4.0) stamped with
+/// the account of the actor each one records itself; never with whoever is
+/// signed in now. An entry that records no usable actor stays unstamped.
 let private stamped (queue: OfflineQueue) =
     { queue with
         Entries =
@@ -1387,9 +1386,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                                                     (OfflineQueue.abandon entry.Sequence "it cannot be stored" fresh.Queue)
                                                     (fun _ -> [ answer (Failed $"This change cannot be stored ({describeAll diagnostics}).") ])
                                         | Ok operation ->
-                                            // Arca 0.4.0's revise drops the entry's account
-                                            // id: stamped again from its actor (fixed in 0.4.1).
-                                            match OfflineQueue.revise entry.Sequence operation fresh.Queue |> Result.map stamped with
+                                            match OfflineQueue.revise entry.Sequence operation fresh.Queue with
                                             | Error _ -> return messages @ [ answer (Failed "The queued change could not be revised.") ]
                                             | Ok queue ->
                                                 let! saved = persist fresh queue

@@ -3034,7 +3034,7 @@ let ``a change from an earlier version that names no one is discarded only after
     Assert.Equal(commits + 1, github.State.History.Length)
 
 [<Fact>]
-let ``a queued change decided again keeps its account id (Arca 0.4.0's revise drops it)`` () =
+let ``a queued change decided again keeps its account id (Arca 0.4.1's revise)`` () =
     let browser = Browser()
     let github, device = unsentOn browser (configuration "production")
 
@@ -3049,3 +3049,34 @@ let ``a queued change decided again keeps its account id (Arca 0.4.0's revise dr
     Assert.Equal(1, kept.Length)
     Assert.True(kept.Head.Operation.ExpectedNamespaceToken.IsSome)
     Assert.Equal<string option list>([ Some "actor:github:583231" ], accounts browser)
+
+[<Fact>]
+let ``a change revised under Arca 0.4.0, which lost its account id, is attributed to the actor it records and is its person's to discard`` () =
+    let github = InMemoryStore()
+    let browser = Browser()
+    let queuing = Device(github, RepositoryVisibility.Private, "production", browser)
+    queuing.Open()
+    record queuing "08:00" "08:30" "Setup"
+    queuing.Offline <- true
+    record queuing "09:00" "10:00" "Pairing"
+    // As Arca 0.4.0's revise left it: pending, with no account id.
+    let revised = beforeAccounts (queueText browser)
+    Assert.DoesNotContain("accountId", revised)
+    let commits = github.State.History.Length
+
+    let shared = Browser()
+    shared.Storage[queueKey] <- revised
+    let device = Device(github, RepositoryVisibility.Private, "production", shared)
+    // The records open, and sending it finds GitHub out of reach: it stays.
+    device.UnreachableAfter 1
+    device.Open()
+    Assert.Equal(0, device.Model.Store.Sync.Earlier)
+    Assert.Equal<string option list>([ Some "actor:github:583231" ], accounts shared)
+
+    // Its person discards it at sign-out, after the confirmation.
+    device.Ui("signOut", "")
+    device.Ui("signOutDiscard", "")
+    device.Ui("signOutDiscardConfirmed", "")
+    Assert.True(signedOut device)
+    Assert.Empty(queued shared)
+    Assert.Equal(commits, github.State.History.Length)

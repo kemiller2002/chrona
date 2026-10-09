@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-09T04:03:54.000Z",
+  "updatedAt": "2026-10-09T04:43:29.000Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -2784,10 +2784,27 @@
     {
       "id": "WI-0073",
       "type": "task",
-      "state": "active",
-      "semanticState": "active",
-      "evidence": [],
-      "updatedAt": "2026-10-09T04:03:54.000Z",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Application/Store.fs"
+        },
+        {
+          "type": "configuration",
+          "path": "conditor.json"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/StoreTests.fs"
+        },
+        {
+          "type": "documentation",
+          "path": "research/decisions/DF-CHRONA-2026-0005--records-on-github-through-arca-behind-the-store-port.md"
+        }
+      ],
+      "updatedAt": "2026-10-09T04:43:29.000Z",
       "telemetryExecutionIds": [
         "EXE-20261009T023556300Z-7aa2d7d5"
       ],
@@ -2811,7 +2828,9 @@
           "status": "verified",
           "mechanism": "git-remote-observation"
         }
-      }
+      },
+      "completedAt": "2026-10-09T04:43:29.000Z",
+      "conclusion": "Arca 0.4.1 and Praxis 3.11.0 adopted through Conditor 0.8.2; writes conditioned on the organization's folder; sign-out by account id"
     }
   ]
 }

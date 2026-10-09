@@ -1620,10 +1620,10 @@
         "conditor"
       ],
       "priority": "high",
-      "status": "ready",
+      "status": "complete",
       "attachments": [],
       "createdAt": "2026-10-09T02:35:51.000Z",
-      "updatedAt": "2026-10-09T02:35:55.000Z",
+      "updatedAt": "2026-10-09T04:43:29.000Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

@@ -1140,12 +1140,14 @@
               </div>
             </template>
             <template data-if="periodHeld">
-              <div class="ef-field">
-                <label class="ef-field__label" for="reopen-reason">Why reopen it <span aria-hidden="true">*</span></label>
-                <input class="ef-input" id="reopen-reason" type="text" aria-required="true" data-event="reopenReason" data-on="input" data-bind-value="reopenReason" />
-              </div>
-              <div class="chrona-form-actions">
-                <button type="button" class="chrona-action chrona-action--secondary" id="reopen-period" data-event="reopenPeriod">Reopen this period</button>
+              <div>
+                <div class="ef-field">
+                  <label class="ef-field__label" for="reopen-reason">Why reopen it <span aria-hidden="true">*</span></label>
+                  <input class="ef-input" id="reopen-reason" type="text" aria-required="true" data-event="reopenReason" data-on="input" data-bind-value="reopenReason" />
+                </div>
+                <div class="chrona-form-actions">
+                  <button type="button" class="chrona-action chrona-action--secondary" id="reopen-period" data-event="reopenPeriod">Reopen this period</button>
+                </div>
               </div>
             </template>
             <template data-if="hasReviewProblems">
@@ -1236,6 +1238,138 @@
           <a class="chrona-action chrona-action--secondary" id="project-today" data-bind-href="projectTodayHref">Today on this project</a>
           <a class="chrona-action chrona-action--secondary" id="project-week" data-bind-href="projectWeekHref">This week</a>
           <a class="chrona-action chrona-action--primary" id="project-report" data-bind-href="projectReportHref">Report on this project</a>
+        </div>
+      </section>
+    </template>
+
+    <!-- ======================= Observations' candidates (WI-0038) ======================= -->
+    <template data-if="screenCandidates">
+      <section class="chrona-screen" id="screen-candidates" aria-labelledby="candidates-title">
+        <div class="chrona-heading">
+          <p class="chrona-eyebrow">Observed by other systems</p>
+          <h1 class="chrona-title" id="candidates-title">Candidates</h1>
+          <p class="chrona-intro">Work other systems observed. Nothing becomes your time until you accept it.</p>
+        </div>
+        <nav class="chrona-filters" aria-label="Which candidates" id="candidate-statuses">
+          <template data-each="candidateStatuses" data-key="id">
+            <a class="chrona-chip" data-bind-href="href" data-bind-aria-current="current" data-text="label"></a>
+          </template>
+        </nav>
+        <template data-if="hasCandidateSources">
+          <nav class="chrona-filters" aria-label="From which source" id="candidate-sources">
+            <template data-each="candidateSources" data-key="id">
+              <a class="chrona-chip" data-bind-href="href" data-bind-aria-current="current" data-text="label"></a>
+            </template>
+          </nav>
+        </template>
+        <template data-if="candidatesEmpty">
+          <div class="ef-empty-state chrona-empty">
+            <div class="ef-empty-state__symbol" aria-hidden="true">□</div>
+            <h2 data-text="candidatesEmptyText"></h2>
+          </div>
+        </template>
+        <section class="ef-surface chrona-card" aria-labelledby="candidate-list-title">
+          <h2 class="chrona-section-title" id="candidate-list-title">Observations</h2>
+          <ul class="chrona-days" id="candidate-list">
+            <template data-each="candidateList" data-key="id">
+              <li class="chrona-days__item chrona-days__item--entry"><a class="chrona-link" data-bind-href="href" data-text="title"></a><span data-text="detail"></span><strong data-text="state"></strong></li>
+            </template>
+          </ul>
+        </section>
+      </section>
+    </template>
+
+    <template data-if="screenCandidate">
+      <section class="chrona-screen" id="screen-candidate" aria-labelledby="candidate-title">
+        <div class="chrona-heading">
+          <a class="chrona-link" data-bind-href="candidatesHref">← All candidates</a>
+          <p class="chrona-eyebrow" data-text="candidateSource"></p>
+          <h1 class="chrona-title" id="candidate-title" data-text="candidateTitle"></h1>
+          <p class="chrona-intro" role="status" id="candidate-state" data-text="candidateState"></p>
+        </div>
+        <div class="chrona-layout">
+          <section class="ef-surface chrona-card" aria-labelledby="candidate-observed-title">
+            <h2 class="chrona-section-title" id="candidate-observed-title">What was observed</h2>
+            <dl class="ef-facts chrona-facts">
+              <div class="ef-facts__item"><dt>When</dt><dd id="candidate-timing" data-text="candidateTiming"></dd></div>
+              <div class="ef-facts__item"><dt>Project</dt><dd data-text="candidateProposedProject"></dd></div>
+              <div class="ef-facts__item"><dt>Whose</dt><dd data-text="candidateWho"></dd></div>
+              <div class="ef-facts__item"><dt>Work item</dt><dd data-text="candidateWorkItem"></dd></div>
+              <div class="ef-facts__item"><dt>Observation</dt><dd><code data-text="candidateObservation"></code></dd></div>
+              <div class="ef-facts__item"><dt>Received</dt><dd data-text="candidateReceived"></dd></div>
+            </dl>
+            <template data-if="candidateHasLink">
+              <p><a class="chrona-link" rel="noopener noreferrer" target="_blank" data-bind-href="candidateLink" data-text="candidateLink"></a></p>
+            </template>
+            <template data-if="candidateHasEvidence">
+              <div>
+                <h3 class="chrona-subtitle">Evidence</h3>
+                <ul class="chrona-days" id="candidate-evidence">
+                  <template data-each="candidateEvidence" data-key="id">
+                    <li class="chrona-days__item"><span data-text="kind"></span><span data-text="reference"></span></li>
+                  </template>
+                </ul>
+              </div>
+            </template>
+          </section>
+          <template data-if="candidateDecidable">
+            <section class="ef-surface chrona-card" aria-labelledby="candidate-decide-title" id="candidate-decide">
+              <h2 class="chrona-section-title" id="candidate-decide-title">Accept it as your time</h2>
+              <div class="chrona-form-grid">
+                <label class="ef-select-field">
+                  <span class="ef-field__label">Activity type <span aria-hidden="true">*</span></span>
+                  <span class="ef-select">
+                    <select class="ef-select__input" id="candidate-activity-type" aria-required="true" data-event="candidateActivityType">
+                      <option value="" disabled data-bind-selected="candidateTypeUnset">Choose an activity type</option>
+                      <template data-each="candidateTypeOptions" data-key="id"><option data-bind-value="id" data-bind-selected="selected" data-text="name"></option></template>
+                    </select>
+                    <span class="ef-select__indicator" aria-hidden="true"></span>
+                  </span>
+                </label>
+                <label class="ef-select-field">
+                  <span class="ef-field__label">Project <span aria-hidden="true">*</span></span>
+                  <span class="ef-select">
+                    <select class="ef-select__input" id="candidate-project" aria-required="true" data-event="candidateProject">
+                      <option value="" disabled data-bind-selected="candidateProjectUnset">Choose a project</option>
+                      <template data-each="candidateProjectOptions" data-key="id"><option data-bind-value="id" data-bind-selected="selected" data-text="name"></option></template>
+                    </select>
+                    <span class="ef-select__indicator" aria-hidden="true"></span>
+                  </span>
+                </label>
+                <div class="ef-field chrona-field--full">
+                  <label class="ef-field__label" for="candidate-description">What was done <span aria-hidden="true">*</span></label>
+                  <textarea id="candidate-description" rows="2" aria-required="true" data-event="candidateDescription" data-on="input" data-bind-value="candidateDescription"></textarea>
+                </div>
+                <div class="ef-field chrona-field--full">
+                  <label class="ef-field__label" for="candidate-purpose">Business purpose <span aria-hidden="true">*</span></label>
+                  <textarea id="candidate-purpose" rows="2" aria-required="true" data-event="candidatePurpose" data-on="input" data-bind-value="candidatePurpose"></textarea>
+                </div>
+              </div>
+              <div class="chrona-form-actions">
+                <button type="button" class="chrona-action chrona-action--primary" id="accept-candidate" data-event="acceptCandidate">Accept</button>
+              </div>
+              <div class="chrona-candidate-reject">
+                <div class="ef-field">
+                  <label class="ef-field__label" for="candidate-reason">Or why it is not your time</label>
+                  <input class="ef-input" id="candidate-reason" type="text" data-event="candidateReason" data-on="input" data-bind-value="candidateReason" />
+                </div>
+                <div class="chrona-form-actions">
+                  <button type="button" class="chrona-action chrona-action--secondary" id="reject-candidate" data-event="rejectCandidate">Reject</button>
+                </div>
+              </div>
+              <template data-if="hasCandidateProblems">
+                <ul class="chrona-problems" role="alert" id="candidate-problems"><template data-each="candidateProblems" data-key="id"><li data-bind-data-code="code" data-text="text"></li></template></ul>
+              </template>
+            </section>
+          </template>
+          <section class="ef-surface chrona-card" aria-labelledby="candidate-decisions-title">
+            <h2 class="chrona-section-title" id="candidate-decisions-title">Decisions</h2>
+            <ul class="chrona-days" id="candidate-decisions">
+              <template data-each="candidateDecisions" data-key="id">
+                <li class="chrona-days__item chrona-days__item--entry"><strong data-text="what"></strong><span data-text="who"></span><span data-text="when"></span></li>
+              </template>
+            </ul>
+          </section>
         </div>
       </section>
     </template>
@@ -1720,6 +1854,29 @@
                 </template>
                 <button type="button" class="chrona-action chrona-action--secondary" id="rebuild-index" data-event="rebuildIndex">Rebuild from the records</button>
               </section>
+            </template>
+
+            <!-- WI-0038: what reading producers' inboxes found (requirement 18):
+                 only where the deployment keeps records on GitHub. -->
+            <template data-if="hasInboxes">
+            <section class="ef-surface chrona-card" aria-labelledby="inbox-title" id="inbox">
+              <h2 class="chrona-section-title" id="inbox-title">Observation inboxes</h2>
+              <p class="chrona-intro">Other systems put observations of your work in the organization's inbox folder. Each becomes a candidate you accept as your time or reject. <a class="chrona-link" id="inbox-candidates" data-bind-href="inboxCandidatesHref">See the candidates</a>.</p>
+              <p class="chrona-intro" role="status" id="inbox-status" data-text="inboxSummary"></p>
+              <template data-if="hasInboxInvalid">
+                <div>
+                  <h3 class="chrona-subtitle">Not observations</h3>
+                  <ul class="chrona-conflicts" id="inbox-invalid">
+                    <template data-each="inboxInvalid" data-key="id">
+                      <li class="chrona-conflicts__item"><p><code data-text="file"></code></p><p data-text="reasons"></p></li>
+                    </template>
+                  </ul>
+                </div>
+              </template>
+              <template data-if="canReadInboxes">
+                <button type="button" class="chrona-action chrona-action--secondary" id="read-inboxes" data-event="readInboxes">Read the inboxes now</button>
+              </template>
+            </section>
             </template>
           </aside>
         </div>

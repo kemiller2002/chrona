@@ -22,6 +22,17 @@ type Section =
     | Account
     | People
     | ActivityIndex
+    /// What reading producers' inboxes found (WI-0038).
+    | Inboxes
+
+/// The candidates screen's filters (WI-0038): which candidates, and from
+/// which source. "awaiting" (the default) is what a person must still
+/// decide; "decided" what was decided in the months read; "all" both.
+type CandidateQuery =
+    { Status: string
+      Source: string option }
+
+let awaitingCandidates = { Status = "awaiting"; Source = None }
 
 /// The reports screen's filters, as they appear in its address. An absent
 /// value is the screen's own default: the current month, anything, every
@@ -89,6 +100,10 @@ type Place =
     | ReviewToday
     | Review of on: DateOnly
     | Reports of ReportQuery
+    /// Observations' candidates (WI-0038).
+    | Candidates of CandidateQuery
+    /// One candidate: what was observed, and deciding it.
+    | Candidate of id: string
     /// The More screen, or one of its parts.
     | Settings of Section option
     /// Sign-in, with the relative address to return to afterwards.
@@ -153,6 +168,12 @@ module Names =
     [<Literal>]
     let Reports = "reports"
 
+    [<Literal>]
+    let Candidates = "candidates"
+
+    [<Literal>]
+    let Candidate = "candidate"
+
     /// The More screen: every part of it (`settings.all`), the parts only an
     /// administrator works in (`settings.people`, `settings.index`), and the
     /// others (`settings.section`).
@@ -196,13 +217,18 @@ module Requires =
     [<Literal>]
     let Project = "project"
 
+    /// An observation's candidate the person may see, by its id.
+    [<Literal>]
+    let Candidate = "candidate"
+
 let private sectionNames =
     [ References, "references"
       PeriodSettings, "periods"
       Changes, "changes"
       Account, "account"
       People, "people"
-      ActivityIndex, "index" ]
+      ActivityIndex, "index"
+      Inboxes, "inbox" ]
 
 let sectionName (section: Section) = sectionNames |> List.find (fst >> (=) section) |> snd
 
@@ -216,7 +242,8 @@ let administrative (section: Section) =
     | References
     | PeriodSettings
     | Changes
-    | Account -> false
+    | Account
+    | Inboxes -> false
 
 /// The parts anyone who works here may open.
 let private openSections = sectionNames |> List.map fst |> List.filter (administrative >> not)
@@ -224,6 +251,9 @@ let private openSections = sectionNames |> List.map fst |> List.filter (administ
 let private groupings = [ "project", "project"; "activityType", "type"; "tag", "tag"; "day", "day" ]
 
 let private optional name kind = QueryParam.optional name kind
+
+/// The candidate statuses an address may name.
+let candidateStatuses = [ "awaiting"; "decided"; "all" ]
 
 /// A place people work in: behind sign-in, and in an organization, named
 /// last among its parameters.
@@ -264,6 +294,12 @@ let private routes: Route list =
                     optional "removed" ParamType.Bool |> QueryParam.withDefault (Value.Boolean false)
                     optional "group" (ParamType.Enum(groupings |> List.map snd)) |> QueryParam.withDefault (Value.Text "project")
                     optional "format" (ParamType.Enum [ "csv"; "json" ]) |> QueryParam.withDefault (Value.Text "csv") ] }
+      guarded
+          { Route.create Names.Candidates "candidates" with
+              Query =
+                  [ optional "status" (ParamType.Enum candidateStatuses) |> QueryParam.withDefault (Value.Text awaitingCandidates.Status)
+                    optional "source" ParamType.String ] }
+      guarded { Route.create Names.Candidate "candidates/{id}" with Requires = [ Requires.Candidate ] }
       guarded
           { Route.create "settings" "more" with
               Children =
@@ -340,6 +376,8 @@ let private placeTarget (place: Place) : Target =
               "removed", Some(Value.Boolean query.IncludeRemoved)
               "group", groupings |> List.tryFind (fst >> (=) query.Grouping) |> Option.map (snd >> Value.Text)
               "format", Some(Value.Text query.Format) ]
+    | Candidates query -> target Names.Candidates [] [ "status", Some(Value.Text query.Status); "source", text query.Source ]
+    | Candidate id -> target Names.Candidate [ "id", Value.Text id ] []
     | Settings None -> target Names.Settings [] []
     | Settings(Some People) -> target Names.People [] []
     | Settings(Some ActivityIndex) -> target Names.ActivityIndex [] []
@@ -416,6 +454,13 @@ let private placeOf (matched: Match) : Result<Place, string> =
                     |> Option.defaultValue allReports.Grouping
                   Format = textOf query "format" |> Option.defaultValue allReports.Format }
         )
+    | Names.Candidates ->
+        Ok(
+            Candidates
+                { Status = textOf query "status" |> Option.defaultValue awaitingCandidates.Status
+                  Source = textOf query "source" }
+        )
+    | Names.Candidate -> textOf path "id" |> required "id" |> Result.map Candidate
     | Names.Settings -> Ok(Settings None)
     | Names.People -> Ok(Settings(Some People))
     | Names.ActivityIndex -> Ok(Settings(Some ActivityIndex))

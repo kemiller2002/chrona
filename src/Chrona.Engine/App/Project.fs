@@ -157,7 +157,9 @@ let private sectionOf (place: Places.Place) =
     | Places.Period _
     | Places.Entry _
     | Places.ReviewToday
-    | Places.Review _ -> "today"
+    | Places.Review _
+    | Places.Candidates _
+    | Places.Candidate _ -> "today"
     | Places.Track -> "track"
     | Places.ThisMonth
     | Places.Month _
@@ -590,6 +592,38 @@ let private periodView (model: Model) =
       flag "periodSubmissionExpected" model.PeriodConfig.SubmissionExpected
       flag "periodApprovalRequired" model.PeriodConfig.ApprovalRequired ]
 
+/// What reading the producers' inboxes found (WI-0038).
+let private inboxView (model: Model) =
+    let inbox = model.Inbox
+
+    let summary =
+        match inbox.Running, inbox.LastRun with
+        | true, _ -> "Reading the inboxes…"
+        | false, None -> "The inboxes are read each time your records open from GitHub."
+        | false, Some at ->
+            [ $"Last read {localStamp model at}."
+              plural inbox.Received "observation was" "observations were" + " received on this page."
+              if inbox.Waiting > 0 then plural inbox.Waiting "observation waits" "observations wait" + " for the next pass."
+              if inbox.Failed > 0 then plural inbox.Failed "observation" "observations" + " could not be read or saved; read the inboxes again to retry." ]
+            |> String.concat " "
+
+    let durable =
+        match model.Store.Kind with
+        | Durable _ -> true
+        | InMemory -> false
+
+    [ text "inboxSummary" summary
+      flag "hasInboxes" durable
+      flag "canReadInboxes" (not inbox.Running && durable)
+      text "inboxCandidatesHref" (hrefOf model (Places.Candidates Places.awaitingCandidates))
+      flag "hasInboxInvalid" (not inbox.Invalid.IsEmpty)
+      items
+          "inboxInvalid"
+          [ for source, observation, reasons in inbox.Invalid ->
+                [ t "id" $"{source}/{observation}"
+                  t "file" $"inbox/{source}/{observation}.json"
+                  t "reasons" (String.concat "; " reasons) ] ] ]
+
 let private more (model: Model) =
     [ text "zoneId" (model.Zone |> Option.map _.Id |> Option.defaultValue "Not yet known")
       items "projects" (referenceRows model Reference.Project)
@@ -599,7 +633,8 @@ let private more (model: Model) =
       text "newActivityTypeName" (model.NewNames.TryFind Reference.ActivityType |> Option.defaultValue "")
       text "newTagName" (model.NewNames.TryFind Reference.Tag |> Option.defaultValue "")
       flag "hasReferenceProblems" (model.Problems.ContainsKey ReferenceForm)
-      items "referenceProblems" (problemItems model ReferenceForm) ]
+      items "referenceProblems" (problemItems model ReferenceForm)
+      yield! inboxView model ]
 
 
 // ---- changes not stored, and records edited outside Chrona (21, 34, 41) --------------
@@ -636,6 +671,7 @@ let private divergenceText (model: Model) (divergence: Reconcile.Divergence) =
         let name = model.Roster.Members.TryFind principalId |> Option.map _.Principal.DisplayName |> Option.defaultValue principalId
         $"{name} was already removed elsewhere."
     | Reconcile.OverlapsStored(mine, stored) -> $"{activityLabel mine} overlaps {activityLabel stored}, stored since."
+    | Reconcile.CandidateChanged(mine, _) -> $"The observation {quoted mine.Observation.ObservationId} from {mine.Observation.SourceSystem} was decided elsewhere first."
     | Reconcile.PeriodsChanged _ -> "The organization's period settings were changed elsewhere first. Review them under More and save again."
     | Reconcile.KeptChanging -> "The records kept changing elsewhere while it was being saved. Nothing was found wrong with it."
 
@@ -677,6 +713,137 @@ let private conflictView (model: Model) =
       flag "hasOutsideEditProblems" (model.Problems.ContainsKey OutsideEditForm)
       items "outsideEditProblems" (problemItems model OutsideEditForm) ]
 
+// ---- observations' candidates (WI-0038) ---------------------------------------------
+
+let private dispositionText (model: Model) (disposition: Observations.Disposition) =
+    match disposition with
+    | Observations.Pending -> "Waiting for your decision"
+    | Observations.NeedsAttention problems -> "Needs attention: " + (problems |> List.map (describe model) |> String.concat " ")
+    | Observations.Accepted _ -> "Accepted"
+    | Observations.AcceptedWithChanges _ -> "Accepted with changes"
+    | Observations.Rejected reason -> $"Rejected: {reason}"
+    | Observations.Duplicate original -> $"The same work as {original}, which is the one to decide"
+
+let private decidable (candidate: Observations.Candidate) = CandidateRecord.isOpen candidate
+
+/// When the observed work happened, in the organization's zone.
+let private timingText (model: Model) (observation: Observations.Observation) =
+    match observation.Timing with
+    | Observations.ObservedInterval(start, finish) ->
+        let minutes = int (finish - start).TotalMinutes
+        $"{localStamp model start} to {localClock model finish} ({Format.minutes minutes})"
+    | Observations.ObservedDuration minutes -> $"{Format.minutes minutes} on {Format.longDate (observedDate model observation)}"
+
+let private candidateTitle (model: Model) (observation: Observations.Observation) =
+    match observation.Description with
+    | Some description when description.Trim() <> "" -> description
+    | _ -> $"Work on {referenceName model Reference.Project observation.ProjectId}"
+
+let private statusLabels = [ "awaiting", "Awaiting a decision"; "decided", "Decided"; "all", "All" ]
+
+let private candidatesView (model: Model) =
+    let query =
+        match model.Place with
+        | Places.Candidates query -> query
+        | _ -> Places.awaitingCandidates
+
+    let visible = visibleCandidates model
+
+    let shown =
+        visible
+        |> List.filter (fun candidate ->
+            match query.Status with
+            | "awaiting" -> decidable candidate
+            | "decided" -> not (decidable candidate)
+            | _ -> true)
+        |> List.filter (fun candidate -> query.Source |> Option.forall ((=) candidate.Observation.SourceSystem))
+        |> List.sortBy (fun candidate -> candidate.ReceivedAt, candidate.CandidateId)
+
+    let sources = visible |> List.map _.Observation.SourceSystem |> List.distinct |> List.sort
+
+    [ flag "screenCandidates" (shows model (function Places.Candidates _ -> true | _ -> false))
+      flag "candidatesEmpty" shown.IsEmpty
+      text
+          "candidatesEmptyText"
+          (match query.Status with
+           | "awaiting" -> "Nothing observed waits for your decision."
+           | "decided" -> "No observations were decided in the months read."
+           | _ -> "No observations yet.")
+      items
+          "candidateStatuses"
+          [ for status, label in statusLabels ->
+                [ t "id" status
+                  t "label" label
+                  t "href" (hrefOf model (Places.Candidates { query with Status = status }))
+                  t "current" (if status = query.Status then "page" else "false") ] ]
+      flag "hasCandidateSources" (sources.Length > 1)
+      items
+          "candidateSources"
+          [ for source in None :: (sources |> List.map Some) ->
+                [ t "id" (defaultArg source "")
+                  t "label" (defaultArg source "Every source")
+                  t "href" (hrefOf model (Places.Candidates { query with Source = source }))
+                  t "current" (if source = query.Source then "page" else "false") ] ]
+      items
+          "candidateList"
+          [ for candidate in shown ->
+                [ t "id" candidate.CandidateId
+                  t "title" (candidateTitle model candidate.Observation)
+                  t "detail" $"{candidate.Observation.SourceSystem} · {timingText model candidate.Observation}"
+                  t "state" (dispositionText model candidate.Disposition)
+                  t "href" (hrefOf model (Places.Candidate candidate.CandidateId)) ] ] ]
+
+let private candidateView (model: Model) =
+    let candidate =
+        match model.Place with
+        | Places.Candidate id -> visibleCandidates model |> List.tryFind (fun candidate -> candidate.CandidateId = id)
+        | _ -> None
+
+    let draft = model.CandidateDraft
+    let observation = candidate |> Option.map _.Observation
+    let field (read: Observations.Observation -> string) = observation |> Option.map read |> Option.defaultValue ""
+
+    [ flag "screenCandidate" (shows model (function Places.Candidate _ -> true | _ -> false))
+      flag "candidateFound" candidate.IsSome
+      text "candidatesHref" (hrefOf model (Places.Candidates Places.awaitingCandidates))
+      text "candidateTitle" (field (candidateTitle model))
+      text "candidateSource" (field _.SourceSystem)
+      text "candidateObservation" (field _.ObservationId)
+      text "candidateState" (candidate |> Option.map (fun c -> dispositionText model c.Disposition) |> Option.defaultValue "")
+      text "candidateTiming" (field (timingText model))
+      text "candidateProposedProject" (field (fun o -> referenceName model Reference.Project o.ProjectId))
+      text "candidateWho" (field (fun o -> o.ActorId |> Option.map (personName model) |> Option.defaultValue "No one named: yours once you accept it"))
+      text "candidateWorkItem" (field (fun o -> defaultArg o.WorkItemId "None"))
+      flag "candidateHasLink" (observation |> Option.exists _.ExternalUrl.IsSome)
+      text "candidateLink" (field (fun o -> defaultArg o.ExternalUrl ""))
+      text "candidateReceived" (candidate |> Option.map (fun c -> localStamp model c.ReceivedAt) |> Option.defaultValue "")
+      flag "candidateHasEvidence" (observation |> Option.exists (fun o -> not o.Evidence.IsEmpty))
+      items
+          "candidateEvidence"
+          [ for o in Option.toList observation do
+                for index, (kind, reference) in List.indexed o.Evidence ->
+                    [ t "id" (string index); t "kind" kind; t "reference" reference ] ]
+      items
+          "candidateDecisions"
+          [ for c in Option.toList candidate do
+                for index, decision in List.indexed c.Decisions ->
+                    [ t "id" (string index)
+                      t "who" (if decision.By = "chrona" then "Chrona" else personName model decision.By)
+                      t "when" (localStamp model decision.At)
+                      t "what" (dispositionText model decision.Disposition) ] ]
+      flag "candidateDecidable" (candidate |> Option.exists decidable && permits model Access.RecordOwnTime)
+      items "candidateTypeOptions" (options model Reference.ActivityType draft.ActivityTypeId)
+      flag "candidateTypeUnset" (draft.ActivityTypeId = "")
+      items "candidateProjectOptions" (options model Reference.Project draft.ProjectId)
+      flag
+          "candidateProjectUnset"
+          (Reference.selectable Reference.Project model.References |> List.forall (fun item -> item.Id <> draft.ProjectId))
+      text "candidateDescription" draft.Description
+      text "candidatePurpose" draft.BusinessPurpose
+      text "candidateReason" model.CandidateReason
+      flag "hasCandidateProblems" (model.Problems.ContainsKey CandidateForm)
+      items "candidateProblems" (problemItems model CandidateForm) ]
+
 // ---- obligations (34) -------------------------------------------------------------
 
 /// The latest attestation of each day, and what changed since (16).
@@ -697,6 +864,7 @@ let private actionLabel =
     | "openReview" -> "Review the day"
     | "goToday" -> "See the period"
     | "approve" -> "Review it"
+    | "candidates" -> "Decide them"
     | _ -> "See details"
 
 /// Unresolved work, as one projection rather than scattered warnings.
@@ -737,6 +905,27 @@ let private obligations (model: Model) =
                   $"{personName model submission.ActorId}'s time waits for your approval",
                   $"The period {periodLabel submission.Period}, submitted {localStamp model submission.At}.",
                   "approve"
+
+      // Observations waiting for this person's decision (34; WI-0038).
+      match visibleCandidates model |> List.filter decidable with
+      | [] -> ()
+      | waiting ->
+          let sources = waiting |> List.map _.Observation.SourceSystem |> List.distinct |> String.concat ", "
+
+          yield
+              "candidates-awaiting",
+              plural waiting.Length "observation awaits" "observations await" + " your decision",
+              $"From {sources}. Accept each as your time, or reject it with a reason.",
+              "candidates"
+
+      match model.Inbox.Invalid with
+      | [] -> ()
+      | invalid ->
+          yield
+              "inbox-invalid",
+              plural invalid.Length "file in the inbox is" "files in the inbox are" + " not an observation",
+              "Its producer can read why beside it. See them under More.",
+              "goMore"
 
       for case in model.Store.Conflicts do
           yield $"conflict-{case.Id}", conflictTitle case, "It changed elsewhere first. Keep what is stored, or redo yours on it.", "goMore"
@@ -1619,6 +1808,8 @@ let project (model: Model) : View =
       yield! periodPage model
       yield! projectsView model
       yield! projectView model
+      yield! candidatesView model
+      yield! candidateView model
       items "navigation" (navigation model)
       text "announcement" model.Announcement
       yield! identityView model

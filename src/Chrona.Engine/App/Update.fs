@@ -65,6 +65,8 @@ type Msg =
     /// instead" there): these, kept before it did, are now that tab's to
     /// send (WI-0059, LCP-060).
     | UnsentHandedOver of commitIds: string list
+    /// Where reading producers' inboxes stands (WI-0038).
+    | InboxReconciled of InboxStatus
     /// Chrona's data was cleared from this browser, or why it was not.
     | DeviceCleared of Result<unit, string>
     /// The device's kept timer under this key, if any (WI-0055).
@@ -143,6 +145,8 @@ type Effect =
     | ReadMonths of dates: DateOnly list
     /// Rebuild the activity index from the stored records (40).
     | RebuildIndex
+    /// Read the producers' inboxes now (WI-0038).
+    | ReadInboxes
     /// Send this account's unsent changes now.
     | SendUnsent
     /// Move focus to the control with this id: the control the person used
@@ -198,6 +202,8 @@ let eventNames =
       "attestStatement"; "attestDay"; "resolveObligation"; "periodCadence"; "periodWeekStart"
       "periodSubmissionExpected"; "periodApprovalRequired"; "savePeriodSettings"; "submitPeriod"; "reopenReason"; "reopenPeriod"
       "reviewNote"; "approveSubmission"; "rejectSubmission"
+      "candidateActivityType"; "candidateProject"; "candidateDescription"; "candidatePurpose"; "candidateReason"
+      "acceptCandidate"; "rejectCandidate"; "readInboxes"
       "reportFrom"; "reportTo"; "reportProject"; "reportActivityType"; "reportTag"; "reportMethod"; "reportBillability"; "reportText"
       "reportIncludeRemoved"; "reportGrouping"; "reportFormat"; "copyExport"; "printReport"; "reportMonth"; "goReports"
       "copyLink"; "skipToContent"; "dayProject"; "previousWeek"; "nextWeek"; "weekProject"; "previousPeriod"; "nextPeriod" ]
@@ -549,6 +555,20 @@ let queryOf (draft: ReportDraft) : Places.ReportQuery =
       Grouping = draft.Grouping
       Format = draft.Format }
 
+/// The draft a candidate's page opens with: what the observation proposes.
+/// The activity type and business purpose are the person's to give.
+let private openCandidate (id: string) (model: Model) =
+    match model.Candidates |> List.tryFind (fun candidate -> candidate.CandidateId = id) with
+    | Some candidate when model.CandidateDraftFor <> id ->
+        { model with
+            CandidateDraft =
+                { emptyClassification with
+                    ProjectId = candidate.Observation.ProjectId
+                    Description = defaultArg candidate.Observation.Description "" }
+            CandidateDraftFor = id
+            CandidateReason = "" }
+    | _ -> model
+
 /// Keeps the drafts in step with the place: the activity screen's drafts
 /// opened when it is entered and dropped when it is left, and the report
 /// form set from the address's filters (its export generated afresh).
@@ -560,6 +580,11 @@ let private followRoute (model: Model) =
         match model.Place with
         | Places.Reports query -> { model with Report = { draftOf query model.Report with GeneratedAt = Some model.Now } }
         | _ -> model
+
+    let model =
+        match model.Place with
+        | Places.Candidate id -> openCandidate id model
+        | _ -> { model with CandidateDraftFor = "" }
 
     match model.Place, model.Detail with
     | Places.Entry(id, _), Some detail when detail.ActivityId = id -> model
@@ -598,6 +623,12 @@ let private monthsNeeded (model: Model) =
     | Places.Entry(_, None)
     // A project's page shows all of the person's time on it.
     | Places.Project _ -> history ()
+    // A candidate's day is read, so accepting it is checked against the
+    // time already there; one not found yet may be decided in any month.
+    | Places.Candidate id ->
+        match model.Candidates |> List.tryFind (fun candidate -> candidate.CandidateId = id) with
+        | Some candidate -> [ monthOf (observedDate model candidate.Observation) ]
+        | None -> history ()
     | _ -> []
 
 /// A month the person goes to that was not read yet is read now: one month
@@ -896,6 +927,91 @@ let private decideSubmission (ctx: Ctx) (approve: bool) (submissionId: string) (
                     else
                         $"Returned {names}'s time, {Format.longDate review.Period.Start} to {Format.longDate review.Period.Finish}, for correction." }
             |> sendReview ctx decidedActivities ledger.Audit review
+
+// ---- observations' candidates (WI-0038) ----------------------------------------
+
+/// The candidate on screen, as the person may decide it.
+let private candidateOnScreen (model: Model) =
+    match model.Place with
+    | Places.Candidate id -> visibleCandidates model |> List.tryFind (fun candidate -> candidate.CandidateId = id)
+    | _ -> None
+
+let private inboxOf (model: Model) : Observations.Inbox =
+    { Observations.empty with Candidates = model.Candidates |> List.map (fun candidate -> candidate.CandidateId, candidate) |> Map.ofList }
+
+/// Sends a candidate's decision with the activities it recorded and their
+/// audit entries: one change, so the decision and its time land together.
+let private sendCandidate (ctx: Ctx) (activities: Activity list) (entries: Ledger.AuditEntry list) (candidate: Observations.Candidate) (model: Model) =
+    sendRequest
+        { emptyRequest (ctx.NewId "COMMIT") with
+            Activities = activities
+            Candidates = [ candidate ]
+            Audit = AuditRecord.place activities entries }
+        { model with
+            Candidates = model.Candidates |> List.map (fun c -> if c.CandidateId = candidate.CandidateId then candidate else c)
+            CandidateDraftFor = ""
+            CandidateReason = "" }
+
+/// Accepts the candidate on screen as one activity, classified as the
+/// person says (expansion 19, 26): every ordinary rule still applies, and
+/// time in a submitted or closed period is refused until it is reopened.
+let private acceptCandidate (ctx: Ctx) (model: Model) =
+    match candidateOnScreen model, zoneOrProblem model with
+    | None, _ -> model, []
+    | _, Error problems -> withProblems CandidateForm problems model, []
+    | Some candidate, Ok zone ->
+        let classification = toClassification model.CandidateDraft
+
+        let problems =
+            [ if classification.ActivityTypeId = "" then MissingField "activityType"
+              if classification.ProjectId = "" then MissingField "project"
+              if classification.BusinessPurpose = "" then MissingField "businessPurpose"
+              yield! Reference.assignmentProblems model.References [] { classification with Tags = [] } ]
+
+        let context: Observations.DecisionContext =
+            { Ledger = commandContext ctx model zone
+              Zone = zone }
+
+        let accepted =
+            match problems with
+            | _ :: _ -> Error problems
+            | [] ->
+                Observations.accept context (ctx.NewId "ACT") candidate.CandidateId candidate.Revision classification (inboxOf model) model.Ledger
+                |> Result.bind (fun (inbox, ledger) ->
+                    let touched = PeriodReview.touchedBy model.Ledger.Activities (changed model.Ledger ledger)
+
+                    match PeriodReview.restrictions model.PeriodConfig model.Reviews touched with
+                    | [] -> Ok(inbox.Candidates[candidate.CandidateId], ledger)
+                    | restricted -> Error restricted)
+
+        match accepted with
+        | Error problems -> withProblems CandidateForm (List.distinct problems) model, []
+        | Ok(decided, ledger) ->
+            let recorded = changed model.Ledger ledger
+            let entries = ledger.Audit |> List.skip model.Ledger.Audit.Length
+            let total = recorded |> List.sumBy _.Minutes
+
+            { clear CandidateForm model with
+                Ledger = ledger
+                Store = { model.Store with Audited = ledger.Audit.Length }
+                Announcement = $"Accepted {Format.minutes total} from {candidate.Observation.SourceSystem}." }
+            |> sendCandidate ctx recorded entries decided
+
+/// Rejects the candidate on screen, with the reason (27): it stays, decided.
+let private rejectCandidate (ctx: Ctx) (model: Model) =
+    match candidateOnScreen model, zoneOrProblem model with
+    | None, _ -> model, []
+    | _, Error problems -> withProblems CandidateForm problems model, []
+    | Some candidate, Ok zone ->
+        let context: Observations.DecisionContext =
+            { Ledger = commandContext ctx model zone
+              Zone = zone }
+
+        match Observations.reject context candidate.CandidateId candidate.Revision model.CandidateReason (inboxOf model) with
+        | Error problems -> withProblems CandidateForm problems model, []
+        | Ok inbox ->
+            { clear CandidateForm model with Announcement = $"Rejected the observation from {candidate.Observation.SourceSystem}." }
+            |> sendCandidate ctx [] [] inbox.Candidates[candidate.CandidateId]
 
 // ---- reports --------------------------------------------------------------------
 
@@ -1359,6 +1475,8 @@ let requirement (name: string) (key: string option) : (Access.Capability * Form)
     | "submitPeriod" -> Some(Access.SubmitOwnTime, ReviewForm)
     | "approveSubmission" -> Some(Access.ApproveTime, ReviewForm)
     | "rejectSubmission" -> Some(Access.RejectTime, ReviewForm)
+    | "acceptCandidate"
+    | "rejectCandidate" -> Some(Access.RecordOwnTime, CandidateForm)
     | "copyExport"
     | "printReport" -> Some(Access.ExportTime, ExportForm)
     | "acceptOutsideEdit" -> Some(Access.AmendOwnTime, OutsideEditForm)
@@ -1526,6 +1644,8 @@ let private onEvent (ctx: Ctx) (name: string) (key: string option) (value: strin
             | None -> invalidArg (nameof key) $"Unknown obligation: {key}"
         | [| "store" |] -> navigate (Places.Settings(Some Places.Changes)) model
         | [| "period"; _ |] -> navigate Places.ThisPeriod model
+        | [| "candidates"; _ |] -> navigate (Places.Candidates Places.awaitingCandidates) model
+        | [| "inbox"; _ |] -> navigate (Places.Settings(Some Places.Inboxes)) model
         | [| "approval"; submissionId |] ->
             match PeriodReview.awaitingApproval model.PeriodConfig.ApprovalRequired model.Reviews |> List.tryFind (fun s -> s.SubmissionId = submissionId) with
             | Some submission -> navigate (Places.Period submission.Period.Start) model
@@ -1552,6 +1672,17 @@ let private onEvent (ctx: Ctx) (name: string) (key: string option) (value: strin
     | "savePeriodSettings" -> savePeriodSettings ctx model
     | "submitPeriod" -> submitPeriod ctx model
     | "reopenReason" -> { model with ReopenReason = value }, []
+    | "candidateActivityType" -> { model with CandidateDraft = { model.CandidateDraft with ActivityTypeId = value } }, []
+    | "candidateProject" -> { model with CandidateDraft = { model.CandidateDraft with ProjectId = value } }, []
+    | "candidateDescription" -> { model with CandidateDraft = { model.CandidateDraft with Description = value } }, []
+    | "candidatePurpose" -> { model with CandidateDraft = { model.CandidateDraft with BusinessPurpose = value } }, []
+    | "candidateReason" -> { model with CandidateReason = value }, []
+    | "acceptCandidate" -> acceptCandidate ctx model
+    | "rejectCandidate" -> rejectCandidate ctx model
+    | "readInboxes" ->
+        match model.Store.Kind with
+        | Durable _ -> { model with Inbox = { model.Inbox with Running = true } }, [ ReadInboxes ]
+        | InMemory -> model, []
     | "reopenPeriod" -> reopenPeriod ctx model
     | "reviewNote" -> { model with ReviewNotes = model.ReviewNotes.Add(defaultArg key "", value) }, []
     | "approveSubmission" -> decideSubmission ctx true (defaultArg key "") model
@@ -1792,6 +1923,7 @@ let private storeOpened (contents: StoreContents) (model: Model) =
             | None -> model.PeriodConfig
         Reviews = contents.Reviews
         Reviewing = contents.Reviewing
+        Candidates = contents.Candidates
         // Said once, when they first open, with what recovering the timer
         // found; reading a further month is quiet.
         Announcement =
@@ -2030,6 +2162,12 @@ let private recordProblem (model: Model) =
     | Places.Day(_, project)
     | Places.Week(_, project) -> missingReference (Reference.Project, "project") project
     | Places.Project id -> missingReference (Reference.Project, "project") (Some id)
+    | Places.Candidate id ->
+        match model.Candidates |> List.tryFind (fun candidate -> candidate.CandidateId = id) with
+        | Some candidate when candidate.Observation.ActorId |> Option.forall ((=) model.Session.ActorId) -> None
+        | Some _ -> Some(AddressProblem(Limen.Routing.RouteError.NotPermitted Places.Names.Candidate))
+        | None when stillLooking model -> None
+        | None -> Some(RecordMissing("candidate", id))
     | Places.Reports query ->
         [ missingReference (Reference.Project, "project") query.ProjectId
           missingReference (Reference.ActivityType, "activity type") query.ActivityTypeId
@@ -2049,6 +2187,7 @@ let private arrive (place: Places.Place) (model: Model) =
     // An activity's drafts open once its record has arrived.
     match model.Place, model.Detail with
     | Places.Entry(id, _), None -> { model with Detail = openDetail model id }, effects
+    | Places.Candidate id, _ -> openCandidate id model, effects
     | _ -> model, effects
 
 /// Settles where the person is from the current address, after every
@@ -2194,6 +2333,7 @@ let private step (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
         [ SignOut ]
     | DeviceCleared(Error reason) ->
         { model with Identity = { model.Identity with DeviceClear = None; DeviceNote = Some reason } }, []
+    | InboxReconciled status -> { model with Inbox = status }, []
     | UnsentHandedOver commitIds ->
         let handed = Set.ofList commitIds
         let pending, moved = model.Store.Pending |> List.partition (fun request -> not (handed.Contains request.CommitId))

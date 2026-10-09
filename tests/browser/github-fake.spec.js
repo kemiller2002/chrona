@@ -1,7 +1,7 @@
 // The GitHub fake's pure core (WI-0069): respond(state, request) -> { state,
 // response }, checked directly, with no browser.
 import { test, expect } from "@playwright/test";
-import { respond, repository, blobSha, headFiles, history } from "./github-fake.js";
+import { respond, repository, blobSha, headFiles, history, commitFiles } from "./github-fake.js";
 
 const API = "https://api.github.com/repos/acme/data";
 
@@ -51,6 +51,14 @@ test("a commit is a tree, a commit and a fast-forward ref update; the state give
   expect(headFiles(next)).toEqual({ "a/two.json": "2\n" });
   expect(headFiles(state)).toEqual({ "a/one.json": "1\n" });
   expect(history(next)).toHaveLength(2);
+});
+
+test("a commit made outside Chrona writes and removes files on the head, and is one commit", () => {
+  const state = start();
+  const next = commitFiles(state, { "inbox/github/obs-1.json": "{}", "a/one.json": null }, "producer");
+  expect(headFiles(next)).toEqual({ "inbox/github/obs-1.json": "{}" });
+  expect(history(next).map((entry) => entry.message)).toEqual(["producer", "Initial commit"]);
+  expect(headFiles(state)).toEqual({ "a/one.json": "1\n" });
 });
 
 test("a ref update that is not a fast forward is refused, as GitHub refuses it", () => {

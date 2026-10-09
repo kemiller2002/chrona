@@ -35,6 +35,8 @@
     <Compile Include="AuditRecord.fs" />
     <Compile Include="PeriodConfigRecord.fs" />
     <Compile Include="ReviewRecord.fs" />
+    <Compile Include="CandidateRecord.fs" />
+    <Compile Include="ReceiptRecord.fs" />
     <Compile Include="TimerRecord.fs" />
     <Compile Include="MemberRecord.fs" />
     <Compile Include="Persistence.fs" />

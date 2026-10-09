@@ -375,6 +375,20 @@
             "modified"
           ],
           "reason": "Periods under review on Arca (WI-0036)"
+        },
+        "EXE-20261009T023709515Z-21115e9f": {
+          "actor": {
+            "id": "anthropic/claude-code",
+            "kind": "agent",
+            "model": "unknown",
+            "provider": "anthropic",
+            "runtime": "claude-code"
+          },
+          "at": "2026-10-09T04:00:00.000Z",
+          "operations": [
+            "modified"
+          ],
+          "reason": "Observation inboxes, candidates and receipts (WI-0038)"
         }
       }
     },
@@ -396,7 +410,7 @@
     ],
     "title": "Records live on GitHub through Arca's provider behind the store port, every commit conditioned on the repository state and decided again when it moved",
     "updated": "2026-10-09",
-    "version": "1.10.0"
+    "version": "1.11.0"
   },
   {
     "created": "2026-10-08",

@@ -49,7 +49,9 @@ type StoreRequest =
       Periods: PeriodConfigRecord.StoredPeriods option
       /// Periods' review steps made: a submission, approval, rejection or
       /// reopening (WI-0036).
-      Reviews: PeriodReview.PeriodReview list }
+      Reviews: PeriodReview.PeriodReview list
+      /// Observations' candidates decided (WI-0038).
+      Candidates: Observations.Candidate list }
 
 /// A request with nothing in it yet.
 let emptyRequest (commitId: string) =
@@ -62,6 +64,7 @@ let emptyRequest (commitId: string) =
       Accepted = []
       Periods = None
       Reviews = []
+      Candidates = []
       Audit = [] }
 
 type StoreOutcome =
@@ -189,6 +192,30 @@ type StoreState =
       /// reached: when GitHub last gave them (WI-0057).
       Cached: DateTimeOffset option }
 
+/// Where reading producers' inboxes stands (20, WI-0038): never in the way of
+/// recording time, and observable.
+type InboxStatus =
+    { /// A pass is reading the inboxes now.
+      Running: bool
+      /// Observations received so far: each with its candidate and receipt.
+      Received: int
+      /// Observations still waiting in the inboxes, for a later pass.
+      Waiting: int
+      /// Payloads that are not observations (a receipt says why), left in
+      /// the inbox for their producer: source, observation id, reasons.
+      Invalid: (string * string * string list) list
+      /// Observations that could not be processed this pass; tried again.
+      Failed: int
+      LastRun: DateTimeOffset option }
+
+let idleInbox =
+    { Running = false
+      Received = 0
+      Waiting = 0
+      Invalid = []
+      Failed = 0
+      LastRun = None }
+
 /// What the store read from the organization's folder.
 type StoreContents =
     { /// Where the records live, for the person: `owner/repository`.
@@ -221,7 +248,10 @@ type StoreContents =
       /// approves time, everyone's (WI-0036).
       Reviews: PeriodReview.PeriodReview list
       /// Other people's time that waits for this person's approval.
-      Reviewing: Activity list }
+      Reviewing: Activity list
+      /// Observations' candidates read: every one still to decide, and those
+      /// decided in the months read (WI-0038).
+      Candidates: Observations.Candidate list }
 
 /// The page's own address (its origin and path), for a link that opens a
 /// place from anywhere. Never its query: a sign-in callback's code and state
@@ -452,6 +482,8 @@ type Form =
     | OutsideEditForm
     /// Rebuilding the activity index.
     | IndexForm
+    /// Accepting or rejecting an observation's candidate (WI-0038).
+    | CandidateForm
 
 [<NoComparison>]
 type Model =
@@ -517,6 +549,17 @@ type Model =
       ReviewNotes: Map<string, string>
       /// Why the person reopens their period.
       ReopenReason: string
+      /// Observations' candidates as stored (WI-0038).
+      Candidates: Observations.Candidate list
+      /// Where reading producers' inboxes stands.
+      Inbox: InboxStatus
+      /// The candidate on screen as the person classifies it to accept it:
+      /// opened from what the observation proposes when its page is entered.
+      CandidateDraft: ClassificationDraft
+      /// Which candidate the draft is for.
+      CandidateDraftFor: string
+      /// Why the candidate on screen is rejected.
+      CandidateReason: string
       Report: ReportDraft
       /// What happened to the last copy of an export, in words.
       CopyStatus: string
@@ -599,6 +642,11 @@ let initial (session: Session) (store: StoreKind) (now: DateTimeOffset) =
       Reviewing = []
       ReviewNotes = Map.empty
       ReopenReason = ""
+      Candidates = []
+      Inbox = idleInbox
+      CandidateDraft = emptyClassification
+      CandidateDraftFor = ""
+      CandidateReason = ""
       Report = emptyReport
       CopyStatus = ""
       NewNames = Map.empty
@@ -659,3 +707,21 @@ let namesOrganization (model: Model) =
 let addressOf (model: Model) (place: Places.Place) : Places.Address =
     { Place = place
       Organization = if namesOrganization model then Some model.Session.OrganizationId else None }
+
+/// The candidates a person sees (WI-0038): those observed of them, and those
+/// that name no one, which whoever accepts them makes their own.
+let visibleCandidates (model: Model) =
+    model.Candidates
+    |> List.filter (fun candidate -> candidate.Observation.ActorId |> Option.forall ((=) model.Session.ActorId))
+
+/// The business date an observation's work happened on, in the
+/// organization's zone when it is known.
+let observedDate (model: Model) (observation: Observations.Observation) =
+    let at =
+        match observation.Timing with
+        | Observations.ObservedInterval(start, _) -> start
+        | Observations.ObservedDuration _ -> observation.ObservedAt
+
+    match model.Zone with
+    | Some zone -> (occurrence zone at).LocalDate
+    | None -> DateOnly.FromDateTime at.UtcDateTime

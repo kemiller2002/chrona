@@ -204,6 +204,22 @@ export function respond(state, request) {
   return unchanged(notFound);
 }
 
+// ---- changes made outside Chrona ---------------------------------------------
+
+// The state after a commit, made outside Chrona (by a producer, or by hand
+// on github.com), that writes these files (content) or removes them (null).
+export function commitFiles(state, files, message = "Commit made outside Chrona") {
+  const next = { ...filesAt(state, state.head) };
+  for (const [path, content] of Object.entries(files)) {
+    if (content === null) delete next[path];
+    else next[path] = content;
+  }
+  const tree = treeSha(next);
+  const commit = { tree, parents: [state.head], message };
+  const sha = commitSha(commit);
+  return { ...state, trees: { ...state.trees, [tree]: sorted(next) }, commits: { ...state.commits, [sha]: commit }, head: sha };
+}
+
 // ---- queries for tests ------------------------------------------------------
 
 // The files at the branch head.
@@ -244,6 +260,10 @@ export async function serveGitHub(context, initial, origin = "http://127.0.0.1:4
     current: () => state,
     reachable: (flag) => {
       online = flag;
+    },
+    // A commit made outside Chrona: `commitFiles` on the repository now.
+    commit: (files, message) => {
+      state = commitFiles(state, files, message);
     }
   };
 }

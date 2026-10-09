@@ -227,6 +227,9 @@ let private requests (env: Env) (state: State) (effects: Update.Effect list) =
             | Update.RebuildIndex ->
                 env.Store.Rebuild()
                 state, requests, immediate
+            | Update.ReadInboxes ->
+                env.Store.ReadInboxes()
+                state, requests, immediate
             | Update.LoadTimer key ->
                 minted (TimerLoad key), requests @ [ StorageGet(id, key) ], immediate
             | Update.SaveTimer(key, Some value) -> minted TimerSave, requests @ [ StorageSet(id, key, value) ], immediate

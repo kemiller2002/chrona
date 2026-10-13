@@ -3286,20 +3286,20 @@
         "EXE-20261013T161036151Z-06379ba0"
       ],
       "latestCheckpoint": {
-        "id": "16377e5f1ee03b66b6da8448",
-        "recordedAt": "2026-10-13T17:07:50.220Z",
+        "id": "b92804a49b6674c89041ea30",
+        "recordedAt": "2026-10-13T17:21:13.693Z",
         "executionId": "EXE-20261013T161036151Z-06379ba0",
         "repository": "chrona",
-        "branch": "chore/echelon-1.20-forma-folio",
-        "commit": "6e66d942bd4843fbc299ce55ca56fb16bd2849d5",
+        "branch": "chore/echelon-1.21-ordo",
+        "commit": "ce8e205aa67c96a45daebd14ada6c412cddf6fd1",
         "remote": {
           "name": "origin",
           "url": "https://github.com/kemiller2002/chrona"
         },
-        "remoteBranch": "chore/echelon-1.20-forma-folio",
-        "remoteCommit": "6e66d942bd4843fbc299ce55ca56fb16bd2849d5",
-        "summary": "echelon-current 1.20.0 applied from a clean tree: Forma 0.6.1, Folio 0.4.0; lock no longer records the build output; suites pass",
-        "nextAction": "PR, gate-merge, then 1.21.0 with Conditor 0.10.1",
+        "remoteBranch": "chore/echelon-1.21-ordo",
+        "remoteCommit": "ce8e205aa67c96a45daebd14ada6c412cddf6fd1",
+        "summary": "echelon-current 1.21.0 applied with Conditor 0.10.1 from a clean tree: Ordo 1.6.0 stamps; ordo verify exit 0",
+        "nextAction": "PR, gate-merge, then 1.22.0",
         "verification": {
           "status": "verified",
           "mechanism": "git-remote-observation"

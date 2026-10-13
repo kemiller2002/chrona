@@ -3364,7 +3364,27 @@
       "updatedAt": "2026-10-13T22:33:26.693Z",
       "telemetryExecutionIds": [
         "EXE-20261013T223327439Z-8cb4bb66"
-      ]
+      ],
+      "latestCheckpoint": {
+        "id": "b01d451a6c6a31d25c3ec423",
+        "recordedAt": "2026-10-13T22:33:40.663Z",
+        "executionId": "EXE-20261013T223327439Z-8cb4bb66",
+        "repository": "chrona",
+        "branch": "chore/wi-0084-failure-evidence",
+        "commit": "83679f7d755f68a688e97db23587e419aba36079",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/chrona"
+        },
+        "remoteBranch": "chore/wi-0084-failure-evidence",
+        "remoteCommit": "83679f7d755f68a688e97db23587e419aba36079",
+        "summary": "app-reliability.spec.js keeps trace, screenshot and video on failure; CI uploads test-results on failure",
+        "nextAction": "gate-merge; then block until a failure is captured and the Phase H freeze allows the fix",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      }
     }
   ]
 }

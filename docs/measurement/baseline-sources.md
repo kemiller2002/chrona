@@ -2,7 +2,9 @@
 
 This is an index for the program's measurement work (measurement amendment,
 item 4, user-approved 2026-10-13; WI-0076). It points to the evidence and
-copies none of it. Commit hashes refer to `kemiller2002/chrona`. The record
+copies none of it. Commit hashes refer to `kemiller2002/chrona`. Every
+backticked repository path and short commit hash here is checked to exist
+(`tests/Chrona.Tests/MeasurementIndexTests.fs`, WI-0078). The record
 of what was measured, and the metric definitions, are in
 `kemiller2002/research-documents`.
 
@@ -10,7 +12,7 @@ of what was measured, and the metric definitions, are in
 
 | Source | Where | What it holds | Range |
 |---|---|---|---|
-| Work items | `.ros/work/queue.json` (`queue.md` is generated) | Each item's title, description, status and history fields | ROS installed 2026-09-13; WI-0001 to WI-0076 |
+| Work items | `.ros/work/queue.json` (`.ros/work/queue.md` is generated) | Each item's title, description, status and history fields | ROS installed 2026-09-13; WI-0001 to WI-0076 |
 | Work context | `.ros/context/current.json` | Each item's state, evidence, conclusion and its Praxis execution ids | Same |
 | Events | `.ros/events/events.jsonl` | Capture, start, checkpoint, block and complete events, with timestamps | From 2026-09-13T23:27:16.701Z (`ROS-INSTALL-2-0-1`) |
 | Execution envelopes | `.ros/executions/<EXE-id>/` | Ordo execution envelopes and their events (role, capabilities, baseline revision, workspace, containment) | Three executions: WI-0073's (EXE-20261009T023556300Z-7aa2d7d5, written under Praxis 3.11.0), WI-0039's and WI-0076's. Earlier executions have none |
@@ -33,7 +35,7 @@ in `package.json` (npm) and in `Directory.Packages.props` (NuGet).
 |---|---|---|---|---|
 | Repository Operating System (ROS) | 2.0.1 | `.ros/installation.json` | 2026-09-13 | Greenfield profile |
 | ROS / Praxis | 3.1.4 | `1cfbd29` (#11) | 2026-10-05 | |
-| Praxis, Ordo | 3.7.1, 1.4.0 | `d8833c1` (WI-0016) | 2026-10-06 | Adds `praxis-validation.yml` |
+| Praxis, Ordo | 3.7.1, 1.4.0 | `d8833c1` (WI-0016) | 2026-10-06 | Adds `.github/workflows/praxis-validation.yml` |
 | Ordo | 1.4.1 | `d07d72e` (WI-0017) | 2026-10-06 | |
 | Praxis, Ordo, **Conditor** adopted | 3.7.2, 1.4.2 | `7b1338b` (WI-0018) | 2026-10-06 | `conditor.json` first declared: ordo, praxis, visual-engineering 1.0.1 |
 | Ordo | 1.5.0 | `e8e7176` (WI-0024) | 2026-10-08 | echelon-current 1.2.0 |
@@ -52,7 +54,7 @@ in `package.json` (npm) and in `Directory.Packages.props` (NuGet).
 | Arca | 0.4.1 | `0438045` (WI-0073) | 2026-10-09 | |
 | Fides | 0.2.0 | `ade78ac` (WI-0029) | 2026-10-08 | |
 | Summa contracts | 0.1.0 | `c749a94` (WI-0037) | 2026-10-08 | |
-| GitHub Pages deployment | n/a | `a1a03d4` (WI-0066) | 2026-10-08 | `pages.yml` |
+| GitHub Pages deployment | n/a | `a1a03d4` (WI-0066) | 2026-10-08 | `.github/workflows/pages.yml` |
 | Visual baselines re-rendered by a workflow | n/a | `fdc737d` (WI-0070) | 2026-10-08 | DF-CHRONA-2026-0006 |
 | Gated merge (every check on the exact head, merge with `sha=`) | n/a | first gated merge `ac4cfcb` (#79) | 2026-10-08 | See "Missing" |
 

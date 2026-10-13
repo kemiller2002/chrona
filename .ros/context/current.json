@@ -3335,20 +3335,20 @@
         "EXE-20261013T175832132Z-585ab26e"
       ],
       "latestCheckpoint": {
-        "id": "8af60f67a5b27e77ec4cfc26",
-        "recordedAt": "2026-10-13T21:15:43.489Z",
+        "id": "20cc56982a34cd6a4058f0b5",
+        "recordedAt": "2026-10-13T22:00:38.349Z",
         "executionId": "EXE-20261013T175832132Z-585ab26e",
         "repository": "chrona",
-        "branch": "refactor/wi-0083-app-split",
-        "commit": "f43a2228a8a278ceafc0bf380275190da1beb221",
+        "branch": "refactor/wi-0083-stored-split",
+        "commit": "56adffc6378280c25297dcb0a3abb6616d7ced95",
         "remote": {
           "name": "origin",
           "url": "https://github.com/kemiller2002/chrona"
         },
-        "remoteBranch": "refactor/wi-0083-app-split",
-        "remoteCommit": "f43a2228a8a278ceafc0bf380275190da1beb221",
-        "summary": "App.fs split into AppState, AppRequests and App; 453 .NET, 71 browser pass",
-        "nextAction": "PR and gate-merge; then Stored.fs",
+        "remoteBranch": "refactor/wi-0083-stored-split",
+        "remoteCommit": "56adffc6378280c25297dcb0a3abb6616d7ced95",
+        "summary": "Stored.fs split into Stored, StoredChanges and StoredOverlay; 453 .NET, 71 browser pass",
+        "nextAction": "PR and gate-merge; then PersistenceTests",
         "verification": {
           "status": "verified",
           "mechanism": "git-remote-observation"

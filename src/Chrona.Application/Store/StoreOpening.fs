@@ -75,9 +75,9 @@ let appoint (page: Page) (state: Opened) =
     async {
         let roster = Stored.roster state.Session.OrganizationId state.Stored
         let membership = Governance.administrator (principalOf state.Session) roster
-        let changed = { Stored.nothing with Members = [ membership ] }
+        let changed = { StoredChanges.nothing with Members = [ membership ] }
 
-        match state.Basis, Stored.changes state.Stored changed, operationContext state.Session (page.NewKey "appoint") (page.Now ()) with
+        match state.Basis, StoredChanges.changes state.Stored changed, operationContext state.Session (page.NewKey "appoint") (page.Now ()) with
         // Appointing is a write: never from the read cache (LCP-085).
         | CachedAt _, _, _ -> return Error "An administrator can be appointed only while GitHub can be reached."
         | ReadAt token, Ok changes, Ok context ->
@@ -91,7 +91,7 @@ let appoint (page: Page) (state: Opened) =
                     let next =
                         { state with
                             Basis = ReadAt condition
-                            Stored = Stored.committed changed receipt state.Stored }
+                            Stored = StoredOverlay.committed changed receipt state.Stored }
 
                     let! next = afterCommit page next operation receipt
                     return Ok next

@@ -61,20 +61,20 @@ let receiveFile (page: Page) (state: Opened) (sourceSystem: string) (observation
                     Some(
                         match Intake.decide (page.Now ()) state.Organization.Id known sourceSystem observationId found.Content with
                         // Its file stays, for its producer to see beside the receipt.
-                        | Intake.Refused receipt -> { Stored.nothing with Receipts = [ receipt ] }, NotObservation(Intake.reasonsOf receipt |> Option.defaultValue [])
+                        | Intake.Refused receipt -> { StoredChanges.nothing with Receipts = [ receipt ] }, NotObservation(Intake.reasonsOf receipt |> Option.defaultValue [])
                         | Intake.Received(Observations.NewCandidate(candidate, receipt)) ->
                             // Decided below, when the source is trusted.
-                            { Stored.nothing with
+                            { StoredChanges.nothing with
                                 Candidates = [ candidate ]
                                 Receipts = [ receipt ]
                                 Consumed = consumed },
                             TakenIn
                         | Intake.Received(Observations.ReceiptRepair receipt) ->
-                            { Stored.nothing with
+                            { StoredChanges.nothing with
                                 Receipts = [ receipt ]
                                 Consumed = consumed },
                             TakenIn
-                        | Intake.Received(Observations.AlreadyReceived _) -> { Stored.nothing with Consumed = consumed }, TakenIn
+                        | Intake.Received(Observations.AlreadyReceived _) -> { StoredChanges.nothing with Consumed = consumed }, TakenIn
                     )
                 )
     }

@@ -166,7 +166,7 @@ and drain (page: Page) () : Async<Update.Msg list> =
                                 let next =
                                     { state with
                                         Basis = ReadAt condition
-                                        Stored = Stored.committed changed receipt (Stored.overlay changed state.Stored)
+                                        Stored = StoredOverlay.committed changed receipt (StoredOverlay.overlay changed state.Stored)
                                         Index =
                                             match operation with
                                             | Ok operation -> indexAfter state.Index operation receipt
@@ -286,7 +286,7 @@ and drain (page: Page) () : Async<Update.Msg list> =
                                             (fun saved -> refreshed page saved @ [ answer (Conflict [ Reconcile.KeptChanging ]) ])
                                 | Ok again ->
                                     let revised =
-                                        Stored.changes fresh.Stored again
+                                        StoredChanges.changes fresh.Stored again
                                         |> Result.map (fun changes -> changes @ indexChange fresh.Index changes)
                                         |> Result.bind (fun changes ->
                                             Operation.create fresh.Folder operation.Metadata changes

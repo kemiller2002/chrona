@@ -457,6 +457,8 @@ let ``a record edited outside Chrona is held until it passes Chrona's rules`` ()
 module Access = Chrona.Domain.Access
 module Reconcile = Chrona.Domain.Reconcile
 module Stored = Chrona.Domain.Stored
+module StoredChanges = Chrona.Domain.StoredChanges
+module StoredOverlay = Chrona.Domain.StoredOverlay
 
 let private roster =
     Access.founded
@@ -537,16 +539,16 @@ let ``a change decided again keeps what still fits and names every divergence wi
         |> store (Record(activity "A-2" (10, 7) (11, 0) 60))
 
     let stored = { Stored.empty with Activities = snapshot }
-    let decide activities = Reconcile.decide stored { Stored.nothing with Activities = activities }
+    let decide activities = Reconcile.decide stored { StoredChanges.nothing with Activities = activities }
 
     // Already stored as asked (an earlier attempt landed): nothing to write.
     let already = snapshot.Activities["A-1"].Activity
-    Assert.Equal(Ok Stored.nothing, decide [ already ])
+    Assert.Equal(Ok StoredChanges.nothing, decide [ already ])
 
     // Independent new time, and the next revision of a stored record, fit.
     let next = { already with Revision = 2; Classification = { already.Classification with Description = "Corrected" } }
     let independent = activity "A-3" (10, 7) (14, 0) 30
-    Assert.Equal(Ok { Stored.nothing with Activities = [ next; independent ] }, decide [ next; independent ])
+    Assert.Equal(Ok { StoredChanges.nothing with Activities = [ next; independent ] }, decide [ next; independent ])
 
     // Decided on an older revision: a semantic conflict, never last-write-wins.
     let stale = { already with Revision = 1; Classification = { already.Classification with Description = "Stale" } }
@@ -567,7 +569,7 @@ let ``a change decided again keeps what still fits and names every divergence wi
     | other -> failwith $"%A{other}"
 
     // A member removed elsewhere already.
-    Assert.Equal(Error [ Reconcile.MemberGone "github:hubot" ], Reconcile.decide stored { Stored.nothing with Removed = [ "github:hubot" ] })
+    Assert.Equal(Error [ Reconcile.MemberGone "github:hubot" ], Reconcile.decide stored { StoredChanges.nothing with Removed = [ "github:hubot" ] })
     Assert.Equal("CHRONA.CONCURRENCY.KEPT_CHANGING", code (Reconcile.diagnostic Reconcile.KeptChanging))
 
 // ---- Changes read back from the queue of unsent changes (WI-0033) -------------------
@@ -598,21 +600,21 @@ let ``a queued operation's changes read back as the records a command changed`` 
           Capabilities = Access.Grants.ownTime
           Revision = 1 }
 
-    let changed = { Stored.nothing with Activities = [ moved; fresh ]; Members = [ membership ] }
-    let changes = Stored.changes stored changed |> ok
+    let changed = { StoredChanges.nothing with Activities = [ moved; fresh ]; Members = [ membership ] }
+    let changes = StoredChanges.changes stored changed |> ok
 
     // The month move is a delete and a create; it reads back as the activity.
     Assert.Contains(changes, fun change -> match change with Change.Delete _ -> true | _ -> false)
-    let readBack = Stored.changedOf changes |> ok
+    let readBack = StoredChanges.changedOf changes |> ok
     Assert.Equal<Activity list>([ moved; fresh ] |> List.sortBy _.ActivityId, readBack.Activities |> List.sortBy _.ActivityId)
     Assert.Equal<Access.Membership list>([ membership ], readBack.Members)
 
     // A member's removal reads back as the principal removed.
     let path = MemberRecord.path "github:1001" |> ok
-    Assert.Equal(Ok { Stored.nothing with Removed = [ "github:1001" ] }, Stored.changedOf [ Change.Delete(path, Revision "abc") ])
+    Assert.Equal(Ok { StoredChanges.nothing with Removed = [ "github:1001" ] }, StoredChanges.changedOf [ Change.Delete(path, Revision "abc") ])
 
     // Content that is not a Chrona record is refused, not guessed at.
-    Assert.True(Stored.changedOf [ Change.Create(path, "{}") ] |> Result.isError)
+    Assert.True(StoredChanges.changedOf [ Change.Create(path, "{}") ] |> Result.isError)
 
 [<Fact>]
 let ``unsent changes are laid over what is stored for deciding and showing, keeping stored revisions`` () =
@@ -620,7 +622,7 @@ let ``unsent changes are laid over what is stored for deciding and showing, keep
     let stored = { Stored.empty with Activities = snapshot }
     let amended = { snapshot.Activities["A-1"].Activity with Revision = 2; Minutes = 60; Classification = { snapshot.Activities["A-1"].Activity.Classification with Description = "Amended" } }
     let fresh = activity "A-2" (10, 7) (11, 0) 30
-    let shown = Stored.overlay { Stored.nothing with Activities = [ amended; fresh ] } stored
+    let shown = StoredOverlay.overlay { StoredChanges.nothing with Activities = [ amended; fresh ] } stored
 
     Assert.Equal("Amended", shown.Activities.Activities["A-1"].Activity.Classification.Description)
     Assert.Equal(snapshot.Activities["A-1"].Revision, shown.Activities.Activities["A-1"].Revision)
@@ -628,7 +630,7 @@ let ``unsent changes are laid over what is stored for deciding and showing, keep
 
     // A next change is decided on it: the amended record's next revision fits.
     let next = { amended with Revision = 3 }
-    Assert.True(Reconcile.decide shown { Stored.nothing with Activities = [ next ] } |> Result.isOk)
+    Assert.True(Reconcile.decide shown { StoredChanges.nothing with Activities = [ next ] } |> Result.isOk)
 
 // ---- The activity index (WI-0034) -------------------------------------------------------
 
@@ -704,9 +706,9 @@ let ``an audit entry is an immutable record with a stable id, read back as it wa
     let path = AuditRecord.path audited |> ok
     Assert.Equal("records/chrona.audit/github_3aoctocat/2026/10", RelativePath.render path |> fun p -> p.Substring(0, p.LastIndexOf '/'))
     let content = AuditRecord.encode audited |> ok
-    Assert.Equal(Ok { Stored.nothing with Audit = [ audited ] }, Stored.changedOf [ Change.Create(path, content) ])
+    Assert.Equal(Ok { StoredChanges.nothing with Audit = [ audited ] }, StoredChanges.changedOf [ Change.Create(path, content) ])
 
     // Written once: an entry already stored is not written again.
     let stored = { Stored.empty with Audit = Map.ofList [ RelativePath.render path, audited ] }
-    Assert.Equal(Ok [], Stored.changes stored { Stored.nothing with Audit = [ audited ] })
+    Assert.Equal(Ok [], StoredChanges.changes stored { StoredChanges.nothing with Audit = [ audited ] })
     Assert.Empty(AuditRecord.place [] [ entry ])

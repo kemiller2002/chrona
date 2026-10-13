@@ -2,7 +2,7 @@
 id: DF-CHRONA-2026-0005
 title: Records live on GitHub through Arca's provider behind the store port, every commit conditioned on the repository state and decided again when it moved
 status: accepted
-version: 1.14.0
+version: 1.15.0
 created: 2026-10-08
 updated: 2026-10-13
 owners:
@@ -178,6 +178,16 @@ provenance:
         model: unknown
         runtime: claude-code
       reason: "Reads, histories and read-cache writes together on the bridge thread; histories by path and revision (WI-0077)"
+    EXE-20261013T125315194Z-1fc14a1f:
+      operations: [modified]
+      at: 2026-10-13T13:00:00.000Z
+      actor:
+        kind: agent
+        id: anthropic/claude-code
+        provider: anthropic
+        model: unknown
+        runtime: claude-code
+      reason: "Trusted observation sources from the deployment, and receipts without their candidate (WI-0074)"
 ---
 
 # DF-CHRONA-2026-0005 — Records on GitHub through Arca
@@ -498,6 +508,22 @@ and semantic conflicts surfaced.
     batched save is kemiller2002/arca#38), and fetches the branch ref before
     every read, even one pinned to a commit (kemiller2002/arca#39). Both are
     adopted through Conditor once released.
+21. **Trusted sources and receipt integrity (WI-0074).** The deployment's
+    `sourcePolicies` (per organization) say which observation sources are
+    accepted without review, with the activity type and business purpose
+    their time is recorded as. When an inbox file from such a source names a
+    member, the page reading the inbox reads that member's months for the
+    observed days and decides with the ordinary rules (`Intake.police`:
+    overlap, active reference data, held periods); the activity, the
+    candidate decided by `chrona`, the receipt and the file's removal are one
+    commit conditioned on the folder, decided again on a fresh read if the
+    folder moved. Time that cannot be recorded as it is leaves the candidate
+    needing a person; an observation naming no member, or from a source not
+    trusted, waits for review. Each pass also checks every receipt once per
+    revision for the candidate it names, among the open candidates and the
+    decided months from the receipt's on; one that no folder holds (written
+    outside Chrona: Chrona writes a receipt only with its candidate) is
+    listed under More and as an obligation.
 
 ## Consequences
 

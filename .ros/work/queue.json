@@ -1676,6 +1676,27 @@
       },
       "source": "manual",
       "sourceReference": null
+    },
+    {
+      "id": "WI-0076",
+      "title": "Measurement: index where Chrona's historical evidence lives and when each Echelon capability was adopted (docs/measurement/baseline-sources.md)",
+      "description": "Program measurement amendment, item 4 (user-approved 2026-10-13). Write docs/measurement/baseline-sources.md: where historical evidence lives (Praxis .ros records and telemetry, PR history range, CI history), the commit or date each Echelon capability was adopted (Praxis, Ordo, Conditor, Limen, Arca, Fides, Summa contracts, Forma, Folio, visual baselines workflow, gated merge), and what is missing. Index only, exact commit hashes, no copied telemetry.",
+      "tags": [],
+      "priority": "medium",
+      "status": "ready",
+      "attachments": [],
+      "createdAt": "2026-10-13T09:46:29.000Z",
+      "updatedAt": "2026-10-13T09:46:29.000Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
     }
   ]
 }

@@ -81,3 +81,4 @@
 | WI-0073 | Move Chrona to Arca 0.4.0 through Conditor: namespace-scoped change tokens for reads, writes and the read cache, and sign-out discard by stable account id (arca WI-0018, arca#33) | complete | chrona, arca, conditor | high |
 | WI-0074 | Chrona: observation source policies and receipt integrity - trusted sources a deployment configures to auto-accept, and receipts without their candidate detected (CHX-190, CHX-390 remainders) | captured |  | medium |
 | WI-0075 | Chrona: reports and search across a deployment's organizations - one report over every organization the person may see, grouped and filtered by organization (CHX-270, CHX-280 remainders) | captured |  | medium |
+| WI-0076 | Measurement: index where Chrona's historical evidence lives and when each Echelon capability was adopted (docs/measurement/baseline-sources.md) | ready |  | medium |

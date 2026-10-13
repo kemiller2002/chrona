@@ -186,7 +186,7 @@ let laidOver (kept: OfflineQueue) (mine: QueueEntry list) =
 let recordsOf (folder: Namespace) (entry: QueueEntry) =
     OfflineQueue.operationOf folder entry.Operation
     |> Result.mapError (fun _ -> [])
-    |> Result.bind (fun operation -> Stored.changedOf operation.Changes)
+    |> Result.bind (fun operation -> StoredChanges.changedOf operation.Changes)
 
 /// A queued entry as the engine's request: its id is the operation's
 /// idempotency key, which is the request's commit id.

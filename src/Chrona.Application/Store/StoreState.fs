@@ -155,7 +155,7 @@ let monthOf (date: DateOnly) = date.Year, date.Month
 let firstOf (year: int, month: int) = DateOnly(year, month, 1)
 
 /// The records a request asks to store.
-let changeOf (request: StoreRequest) : Stored.Changed =
+let changeOf (request: StoreRequest) : StoredChanges.Changed =
     { Activities = request.Activities
       References = request.References
       Attestations = request.Attestations
@@ -168,7 +168,7 @@ let changeOf (request: StoreRequest) : Stored.Changed =
       Receipts = []
       Consumed = [] }
 
-let isEmpty (changed: Stored.Changed) =
+let isEmpty (changed: StoredChanges.Changed) =
     changed.Activities.IsEmpty
     && changed.References.IsEmpty
     && changed.Attestations.IsEmpty

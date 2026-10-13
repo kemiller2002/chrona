@@ -190,11 +190,11 @@ let ``a review step fits what is stored when only the review state differs and t
     let a = activity "A1" 5
     let snapshot = { stored with Activities = { stored.Activities with Activities = Map.ofList [ "A1", { Activity = a; Path = ActivityRecord.path a |> ok; Revision = Arca.Revision "r1"; ContentHash = "" } ] } }
 
-    match Reconcile.decide snapshot { Stored.nothing with Activities = [ { a with Review = Submitted } ] } with
+    match Reconcile.decide snapshot { StoredChanges.nothing with Activities = [ { a with Review = Submitted } ] } with
     | Ok changed -> Assert.Equal(1, changed.Activities.Length)
     | Error divergences -> failwith $"%A{divergences}"
 
     // Approving time that is not submitted (it was reopened meanwhile) diverges.
-    match Reconcile.decide snapshot { Stored.nothing with Activities = [ { a with Review = Approved } ] } with
+    match Reconcile.decide snapshot { StoredChanges.nothing with Activities = [ { a with Review = Approved } ] } with
     | Error [ Reconcile.ActivityChanged _ ] -> ()
     | other -> failwith $"%A{other}"

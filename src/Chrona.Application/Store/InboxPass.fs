@@ -40,7 +40,7 @@ let rec takeIn (page: Page) (state: Opened) (sourceSystem: string) (observationI
                     | Error failure -> return Error failure
                     | Ok ReadOutcome.Absent
                     | Ok(ReadOutcome.Erased _) -> return Ok None
-                    | Ok(ReadOutcome.Found found) -> return Ok(Some({ Stored.nothing with Consumed = [ path, found.Revision ] }, TakenIn))
+                    | Ok(ReadOutcome.Found found) -> return Ok(Some({ StoredChanges.nothing with Consumed = [ path, found.Revision ] }, TakenIn))
                 }
             else
                 receive page state sourceSystem observationId path
@@ -50,7 +50,7 @@ let rec takeIn (page: Page) (state: Opened) (sourceSystem: string) (observationI
         | _, Error failure -> return state, Error(describeFailure failure)
         | _, Ok None -> return state, Ok None
         | ReadAt token, Ok(Some(changed, taken)) ->
-            match Stored.changes state.Stored changed, operationContext state.Session (page.NewKey "inbox") (page.Now ()) with
+            match StoredChanges.changes state.Stored changed, operationContext state.Session (page.NewKey "inbox") (page.Now ()) with
             | Error diagnostics, _
             | _, Error diagnostics -> return state, Error(describeAll diagnostics)
             | Ok changes, Ok context ->
@@ -66,7 +66,7 @@ let rec takeIn (page: Page) (state: Opened) (sourceSystem: string) (observationI
                         let next =
                             { state with
                                 Basis = ReadAt condition
-                                Stored = Stored.committed changed receipt state.Stored }
+                                Stored = StoredOverlay.committed changed receipt state.Stored }
 
                         let! next = afterCommit page next operation receipt
                         page.Opened <- Some next

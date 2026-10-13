@@ -2943,20 +2943,20 @@
         "EXE-20261013T100858403Z-27654d43"
       ],
       "latestCheckpoint": {
-        "id": "11899d0a3a29ec0e1ebd0740",
-        "recordedAt": "2026-10-13T10:49:59.000Z",
+        "id": "862b62600ca9b86d6e6c9e2d",
+        "recordedAt": "2026-10-13T13:34:40.000Z",
         "executionId": "EXE-20261013T100858403Z-27654d43",
         "repository": "chrona",
-        "branch": "chore/wi-0077-merged",
-        "commit": "43fbfa69c41babab960a92c5951965c3967842a5",
+        "branch": "chore/arca-0.5.0",
+        "commit": "871e2852e9252505fe7fec3d2f9c0802669db6b9",
         "remote": {
           "name": "origin",
           "url": "https://github.com/kemiller2002/chrona"
         },
-        "remoteBranch": "main",
-        "remoteCommit": "43fbfa69c41babab960a92c5951965c3967842a5",
-        "summary": "Merged through the gate (#91, 43fbfa6): every check on fccb2a4, the first PR head, succeeded",
-        "nextAction": "Adopt arca#38 and arca#39 through Conditor once released",
+        "remoteBranch": "chore/arca-0.5.0",
+        "remoteCommit": "871e2852e9252505fe7fec3d2f9c0802669db6b9",
+        "summary": "Arca 0.5.0 adopted through conditor upgrade --current (echelon-current 1.19.0, plan sha256:0f2b01aa..., isolated --home); no code change; .NET 448 pass",
+        "nextAction": "Open the adoption PR; then batch cache writes (KeepMany) and pinned reads",
         "verification": {
           "status": "verified",
           "mechanism": "git-remote-observation"

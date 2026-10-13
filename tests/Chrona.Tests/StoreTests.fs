@@ -500,7 +500,7 @@ let ``a new repository is set up on first sign-in, and the records open empty`` 
     Assert.Equal("org_acme", device.Model.Session.OrganizationId)
 
 [<Fact>]
-let ``production records are never started in a public repository`` () =
+let ``scenario 41: production records are never started in a public repository`` () =
     let github = InMemoryStore()
     let device = Device(github, RepositoryVisibility.Public, "production")
     device.Open()
@@ -538,7 +538,7 @@ let ``what is recorded is stored, one commit per command, and reads back on anot
     Assert.Empty(second.Model.Store.Integrity)
 
 [<Fact>]
-let ``independent changes from two devices both land, and each device is shown the other's`` () =
+let ``scenario 34: independent changes from two devices both land, and each device is shown the other's`` () =
     let github = InMemoryStore()
     let first = Device(github, RepositoryVisibility.Private, "production")
     first.Open()
@@ -622,7 +622,7 @@ let ``an edit made elsewhere first makes this device's stale edit a conflict, ne
     Assert.Equal("From the first device", second.Model.Ledger.Activities[id].Classification.Description)
 
 [<Fact>]
-let ``a commit whose outcome GitHub did not report is reconciled, not sent again`` () =
+let ``scenario 31: a commit whose outcome GitHub did not report is reconciled, not sent again`` () =
     let github = InMemoryStore()
     let device = Device(github, RepositoryVisibility.Private, "production")
     device.Open()
@@ -1178,7 +1178,7 @@ let private inLocalStorage (browser: Browser) =
 let private queued (browser: Browser) = inIndexedDb browser @ inLocalStorage browser
 
 [<Fact>]
-let ``time recorded offline waits in this browser, is shown as unsent, and is sent in order on reconnect`` () =
+let ``scenario 33: time recorded offline waits in this browser, is shown as unsent, and is sent in order on reconnect`` () =
     let github = InMemoryStore()
     let browser = Browser()
     let device = Device(github, RepositoryVisibility.Private, "production", browser)
@@ -1518,7 +1518,7 @@ let ``only an administrator rebuilds the index`` () =
     Assert.Equal(commits, github.State.History.Length)
 
 [<Fact>]
-let ``every projection is rebuilt from the stored records alone`` () =
+let ``scenario 40: every projection is rebuilt from the stored records alone`` () =
     let github = InMemoryStore()
     let device = Device(github, RepositoryVisibility.Private, "production")
     device.Open()

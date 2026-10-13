@@ -916,3 +916,51 @@ let ``every conditional or repeated part of the page is one element, as Limen mo
                 open' <- (name, binding, []) :: open'
 
     Assert.Empty(found)
+
+// ---- Telemetry carries ids and measures only (42, WI-0040) --------------------------
+
+/// What a page must never send to telemetry: a GitHub token, a private
+/// client's description, business-purpose text, an artifact's contents and
+/// a sensitive URL.
+let private secrets =
+    [ "ghp_0123456789abcdefghijklmnopqrstuvwxyzAB"
+      "Merger talks with Northwind (confidential)"
+      "Prepare the acquisition memo for the board"
+      "BEGIN PRIVATE ARTIFACT CONTENT"
+      "https://private.example/download?sig=abc123" ]
+
+[<Fact>]
+let ``a fault's telemetry carries its code, category and reference, never what the message held`` () =
+    let sink, aegis = collector ()
+    let env, _ = envWith committed
+    let state, _ = run aegis env [ initialize ]
+    let quoted = secrets |> List.map (fun s -> "\"" + s + "\"") |> String.concat ","
+
+    // Malformed in several ways, each carrying the secrets where a careless
+    // boundary would echo them: a value of the wrong type, an unknown kind,
+    // text that is not JSON, and a result for nothing the engine asked for.
+    let malformed =
+        [ $"""{{"kind":"Event","event":{{"kind":"Event","name":{quoted.Split(',').[0]},"key":[{quoted}],"value":7}}}}"""
+          $"""{{"kind":"{secrets[1]}","detail":[{quoted}]}}"""
+          $"""{{"kind":"Event","event": {secrets[3]} {secrets[0]} }}"""
+          $"""{{"kind":"EffectResult","result":{{"kind":"HttpResult","correlationId":"{secrets[4]}","status":200,"body":{quoted.Split(',').[2]}}}}}""" ]
+
+    let mutable current = state
+
+    for message in malformed do
+        let next, text = handle aegis env current message
+        current <- next
+
+        for secret in secrets do
+            Assert.DoesNotContain(secret, text)
+
+    Assert.NotEmpty(sink.Events)
+    for recorded in sink.Events do
+        for secret in secrets do
+            Assert.DoesNotContain(secret, recorded)
+
+    // What it does carry: the stable code and the reference the page shows.
+    for recorded in sink.Events do
+        let node = JsonNode.Parse recorded
+        Assert.StartsWith("CHRONA.BOUNDARY.", string node.["code"])
+

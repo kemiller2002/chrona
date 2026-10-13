@@ -12,7 +12,7 @@
 // as they would without a network and the browser logs each one; this suite
 // therefore keeps its own guard, which allows only those.
 import { test as base, expect } from "@playwright/test";
-import { fakeDeployment, PAGE, signInAs, afternoon } from "./support.js";
+import { fakeDeployment, PAGE, signInAs, afternoon, ACCESS_TOKEN, REFRESH_TOKEN } from "./support.js";
 import { serveGitHub, repository, headFiles, history } from "./github-fake.js";
 
 const configuration = {
@@ -32,14 +32,20 @@ const test = base.extend({
     // Time recorded "today" at fixed hours is in the past whenever this runs.
     await context.clock.setFixedTime(afternoon());
     const problems = [];
+    // Everything any page wrote to its console, of every kind (42, WI-0040).
+    const written = [];
     context.on("page", (page) => {
       page.on("console", (message) => {
+        written.push(message.text());
         if (message.type() === "error" && !message.text().startsWith("Failed to load resource")) problems.push(message.text());
       });
       page.on("pageerror", (error) => problems.push(error.message));
     });
     await use(context);
     expect(problems, "a page reported errors").toEqual([]);
+    // Diagnostics carry ids and measures only: no page ever wrote the GitHub
+    // token or the refresh token to its console.
+    expect(written.filter((text) => text.includes(ACCESS_TOKEN) || text.includes(REFRESH_TOKEN)), "a page logged a token").toEqual([]);
   },
   github: async ({ context }, use) => {
     await fakeDeployment(context, configuration);

@@ -852,10 +852,10 @@
         "gate"
       ],
       "priority": "medium",
-      "status": "captured",
+      "status": "ready",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:50.498Z",
-      "updatedAt": "2026-10-08T08:58:35.113Z",
+      "updatedAt": "2026-10-13T11:23:58.000Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",
@@ -1729,6 +1729,27 @@
       "attachments": [],
       "createdAt": "2026-10-13T11:00:42.000Z",
       "updatedAt": "2026-10-13T11:13:41.000Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0079",
+      "title": "Chrona: SDE/Ordo validation of Chrona's domain lifecycles - production completion gate item (CHX-002, CHX-440 remainders)",
+      "description": "Left after WI-0040. Section 44 requires SDE/Ordo validation. Chrona's states, legal transitions, refusals, revision checks and obligations are modeled and unit-tested in Chrona.Domain (WI-0021 and later), but no Ordo model of the activity, timer, period review and candidate lifecycles is validated by Ordo in CI. Express them in Ordo's installed methodology (Ordo 1.5.0 through Conditor), validate them in CI, and keep the domain and the model in agreement by test. Coordinate with the program lead before starting: Ordo construction experiments are the lead's Phase H work, and the timer lifecycle is frozen until those trials report.",
+      "tags": [],
+      "priority": "medium",
+      "status": "captured",
+      "attachments": [],
+      "createdAt": "2026-10-13T11:41:23.000Z",
+      "updatedAt": "2026-10-13T11:41:23.000Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

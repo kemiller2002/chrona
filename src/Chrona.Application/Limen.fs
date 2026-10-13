@@ -55,8 +55,8 @@ let private storageOutcome (path: string) (node: JsonNode) =
         match required "reason" path asString node with
         | "unavailable" -> StorageFailed Unavailable
         | "quota-exceeded" -> StorageFailed QuotaExceeded
-        | other -> raise (MalformedInput($"{path}.reason", $"a known storage failure reason, not '{other}'"))
-    | other -> raise (MalformedInput($"{path}.kind", $"a known storage outcome, not '{other}'"))
+        | other -> raise (MalformedInput($"{path}.reason", $"a known storage failure reason"))
+    | other -> raise (MalformedInput($"{path}.kind", $"a known storage outcome"))
 
 /// The slice only ever requests Storage effects, so any other result has no
 /// request behind it: a contract violation, not a domain outcome.
@@ -96,7 +96,7 @@ let decode (messageJson: string) =
     | "CapabilityFact" ->
         let capability = required "capability" "$" asString message
         raise (CapabilityFailed(capability, $"Unexpected CapabilityFact from {capability}: this slice negotiated no capabilities"))
-    | other -> raise (MalformedInput("$.kind", $"a known message kind, not '{other}'"))
+    | other -> raise (MalformedInput("$.kind", $"a known message kind"))
 
 // ---------------------------------------------------------------------------
 // The handshake answer.

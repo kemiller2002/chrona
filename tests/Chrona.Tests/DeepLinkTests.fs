@@ -11,6 +11,8 @@ open Chrona.Engine.View
 open Chrona.Engine.App
 open Chrona.Engine.App.Model
 open Chrona.Engine.App.Update
+open Chrona.Engine.App.UpdateSession
+open Chrona.Engine.App.UpdateDispatch
 
 let private start = DateTimeOffset(2026, 10, 8, 14, 10, 0, TimeSpan.FromHours -4.0)
 let private ids = ref 0

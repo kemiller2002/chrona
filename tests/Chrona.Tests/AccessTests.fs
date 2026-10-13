@@ -11,6 +11,8 @@ open Chrona.Engine.View
 open Chrona.Engine.App
 open Chrona.Engine.App.Model
 open Chrona.Engine.App.Update
+open Chrona.Engine.App.UpdateEvents
+open Chrona.Engine.App.UpdateDispatch
 
 let private person id = { PrincipalId = id; Kind = Human; DisplayName = id }
 let private agent id = { PrincipalId = id; Kind = Agent; DisplayName = id }

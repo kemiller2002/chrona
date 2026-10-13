@@ -102,7 +102,7 @@ let private negotiated (offer: CapabilityOffer) (state: State) = List.contains o
 /// Runs one engine message.
 let private run (env: Env) (msg: Update.Msg) (model: Model) =
     let ctx: Update.Ctx = { Now = env.Now(); NewId = env.NewId }
-    Update.update ctx msg model
+    UpdateDispatch.update ctx msg model
 
 /// The deployment's configuration document: `chrona.deployment.json` beside
 /// the page. A deployment replaces it; the repository's copy runs locally.

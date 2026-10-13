@@ -66,7 +66,7 @@ let ``someone who may see the organization's time reports on everyone's, read fr
     Assert.Contains(("github:1001", (2026, 10)), lead.Model.Store.Others)
     Assert.Empty(lead.Model.Store.OthersReading)
     Assert.Equal<string list>([ "Founder's own"; "Hubot in August"; "Hubot in October" ], reportTitles lead.Model)
-    Assert.Contains("github:1001", Update.exportText lead.Model)
+    Assert.Contains("github:1001", UpdateReports.exportText lead.Model)
     Assert.Contains("Everyone in the organization", viewText "printSubtitle" lead.Model)
 
     // One person's time among everyone's.
@@ -148,7 +148,7 @@ let ``a report across organizations reads each organization the person belongs t
     Assert.Equal<string list>([ "Acme Consulting"; "Acme Europe" ], groups)
 
     // The export names both organizations, and holds Acme Europe's time.
-    let export = Update.exportText lead.Model
+    let export = UpdateReports.exportText lead.Model
     Assert.Contains("# organization: org_acme;org_eu", export)
     Assert.Contains("# filter.organizations: org_acme;org_eu", export)
     Assert.Contains("Hubot in Europe", export)

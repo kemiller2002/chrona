@@ -871,7 +871,7 @@ let ``a page built for a deployment asks which build is served, and offers a rel
 
     // The next check finds a newer build.
     let model = { same.Model.Value with Shell = { same.Model.Value.Shell with Newer = None } }
-    let next, effects' = Chrona.Engine.App.Update.update { Now = DateTimeOffset.UtcNow; NewId = fun p -> p } (Chrona.Engine.App.Update.ShellChecked(Some "d4e5f6")) model
+    let next, effects' = Chrona.Engine.App.UpdateDispatch.update { Now = DateTimeOffset.UtcNow; NewId = fun p -> p } (Chrona.Engine.App.Update.ShellChecked(Some "d4e5f6")) model
     Assert.Empty effects'
     Assert.Equal(Some "d4e5f6", next.Shell.Newer)
     Assert.Equal("A newer Chrona is ready. Reload to use it.", next.Announcement)

@@ -180,6 +180,11 @@ type private Device(github: InMemoryStore, visibility: RepositoryVisibility, env
 
     /// The records whose history was asked for, in order (WI-0077).
     let mutable historyAsked: string list = []
+    /// Whether the backend offers pinned reads, the tokens pinned and the
+    /// reads made through a pin (WI-0077).
+    let mutable pins = false
+    let mutable pinnedAt: ChangeToken list = []
+    let mutable pinnedReads = 0
 
     let provider location =
         let real = github.Provider
@@ -231,7 +236,28 @@ type private Device(github: InMemoryStore, visibility: RepositoryVisibility, env
                     } }
 
     let backend: Store.Backend =
-        { Provider = provider
+        { Connect =
+            fun location ->
+                let unpinned = provider location
+
+                { Provider = unpinned
+                  PinAt =
+                    if pins then
+                        Some(fun token ->
+                            pinnedAt <- pinnedAt @ [ token ]
+
+                            ({ At = token
+                               NamespaceState = unpinned.NamespaceState
+                               List =
+                                 fun ns path ->
+                                     pinnedReads <- pinnedReads + 1
+                                     unpinned.List ns path
+                               Read =
+                                 fun ns path ->
+                                     pinnedReads <- pinnedReads + 1
+                                     unpinned.Read ns path }: PinnedReads))
+                    else
+                        None }
           Resolve =
             fun _ ->
                 async.Return(
@@ -423,6 +449,11 @@ type private Device(github: InMemoryStore, visibility: RepositoryVisibility, env
     /// The commit attempt `after` attempts from now finds GitHub out of reach.
     /// The records whose history GitHub was asked for, in order.
     member _.HistoryAsked = historyAsked
+
+    /// Offers pinned reads, as Arca 0.5.0's GitHub connection does.
+    member _.UsePins() = pins <- true
+    member _.PinnedAt = pinnedAt
+    member _.PinnedReads = pinnedReads
 
     member _.UnreachableAfter(after: int) = unreachableAttempt <- Some(attempts + after)
 
@@ -3356,3 +3387,28 @@ let ``a receipt whose candidate no folder holds is shown where records needing a
     // Read again, it is not read again, and it is still shown.
     device.Ui("readInboxes", "")
     Assert.Single(device.Model.Inbox.Orphaned) |> ignore
+
+[<Fact>]
+let ``a refresh reads every folder through a pin at the state it observed, and writes are never pinned`` () =
+    let github = InMemoryStore()
+    let first = Device(github, RepositoryVisibility.Private, "production")
+    first.Open()
+    record first "08:00" "08:30" "Setup"
+
+    let device = Device(github, RepositoryVisibility.Private, "production")
+    device.UsePins()
+    device.Open()
+    Assert.Contains("Setup", descriptions device)
+    Assert.NotEmpty(device.PinnedAt)
+    Assert.True(device.PinnedReads > 0)
+
+    // Writing still goes through the provider, conditioned as before, and
+    // the next refresh pins the new state.
+    let pinsBefore = device.PinnedAt.Length
+    record device "09:00" "09:30" "Pairing"
+    Assert.Empty(device.Model.Store.Pending)
+    device.Return()
+    Assert.True(device.PinnedAt.Length > pinsBefore)
+    // The repository moved, so the pin moved with the state observed.
+    Assert.NotEqual(device.PinnedAt[pinsBefore - 1], List.last device.PinnedAt)
+    Assert.Contains("Pairing", descriptions device)

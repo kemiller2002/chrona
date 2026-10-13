@@ -430,7 +430,7 @@
           "operations": [
             "modified"
           ],
-          "reason": "Reads, histories and read-cache writes together on the bridge thread; histories by path and revision (WI-0077)"
+          "reason": "Reads, histories and read-cache writes together on the bridge thread; histories by path and revision; Arca 0.5.0's batched cache writes and pinned reads (WI-0077)"
         },
         "EXE-20261013T125315194Z-1fc14a1f": {
           "actor": {
@@ -466,7 +466,7 @@
     ],
     "title": "Records live on GitHub through Arca's provider behind the store port, every commit conditioned on the repository state and decided again when it moved",
     "updated": "2026-10-13",
-    "version": "1.15.0"
+    "version": "1.16.0"
   },
   {
     "created": "2026-10-08",

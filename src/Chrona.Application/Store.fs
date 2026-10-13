@@ -51,11 +51,34 @@ let reasonOf =
     | Unopened.Unreachable reason
     | Unopened.Refused reason -> reason
 
+/// A location's storage: its provider, and, where the provider offers it,
+/// reads pinned to one commit (Arca 0.5.0, ARCA-API-006): a refresh reads
+/// every folder at the state it observed, without resolving the branch for
+/// each read (WI-0077).
+[<NoComparison; NoEquality>]
+type Connection =
+    { Provider: StorageProvider
+      PinAt: (ChangeToken -> PinnedReads) option }
+
+/// Reads through the pin where there is one: the same provider, its List,
+/// Read and NamespaceState answered at the pinned commit. Histories and
+/// commits are never pinned.
+let pinnedAt (connection: Connection) (token: ChangeToken) =
+    match connection.PinAt with
+    | Some pinAt ->
+        let pin = pinAt token
+
+        { connection.Provider with
+            List = pin.List
+            Read = pin.Read
+            NamespaceState = pin.NamespaceState }
+    | None -> connection.Provider
+
 /// What the store needs from where the data lives.
 [<NoComparison; NoEquality>]
 type Backend =
-    { /// The provider serving a location.
-      Provider: DataLocation -> StorageProvider
+    { /// The storage serving a location.
+      Connect: DataLocation -> Connection
       /// The repository's facts for the signed-in credential: its visibility
       /// and whether it may be read and written (ARCA-AUTH-003, 2.7). A
       /// refusal says why, for the person.
@@ -190,7 +213,10 @@ let gitHub (bridge: Bridge) (tokens: unit -> TokenProvider option) (unauthorized
                 | Some provider -> provider ()
                 | None -> async.Return(Error TokenUnavailable.NoToken) }
 
-    { Provider = fun location -> GitHubStorage.provider host (GitHubConfig.create location)
+    { Connect =
+        fun location ->
+            let github = GitHubStorage.connect host (GitHubConfig.create location)
+            { Provider = github.Provider; PinAt = Some github.PinAt }
       Resolve =
         fun location ->
             async {
@@ -259,6 +285,8 @@ type private Opened =
     { Session: Session
       Folder: Namespace
       Provider: StorageProvider
+      /// Reads pinned to a commit, where the provider offers them (WI-0077).
+      PinAt: (ChangeToken -> PinnedReads) option
       Name: string
       /// What the records were read at: GitHub's change token (21), or the
       /// read cache while GitHub cannot be reached (WI-0057).
@@ -713,17 +741,15 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
             match! readCache () with
             | None -> ()
             | Some cached ->
-                // Kept together, at most `InTurn.Limit` at a time (WI-0077);
-                // one transaction for them all waits on Arca (arca#38).
-                let! _ =
+                // One IndexedDB transaction for them all (Arca 0.5.0's
+                // `KeepMany`, arca#38): best-effort, as `Keep` is (WI-0077).
+                do!
                     partitions
                     |> List.choose (fun (partition, objects) ->
                         ReadCache.key account folder partition
                         |> Result.toOption
-                        |> Option.map (fun key -> cached.Keep(ReadCache.entry key CacheSchema (now ()) (freshOf token objects))))
-                    |> InTurn.together bridge
-
-                ()
+                        |> Option.map (fun key -> ReadCache.entry key CacheSchema (now ()) (freshOf token objects)))
+                    |> cached.KeepMany
         }
 
     /// Reads these folders: each folder's records. The folders are listed
@@ -830,7 +856,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
     /// with records edited outside Chrona held for review. What was read is
     /// kept in the read cache, with which records were held.
     let load
-        (provider: StorageProvider)
+        (connection: Connection)
         (folder: Namespace)
         (actorId: string)
         (months: Set<int * int>)
@@ -838,11 +864,14 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
         (known: Map<string, Revision * HistoryEntry list>)
         =
         async {
-            match! provider.NamespaceState folder with
+            match! connection.Provider.NamespaceState folder with
             | Error error -> return Error(unopened error)
             | Ok observed ->
                 let token = InNamespace observed
                 let dates = months |> Set.toList |> List.map firstOf
+                // Every folder read at the state just observed: one snapshot,
+                // and no branch resolution per read (Arca 0.5.0, arca#39).
+                let provider = pinnedAt connection observed.RepositoryToken
 
                 let! found =
                     async {
@@ -1063,7 +1092,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
         async {
             let months = state.Months + (dates |> List.map monthOf |> Set.ofList)
 
-            match! load state.Provider state.Folder state.Session.ActorId months others state.Histories with
+            match! load { Provider = state.Provider; PinAt = state.PinAt } state.Folder state.Session.ActorId months others state.Histories with
             | Error reason -> return Error(reasonOf reason)
             | Ok(token, stored, read, histories) ->
                 let! indexed = readIndex state.Provider state.Folder state.Session.ActorId months others stored state.Index
@@ -1731,7 +1760,8 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                 match! resolve binding.Location with
                 | Error reason -> return Error reason
                 | Ok home ->
-                    let applicationProvider = backend.Provider binding.Location
+                    let applicationConnection = backend.Connect binding.Location
+                    let applicationProvider = applicationConnection.Provider
 
                     match!
                         ensure applicationProvider application (fun () ->
@@ -1745,7 +1775,8 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                         match own with
                         | Error reason -> return Error reason
                         | Ok repository ->
-                            let provider = if separate then backend.Provider folder.Location else applicationProvider
+                            let connection = if separate then backend.Connect folder.Location else applicationConnection
+                            let provider = connection.Provider
                             let manifest = Organization.create organization.Id organization.DisplayName organization.Slug organization.TimeZone at
 
                             let! existing =
@@ -1779,13 +1810,14 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                                 | Ok() ->
                                     let months = dates |> List.map monthOf |> Set.ofList
 
-                                    match! load provider folder session.ActorId months Set.empty Map.empty with
+                                    match! load connection folder session.ActorId months Set.empty Map.empty with
                                     | Error reason -> return Error reason
                                     | Ok(token, stored, read, histories) ->
                                         let state =
                                             { Session = session
                                               Folder = folder
                                               Provider = provider
+                                              PinAt = connection.PinAt
                                               Name = string folder.Location.Repository
                                               Basis = ReadAt token
                                               Stored = stored
@@ -1940,7 +1972,8 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                         let state =
                             { Session = session
                               Folder = folder
-                              Provider = backend.Provider folder.Location
+                              Provider = (backend.Connect folder.Location).Provider
+                              PinAt = None
                               Name = string folder.Location.Repository
                               // Shown as of the oldest partition it holds.
                               Basis = CachedAt(entries |> List.map Cached.readAt |> List.min)

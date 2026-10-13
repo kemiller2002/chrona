@@ -2943,20 +2943,20 @@
         "EXE-20261013T100858403Z-27654d43"
       ],
       "latestCheckpoint": {
-        "id": "862b62600ca9b86d6e6c9e2d",
-        "recordedAt": "2026-10-13T13:34:40.000Z",
+        "id": "e73eaa54ca267728a2b93b58",
+        "recordedAt": "2026-10-13T13:58:30.000Z",
         "executionId": "EXE-20261013T100858403Z-27654d43",
         "repository": "chrona",
-        "branch": "chore/arca-0.5.0",
-        "commit": "871e2852e9252505fe7fec3d2f9c0802669db6b9",
+        "branch": "perf/arca-batch",
+        "commit": "5e2cb15b99d8023321f459d39380c5f28a331c76",
         "remote": {
           "name": "origin",
           "url": "https://github.com/kemiller2002/chrona"
         },
-        "remoteBranch": "chore/arca-0.5.0",
-        "remoteCommit": "871e2852e9252505fe7fec3d2f9c0802669db6b9",
-        "summary": "Arca 0.5.0 adopted through conditor upgrade --current (echelon-current 1.19.0, plan sha256:0f2b01aa..., isolated --home); no code change; .NET 448 pass",
-        "nextAction": "Open the adoption PR; then batch cache writes (KeepMany) and pinned reads",
+        "remoteBranch": "perf/arca-batch",
+        "remoteCommit": "5e2cb15b99d8023321f459d39380c5f28a331c76",
+        "summary": "KeepMany for a refresh's cache partitions and pinned reads (GitHubStorage.connect, PinAt) at the observed namespace state; read 1456-2046 ms before vs 337-985 ms after (3 runs each); .NET 449, Chromium 70",
+        "nextAction": "Open the PR, merge through the gate, complete WI-0077",
         "verification": {
           "status": "verified",
           "mechanism": "git-remote-observation"

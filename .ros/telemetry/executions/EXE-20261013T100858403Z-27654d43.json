@@ -506,14 +506,30 @@
     },
     {
       "metricId": "agent.interruptions",
-      "status": "unknown",
-      "reason": "runtime capability not reported or mapped",
-      "discoveredAt": "2026-10-13T10:08:58.403Z",
+      "status": "derived",
+      "reason": "normalized measurement recorded",
+      "discoveredAt": "2026-10-13T10:50:04.000Z",
       "source": {
-        "type": "environment",
-        "name": "runtime-identity",
-        "mechanism": "whitelisted-claude-environment"
-      }
+        "type": "calculated",
+        "name": "ros-work-protocol",
+        "mechanism": "blocked-transition"
+      },
+      "lastAssessedAt": "2026-10-13T10:50:04.000Z",
+      "recordedAt": "2026-10-13T10:50:04.000Z",
+      "history": [
+        {
+          "status": "unknown",
+          "reason": "runtime capability not reported or mapped",
+          "source": {
+            "type": "environment",
+            "name": "runtime-identity",
+            "mechanism": "whitelisted-claude-environment"
+          },
+          "discoveredAt": "2026-10-13T10:08:58.403Z",
+          "lastAssessedAt": "2026-10-13T10:08:58.403Z",
+          "recordedAt": "2026-10-13T10:08:58.403Z"
+        }
+      ]
     },
     {
       "metricId": "agent.resumes",
@@ -1355,6 +1371,26 @@
       },
       "collectedAt": "2026-10-13T10:08:58.403Z",
       "schemaVersion": "1.0.0"
+    },
+    {
+      "measurementId": "MEAS-6905b56b426ab57d54b09b7b",
+      "id": "agent.interruptions",
+      "value": 1,
+      "unit": "count",
+      "currency": null,
+      "quality": "derived",
+      "confidence": null,
+      "scope": "execution",
+      "aggregation": "sum",
+      "dimensions": {},
+      "pricing": null,
+      "source": {
+        "type": "calculated",
+        "name": "ros-work-protocol",
+        "mechanism": "blocked-transition"
+      },
+      "collectedAt": "2026-10-13T10:50:04.000Z",
+      "schemaVersion": "1.0.0"
     }
   ],
   "rawTelemetry": [],
@@ -1367,6 +1403,17 @@
         "name": "ros",
         "mechanism": "work-lifecycle"
       }
+    },
+    {
+      "type": "work.blocked",
+      "occurredAt": "2026-10-13T10:50:04.000Z",
+      "reason": "Chrona's part merged (#91, 43fbfa6). Waiting on Arca: a batched ReadCacheStore save (kemiller2002/arca#38) and no ref fetch before a pinned read (kemiller2002/arca#39); adopt both through Conditor once released.",
+      "source": {
+        "type": "ros-clock",
+        "name": "ros",
+        "mechanism": "work-lifecycle"
+      },
+      "eventId": "TEVT-d89cde8dff75d179bd7f9a09"
     }
   ],
   "repository": {

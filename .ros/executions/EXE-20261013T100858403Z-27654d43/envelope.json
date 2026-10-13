@@ -50,8 +50,8 @@
   "humanOnlyTransitions": [],
   "parentExecution": null,
   "startedAt": "2026-10-13T10:08:59.023Z",
-  "state": "active",
-  "stateReason": null,
+  "state": "blocked",
+  "stateReason": "Chrona's part merged (#91, 43fbfa6). Waiting on Arca: a batched ReadCacheStore save (kemiller2002/arca#38) and no ref fetch before a pinned read (kemiller2002/arca#39); adopt both through Conditor once released.",
   "origin": {
     "kind": "work-transition",
     "reference": "work.begin"

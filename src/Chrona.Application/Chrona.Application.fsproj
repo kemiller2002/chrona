@@ -17,6 +17,21 @@
     <Compile Include="Identity.fs" />
     <Compile Include="Intake.fs" />
     <Compile Include="Store.fs" />
+    <Compile Include="Store/StoreGitHub.fs" />
+    <Compile Include="Store/StoreState.fs" />
+    <Compile Include="Store/StoreUnsentQueue.fs" />
+    <Compile Include="Store/StoreIndex.fs" />
+    <Compile Include="Store/StorePage.fs" />
+    <Compile Include="Store/StoreReads.fs" />
+    <Compile Include="Store/StoreSync.fs" />
+    <Compile Include="Store/StoreHolding.fs" />
+    <Compile Include="Store/StoreOpening.fs" />
+    <Compile Include="Store/StoreJobs.fs" />
+    <Compile Include="Store/StoreElsewhere.fs" />
+    <Compile Include="Store/InboxReading.fs" />
+    <Compile Include="Store/InboxPass.fs" />
+    <Compile Include="Store/StoreDevice.fs" />
+    <Compile Include="Store/ArcaStore.fs" />
     <Compile Include="App.fs" />
     <Compile Include="Runtime.fs" />
   </ItemGroup>

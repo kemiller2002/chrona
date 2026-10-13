@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 2,
+  "groups": [
+    {
+      "id": "GROUP-CHRONA-SDE-001",
+      "members": [
+        "WI-0083",
+        "WI-0079"
+      ],
+      "kind": "dependency-chain",
+      "origin": "human-declared",
+      "sharedContext": [
+        "WI-0079 adds ordo verify --strict to the gate only after WI-0083 brings main to zero SDE-STRUCT-001 findings"
+      ],
+      "executionRepository": "chrona",
+      "crossRepository": false,
+      "architectureNotes": [],
+      "homeRepository": "kemiller2002/chrona",
+      "dependencies": [
+        {
+          "consumer": "WI-0079",
+          "producer": "WI-0083",
+          "milestone": "complete"
+        }
+      ],
+      "verifications": [],
+      "createdAt": "2026-10-13T17:58:22.809Z",
+      "createdBy": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "history": [
+        {
+          "operation": "created",
+          "member": null,
+          "at": "2026-10-13T17:58:22.809Z",
+          "actor": {
+            "kind": "agent",
+            "id": "anthropic/claude-code",
+            "provider": "anthropic",
+            "model": "unknown",
+            "runtime": "claude-code"
+          },
+          "reason": "lead decision: separate WI for the splits, WI-0079 depends on it",
+          "executionId": null,
+          "memberState": null
+        }
+      ],
+      "checkpoints": [],
+      "executions": []
+    }
+  ],
+  "references": []
+}

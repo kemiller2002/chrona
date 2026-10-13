@@ -46,7 +46,7 @@ let private appEnv: App.Env =
       Identity = identity
       // Arca's GitHub adapter, through the bridge, with Fides' token
       // provider; used only when the deployment configures a location.
-      Store = Store.arca bridge (Store.gitHub bridge identity.TokenProvider identity.ReportUnauthorized) now newId
+      Store = ArcaStore.arca bridge (StoreGitHub.gitHub bridge identity.TokenProvider identity.ReportUnauthorized) now newId
       Build = build }
 
 let mutable private appState = App.initial

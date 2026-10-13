@@ -852,10 +852,10 @@
         "gate"
       ],
       "priority": "medium",
-      "status": "ready",
+      "status": "complete",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:50.498Z",
-      "updatedAt": "2026-10-13T11:23:58.000Z",
+      "updatedAt": "2026-10-13T12:00:16.000Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

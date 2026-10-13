@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-13T22:33:26.693Z",
+  "updatedAt": "2026-10-13T23:41:21.496Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -3327,10 +3327,27 @@
     {
       "id": "WI-0083",
       "type": "refactor",
-      "state": "active",
-      "semanticState": "active",
-      "evidence": [],
-      "updatedAt": "2026-10-13T17:58:31.373Z",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Application/Store/StorePage.fs"
+        },
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Engine/App/Update/UpdateDispatch.fs"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/StoreOpeningTests.fs"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/AppEngineStartTests.fs"
+        }
+      ],
+      "updatedAt": "2026-10-13T23:41:21.496Z",
       "telemetryExecutionIds": [
         "EXE-20261013T175832132Z-585ab26e"
       ],
@@ -3353,7 +3370,8 @@
           "status": "verified",
           "mechanism": "git-remote-observation"
         }
-      }
+      },
+      "completedAt": "2026-10-13T23:41:21.496Z"
     },
     {
       "id": "WI-0084",

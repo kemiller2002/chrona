@@ -3286,20 +3286,20 @@
         "EXE-20261013T161036151Z-06379ba0"
       ],
       "latestCheckpoint": {
-        "id": "b92804a49b6674c89041ea30",
-        "recordedAt": "2026-10-13T17:21:13.693Z",
+        "id": "67bb8da751b79c3c87741881",
+        "recordedAt": "2026-10-13T17:37:11.837Z",
         "executionId": "EXE-20261013T161036151Z-06379ba0",
         "repository": "chrona",
-        "branch": "chore/echelon-1.21-ordo",
-        "commit": "ce8e205aa67c96a45daebd14ada6c412cddf6fd1",
+        "branch": "chore/echelon-1.22-ordo",
+        "commit": "802ae62ece14db54ae1fe66c85bd0fbc1aee02a0",
         "remote": {
           "name": "origin",
           "url": "https://github.com/kemiller2002/chrona"
         },
-        "remoteBranch": "chore/echelon-1.21-ordo",
-        "remoteCommit": "ce8e205aa67c96a45daebd14ada6c412cddf6fd1",
-        "summary": "echelon-current 1.21.0 applied with Conditor 0.10.1 from a clean tree: Ordo 1.6.0 stamps; ordo verify exit 0",
-        "nextAction": "PR, gate-merge, then 1.22.0",
+        "remoteBranch": "chore/echelon-1.22-ordo",
+        "remoteCommit": "802ae62ece14db54ae1fe66c85bd0fbc1aee02a0",
+        "summary": "echelon-current 1.22.0 applied with Conditor 0.10.1 from a clean tree: Ordo 1.7.0; ordo verify exit 0; drift overall ok",
+        "nextAction": "PR, gate-merge, then complete WI-0082",
         "verification": {
           "status": "verified",
           "mechanism": "git-remote-observation"

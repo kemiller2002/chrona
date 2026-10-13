@@ -587,7 +587,11 @@ let private richViews () =
         let observed =
             { model with
                 Candidates = [ waiting; decided ]
-                Inbox = { idleInbox with Invalid = [ "github", "broken", [ "the payload is not JSON" ] ]; LastRun = Some at }
+                Inbox =
+                    { idleInbox with
+                        Invalid = [ "github", "broken", [ "the payload is not JSON" ] ]
+                        Orphaned = [ "jira", "PROJ-7", "CAND-jira-PROJ-7" ]
+                        LastRun = Some at }
                 Problems = model.Problems.Add(CandidateForm, [ Chrona.Domain.Diagnostics.MissingField "activityType" ]) }
 
         let opened = { state with Model = Some observed }

@@ -333,6 +333,11 @@ let reject (context: DecisionContext) (candidateId: string) (expectedRevision: i
         |> Result.map (fun candidate ->
             { inbox with Candidates = inbox.Candidates.Add(candidateId, decide context candidate (Rejected(reason.Trim()))) })
 
+/// A candidate a source policy could not record: it needs a person, with
+/// the problems that stopped it, and nothing is lost (19).
+let needsAttention (context: DecisionContext) (candidate: Candidate) (problems: Diagnostic list) =
+    decide context candidate (NeedsAttention problems)
+
 /// Receives, then applies the source policy: a trusted source's observation
 /// is accepted at once with the policy's classification; if it cannot be
 /// recorded it needs attention instead, and nothing is lost (19).
@@ -349,7 +354,7 @@ let ingest (context: DecisionContext) (policy: SourcePolicy) (activityId: string
         match accept context activityId candidate.CandidateId candidate.Revision classification stored ledger with
         | Ok(inbox, ledger) -> inbox, ledger, receipt
         | Error found ->
-            let attention = decide context candidate (NeedsAttention found)
+            let attention = needsAttention context candidate found
             { stored with Candidates = stored.Candidates.Add(candidate.CandidateId, attention) }, ledger, receipt
     | NewCandidate(_, receipt), _
     | AlreadyReceived receipt, _

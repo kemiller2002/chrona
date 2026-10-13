@@ -54,3 +54,57 @@ let reasonsOf (receipt: Observations.Receipt) =
     match receipt.Outcome with
     | Observations.InvalidObservation reasons -> Some reasons
     | Observations.CandidateRecorded _ -> None
+
+/// What a source's policy made of a new candidate (expansion 19, WI-0074).
+type Policed =
+    /// Left for a person to review: the source is not trusted, or the
+    /// observation names no member to record the time for.
+    | ForReview
+    /// Accepted as the named person's time: the decided candidate, the
+    /// activities recorded and the ledger's audit entries.
+    | AutoAccepted of candidate: Observations.Candidate * activities: Activity.Activity list * entries: Ledger.AuditEntry list
+    /// The policy would accept it, but the time cannot be recorded as it is
+    /// (an overlap, an archived reference, a held period): a person decides.
+    | Attention of Observations.Candidate
+
+/// Applies the organization's policy for the candidate's source. Only a
+/// trusted source, with the classification its policy names, and only for
+/// an observation that names one of the organization's members: that
+/// person's ledger (`ledger`, the months the time falls in) decides, under
+/// every ordinary rule, and time in a submitted or closed period waits for
+/// a person (`periods`, `reviews`).
+let police
+    (policy: Observations.SourcePolicy)
+    (context: Observations.DecisionContext)
+    (members: Set<string>)
+    (periods: Periods.PeriodConfig)
+    (reviews: PeriodReview.PeriodReview list)
+    (activityId: string)
+    (candidate: Observations.Candidate)
+    (ledger: Ledger.Ledger)
+    =
+    let observation = candidate.Observation
+
+    match policy, observation.ActorId with
+    | { AutoAccept = true; DefaultActivityTypeId = Some activityType; DefaultBusinessPurpose = Some purpose }, Some actor when
+        policy.SourceSystem = observation.SourceSystem && members.Contains actor && candidate.Disposition = Observations.Pending
+        ->
+        let single: Observations.Inbox =
+            { Observations.empty with Candidates = Map.ofList [ candidate.CandidateId, candidate ] }
+
+        let classification = Observations.proposal activityType purpose observation
+
+        let accepted =
+            Observations.accept context activityId candidate.CandidateId candidate.Revision classification single ledger
+            |> Result.bind (fun (inbox, next) ->
+                let recorded =
+                    next.Activities |> Map.toList |> List.filter (fun (id, a) -> ledger.Activities.TryFind id <> Some a) |> List.map snd
+
+                match PeriodReview.restrictions periods reviews (PeriodReview.touchedBy ledger.Activities recorded) with
+                | [] -> Ok(inbox.Candidates[candidate.CandidateId], recorded, next.Audit |> List.skip ledger.Audit.Length)
+                | restricted -> Error restricted)
+
+        match accepted with
+        | Ok(decided, recorded, entries) -> AutoAccepted(decided, recorded, entries)
+        | Error problems -> Attention(Observations.needsAttention context candidate (List.distinct problems))
+    | _ -> ForReview

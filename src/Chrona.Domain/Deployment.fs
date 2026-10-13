@@ -65,7 +65,16 @@ type OrganizationConfig =
       /// The GitHub numeric account ids who may set the organization up and
       /// be its first administrators. No one else ever becomes one by
       /// opening it.
-      Administrators: string list }
+      Administrators: string list
+      /// What each observation source may do without review (expansion 19,
+      /// WI-0074): a source not named here is reviewed by a person.
+      SourcePolicies: Observations.SourcePolicy list }
+
+/// The policy for a source: the organization's, or review everything.
+let sourcePolicy (organization: OrganizationConfig) (sourceSystem: string) =
+    organization.SourcePolicies
+    |> List.tryFind (fun policy -> policy.SourceSystem = sourceSystem)
+    |> Option.defaultValue (Observations.reviewEverything sourceSystem)
 
 /// A deployment's configuration.
 /// What signing out does with this account's unsent changes on a device
@@ -250,8 +259,62 @@ let isBootstrapAdministrator (organization: OrganizationConfig) (actorId: string
     | [| "github"; id |] -> List.contains id organization.Administrators
     | _ -> false
 
+/// One source's policy: `{"sourceSystem", "autoAccept", "activityTypeId",
+/// "businessPurpose"}`. A source accepted without review needs the
+/// activity type and business purpose its time is recorded with, since
+/// producers know neither.
+let private sourcePolicyOf (value: Json) =
+    closed [ "activityTypeId"; "autoAccept"; "businessPurpose"; "sourceSystem" ] value
+    |> Result.bind (fun _ ->
+        let optional name =
+            match Json.field name value with
+            | None -> Ok None
+            | Some(Json.String found) when not (String.IsNullOrWhiteSpace found) -> Ok(Some(found.Trim()))
+            | Some _ -> invalid $"'{name}' is not text"
+
+        match
+            text "sourceSystem" value |> Result.bind (fun found -> Segment.create found |> Result.mapError (fun _ -> InvalidDeploymentConfig $"'{found}' cannot name a source: use letters, digits, '.', '-' or '_'") |> Result.map (fun _ -> found)),
+            (match Json.field "autoAccept" value with
+             | Some(Json.Bool found) -> Ok found
+             | None -> Ok false
+             | Some _ -> invalid "'autoAccept' is not true or false"),
+            optional "activityTypeId",
+            optional "businessPurpose"
+        with
+        | Ok source, Ok true, Ok(Some activityType), Ok(Some purpose) ->
+            Ok(
+                { SourceSystem = source
+                  AutoAccept = true
+                  DefaultActivityTypeId = Some activityType
+                  DefaultBusinessPurpose = Some purpose }: Observations.SourcePolicy
+            )
+        | Ok source, Ok true, Ok _, Ok _ -> invalid $"'{source}' is accepted without review, so it needs 'activityTypeId' and 'businessPurpose'"
+        | Ok source, Ok false, Ok activityType, Ok purpose ->
+            Ok(
+                { SourceSystem = source
+                  AutoAccept = false
+                  DefaultActivityTypeId = activityType
+                  DefaultBusinessPurpose = purpose }: Observations.SourcePolicy
+            )
+        | Error e, _, _, _
+        | _, Error e, _, _
+        | _, _, Error e, _
+        | _, _, _, Error e -> Error e)
+
+let private sourcePoliciesOf (value: Json) =
+    match Json.field "sourcePolicies" value with
+    | None -> Ok []
+    | Some(Json.Array items) ->
+        items
+        |> List.fold (fun state item -> state |> Result.bind (fun found -> sourcePolicyOf item |> Result.map (fun next -> found @ [ next ]))) (Ok [])
+        |> Result.bind (fun policies ->
+            match policies |> List.countBy _.SourceSystem |> List.tryFind (fun (_, count) -> count > 1) with
+            | Some(source, _) -> invalid $"'{source}' has two source policies"
+            | None -> Ok policies)
+    | Some _ -> invalid "'sourcePolicies' is not a list"
+
 let private organizationOf (value: Json) =
-    closed [ "administrators"; "displayName"; "id"; "location"; "slug"; "timeZone" ] value
+    closed [ "administrators"; "displayName"; "id"; "location"; "slug"; "sourcePolicies"; "timeZone" ] value
     |> Result.bind (fun _ ->
         match text "id" value, text "displayName" value, text "slug" value, text "timeZone" value with
         | Ok id, Ok displayName, Ok slug, Ok zone ->
@@ -264,14 +327,18 @@ let private organizationOf (value: Json) =
                 | None -> Ok None
                 | Some found -> locationOf found |> Result.map Some
                 |> Result.bind (fun location ->
-                    administratorsOf value
-                    |> Result.map (fun administrators ->
-                        { Id = id
-                          DisplayName = displayName
-                          Slug = slug
-                          TimeZone = zone
-                          Location = location
-                          Administrators = administrators }))
+                    match administratorsOf value, sourcePoliciesOf value with
+                    | Ok administrators, Ok policies ->
+                        Ok
+                            { Id = id
+                              DisplayName = displayName
+                              Slug = slug
+                              TimeZone = zone
+                              Location = location
+                              Administrators = administrators
+                              SourcePolicies = policies }
+                    | Error e, _
+                    | _, Error e -> Error e)
         | Error e, _, _, _
         | _, Error e, _, _
         | _, _, Error e, _

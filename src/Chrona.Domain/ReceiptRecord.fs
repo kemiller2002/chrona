@@ -85,6 +85,16 @@ let ofBody (value: Json) : Decoded<Receipt> =
         | _, _, Error e, _
         | _, _, _, Error e -> Error e)
 
+/// The folder of every source's receipts, inside the organization's folder.
+let rootFolder () : Result<RelativePath, Diagnostic> =
+    [ Layout.RecordsFolder; RecordType.value recordType ]
+    |> List.fold
+        (fun state text ->
+            state
+            |> Result.bind (fun found -> segment text |> Result.map (fun next -> found @ [ next ])))
+        (Ok [])
+    |> Result.bind (RelativePath.ofSegments >> Result.mapError (LocationError.describe >> InvalidDataLocation))
+
 /// The folder of a source's receipts, inside the organization's folder.
 let sourceFolder (sourceSystem: string) : Result<RelativePath, Diagnostic> =
     [ Layout.RecordsFolder; RecordType.value recordType; sourceSystem ]

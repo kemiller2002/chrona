@@ -2,9 +2,9 @@
 id: CHRONA-DEPLOYMENT-CONFIGURATION
 title: Configuring a Chrona deployment
 status: accepted
-version: 1.0.0
+version: 1.1.0
 created: 2026-10-08
-updated: 2026-10-08
+updated: 2026-10-13
 owners:
   - chrona
 related_documents:
@@ -118,7 +118,7 @@ The repository's copy is a local deployment; a deployment replaces it.
 | `identity.redirectUri` | yes | The page GitHub returns to, exactly as registered (the Chrona page's address). It carries no fragment: the place a person signed in from is kept in their tab across the round trip and restored after it (CHX-460). |
 | `quickDurations` | no | The common durations, in whole minutes (1 to 720), that the manual entry form offers to set the end from the start. Default `[15, 30, 45, 60, 90, 120]`. |
 | `sharedDevicePolicy` | no | What signing out does with changes that have not reached GitHub: `ask` (the default) or `discardOnSignOut`. See Sign-in. |
-| `organizations` | with `location` | The organizations the deployment serves, the default first. Each has an `id` (immutable; it names the organization's folder), `displayName`, `slug` (lower case), `timeZone` (IANA), its bootstrap `administrators` (GitHub numeric account ids; see People) and, optionally, a `location` of its own, for example to give its data its own permissions (CHX-DATALOC-004). |
+| `organizations` | with `location` | The organizations the deployment serves, the default first. Each has an `id` (immutable; it names the organization's folder), `displayName`, `slug` (lower case), `timeZone` (IANA), its bootstrap `administrators` (GitHub numeric account ids; see People) and, optionally, a `location` of its own, for example to give its data its own permissions (CHX-DATALOC-004). Optionally, `sourcePolicies` (WI-0074): what each observation source may do without review, as `{"sourceSystem", "autoAccept", "activityTypeId", "businessPurpose"}`. A source with `"autoAccept": true` must name the activity type and business purpose its time is recorded with; its observations that name a member become that member's time when the inbox is read, under every ordinary rule, and anything that cannot be recorded as it is waits for a person. A source not listed is reviewed by a person. |
 
 A `location` needs `identity` (someone signed in must write the data) and at
 least one organization; organization ids are unique.

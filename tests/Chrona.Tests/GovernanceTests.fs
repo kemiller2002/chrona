@@ -20,7 +20,8 @@ let private organization (administrators: string list) : Deployment.Organization
       Slug = "acme"
       TimeZone = "UTC"
       Location = None
-      Administrators = administrators }
+      Administrators = administrators
+      SourcePolicies = [] }
 
 let private nobody: Access.Roster = { OrganizationId = "org_acme"; Members = Map.empty }
 let private person id : Access.Principal = { PrincipalId = id; Kind = Access.Human; DisplayName = id }

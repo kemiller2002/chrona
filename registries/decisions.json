@@ -431,6 +431,20 @@
             "modified"
           ],
           "reason": "Reads, histories and read-cache writes together on the bridge thread; histories by path and revision (WI-0077)"
+        },
+        "EXE-20261013T125315194Z-1fc14a1f": {
+          "actor": {
+            "id": "anthropic/claude-code",
+            "kind": "agent",
+            "model": "unknown",
+            "provider": "anthropic",
+            "runtime": "claude-code"
+          },
+          "at": "2026-10-13T13:00:00.000Z",
+          "operations": [
+            "modified"
+          ],
+          "reason": "Trusted observation sources from the deployment, and receipts without their candidate (WI-0074)"
         }
       }
     },
@@ -452,7 +466,7 @@
     ],
     "title": "Records live on GitHub through Arca's provider behind the store port, every commit conditioned on the repository state and decided again when it moved",
     "updated": "2026-10-13",
-    "version": "1.14.0"
+    "version": "1.15.0"
   },
   {
     "created": "2026-10-08",

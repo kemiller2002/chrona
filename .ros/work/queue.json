@@ -1705,10 +1705,10 @@
       "description": "Found profiling WI-0039's report across everyone: each refresh wrote about 30 read-cache partitions one after another (about 40 ms each, 1.1-1.3 s), asked GitHub for every activity record's history again (N+1), and listed and read every folder and file strictly in sequence. Fix in Chrona: an in-turn fork-join on the bridge's one thread, at most 6 in flight, results in the order given; folder listings, file reads, histories and cache writes go through it; histories are kept for the page session by (path, revision), so an unchanged record is not asked about again. Upstream, not worked around here: kemiller2002/arca#38 (batched ReadCacheStore save) and kemiller2002/arca#39 (no ref fetch before a read pinned to a commit); adopt both through Conditor once released. Evidence: before/after timings of the same browser scenario, measured.",
       "tags": [],
       "priority": "high",
-      "status": "ready",
+      "status": "complete",
       "attachments": [],
       "createdAt": "2026-10-13T10:08:56.000Z",
-      "updatedAt": "2026-10-13T10:08:56.000Z",
+      "updatedAt": "2026-10-13T14:08:58.000Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

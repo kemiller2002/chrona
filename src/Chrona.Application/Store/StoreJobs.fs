@@ -11,6 +11,7 @@ open Arca.GitHub
 open Chrona.Domain
 open Chrona.Domain.Diagnostics
 open Chrona.Engine.App
+open Chrona.Engine.App.ModelPorts
 open Chrona.Engine.App.Model
 open Chrona.Application.Bridge
 open Chrona.Application.Store

@@ -12,6 +12,8 @@
     <Compile Include="KernelSliceView.fs" />
     <Compile Include="App/Format.fs" />
     <Compile Include="App/Places.fs" />
+    <Compile Include="App/ModelPorts.fs" />
+    <Compile Include="App/ModelForms.fs" />
     <Compile Include="App/Model.fs" />
     <Compile Include="App/Update.fs" />
     <Compile Include="App/Update/UpdateCommands.fs" />

@@ -18,6 +18,8 @@ open System
 open System.Text.Json.Nodes
 open Aegis
 open Chrona.Engine.App
+open Chrona.Engine.App.ModelPorts
+open Chrona.Engine.App.ModelForms
 open Chrona.Engine.App.Model
 open Chrona.Application.Json
 open Chrona.Application.Limen

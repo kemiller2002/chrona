@@ -8,6 +8,8 @@ open Chrona.Domain
 open Chrona.Domain.Diagnostics
 open Chrona.Domain.Time
 open Chrona.Domain.Activity
+open Chrona.Engine.App.ModelPorts
+open Chrona.Engine.App.ModelForms
 open Chrona.Engine.App.Model
 open Chrona.Engine.App.Update
 open Chrona.Engine.App.UpdateCommands

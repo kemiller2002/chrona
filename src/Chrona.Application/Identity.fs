@@ -18,6 +18,8 @@ open Fides
 open Fides.Client
 open Chrona.Domain
 open Chrona.Engine.App
+open Chrona.Engine.App.ModelPorts
+open Chrona.Engine.App.ModelForms
 open Chrona.Engine.App.Model
 open Chrona.Application.Bridge
 

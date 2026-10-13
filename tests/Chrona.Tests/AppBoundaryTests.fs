@@ -8,6 +8,8 @@ open System.Text.RegularExpressions
 open System.Text.Json.Nodes
 open Xunit
 open Aegis
+open Chrona.Engine.App.ModelPorts
+open Chrona.Engine.App.ModelForms
 open Chrona.Engine.App.Model
 open Chrona.Application
 open Chrona.Tests.Support

@@ -8,6 +8,8 @@ open Chrona.Domain.Diagnostics
 open Chrona.Domain.Time
 open Chrona.Domain.Activity
 open Chrona.Engine.View
+open Chrona.Engine.App.ModelPorts
+open Chrona.Engine.App.ModelForms
 open Chrona.Engine.App.Model
 
 let internal text key (value: string) = key, Value(Text value)

@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "repository": "chrona",
-  "nextSeq": 75,
+  "nextSeq": 84,
   "items": [
     {
       "id": "WI-0001",
@@ -1814,6 +1814,30 @@
       "attachments": [],
       "createdAt": "2026-10-13T16:10:34.000Z",
       "updatedAt": "2026-10-13T17:46:39.350Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0083",
+      "title": "Split oversized Chrona modules to SDE-STRUCT-001 limits",
+      "description": "ordo verify --strict (Ordo 1.7.0) on c97dc02 reports 13 SDE-STRUCT-001 findings (every source unit must be under 500 physical lines): StoreTests.fs 3560, Store.fs 3200, Update.fs 2680, Project.fs 1950, AppBoundaryTests.fs 971, AppEngineTests.fs 954, Model.fs 804, app-github.spec.js 759, Stored.fs 718, PersistenceTests.fs 711, Places.fs 597, ActivityRecord.fs 534, App.fs 520. Split each into cohesive modules along existing seams, by domain responsibility, behaviour-preserving with no logic changes, functional style (pure functions, no new mutable state). One file (or tightly coupled pair) per PR, largest first. Each PR: full .NET and browser suites green, test count equal or higher, none removed or skipped, ordo verify --strict shows that file's findings gone and none new. No waivers or justifications: a file that cannot reach the limit without hurting cohesion is reported to the lead. WI-0079's strict gate depends on this WI reaching zero findings. Timer.fs and TimerRecord.fs are not in scope (no findings).",
+      "tags": [
+        "sde",
+        "structure"
+      ],
+      "priority": "medium",
+      "status": "ready",
+      "attachments": [],
+      "createdAt": "2026-10-13T17:58:13.345Z",
+      "updatedAt": "2026-10-13T17:58:30.846Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

@@ -277,7 +277,7 @@ type private Device(github: InMemoryStore, visibility: RepositoryVisibility, env
                 ) }
 
     let store =
-        Store.arca bridge backend (fun () -> start) (fun prefix -> $"{prefix}-{Threading.Interlocked.Increment keys:D8}")
+        ArcaStore.arca bridge backend (fun () -> start) (fun prefix -> $"{prefix}-{Threading.Interlocked.Increment keys:D8}")
 
     let ids = ref 0
 
@@ -710,7 +710,7 @@ let ``the GitHub backend sends its requests through the bridge with Fides' token
     let mutable unauthorized = 0
 
     let backend =
-        Store.gitHub
+        StoreGitHub.gitHub
             bridge
             (fun () -> Some(fun () -> async.Return(Ok token)))
             (fun () ->

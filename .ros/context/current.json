@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-13T10:50:04.000Z",
+  "updatedAt": "2026-10-13T11:00:42.000Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -2963,6 +2963,37 @@
         }
       },
       "blockReason": "Chrona's part merged (#91, 43fbfa6). Waiting on Arca: a batched ReadCacheStore save (kemiller2002/arca#38) and no ref fetch before a pinned read (kemiller2002/arca#39); adopt both through Conditor once released."
+    },
+    {
+      "id": "WI-0078",
+      "type": "task",
+      "state": "active",
+      "semanticState": "active",
+      "evidence": [],
+      "updatedAt": "2026-10-13T11:00:42.000Z",
+      "telemetryExecutionIds": [
+        "EXE-20261013T110044442Z-b439414e"
+      ],
+      "latestCheckpoint": {
+        "id": "3c13ba1b6843c9feb44c94dc",
+        "recordedAt": "2026-10-13T11:03:42.000Z",
+        "executionId": "EXE-20261013T110044442Z-b439414e",
+        "repository": "chrona",
+        "branch": "test/baseline-sources-paths",
+        "commit": "13416e156b8f21b1824ec7691893317751fa946f",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/chrona"
+        },
+        "remoteBranch": "test/baseline-sources-paths",
+        "remoteCommit": "13416e156b8f21b1824ec7691893317751fa946f",
+        "summary": "MeasurementIndexTests: paths (patterns for placeholders and globs) and commit hashes in baseline-sources.md exist; build checks out full history",
+        "nextAction": "Open the PR and merge through the gate",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      }
     }
   ]
 }

@@ -1718,6 +1718,27 @@
       },
       "source": "manual",
       "sourceReference": null
+    },
+    {
+      "id": "WI-0078",
+      "title": "Measurement: a test that every repository path and commit the baseline-sources index names exists",
+      "description": "Follow-up to WI-0076 (program lead, 2026-10-13): Signal's index test caught two wrong paths on its first run. Every backticked repository path in docs/measurement/baseline-sources.md (first segment at the repository root; <placeholders> and * as patterns that must match something) must exist, and every backticked short commit hash must name a commit in the repository's history (the build checks out full history for it).",
+      "tags": [],
+      "priority": "medium",
+      "status": "ready",
+      "attachments": [],
+      "createdAt": "2026-10-13T11:00:42.000Z",
+      "updatedAt": "2026-10-13T11:00:42.000Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
     }
   ]
 }

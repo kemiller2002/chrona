@@ -86,3 +86,4 @@
 | WI-0078 | Measurement: a test that every repository path and commit the baseline-sources index names exists | complete |  | medium |
 | WI-0079 | Chrona: SDE/Ordo validation of Chrona's domain lifecycles - production completion gate item (CHX-002, CHX-440 remainders) | captured |  | medium |
 | WI-0080 | Chrona: CSV exports neutralize spreadsheet formulas (CSV injection) in every text cell, numbers kept as numbers (CHX-290) | complete |  | high |
+| WI-0081 | Chrona: sign-in reads pinned to observed states - the opening's manifests and datasets listing, the activity index at load's state, and one pin per inbox pass | ready |  | medium |

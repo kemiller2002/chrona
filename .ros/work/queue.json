@@ -1782,6 +1782,27 @@
       },
       "source": "manual",
       "sourceReference": null
+    },
+    {
+      "id": "WI-0081",
+      "title": "Chrona: sign-in reads pinned to observed states - the opening's manifests and datasets listing, the activity index at load's state, and one pin per inbox pass",
+      "description": "Approved by the program lead (2026-10-13) after WI-0077. Sign-in took about 2.7-4.0 s and about 55 GitHub requests because only load was pinned. Pin, in src/Chrona.Application/Store.fs: openFresh's manifest reads and datasets listing at the application and organization namespaces' observed states; readIndex at the state load observed; and the inbox pass (inboxJob, receiptsWithoutCandidate) at one state observed at its start. Identity resolution, commits, histories and the queue stay unpinned; writes stay conditioned as before. Evidence: StoreTests through the pin hook, the full suites, and 3 before and 3 after runs of the same harness on the same day, with sign-in time and request count reported separately and claims only where the ranges do not overlap.",
+      "tags": [],
+      "priority": "medium",
+      "status": "ready",
+      "attachments": [],
+      "createdAt": "2026-10-13T15:19:43.000Z",
+      "updatedAt": "2026-10-13T15:19:43.000Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
     }
   ]
 }

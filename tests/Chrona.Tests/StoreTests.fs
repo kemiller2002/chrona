@@ -185,6 +185,8 @@ type private Device(github: InMemoryStore, visibility: RepositoryVisibility, env
     let mutable pins = false
     let mutable pinnedAt: ChangeToken list = []
     let mutable pinnedReads = 0
+    /// The paths read or listed without a pin while pins are offered.
+    let mutable unpinned: string list = []
 
     let provider location =
         let real = github.Provider
@@ -192,8 +194,14 @@ type private Device(github: InMemoryStore, visibility: RepositoryVisibility, env
         { real with
             ChangeToken = fun ns -> if offline then unreachable () else real.ChangeToken ns
             NamespaceState = fun ns -> if offline then unreachable () else real.NamespaceState ns
-            Read = fun ns path -> if offline then unreachable () else real.Read ns path
-            List = fun ns path -> if offline then unreachable () else real.List ns path
+            Read =
+                fun ns path ->
+                    if pins then unpinned <- unpinned @ [ RelativePath.render path ]
+                    if offline then unreachable () else real.Read ns path
+            List =
+                fun ns path ->
+                    if pins then unpinned <- unpinned @ [ RelativePath.render path ]
+                    if offline then unreachable () else real.List ns path
             History =
                 fun ns path ->
                     historyAsked <- historyAsked @ [ RelativePath.render path ]
@@ -248,14 +256,15 @@ type private Device(github: InMemoryStore, visibility: RepositoryVisibility, env
 
                             ({ At = token
                                NamespaceState = unpinned.NamespaceState
+                               // Straight to the store: a pinned read is not an unpinned one.
                                List =
                                  fun ns path ->
                                      pinnedReads <- pinnedReads + 1
-                                     unpinned.List ns path
+                                     github.Provider.List ns path
                                Read =
                                  fun ns path ->
                                      pinnedReads <- pinnedReads + 1
-                                     unpinned.Read ns path }: PinnedReads))
+                                     github.Provider.Read ns path }: PinnedReads))
                     else
                         None }
           Resolve =
@@ -455,6 +464,7 @@ type private Device(github: InMemoryStore, visibility: RepositoryVisibility, env
     member _.UsePins() = pins <- true
     member _.PinnedAt = pinnedAt
     member _.PinnedReads = pinnedReads
+    member _.Unpinned = unpinned
 
     member _.UnreachableAfter(after: int) = unreachableAttempt <- Some(attempts + after)
 
@@ -3522,3 +3532,29 @@ let ``across organizations, someone who sees only their own time in one sees onl
     // His own time from Acme Europe; never hubot's.
     Assert.Equal<string list>([ "Acme work"; "Europe work" ], reportTitles octo.Model)
     Assert.Contains("only your own time", viewText "reportOrganizationsNote" octo.Model)
+
+[<Fact>]
+let ``opening reads the organization's manifest, its activity index and the inboxes through pins, never resolving the branch for each`` () =
+    let github, _ = withInbox ()
+    let device = Device(github, RepositoryVisibility.Private, "production")
+    device.UsePins()
+    device.Open()
+    Assert.Equal(2, device.Model.Inbox.Received)
+
+    let unpinned = device.Unpinned
+    // Read only through a pin: the organization's manifest, the activity
+    // index, the inbox and receipt listings, and every folder load reads.
+    for path in unpinned do
+        Assert.False(path.Contains "derived/indexes", $"index read unpinned: {path}")
+        Assert.False(path = "inbox" || path = "inbox/github", $"inbox listed unpinned: {path}")
+        Assert.False(path.StartsWith "records/chrona.receipt" && not (path.EndsWith ".json"), $"receipts listed unpinned: {path}")
+        Assert.False(path.StartsWith "records/chrona.activity", $"a folder load reads was unpinned: {path}")
+
+    // Manifests: the application's, read once as it was; the organization's
+    // two reads (whether it exists, then opening it) went through the pin.
+    Assert.Equal(1, unpinned |> List.filter ((=) "arca-manifest.json") |> List.length)
+
+    // What stays current, by design: the application's manifest (one read),
+    // and each inbox file as it is decided, since the pass's own commits move
+    // the folder under it.
+    Assert.All(unpinned, fun path -> Assert.True(path = "arca-manifest.json" || path.StartsWith "inbox/github/" || path.StartsWith "records/chrona.receipt/github/", path))

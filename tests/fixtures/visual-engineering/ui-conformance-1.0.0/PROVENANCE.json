@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "purpose": "test-fixture-only",
+  "contract": "visual-engineering/UI-LAYOUT-INTERACTION@1.0.0 evidence schema",
+  "source": {
+    "repository": "kemiller2002/visual-engineering",
+    "path": "framework/contracts/ui-conformance.schema.json",
+    "revision": "8da8fbcdfa4344cc2ec248102e8a2741f9e95c08",
+    "sha256": "1eecad51bf50bd8bcd6fca33ed6f3f7a09208abb298f22f338bb61e0096d7436",
+    "verified": "2026-10-13: git show of the pinned revision hashed identically to this file."
+  },
+  "files": "ui-conformance.schema.json (bytes verbatim; never edit — re-copy from a newer pinned revision instead)",
+  "consumers": [
+    "tools/ui-conformance/evidence.mjs"
+  ]
+}

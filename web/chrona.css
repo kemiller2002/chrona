@@ -19,6 +19,8 @@
 :root {
   --chrona-radius-large: calc(var(--ef-primitive-radius-medium) * 1.5);
   --chrona-gutter: clamp(1.25rem, 4vw, 4rem);
+  /* The narrowest a native date or time input shows its whole value. */
+  --chrona-pair-min: 8.5rem;
 }
 
 body {
@@ -492,6 +494,8 @@ button.chrona-timer-chip {
 .chrona-tracker {
   position: relative;
   overflow: hidden;
+  /* The clock is sized by the card, not the window (ULI-L05). */
+  container-type: inline-size;
   border-radius: calc(var(--chrona-radius-large) * 1.1);
   padding: clamp(1.4rem, 5vw, 3.25rem);
   background: var(--ef-color-surface-inverse-secondary);
@@ -544,7 +548,11 @@ button.chrona-timer-chip {
 .chrona-tracker__display {
   margin: clamp(1.6rem, 6vw, 3.5rem) 0 1rem;
   font-family: var(--ef-primitive-font-family-mono);
-  font-size: clamp(3rem, 10vw, 6.4rem);
+  /* 8 tabular digits and colons need about 4.8em of the card's inline size:
+     18cqi keeps "00:00:00" on one line in a narrow card (a 1280px window
+     beside the manual form wrapped it as "00:00:0" / "0"), and never
+     lowers the size where the window rule already fit. */
+  font-size: clamp(3rem, min(10vw, 18cqi), 6.4rem);
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
@@ -601,11 +609,26 @@ button.chrona-timer-chip {
   margin: 0;
   border: 0;
   padding: 0;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* A date and a time side by side while each keeps room for its whole
+     value and picker; stacked, in order, when the form is narrower (a
+     1280px window clipped "mm/dd/yyyy" to "mm/dd/y"; ULI-L05). */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--chrona-pair-min)), 1fr));
+  /* A fieldset is min-content wide by default; this one may be narrower
+     than one input's minimum, which then takes the whole row. */
+  min-inline-size: 0;
 }
 
 .chrona-pair legend {
   margin-block-end: 0.35rem;
+}
+
+/* A legend that names a group of fields starts on the same edge as the
+   labels above and below it: the browser's 2px legend inset is removed, as
+   the fieldsets' own padding is (ULI-L01). */
+.chrona-pair > legend,
+.chrona-tags > legend,
+.chrona-reference > legend {
+  padding-inline: 0;
 }
 
 .chrona-tags,
@@ -805,6 +828,12 @@ button.chrona-timer-chip {
   content: "!";
 }
 
+.chrona-check__title {
+  /* A long word in a check's name breaks rather than pushing the row past a
+     narrow screen at large text sizes (ULI-L05). */
+  overflow-wrap: anywhere;
+}
+
 .chrona-check__status {
   font-family: var(--ef-primitive-font-family-mono);
   font-size: 0.8rem;
@@ -899,13 +928,17 @@ textarea.chrona-export {
   display: none;
 }
 
-@media (max-width: 900px) {
+/* Breakpoints are in rem so they follow the reader's default text size
+   (ULI-L05, ULI-L09): at 200% text a 768px window has the room of a 384px
+   one and gets the phone composition, instead of a 31rem sidebar squeezing
+   the page off screen. At the default 16px they are the same 900/760/520px. */
+@media (max-width: 56.25rem) {
   .chrona-layout {
     grid-template-columns: minmax(0, 1fr);
   }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 47.5rem) {
   .chrona-shell {
     display: block;
   }
@@ -1005,7 +1038,7 @@ textarea.chrona-export {
   }
 }
 
-@media (max-width: 520px) {
+@media (max-width: 32.5rem) {
   .chrona-record {
     gap: 1.1rem;
     grid-template-columns: 4.1rem minmax(0, 1fr);

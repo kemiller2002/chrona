@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-13T12:15:49.000Z",
+  "updatedAt": "2026-10-13T12:32:59.000Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -3067,10 +3067,19 @@
     {
       "id": "WI-0080",
       "type": "task",
-      "state": "active",
-      "semanticState": "active",
-      "evidence": [],
-      "updatedAt": "2026-10-13T12:15:49.000Z",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Domain/Reports.fs"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/ReportTests.fs"
+        }
+      ],
+      "updatedAt": "2026-10-13T12:32:59.000Z",
       "telemetryExecutionIds": [
         "EXE-20261013T121552440Z-4acebe34"
       ],
@@ -3093,7 +3102,9 @@
           "status": "verified",
           "mechanism": "git-remote-observation"
         }
-      }
+      },
+      "completedAt": "2026-10-13T12:32:59.000Z",
+      "conclusion": "CSV exports neutralize formula-like text cells (=,+,-,@,tab,CR) with a leading single quote and RFC 4180 quoting; numbers stay numbers; header lines with commas are one cell. Merged #97 (a91657f) at 2026-10-13T12:32:24Z. Escaped defect from WI-0049 / PR #33 (adaafee). Measurement: execution EXE-20261013T121552440Z-4acebe34; start 12:15:52Z; first PR head passed every check; 0 repair pushes; tokens and cost unavailable (runtime exposes no per-request usage in-context; transcript ingestion pending program decision)"
     }
   ]
 }

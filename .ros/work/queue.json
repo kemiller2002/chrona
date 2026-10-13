@@ -1767,10 +1767,10 @@
       "description": "Security check from the program lead, after Summa found the same defect. Chrona's CSV time-report export (Reports.csv, WI-0049, PR #33) wrote text cells as they were, so a description, business purpose, tag, client, project or activity-type value beginning with =, +, -, @, a tab or a carriage return would be read as a formula by a spreadsheet (for example =HYPERLINK(...)). Neutralize every text cell that begins with one of those characters by prefixing a single quote, then apply RFC 4180 quoting; numeric columns (exactMinutes, billableMinutes, revision) stay numbers. Test each prefix and a =HYPERLINK(...) description and client name. Escaped defect against #33.",
       "tags": [],
       "priority": "high",
-      "status": "ready",
+      "status": "complete",
       "attachments": [],
       "createdAt": "2026-10-13T12:15:49.000Z",
-      "updatedAt": "2026-10-13T12:15:49.000Z",
+      "updatedAt": "2026-10-13T12:32:59.000Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

@@ -85,4 +85,4 @@
 | WI-0077 | Chrona: report refresh latency - reads, histories and read-cache writes run together on the bridge thread (bounded at 6, order kept); histories cached by path and revision | blocked |  | high |
 | WI-0078 | Measurement: a test that every repository path and commit the baseline-sources index names exists | complete |  | medium |
 | WI-0079 | Chrona: SDE/Ordo validation of Chrona's domain lifecycles - production completion gate item (CHX-002, CHX-440 remainders) | captured |  | medium |
-| WI-0080 | Chrona: CSV exports neutralize spreadsheet formulas (CSV injection) in every text cell, numbers kept as numbers (CHX-290) | ready |  | high |
+| WI-0080 | Chrona: CSV exports neutralize spreadsheet formulas (CSV injection) in every text cell, numbers kept as numbers (CHX-290) | complete |  | high |

@@ -3188,7 +3188,27 @@
       "updatedAt": "2026-10-13T14:16:30.000Z",
       "telemetryExecutionIds": [
         "EXE-20261013T141631799Z-f54aa096"
-      ]
+      ],
+      "latestCheckpoint": {
+        "id": "d8a9d9c1738bdce6550ba579",
+        "recordedAt": "2026-10-13T14:37:11.000Z",
+        "executionId": "EXE-20261013T141631799Z-f54aa096",
+        "repository": "chrona",
+        "branch": "feature/reports-across-organizations",
+        "commit": "11aaee98bf5c25a2c87b7d0b2aa174df2d832bf6",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/chrona"
+        },
+        "remoteBranch": "feature/reports-across-organizations",
+        "remoteCommit": "11aaee98bf5c25a2c87b7d0b2aa174df2d832bf6",
+        "summary": "organizations=all reads each other organization the person belongs to from its own folder (pinned), as its roster lets them see it; organization filter and grouping in Reports; export names every organization; CHX-270/280 tested; .NET 452, Chromium 71",
+        "nextAction": "Open the PR and merge through the gate",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      }
     }
   ]
 }

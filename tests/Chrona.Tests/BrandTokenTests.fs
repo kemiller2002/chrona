@@ -81,12 +81,26 @@ let ``the page's brand CSS is the compiler's output for this manifest`` () =
             for role in group.Value.AsObject() do
                 Assert.Contains($"--ef-color-{group.Key}-{role.Key}: {role.Value.GetValue<string>()};", block)
 
+/// The Forma tag the compile script resolves, by running it with --tag.
+let private compileScriptTag () =
+    let info =
+        Diagnostics.ProcessStartInfo("sh", "tools/brand/compile.sh --tag", WorkingDirectory = repositoryRoot, RedirectStandardOutput = true, RedirectStandardError = true)
+
+    use run = Diagnostics.Process.Start info
+    let output = run.StandardOutput.ReadToEnd()
+    run.WaitForExit()
+    Assert.Equal(0, run.ExitCode)
+    output.Trim()
+
 [<Fact>]
-let ``the compile script pins the Forma release the page consumes`` () =
-    let script = readRepoFile "tools/brand/compile.sh"
-    let pinned = (JsonNode.Parse(readRepoFile "package.json")).["dependencies"].["@echelon-foundry/design-system"].GetValue<string>()
-    let tag = Regex.Match(script, "FORMA_TAG=\"(v[0-9.]+)\"").Groups[1].Value
-    Assert.Contains($"/download/{tag}/", pinned)
+let ``the compile script compiles with the Forma release the lockfile pins`` () =
+    let locked =
+        (JsonNode.Parse(readRepoFile "package-lock.json")).["packages"].["node_modules/@echelon-foundry/design-system"].["version"].GetValue<string>()
+
+    let declared = (JsonNode.Parse(readRepoFile ".echelon/foundations.json")).["capabilities"].["forma"].["version"].GetValue<string>()
+    Assert.Equal($"v{locked}", compileScriptTag ())
+    Assert.Equal(locked, declared)
+    Assert.DoesNotMatch("FORMA_TAG=\"v[0-9]", readRepoFile "tools/brand/compile.sh")
     Assert.Contains("compile.sh --check", readRepoFile ".github/workflows/build.yml")
 
 [<Fact>]

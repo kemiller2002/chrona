@@ -6,15 +6,24 @@
 #   tools/brand/compile.sh            regenerate web/brand/
 #   tools/brand/compile.sh --check    fail if web/brand/ is not what the
 #                                     pinned compiler produces (CI)
+#   tools/brand/compile.sh --tag      print the Forma tag it compiles with
 #
-# Needs git, the .NET SDK and network access to github.com.
+# Needs git, node, the .NET SDK and network access to github.com.
 set -eu
 
 FORMA_REPOSITORY="https://github.com/kemiller2002/forma.git"
-# Must match the Forma release pinned in package.json.
-FORMA_TAG="v0.5.0"
 
 root="$(cd "$(dirname "$0")/../.." && pwd)"
+
+# The Forma release is the one Conditor pins in the lockfile; this script
+# holds no version of its own.
+FORMA_TAG="v$(node -p "require(process.argv[1]).packages['node_modules/@echelon-foundry/design-system'].version" "$root/package-lock.json")"
+
+if [ "${1:-}" = "--tag" ]; then
+  echo "$FORMA_TAG"
+  exit 0
+fi
+
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 

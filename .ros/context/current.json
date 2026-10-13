@@ -2843,20 +2843,20 @@
         "EXE-20261013T070628338Z-7702b978"
       ],
       "latestCheckpoint": {
-        "id": "f408d647c325806431229269",
-        "recordedAt": "2026-10-13T09:11:01.000Z",
+        "id": "ff52cfc92bfece7d87ee2bc4",
+        "recordedAt": "2026-10-13T09:35:40.000Z",
         "executionId": "EXE-20261013T070628338Z-7702b978",
         "repository": "chrona",
-        "branch": "feature/reports-on-stored-data",
-        "commit": "f0fa41421e670661e559b2c45bed5a86c16349f1",
+        "branch": "chore/wi-0039-complete",
+        "commit": "4a4624e96e39c99879edc835f967b487c9da7aa5",
         "remote": {
           "name": "origin",
           "url": "https://github.com/kemiller2002/chrona"
         },
-        "remoteBranch": "feature/reports-on-stored-data",
-        "remoteCommit": "f0fa41421e670661e559b2c45bed5a86c16349f1",
-        "summary": "Reports read every month of their range from GitHub; people=everyone for ViewOrganizationTime, others' months read on demand guided by a current activity index; .NET 416 and Chromium 70 pass locally; cross-organization remainder captured as WI-0075",
-        "nextAction": "Re-render the reports baselines on CI, open the PR, merge through gated-merge.sh",
+        "remoteBranch": "main",
+        "remoteCommit": "4a4624e96e39c99879edc835f967b487c9da7aa5",
+        "summary": "Merged through the gate (#87, 4a4624e): every check on 15d4781 succeeded, first PR head",
+        "nextAction": "Record completion",
         "verification": {
           "status": "verified",
           "mechanism": "git-remote-observation"

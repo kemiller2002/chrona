@@ -72,9 +72,9 @@ let reportPeople (model: Model) =
     |> List.sort
 
 /// The days a report covers: the dates its form names, or this month's
-/// (`Places.defaultRange`).
+/// (`PlaceAddresses.defaultRange`).
 let reportRange (model: Model) =
-    let first, last = Places.defaultRange (Model.today model)
+    let first, last = PlaceAddresses.defaultRange (Model.today model)
 
     Format.parseIsoDate model.Report.From |> Option.defaultValue first,
     Format.parseIsoDate model.Report.To |> Option.defaultValue last
@@ -117,7 +117,7 @@ let acrossOrganizations (model: Model) =
 /// The report filter a draft names: over the session's own records, or,
 /// for someone who may see the organization's time, everyone's or one
 /// person's. A date the address does not name is this month's
-/// (`Places.defaultRange`).
+/// (`PlaceAddresses.defaultRange`).
 let reportFilter (model: Model) : Reports.Filter =
     let draft = model.Report
     let from, ``to`` = reportRange model

@@ -2,7 +2,7 @@
 id: DF-CHRONA-2026-0005
 title: Records live on GitHub through Arca's provider behind the store port, every commit conditioned on the repository state and decided again when it moved
 status: accepted
-version: 1.13.0
+version: 1.14.0
 created: 2026-10-08
 updated: 2026-10-13
 owners:
@@ -168,6 +168,16 @@ provenance:
         model: unknown
         runtime: claude-code
       reason: "Reports on stored data, across the organization's people (WI-0039)"
+    EXE-20261013T100858403Z-27654d43:
+      operations: [modified]
+      at: 2026-10-13T10:50:00.000Z
+      actor:
+        kind: agent
+        id: anthropic/claude-code
+        provider: anthropic
+        model: unknown
+        runtime: claude-code
+      reason: "Reads, histories and read-cache writes together on the bridge thread; histories by path and revision (WI-0077)"
 ---
 
 # DF-CHRONA-2026-0005 — Records on GitHub through Arca
@@ -470,6 +480,24 @@ and semantic conflicts surfaced.
     not-permitted page; naming someone the organization does not have is a
     not-found page. Search is the same filter over the same records (CHX-270).
     A report across several of a deployment's organizations is WI-0075.
+20. **Reading together (WI-0077).** A read lists its folders together, then
+    reads their records together, at most six requests in flight
+    (`InTurn.together`): started on the browser's one thread and resumed by
+    the bridge, never on the thread pool (a whole resumes at the top of the
+    bridge's turn, `Bridge.Defer`, because F#'s trampoline would move a
+    continuation resumed inside another to the thread pool). Results keep
+    their order, and the first failure in folder and file order is the
+    answer. Each activity record's history (to hold what was edited outside
+    Chrona) is read the same way, and kept for the page's life by path and
+    revision: a record whose revision (its blob) is unchanged is not asked
+    about again, because the same bytes at the same path were judged
+    already. A record changed back by another tool to bytes Chrona wrote is
+    therefore trusted as those bytes. Read-cache partitions are kept together
+    too. Two costs remain upstream, not worked around here: Arca writes each
+    cache partition in its own IndexedDB transaction (about 40 ms each; a
+    batched save is kemiller2002/arca#38), and fetches the branch ref before
+    every read, even one pinned to a commit (kemiller2002/arca#39). Both are
+    adopted through Conditor once released.
 
 ## Consequences
 

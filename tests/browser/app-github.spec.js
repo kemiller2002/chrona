@@ -568,8 +568,10 @@ test("an administrator's link to everyone's time opens cold, reads each person's
   await expect(lead.locator("html")).toHaveAttribute("data-kernel", "running");
   await lead.click("#sign-in-button");
   await expect(lead.locator(".chrona-shell")).toBeVisible({ timeout: 20_000 });
-  // The records open, then Hubot's month is read from GitHub: one more read.
-  await expect(lead.locator("#report-table")).toContainText("Hubot's research", { timeout: 20_000 });
+  // The records open, then Hubot's month is read from GitHub: one more read,
+  // its folder and records read together and only Hubot's record's history
+  // asked for (WI-0077), within the default wait.
+  await expect(lead.locator("#report-table")).toContainText("Hubot's research");
   await expect(lead.locator("#report-table")).toContainText("Hubot · Research · HelixNote");
   await expect(lead.locator("#report-table")).toContainText("Octocat's planning");
   await expect(lead.locator("#report-people")).toHaveValue("everyone");

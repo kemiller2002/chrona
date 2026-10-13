@@ -178,6 +178,9 @@ type private Device(github: InMemoryStore, visibility: RepositoryVisibility, env
     let unreachable () =
         async.Return(Error(StorageFailure.ProviderFailed("AEGIS.NETWORK.UNAVAILABLE", true, "GitHub could not be reached")))
 
+    /// The records whose history was asked for, in order (WI-0077).
+    let mutable historyAsked: string list = []
+
     let provider location =
         let real = github.Provider
 
@@ -186,7 +189,10 @@ type private Device(github: InMemoryStore, visibility: RepositoryVisibility, env
             NamespaceState = fun ns -> if offline then unreachable () else real.NamespaceState ns
             Read = fun ns path -> if offline then unreachable () else real.Read ns path
             List = fun ns path -> if offline then unreachable () else real.List ns path
-            History = fun ns path -> if offline then unreachable () else real.History ns path
+            History =
+                fun ns path ->
+                    historyAsked <- historyAsked @ [ RelativePath.render path ]
+                    if offline then unreachable () else real.History ns path
             Reconcile = fun ns pending -> if offline then unreachable () else real.Reconcile ns pending
             Commit =
                 fun operation ->
@@ -415,6 +421,9 @@ type private Device(github: InMemoryStore, visibility: RepositoryVisibility, env
         beatenInside <- false
 
     /// The commit attempt `after` attempts from now finds GitHub out of reach.
+    /// The records whose history GitHub was asked for, in order.
+    member _.HistoryAsked = historyAsked
+
     member _.UnreachableAfter(after: int) = unreachableAttempt <- Some(attempts + after)
 
     /// The next `count` commits are each beaten by a commit inside Chrona's
@@ -3178,3 +3187,36 @@ let ``someone who may see the organization's time reports on everyone's, read fr
     Assert.Empty(colleague.Model.Store.Others)
     colleague.Send(LocationMoved "#/reports?from=2026-08-01&to=2026-10-31")
     Assert.Equal<string list>([ "Hubot in August"; "Hubot in October" ], reportTitles colleague.Model)
+
+// ---- Refreshing without asking again (WI-0077) ----------------------------------------
+
+[<Fact>]
+let ``a refresh asks for the history only of records that changed since this page read them`` () =
+    let github = InMemoryStore()
+    let device = Device(github, RepositoryVisibility.Private, "production")
+    device.Open()
+    record device "08:00" "08:30" "Setup"
+    recordOn device "2026-08-03" "August work"
+
+    let reader = Device(github, RepositoryVisibility.Private, "production")
+    reader.Open()
+    let opened = reader.HistoryAsked
+    Assert.Single(opened) |> ignore
+
+    // Reading August asks only about August's record; October's is known.
+    reader.Send(LocationMoved "#/reports?from=2026-08-01&to=2026-10-31")
+    Assert.Contains("August work", reportTitles reader.Model)
+    let added = reader.HistoryAsked |> List.skip opened.Length
+    Assert.Single(added) |> ignore
+    Assert.Contains("/2026/08/", added.Head)
+
+    // Someone edits October's record elsewhere: only it is asked about again.
+    let id = reader.Model.Ledger.Activities |> Map.toList |> List.map snd |> List.find (fun a -> a.Classification.Description = "Setup") |> _.ActivityId
+    amendFrom device id "Setup, amended"
+    let before = reader.HistoryAsked.Length
+    // Coming back to the page reads everything open again.
+    reader.Return()
+    let again = reader.HistoryAsked |> List.skip before
+    Assert.True(again |> List.forall (fun path -> path.Contains "/2026/10/"), $"%A{again}")
+    Assert.Contains("Setup, amended", reportTitles reader.Model)
+    Assert.Empty(reader.Model.Store.Integrity |> List.filter (function Chrona.Domain.Diagnostics.ExternalEdit _ -> true | _ -> false))

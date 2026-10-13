@@ -33,6 +33,7 @@
     <Compile Include="PersistenceTests.fs" />
     <Compile Include="SignInTests.fs" />
     <Compile Include="AccessTests.fs" />
+    <Compile Include="InTurnTests.fs" />
     <Compile Include="StoreTests.fs" />
     <Compile Include="GovernanceTests.fs" />
     <Compile Include="PlacesTests.fs" />

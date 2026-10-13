@@ -1,14 +1,14 @@
 {
   "schemaVersion": 4,
   "project": "chrona",
-  "manifestSha256": "b9ffe6eab5c638caf9c2afd7679f85f309a4b908737f2f8cc34dc72507c7d68b",
+  "manifestSha256": "f172b258c75779ba01cc14cd701cb82f17c87c7d5c6e9a56d657d3ea5af5d648",
   "manifest": {
     "schemaVersion": 1,
     "name": "chrona",
     "registryAuthority": {
       "kind": "resolved-release-set",
       "path": ".conditor/authority/resolved-release-set.json",
-      "sha256": "788bcd4907d6ed239684694843d395939266183cb285230cd39f442e2c37ef37"
+      "sha256": "1e4bb817185c3f3838d6e83da5984c30151445758d55dc83edbccd889ed4c35d"
     },
     "components": [
       {
@@ -48,12 +48,12 @@
       },
       {
         "id": "forma",
-        "version": "0.5.0",
+        "version": "0.6.1",
         "required": true
       },
       {
         "id": "folio",
-        "version": "0.3.0",
+        "version": "0.4.0",
         "required": true
       }
     ],
@@ -124,21 +124,21 @@
     },
     {
       "id": "forma",
-      "version": "0.5.0",
+      "version": "0.6.1",
       "distribution": "npm",
       "package": "@echelon-foundry/design-system",
       "descriptorSha256": "4893621f78f0af5165124418db433e37f7b67365dca13453c5994a7ccf4da1d5",
       "authority": "embedded-component-descriptor",
-      "sourceReference": "npm:@echelon-foundry/design-system@0.5.0"
+      "sourceReference": "npm:@echelon-foundry/design-system@0.6.1"
     },
     {
       "id": "folio",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "distribution": "npm",
       "package": "@echelon-foundry/print-components",
       "descriptorSha256": "51240f698d19e0cd11d527ca9dfb22f3495c383fa6fe2a851bd3c4b224da4f8a",
       "authority": "embedded-component-descriptor",
-      "sourceReference": "npm:@echelon-foundry/print-components@0.3.0"
+      "sourceReference": "npm:@echelon-foundry/print-components@0.4.0"
     }
   ],
   "requirements": [],
@@ -170,13 +170,6 @@
       "band": "strong-review",
       "path": "src/Chrona.Engine/App/Project.fs",
       "lineCount": 1950
-    },
-    {
-      "component": "ordo",
-      "code": "SDE-STRUCT-001",
-      "band": "strong-review",
-      "path": "src/Chrona.Wasm/bin/Release/net10.0/wwwroot/_framework/dotnet.js",
-      "lineCount": 1234
     },
     {
       "component": "ordo",

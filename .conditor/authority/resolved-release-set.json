@@ -2,8 +2,8 @@
   "schema": "echelon.resolved-release-set/v1",
   "profile": {
     "id": "echelon-current",
-    "version": "1.19.0",
-    "sha256": "95ec40bd78bc7d4144c9ee1faa7672cca682340d6ae0de5d5e1ad7c7f37467d5"
+    "version": "1.20.0",
+    "sha256": "9746acf4662a54322b76b6246cdfda225783b828030f5c2c3e662258dd73504d"
   },
   "platform": "linux-x64",
   "resolver": {
@@ -11,7 +11,7 @@
     "version": "0.1.0"
   },
   "catalogSnapshot": {
-    "sha256": "66f8f52ed5f331cf68f4df080e500f8d89201a8c1fa2cc7d04c89c5c911bcb94"
+    "sha256": "1041c3548e405429b81ecb854f063027969219a5d0085168910ea5b64682fcae"
   },
   "components": [
     {
@@ -334,35 +334,35 @@
       "systemId": "forma",
       "role": "project-binding",
       "required": true,
-      "version": "0.5.0",
+      "version": "0.6.1",
       "repository": "kemiller2002/forma",
-      "tag": "v0.5.0",
-      "commit": "8a5a5993421fbfd808582f735dedcf2adea07010",
+      "tag": "v0.6.1",
+      "commit": "0bce8d120364f6df5e480929a172c5e77b4d08a9",
       "releaseStage": "stable",
       "lifecycleState": "active",
       "distributionClass": "web-package",
       "executable": null,
       "releaseManifest": {
         "schema": "echelon.release/v2",
-        "sha256": "489852fc9f6a6b992b948cee360a47ea1fdf7202ef680c52c7597fe67b46aad2"
+        "sha256": "164660ba86d913aaf4715c790ac81034142d4cf90e5c1ebd56d3bbb73041feb9"
       },
       "distribution": {
         "mechanism": "github-release",
         "package": "@echelon-foundry/design-system",
-        "url": "https://github.com/kemiller2002/forma/releases/tag/v0.5.0"
+        "url": "https://github.com/kemiller2002/forma/releases/tag/v0.6.1"
       },
       "artifacts": [
         {
-          "name": "echelon-foundry-design-system-0.5.0.tgz",
+          "name": "echelon-foundry-design-system-0.6.1.tgz",
           "purpose": "package",
           "platform": null,
-          "sha256": "c4ad3ae525a85f55a9e9aec4f0e19c59b7f552cececb4224a0bbc3434f4f558f"
+          "sha256": "0b28b9d320bb4a821dbcedfae5ed0e3c43b6191bd1f4d2acafbe75e197f4b4d0"
         },
         {
           "name": "forma-marketing.sha256",
           "purpose": "checksums",
           "platform": null,
-          "sha256": "c5e6007702a481e0ee89881241b93e4141d62742bc850d4ceacd3b79980ae469"
+          "sha256": "c647d7b2316ec099d66899745186d6a1c12343120e4393ddae4d88bbc7b9bc61"
         }
       ]
     },
@@ -370,35 +370,35 @@
       "systemId": "folio",
       "role": "project-binding",
       "required": true,
-      "version": "0.3.0",
+      "version": "0.4.0",
       "repository": "kemiller2002/folio",
-      "tag": "v0.3.0",
-      "commit": "330fc480b8f5a977801bc82bdf65ee736e526681",
+      "tag": "v0.4.0",
+      "commit": "de2832735f3b8a4426f7e180af2859bf4888a938",
       "releaseStage": "stable",
       "lifecycleState": "active",
       "distributionClass": "web-package",
       "executable": null,
       "releaseManifest": {
         "schema": "echelon.release/v2",
-        "sha256": "a7c446787aafd6433932c247734249b4f01f8b78da4bbee3dcb6f743145f8d21"
+        "sha256": "1263b1825061e33dd71134659293b3d73946b5fd70e59d9526956d586905df4a"
       },
       "distribution": {
         "mechanism": "github-release",
         "package": "@echelon-foundry/print-components",
-        "url": "https://github.com/kemiller2002/folio/releases/tag/v0.3.0"
+        "url": "https://github.com/kemiller2002/folio/releases/tag/v0.4.0"
       },
       "artifacts": [
         {
-          "name": "echelon-foundry-print-components-0.3.0.tgz",
+          "name": "echelon-foundry-print-components-0.4.0.tgz",
           "purpose": "package",
           "platform": null,
-          "sha256": "472d4b8d6e9848b596bf6094590006de706e4ed953d3eab6768f7555051c4720"
+          "sha256": "50453b89c055135f4991a5b81532d4aad198f3226e874692fd4b317fc2d3156d"
         },
         {
           "name": "checksums.txt",
           "purpose": "checksums",
           "platform": null,
-          "sha256": "0553679e83ec6498171f005031afbe0d2274e73a4439cad6ca23fba19933613d"
+          "sha256": "e03983078bb0c15eeecde9a58b4ce5c9a1daf35d7fd9ca17817d970d8828be4b"
         }
       ]
     },

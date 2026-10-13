@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "repository": "chrona",
-  "nextSeq": 84,
+  "nextSeq": 85,
   "items": [
     {
       "id": "WI-0001",
@@ -1838,6 +1838,49 @@
       "attachments": [],
       "createdAt": "2026-10-13T17:58:13.345Z",
       "updatedAt": "2026-10-13T17:58:30.846Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0084",
+      "title": "Root-cause the intermittent failure of app-reliability.spec.js 'a hidden page that comes back keeps its timer, and a newer Chrona is offered as a safe reload'",
+      "description": "Observed in WI-0083 local full browser runs on 2026-10-13: it failed in the first full run for PR #117 (Store.fs split; 70 passed, 1 failed, test 45 at app-reliability.spec.js:26, 7.4s) and in the first full run for PR #118 (StoreTests split, which changed no browser or app code; 70 passed, 1 failed, 5.2s). The same spec file alone passed 3/3 (--repeat-each 3) and 4/4 (--repeat-each 2), and every rerun of the full suite passed 71/71; CI passed on both PRs. The failure message was not captured (the runs were filtered to their summary lines). The test uses real-time waits (1.5 s hidden) and a display regex 00:00:0[2-9]. Not 'flaky' as a cause: find the root cause. Left untouched for now: it is in the timer/visibility area frozen for the Phase H lead's construction trials (Timer.fs, TimerRecord.fs baseline chrona@50738a6). Next: reproduce in full-suite order with the list reporter and trace retained, capture the assertion that fails, then decide with the lead.",
+      "tags": [
+        "browser-tests",
+        "timer"
+      ],
+      "priority": "medium",
+      "status": "captured",
+      "attachments": [
+        {
+          "id": "ATT-1",
+          "seq": 1,
+          "name": "pr117-full-run-1.txt",
+          "file": "1-pr117-full-run-1.txt",
+          "size": 233,
+          "contentType": null,
+          "uploadedAt": "2026-10-13T22:10:30.568Z"
+        },
+        {
+          "id": "ATT-2",
+          "seq": 2,
+          "name": "pr118-full-run-1.txt",
+          "file": "2-pr118-full-run-1.txt",
+          "size": 233,
+          "contentType": null,
+          "uploadedAt": "2026-10-13T22:10:30.568Z"
+        }
+      ],
+      "createdAt": "2026-10-13T22:10:25.928Z",
+      "updatedAt": "2026-10-13T22:10:30.568Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

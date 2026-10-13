@@ -3335,20 +3335,20 @@
         "EXE-20261013T175832132Z-585ab26e"
       ],
       "latestCheckpoint": {
-        "id": "ed78ac1fc3e34d925e906092",
-        "recordedAt": "2026-10-13T19:12:03.721Z",
+        "id": "aa77e505f1e0900526703dfd",
+        "recordedAt": "2026-10-13T19:36:52.563Z",
         "executionId": "EXE-20261013T175832132Z-585ab26e",
         "repository": "chrona",
-        "branch": "refactor/wi-0083-store-tests",
-        "commit": "0afa459a30f7da173636ec12dec3b3dc909e0dce",
+        "branch": "refactor/wi-0083-update-split",
+        "commit": "1fbfb3f308856281a80af7694f03c13776f88be7",
         "remote": {
           "name": "origin",
           "url": "https://github.com/kemiller2002/chrona"
         },
-        "remoteBranch": "refactor/wi-0083-store-tests",
-        "remoteCommit": "0afa459a30f7da173636ec12dec3b3dc909e0dce",
-        "summary": "StoreTests.fs split into 3 fixtures and 13 test files; 453 .NET tests unchanged; browser 71 passed",
-        "nextAction": "PR and gate-merge; then split Update.fs",
+        "remoteBranch": "refactor/wi-0083-update-split",
+        "remoteCommit": "1fbfb3f308856281a80af7694f03c13776f88be7",
+        "summary": "Update.fs split: messages stay, rules in 15 App/Update modules; 453 .NET, 71 browser pass",
+        "nextAction": "PR and gate-merge; then split Project.fs",
         "verification": {
           "status": "verified",
           "mechanism": "git-remote-observation"

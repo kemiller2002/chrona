@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-13T09:46:29.000Z",
+  "updatedAt": "2026-10-13T09:58:50.000Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -2889,10 +2889,23 @@
     {
       "id": "WI-0076",
       "type": "task",
-      "state": "active",
-      "semanticState": "active",
-      "evidence": [],
-      "updatedAt": "2026-10-13T09:46:29.000Z",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "implementation",
+          "path": "docs/measurement/baseline-sources.md"
+        },
+        {
+          "type": "tests",
+          "path": ".github/workflows/praxis-validation.yml"
+        },
+        {
+          "type": "documentation",
+          "path": "docs/measurement/baseline-sources.md"
+        }
+      ],
+      "updatedAt": "2026-10-13T09:58:50.000Z",
       "telemetryExecutionIds": [
         "EXE-20261013T094631634Z-b33f191e"
       ],
@@ -2915,7 +2928,9 @@
           "status": "verified",
           "mechanism": "git-remote-observation"
         }
-      }
+      },
+      "completedAt": "2026-10-13T09:58:50.000Z",
+      "conclusion": "docs/measurement/baseline-sources.md indexes Chrona's evidence sources, capability adoption commits, unused capabilities and missing evidence; merged #89 (68f4cc5) at 2026-10-13T09:57:58Z. Only Praxis validation checks it; no automated test checks the index's content. Measurement: execution EXE-20261013T094631634Z-b33f191e; start 09:46:31Z; first PR head passed every check; 0 repair pushes; tokens and cost unavailable (runtime exposes no per-request usage in-context; transcript ingestion pending program decision)"
     }
   ]
 }

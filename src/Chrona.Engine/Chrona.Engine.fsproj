@@ -14,6 +14,21 @@
     <Compile Include="App/Places.fs" />
     <Compile Include="App/Model.fs" />
     <Compile Include="App/Update.fs" />
+    <Compile Include="App/Update/UpdateCommands.fs" />
+    <Compile Include="App/Update/UpdateRecording.fs" />
+    <Compile Include="App/Update/UpdateCorrections.fs" />
+    <Compile Include="App/Update/UpdateReports.fs" />
+    <Compile Include="App/Update/UpdatePlaces.fs" />
+    <Compile Include="App/Update/UpdatePeriods.fs" />
+    <Compile Include="App/Update/UpdateCandidates.fs" />
+    <Compile Include="App/Update/UpdateMembers.fs" />
+    <Compile Include="App/Update/UpdateResolving.fs" />
+    <Compile Include="App/Update/UpdateEvents.fs" />
+    <Compile Include="App/Update/UpdateDeviceTimer.fs" />
+    <Compile Include="App/Update/UpdateSession.fs" />
+    <Compile Include="App/Update/UpdateSignOut.fs" />
+    <Compile Include="App/Update/UpdateRouting.fs" />
+    <Compile Include="App/Update/UpdateDispatch.fs" />
     <Compile Include="App/Project.fs" />
   </ItemGroup>
 

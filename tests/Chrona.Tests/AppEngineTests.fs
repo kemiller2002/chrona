@@ -10,6 +10,7 @@ open Chrona.Engine.View
 open Chrona.Engine.App
 open Chrona.Engine.App.Model
 open Chrona.Engine.App.Update
+open Chrona.Engine.App.UpdateDispatch
 
 let private session =
     { ActorId = "person-1"

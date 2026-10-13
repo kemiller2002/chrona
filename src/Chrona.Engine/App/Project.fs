@@ -393,7 +393,7 @@ let private today (model: Model) =
 
 /// The person's recent combinations, as the forms offer them (33).
 let private recentRows (model: Model) =
-    Update.recentCombinations model
+    UpdateRecording.recentCombinations model
     |> List.mapi (fun index c ->
         let parts =
             [ referenceName model Reference.ActivityType c.ActivityTypeId
@@ -487,13 +487,13 @@ let private completion (model: Model) =
 let private manual (model: Model) =
     let draft = model.Manual
 
-    [ flag "hasRecent" (not (Update.recentCombinations model).IsEmpty)
+    [ flag "hasRecent" (not (UpdateRecording.recentCombinations model).IsEmpty)
       items "manualRecent" (recentRows model)
       items
           "manualDurations"
           (let noStart = Format.parseIsoDate draft.StartDate |> Option.isNone || Format.parseTime draft.StartTime |> Option.isNone
 
-           [ for minutes in Update.quickDurations model ->
+           [ for minutes in UpdateRecording.quickDurations model ->
                  [ t "id" (string minutes); t "label" (Format.minutes minutes); f "disabled" noStart ] ])
       items "manualTypeOptions" (options model Reference.ActivityType draft.Classification.ActivityTypeId)
       items "manualProjectOptions" (options model Reference.Project draft.Classification.ProjectId)
@@ -1315,16 +1315,16 @@ let private monthView (model: Model) =
 // ---- reports ------------------------------------------------------------------------
 
 let private reportView (model: Model) =
-    let filter = Update.reportFilter model
+    let filter = UpdateReports.reportFilter model
     let draft = model.Report
-    let all = Update.reportActivities model
-    let policies = Update.reportPolicies model
+    let all = UpdateReports.reportActivities model
+    let policies = UpdateReports.reportPolicies model
     let rows = Reports.select filter all
     let totals = Reports.totals policies rows
 
     // Across organizations (WI-0075): each organization names its own
     // reference data and people.
-    let across = Update.acrossOrganizations model
+    let across = UpdateReports.acrossOrganizations model
     let elsewhere = model.Elsewhere |> Map.toList |> List.map snd
 
     let organizationName (id: string) =
@@ -1356,7 +1356,7 @@ let private reportView (model: Model) =
         :: (Reference.all kind model.References |> List.map (fun item -> choice item.Id item.Name current))
 
     // Everyone's time, for someone who may see the organization's (WI-0039).
-    let everyone = draft.People = "everyone" && Update.seesOrganization model
+    let everyone = draft.People = "everyone" && UpdateReports.seesOrganization model
 
     let grouping, groupName =
         match draft.Grouping with
@@ -1411,13 +1411,13 @@ let private reportView (model: Model) =
       items "reportTagOptions" (anyOf Reference.Tag draft.Tag)
       items "reportMethodOptions" [ choice "" "Any" draft.Method; choice "manual" "Manual entry" draft.Method; choice "timer" "Timer" draft.Method ]
       items "reportBillabilityOptions" [ choice "" "Any" draft.Billability; choice "billable" "Billable" draft.Billability; choice "non-billable" "Non-billable" draft.Billability; choice "pending" "Not yet classified" draft.Billability ]
-      flag "reportSeesOrganization" (Update.seesOrganization model)
+      flag "reportSeesOrganization" (UpdateReports.seesOrganization model)
       items "reportPeopleOptions" [ choice "mine" "Mine" draft.People; choice "everyone" "Everyone's" draft.People ]
       flag "reportChoosesPerson" everyone
       items
           "reportPersonOptions"
           (choice "" "Everyone" draft.Person
-           :: (Update.reportPeople model |> List.map (fun id -> choice id (personName model id) draft.Person)))
+           :: (UpdateReports.reportPeople model |> List.map (fun id -> choice id (personName model id) draft.Person)))
       items
           "reportGroupingOptions"
           [ choice "project" "Project" draft.Grouping
@@ -1430,7 +1430,7 @@ let private reportView (model: Model) =
                 choice "organization" "Organization" draft.Grouping ]
       // Several organizations in the deployment: a report may cover all of
       // those the person belongs to (WI-0075).
-      flag "reportHasOrganizations" (not (Update.otherOrganizations model).IsEmpty)
+      flag "reportHasOrganizations" (not (UpdateReports.otherOrganizations model).IsEmpty)
       items
           "reportOrganizationsOptions"
           [ choice "this" (organizationName model.Session.OrganizationId) draft.Organizations
@@ -1460,7 +1460,7 @@ let private reportView (model: Model) =
       flag "reportEmpty" rows.IsEmpty
       items "reportRows" rowItems
       items "reportGroups" groups
-      text "exportText" (Update.exportText model)
+      text "exportText" (UpdateReports.exportText model)
       text "copyStatus" model.CopyStatus
       flag "hasExportProblems" (model.Problems.ContainsKey ExportForm)
       items "exportProblems" (problemItems model ExportForm)
@@ -1735,30 +1735,30 @@ let private identityView (model: Model) =
       flag "signOutSending" (identity.SignOut = Some SendingUnsent)
       flag "signOutConfirming" (identity.SignOut = Some ConfirmingDiscard)
       flag "signOutDiscarding" (identity.SignOut = Some DiscardingUnsent)
-      flag "signOutCannotSend" (not (Update.canSendUnsent model))
-      flag "signOutCannotKeep" (not (Update.canKeepUnsent model))
+      flag "signOutCannotSend" (not (UpdateSignOut.canSendUnsent model))
+      flag "signOutCannotKeep" (not (UpdateSignOut.canKeepUnsent model))
       text
           "signOutSummary"
-          (let count = Update.unsentCount model
+          (let count = UpdateSignOut.unsentCount model
            let changes = if count = 1 then "1 change has" else $"{count} changes have"
 
-           match count, Update.hasKeptTimer model with
+           match count, UpdateDeviceTimer.hasKeptTimer model with
            | 0, true -> "Your timer is on this device. Signing out must not leave it behind without your knowing."
            | _, true -> changes + " not reached GitHub, and your timer is on this device. Signing out must not leave them behind without your knowing."
            | _ -> changes + " not reached GitHub. Signing out must not leave them behind without your knowing.")
       text "signOutNote" (identity.SignOutNote |> Option.defaultValue "")
       text
           "signOutDiscardText"
-          (let count = Update.unsentCount model
+          (let count = UpdateSignOut.unsentCount model
            let changes = if count = 1 then "1 change" else $"{count} changes"
 
-           (match count, Update.hasKeptTimer model with
+           (match count, UpdateDeviceTimer.hasKeptTimer model with
             | 0, true -> "Discard your timer?"
             | _, true -> $"Discard {changes} and your timer?"
             | _ -> $"Discard {changes}?")
            + " They will not be saved anywhere, and this cannot be undone.")
       // Clearing this device (WI-0057).
-      flag "canClearDevice" (Update.canClearDevice model && identity.DeviceClear.IsNone && identity.SignOut.IsNone)
+      flag "canClearDevice" (UpdateSignOut.canClearDevice model && identity.DeviceClear.IsNone && identity.SignOut.IsNone)
       flag "clearDeviceConfirming" (identity.DeviceClear = Some ConfirmingClear)
       flag "clearDeviceClearing" (identity.DeviceClear = Some Clearing)
       flag "hasDeviceNote" identity.DeviceNote.IsSome
@@ -1780,7 +1780,7 @@ let private identityView (model: Model) =
                "Resolve the changes not saved under More first: they live only in this page.")
       text "storeFailure" (model.Store.Failure |> Option.defaultValue "")
       // Starting offline: the device's own timer and unsent changes (WI-0055).
-      flag "offlineTimer" (identity.Mode = SignedInMode && model.Store.Failure.IsSome && Update.hasKeptTimer model)
+      flag "offlineTimer" (identity.Mode = SignedInMode && model.Store.Failure.IsSome && UpdateDeviceTimer.hasKeptTimer model)
       text
           "offlineWaiting"
           (match model.Store.Waiting with

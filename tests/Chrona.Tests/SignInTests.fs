@@ -15,6 +15,8 @@ open Chrona.Engine.View
 open Chrona.Engine.App
 open Chrona.Engine.App.Model
 open Chrona.Engine.App.Update
+open Chrona.Engine.App.UpdateSession
+open Chrona.Engine.App.UpdateDispatch
 open Chrona.Application
 
 module Deployment = Chrona.Domain.Deployment

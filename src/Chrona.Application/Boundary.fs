@@ -39,6 +39,21 @@ let configure (sinks: Sinks.Sink list) =
 
 let private unchanged = "Nothing on this page was changed by it."
 
+/// What the fault records of an exception: its kind and where it arose,
+/// never what the page sent (42, WI-0040). A malformed message records the
+/// path and what was expected there, which the parsers never fill from the
+/// input; a JSON syntax error records its position; anything else records
+/// its type and capability only. The original exception's message can hold
+/// the page's text, a correlation id from the page or a URL, so it never
+/// reaches the telemetry.
+let withheld (ex: exn) : exn =
+    match ex with
+    | MalformedInput _ -> ex
+    | :? JsonException as json ->
+        JsonException($"Not valid JSON (line {json.LineNumber}, byte {json.BytePositionInLine}); the text is withheld.") :> exn
+    | CapabilityFailed(capability, _) -> CapabilityFailed(capability, "The detail is withheld: it may hold what the page sent.")
+    | other -> System.InvalidOperationException($"{other.GetType().FullName}; its message is withheld: it may hold what the page sent.") :> exn
+
 /// One central translation from an exception at the boundary to a fault.
 let classify (aegis: AegisConfig) (scope: Scope) (ex: exn) =
     let code, category, message =
@@ -51,7 +66,7 @@ let classify (aegis: AegisConfig) (scope: Scope) (ex: exn) =
             $"This browser could not provide something Chrona needs. {unchanged}"
         | _ -> Unexpected, IntegrationFailure, $"Chrona encountered an unexpected problem. {unchanged}"
 
-    Aegis.faultOf aegis scope (FaultCode code) category FaultSeverity.Error OperationOnly Transient Continue message ex
+    Aegis.faultOf aegis scope (FaultCode code) category FaultSeverity.Error OperationOnly Transient Continue message (withheld ex)
 
 /// The fault as the page shows it: safe presentation only (title, message,
 /// reference), never the exception or its details.

@@ -152,6 +152,14 @@ for the diagnosis, the evidence, and one unexercised watch item.
   (`#/reports?people=everyone`, one person with `&person=`, grouped by
   person); other people's months are read on demand, guided by the activity
   index when it is current. Reports across organizations are WI-0075.
+- Telemetry and scenarios (WI-0040): Chrona's only telemetry is the Aegis
+  fault event, which records no exception message that could hold what the
+  page sent (`Boundary.withheld`); every one of the 44 required scenarios
+  has a test named `scenario N: …`, checked by `ScenarioCoverageTests`.
+  The production completion gate is `docs/requirements/production-completion-gate.md`
+  (checked by `ProductionGateTests`): 21 of 24 items demonstrated; GitHub
+  identity on a real deployment (WI-0052), the VoiceOver pass (WI-0068) and
+  SDE/Ordo validation (WI-0079) remain.
 - Reading together (WI-0077): folders, records, histories and read-cache
   writes go out together, at most six at a time, on the bridge's thread
   (`InTurn`); histories are kept per page by path and revision. Batched

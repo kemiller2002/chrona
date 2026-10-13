@@ -143,14 +143,14 @@ let private navigation (path: string) (node: JsonNode) =
     | "Success" -> Moved(snd (location $"{path}.location" (required "location" path asObject node)))
     | "Dispatched" -> Dispatched
     | "Failure" -> NavigationFailed(required "reason" path asString node)
-    | other -> raise (MalformedInput($"{path}.kind", $"a known navigation outcome, not '{other}'"))
+    | other -> raise (MalformedInput($"{path}.kind", $"a known navigation outcome"))
 
 let private capability (path: string) (node: JsonNode) =
     match required "kind" path asString node with
     | "Completed" -> Completed(required "result" path asObject node)
     | "Unsupported"
     | "Rejected" -> NotExecuted(required "reason" path asString node)
-    | other -> raise (MalformedInput($"{path}.kind", $"a known capability outcome, not '{other}'"))
+    | other -> raise (MalformedInput($"{path}.kind", $"a known capability outcome"))
 
 let private effectResult (node: JsonNode) =
     let path = "$.result"
@@ -164,7 +164,7 @@ let private effectResult (node: JsonNode) =
         match required "kind" $"{path}.outcome" asString outcome with
         | "Success" -> ClipboardResult(correlation, true)
         | "Failure" -> ClipboardResult(correlation, false)
-        | other -> raise (MalformedInput($"{path}.outcome.kind", $"a known clipboard outcome, not '{other}'"))
+        | other -> raise (MalformedInput($"{path}.outcome.kind", $"a known clipboard outcome"))
     | "CapabilityResult" ->
         CapabilityResult(correlation, required "capability" path asString node, capability $"{path}.outcome" (required "outcome" path asObject node))
     | "HttpResult" ->
@@ -194,7 +194,7 @@ let private effectResult (node: JsonNode) =
             | "Failure" -> HttpFailed(required "reason" at asString outcome)
             | "Cancelled" -> HttpCancelled
             | "OutcomeUnknown" -> HttpUnknown(required "reason" at asString outcome)
-            | other -> raise (MalformedInput($"{at}.kind", $"a known Http outcome, not '{other}'"))
+            | other -> raise (MalformedInput($"{at}.kind", $"a known Http outcome"))
 
         HttpResponse(correlation, result)
     | "StorageResult" ->
@@ -206,7 +206,7 @@ let private effectResult (node: JsonNode) =
             | "Success" ->
                 StorageValue(optional "value" at asString outcome)
             | "Failure" -> StorageFailed(required "reason" at asString outcome)
-            | other -> raise (MalformedInput($"{at}.kind", $"a known Storage outcome, not '{other}'"))
+            | other -> raise (MalformedInput($"{at}.kind", $"a known Storage outcome"))
 
         StorageResponse(correlation, result)
     | other -> raise (CapabilityFailed(other, $"Unexpected {other} ({correlation}): the application requests no such effect"))
@@ -241,7 +241,7 @@ let decode (messageJson: string) =
     | "LocationChanged" -> LocationChanged(snd (location "$.location" (required "location" "$" asObject message)))
     | "EffectResult" -> effectResult (required "result" "$" asObject message)
     | "CapabilityFact" -> CapabilityFact(required "capability" "$" asString message, required "fact" "$" asObject message)
-    | other -> raise (MalformedInput("$.kind", $"a known message kind, not '{other}'"))
+    | other -> raise (MalformedInput("$.kind", $"a known message kind"))
 
 // ---------------------------------------------------------------------------
 // The handshake answer.

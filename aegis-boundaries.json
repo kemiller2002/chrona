@@ -1,5 +1,5 @@
 {
-  "$comment": "Chrona operational failure boundaries. Expected outcomes (an invalid label, a storage failure the kernel reports, a stale storage result) remain typed engine outcomes shown as ordinary page content and are not Aegis faults. See src/Chrona.Application/Boundary.fs.",
+  "$comment": "Chrona operational failure boundaries. Expected outcomes (an invalid label, a storage failure the kernel reports, a stale storage result) remain typed engine outcomes shown as ordinary page content and are not Aegis faults. A fault records its code, category, operation and reference, and of the exception only what cannot hold what the page sent (Boundary.withheld, requirement 42, WI-0040). See src/Chrona.Application/Boundary.fs.",
   "schema": "aegis/boundaries/v1",
   "application": "Chrona",
   "boundaries": [

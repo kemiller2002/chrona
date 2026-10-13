@@ -37,7 +37,7 @@ let ``legacy browser storage is recognised, never adopted`` () =
     Assert.Equal(Error(UnknownLegacySource "business-activity-ledger:v2"), resolve "business-activity-ledger:v2")
 
 [<Fact>]
-let ``legacy record formats match by exact version, and unknown formats are refused`` () =
+let ``scenario 39: legacy record formats match by exact version, and unknown formats are refused (reconstruction, not migration: DF-CHRONA-2026-0002)`` () =
     Assert.Equal(Ok LegacyActivity, format "business-activity" "1.0.0")
     Assert.Equal(Ok LegacyEvidenceLink, format "business-evidence-link" "1.0.0")
     Assert.Equal(Error(UnknownLegacyFormat("business-activity", "1.1.0")), format "business-activity" "1.1.0")

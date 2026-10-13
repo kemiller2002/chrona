@@ -37,6 +37,9 @@
     <Compile Include="StoreTests.fs" />
     <Compile Include="GovernanceTests.fs" />
     <Compile Include="MeasurementIndexTests.fs" />
+    <Compile Include="ScenarioCoverageTests.fs" />
+    <Compile Include="ProductionGateTests.fs" />
+    <Compile Include="ArchitectureTests.fs" />
     <Compile Include="PlacesTests.fs" />
     <Compile Include="AppEngineTests.fs" />
     <Compile Include="AppBoundaryTests.fs" />

@@ -45,7 +45,7 @@
 | WI-0037 | Chrona 12: consume Summa's Chrona-to-Summa billing contract through Conditor and map Chrona onto it (CHX-170, CHX-450 remainders) | complete | chrona, order:12, integration, summa, contracts, depends:summa | high |
 | WI-0038 | Chrona 13: observation inboxes on Arca - reading producer inboxes, durable candidates and receipts, startup reconciliation (CHX-190 remainder, CHX-200, CHX-120 import path remainder, CHX-250 import audit remainder) | complete | chrona, order:13, observations | medium |
 | WI-0039 | Chrona 14: search, reporting and export on stored data - rebuildable search indexes and reports across people and organizations (CHX-270, CHX-280, CHX-290 remainders) | complete | chrona, order:14, reporting, folio | medium |
-| WI-0040 | Chrona 15: telemetry privacy, remaining scenario tests and the production completion gate (CHX-420, CHX-430, CHX-440, CHX-001, CHX-002, CHX-004 remainders) | captured | chrona, order:15, quality, gate | medium |
+| WI-0040 | Chrona 15: telemetry privacy, remaining scenario tests and the production completion gate (CHX-420, CHX-430, CHX-440, CHX-001, CHX-002, CHX-004 remainders) | active | chrona, order:15, quality, gate | medium |
 | WI-0041 | Stop the Chromium install from hanging the browser-suite CI (unbounded apt-get update in playwright install --with-deps) | complete | ci, playwright, reliability | high |
 | WI-0042 | Raise Forma contract gaps G1-G6 from the legacy look-and-feel inventory (sidebar/tab bar, surface radius, display title scale, inverse hero, time-column timeline, filled primary action and control radius) so Chrona's chrona-* composition can retire | captured | forma, ui, order:10 | medium |
 | WI-0043 | Chrona.Domain: close the legacy rule gaps found reconciling DOMAIN-REQUIREMENTS.md (business purpose required, amendments revalidated, contiguous merge, timer nearest-minute and 30-second rule, evidence by record state, attestation statement) (CHX-012, CHX-090, CHX-103, CHX-130, CHX-160) | complete | chrona, domain, legacy, order:02b | high |
@@ -84,3 +84,4 @@
 | WI-0076 | Measurement: index where Chrona's historical evidence lives and when each Echelon capability was adopted (docs/measurement/baseline-sources.md) | complete |  | medium |
 | WI-0077 | Chrona: report refresh latency - reads, histories and read-cache writes run together on the bridge thread (bounded at 6, order kept); histories cached by path and revision | blocked |  | high |
 | WI-0078 | Measurement: a test that every repository path and commit the baseline-sources index names exists | complete |  | medium |
+| WI-0079 | Chrona: SDE/Ordo validation of Chrona's domain lifecycles - production completion gate item (CHX-002, CHX-440 remainders) | captured |  | medium |

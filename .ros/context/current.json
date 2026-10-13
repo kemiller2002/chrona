@@ -3335,20 +3335,20 @@
         "EXE-20261013T175832132Z-585ab26e"
       ],
       "latestCheckpoint": {
-        "id": "78b24f68333070f32c667a2e",
-        "recordedAt": "2026-10-13T20:25:28.325Z",
+        "id": "415e7ff689b8b8dc8c96368b",
+        "recordedAt": "2026-10-13T20:38:56.664Z",
         "executionId": "EXE-20261013T175832132Z-585ab26e",
         "repository": "chrona",
-        "branch": "refactor/wi-0083-model-split",
-        "commit": "7b5311933d3589578faef3e293a22c2a8763acbe",
+        "branch": "refactor/wi-0083-places-split",
+        "commit": "583861415224b2b4bdb5ede11e5d7800474ed4b5",
         "remote": {
           "name": "origin",
           "url": "https://github.com/kemiller2002/chrona"
         },
-        "remoteBranch": "refactor/wi-0083-model-split",
-        "remoteCommit": "7b5311933d3589578faef3e293a22c2a8763acbe",
-        "summary": "Model.fs split into ModelPorts, ModelForms and Model; 453 .NET, 71 browser pass",
-        "nextAction": "PR and gate-merge; then Places, ActivityRecord",
+        "remoteBranch": "refactor/wi-0083-places-split",
+        "remoteCommit": "583861415224b2b4bdb5ede11e5d7800474ed4b5",
+        "summary": "Places.fs split: route table stays, typed codec in PlaceAddresses; 453 .NET, 71 browser, route inventory pass",
+        "nextAction": "PR and gate-merge; then ActivityRecord",
         "verification": {
           "status": "verified",
           "mechanism": "git-remote-observation"

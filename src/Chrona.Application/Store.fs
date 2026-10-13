@@ -271,6 +271,10 @@ type private Opened =
       Months: Set<int * int>
       /// Other people's months read for reports across people (WI-0039).
       Others: Set<string * (int * int)>
+      /// Each activity record's history as last read, with the revision it
+      /// was read at: a record whose revision is unchanged is not asked
+      /// about again for this page's life (WI-0077).
+      Histories: Map<string, Revision * HistoryEntry list>
       /// The organization as the deployment configures it.
       Organization: Deployment.OrganizationConfig
       /// This page's unsent changes, in order: Arca's offline queue (WI-0033).
@@ -709,46 +713,69 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
             match! readCache () with
             | None -> ()
             | Some cached ->
-                for partition, objects in partitions do
-                    match ReadCache.key account folder partition with
-                    | Error _ -> ()
-                    | Ok key -> do! cached.Keep(ReadCache.entry key CacheSchema (now ()) (freshOf token objects))
+                // Kept together, at most `InTurn.Limit` at a time (WI-0077);
+                // one transaction for them all waits on Arca (arca#38).
+                let! _ =
+                    partitions
+                    |> List.choose (fun (partition, objects) ->
+                        ReadCache.key account folder partition
+                        |> Result.toOption
+                        |> Option.map (fun key -> cached.Keep(ReadCache.entry key CacheSchema (now ()) (freshOf token objects))))
+                    |> InTurn.together bridge
+
+                ()
         }
 
-    /// Reads these folders: each folder's records.
+    /// Reads these folders: each folder's records. The folders are listed
+    /// together, then their records read together, at most `InTurn.Limit`
+    /// requests at a time, each folder's records in listing order (WI-0077).
+    /// The first failure, in folder and file order, is the answer.
     let readFolders (provider: StorageProvider) (folder: Namespace) (paths: Result<RelativePath list, Diagnostic>) =
         async {
             match paths with
             | Error diagnostic -> return Error(Unopened.Refused(code diagnostic))
             | Ok folders ->
-                let mutable read = []
-                let mutable problems = []
-                let mutable failure = None
+                let! listings = folders |> List.map (provider.List folder) |> InTurn.together bridge
 
-                for path in folders do
-                    if failure.IsNone then
-                        match! provider.List folder path with
-                        | Error error -> failure <- Some(unopened error)
-                        | Ok listing ->
-                            let files, incomplete = Persistence.recordFiles path listing
-                            problems <- problems @ incomplete
-                            let mutable objects = []
+                match listings |> List.tryPick (function Error error -> Some error | Ok _ -> None) with
+                | Some error -> return Error(unopened error)
+                | None ->
+                    let listed =
+                        List.zip folders listings
+                        |> List.choose (fun (path, listing) ->
+                            listing |> Result.toOption |> Option.map (fun listing -> path, Persistence.recordFiles path listing))
 
-                            for file in files do
-                                if failure.IsNone then
-                                    match! provider.Read folder file with
-                                    | Ok(ReadOutcome.Found found) -> objects <- objects @ [ found ]
+                    let! reads =
+                        listed
+                        |> List.collect (fun (_, (files, _)) -> files |> List.map (provider.Read folder))
+                        |> InTurn.together bridge
+
+                    match reads |> List.tryPick (function Error error -> Some error | Ok _ -> None) with
+                    | Some error -> return Error(unopened error)
+                    | None ->
+                        // Each folder's share of the reads, in order.
+                        let counts = listed |> List.map (fun (_, (files, _)) -> List.length files)
+
+                        let shares =
+                            counts
+                            |> List.mapFold (fun (rest: Result<ReadOutcome, StorageFailure> list) count -> List.splitAt count rest) reads
+                            |> fst
+
+                        let found =
+                            shares
+                            |> List.map (
+                                List.choose (function
+                                    | Ok(ReadOutcome.Found found) -> Some found
                                     // Chrona erases nothing; a record erased by
                                     // another tool is gone, not a problem.
-                                    | Ok ReadOutcome.Absent
-                                    | Ok(ReadOutcome.Erased _) -> ()
-                                    | Error error -> failure <- Some(unopened error)
+                                    | _ -> None)
+                            )
 
-                            read <- read @ [ path, objects ]
-
-                match failure with
-                | Some reason -> return Error reason
-                | None -> return Ok(read, problems)
+                        return
+                            Ok(
+                                List.zip (listed |> List.map fst) found,
+                                listed |> List.collect (fun (_, (_, incomplete)) -> incomplete)
+                            )
         }
 
     /// Reads the folders these dates need for this person.
@@ -802,7 +829,14 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
     /// The repository state, then what the folders hold at it: validated,
     /// with records edited outside Chrona held for review. What was read is
     /// kept in the read cache, with which records were held.
-    let load (provider: StorageProvider) (folder: Namespace) (actorId: string) (months: Set<int * int>) (others: Set<string * (int * int)>) =
+    let load
+        (provider: StorageProvider)
+        (folder: Namespace)
+        (actorId: string)
+        (months: Set<int * int>)
+        (others: Set<string * (int * int)>)
+        (known: Map<string, Revision * HistoryEntry list>)
+        =
         async {
             match! provider.NamespaceState folder with
             | Error error -> return Error(unopened error)
@@ -840,19 +874,44 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                 | Ok(folders, incomplete) ->
                     let objects = folders |> List.collect snd
                     let stored = Stored.load objects
-                    let mutable histories = Map.empty
-                    let mutable failure = None
 
-                    for KeyValue(_, found) in stored.Activities.Activities do
-                        if failure.IsNone then
-                            match! provider.History folder found.Path with
-                            | Ok history -> histories <- histories.Add(RelativePath.render found.Path, history)
-                            | Error error -> failure <- Some(unopened error)
+                    // Each record's history, to hold what was edited outside
+                    // Chrona: read together, and only for a record whose
+                    // revision changed since this page last read it
+                    // (WI-0077). The same bytes at the same path were judged
+                    // already.
+                    let records =
+                        stored.Activities.Activities
+                        |> Map.toList
+                        |> List.map (fun (_, found) -> RelativePath.render found.Path, found)
 
-                    match failure with
-                    | Some reason -> return Error reason
+                    let unknown =
+                        records
+                        |> List.filter (fun (path, found) ->
+                            match known.TryFind path with
+                            | Some(revision, _) -> revision <> found.Revision
+                            | None -> true)
+
+                    let! asked =
+                        unknown
+                        |> List.map (fun (_, found) -> provider.History folder found.Path)
+                        |> InTurn.together bridge
+
+                    match asked |> List.tryPick (function Error error -> Some error | Ok _ -> None) with
+                    | Some error -> return Error(unopened error)
                     | None ->
-                        let activities = Persistence.holdExternalEdits histories stored.Activities
+                        let histories =
+                            List.zip unknown asked
+                            |> List.fold
+                                (fun (histories: Map<string, Revision * HistoryEntry list>) ((path, found), history) ->
+                                    match history with
+                                    | Ok history -> histories.Add(path, (found.Revision, history))
+                                    | Error _ -> histories)
+                                (records
+                                 |> List.choose (fun (path, _) -> known.TryFind path |> Option.map (fun entry -> path, entry))
+                                 |> Map.ofList)
+
+                        let activities = Persistence.holdExternalEdits (histories |> Map.map (fun _ -> snd)) stored.Activities
 
                         let held =
                             activities.HeldForReview |> Map.toList |> List.map (fun (_, found) -> RelativePath.render found.Path) |> Set.ofList
@@ -873,7 +932,8 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                                 token,
                                 { stored with
                                     Activities = { activities with Problems = incomplete @ activities.Problems } },
-                                folders |> List.map (fun (path, inFolder) -> RelativePath.render path, inFolder) |> Map.ofList
+                                folders |> List.map (fun (path, inFolder) -> RelativePath.render path, inFolder) |> Map.ofList,
+                                histories
                             )
         }
 
@@ -1003,9 +1063,9 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
         async {
             let months = state.Months + (dates |> List.map monthOf |> Set.ofList)
 
-            match! load state.Provider state.Folder state.Session.ActorId months others with
+            match! load state.Provider state.Folder state.Session.ActorId months others state.Histories with
             | Error reason -> return Error(reasonOf reason)
-            | Ok(token, stored, read) ->
+            | Ok(token, stored, read, histories) ->
                 let! indexed = readIndex state.Provider state.Folder state.Session.ActorId months others stored state.Index
 
                 let next =
@@ -1015,6 +1075,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                         Read = read
                         Months = months
                         Others = others
+                        Histories = histories
                         Index = indexed }
 
                 do! keepIndex next token
@@ -1718,9 +1779,9 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                                 | Ok() ->
                                     let months = dates |> List.map monthOf |> Set.ofList
 
-                                    match! load provider folder session.ActorId months Set.empty with
+                                    match! load provider folder session.ActorId months Set.empty Map.empty with
                                     | Error reason -> return Error reason
-                                    | Ok(token, stored, read) ->
+                                    | Ok(token, stored, read, histories) ->
                                         let state =
                                             { Session = session
                                               Folder = folder
@@ -1731,6 +1792,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                                               Read = read
                                               Months = months
                                               Others = Set.empty
+                                              Histories = histories
                                               Organization = organization
                                               Queue = { OfflineQueue.create OfflinePolicy.QueueWrites with Entries = carried }
                                               Owned = None
@@ -1886,6 +1948,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                               Read = Map.empty
                               Months = months
                               Others = Set.empty
+                              Histories = Map.empty
                               Organization = organization
                               Queue = { OfflineQueue.create OfflinePolicy.QueueWrites with Entries = carried }
                               Owned = None

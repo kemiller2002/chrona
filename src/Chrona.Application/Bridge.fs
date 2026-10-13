@@ -57,6 +57,32 @@ type Bridge() =
     let finished = List<Update.Msg>()
     let failures = List<exn>()
     let mutable sequence = 0
+    /// Resumptions to run once the browser's turn is back at the top, outside
+    /// every operation (`Defer`).
+    let deferred = Queue<unit -> unit>()
+    /// How deeply `Start` and `Answer` are nested in each other.
+    let mutable depth = 0
+
+    /// Runs `step`, then, back at the top, every deferred resumption.
+    let atTop (step: unit -> 'a) =
+        depth <- depth + 1
+
+        let result =
+            try
+                step ()
+            finally
+                depth <- depth - 1
+
+        if depth = 0 then
+            while deferred.Count > 0 do
+                depth <- depth + 1
+
+                try
+                    (deferred.Dequeue()) ()
+                finally
+                    depth <- depth - 1
+
+        result
 
     /// Asks the browser for something and continues with its answer.
     member _.Call(request: KernelCall) : Async<KernelAnswer> =
@@ -69,13 +95,21 @@ type Bridge() =
     /// Runs an operation to its first browser call (or its end), recording
     /// the messages it finishes with, or the exception it failed with.
     member _.Start(work: Async<Update.Msg list>) =
-        Async.StartImmediate(
-            async {
-                match! Async.Catch work with
-                | Choice1Of2 messages -> finished.AddRange messages
-                | Choice2Of2 error -> failures.Add error
-            }
-        )
+        atTop (fun () ->
+            Async.StartImmediate(
+                async {
+                    match! Async.Catch work with
+                    | Choice1Of2 messages -> finished.AddRange messages
+                    | Choice2Of2 error -> failures.Add error
+                }
+            ))
+
+    /// Runs `resume` once this turn is back at the top, outside every
+    /// operation. An operation resumed from inside another one's
+    /// continuation would be moved to the thread pool by F#'s trampoline,
+    /// off the browser's one thread and out of this loop (`InTurn`).
+    member _.Defer(resume: unit -> unit) =
+        if depth = 0 then resume () else deferred.Enqueue resume
 
     /// Engine messages an operation produced while still running.
     member _.Emit(messages: Update.Msg list) = finished.AddRange messages
@@ -85,7 +119,7 @@ type Bridge() =
         match waiting.TryGetValue id with
         | true, resume ->
             waiting.Remove id |> ignore
-            resume answer
+            atTop (fun () -> resume answer)
             true
         | _ -> false
 

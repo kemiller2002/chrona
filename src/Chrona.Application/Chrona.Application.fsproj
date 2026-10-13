@@ -13,6 +13,7 @@
     <Compile Include="Wire.fs" />
     <Compile Include="AppProtocol.fs" />
     <Compile Include="Bridge.fs" />
+    <Compile Include="InTurn.fs" />
     <Compile Include="Identity.fs" />
     <Compile Include="Intake.fs" />
     <Compile Include="Store.fs" />

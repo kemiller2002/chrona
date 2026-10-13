@@ -152,6 +152,10 @@ for the diagnosis, the evidence, and one unexercised watch item.
   (`#/reports?people=everyone`, one person with `&person=`, grouped by
   person); other people's months are read on demand, guided by the activity
   index when it is current. Reports across organizations are WI-0075.
+- Reading together (WI-0077): folders, records, histories and read-cache
+  writes go out together, at most six at a time, on the bridge's thread
+  (`InTurn`); histories are kept per page by path and revision. Batched
+  cache writes and pinned reads without a ref fetch wait on arca#38/#39.
 - Derived state (WI-0034): the activity index, an Arca derived index under
   `derived/indexes/activity-months.json` with one entry per activity record,
   is written in the same commit as the records it covers, so it is always

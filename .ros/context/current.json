@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-13T17:58:31.373Z",
+  "updatedAt": "2026-10-13T22:33:26.693Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -3354,6 +3354,17 @@
           "mechanism": "git-remote-observation"
         }
       }
+    },
+    {
+      "id": "WI-0084",
+      "type": "investigation",
+      "state": "active",
+      "semanticState": "active",
+      "evidence": [],
+      "updatedAt": "2026-10-13T22:33:26.693Z",
+      "telemetryExecutionIds": [
+        "EXE-20261013T223327439Z-8cb4bb66"
+      ]
     }
   ]
 }

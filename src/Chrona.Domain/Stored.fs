@@ -402,7 +402,7 @@ let changedOf (changes: Change list) : Result<Changed, Diagnostic list> =
             let invalid detail = InvalidStoredRecord(where, detail)
 
             if key.Type = ActivityRecord.recordType then
-                ActivityRecord.ofBody body |> Result.map (fun a -> { nothing with Activities = [ a ] }) |> Result.mapError invalid
+                ActivityRecordReading.ofBody body |> Result.map (fun a -> { nothing with Activities = [ a ] }) |> Result.mapError invalid
             elif key.Type = ReferenceRecord.recordType then
                 ReferenceRecord.ofBody body |> Result.map (fun item -> { nothing with References = [ item ] }) |> Result.mapError invalid
             elif key.Type = AttestationRecord.recordType then

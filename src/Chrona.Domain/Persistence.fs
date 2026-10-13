@@ -77,7 +77,7 @@ let private decode (stored: StoredObject) : Result<StoredActivity, Diagnostic> =
         Integrity.validate key ActivityRecord.schema Record.DefaultMaxBytes stored
         |> Result.mapError (describeIntegrity >> fun detail -> InvalidStoredRecord(where, detail))
         |> Result.bind (fun valid ->
-            ActivityRecord.ofBody valid.Record.Body
+            ActivityRecordReading.ofBody valid.Record.Body
             |> Result.mapError (fun detail -> InvalidStoredRecord(where, detail))
             |> Result.map (fun activity ->
                 { Activity = activity

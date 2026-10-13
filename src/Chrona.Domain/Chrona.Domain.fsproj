@@ -30,6 +30,7 @@
     <Compile Include="Governance.fs" />
     <Compile Include="Storage.fs" />
     <Compile Include="ActivityRecord.fs" />
+    <Compile Include="ActivityRecordReading.fs" />
     <Compile Include="ReferenceRecord.fs" />
     <Compile Include="AttestationRecord.fs" />
     <Compile Include="AuditRecord.fs" />

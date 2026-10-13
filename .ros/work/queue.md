@@ -83,4 +83,4 @@
 | WI-0075 | Chrona: reports and search across a deployment's organizations - one report over every organization the person may see, grouped and filtered by organization (CHX-270, CHX-280 remainders) | captured |  | medium |
 | WI-0076 | Measurement: index where Chrona's historical evidence lives and when each Echelon capability was adopted (docs/measurement/baseline-sources.md) | complete |  | medium |
 | WI-0077 | Chrona: report refresh latency - reads, histories and read-cache writes run together on the bridge thread (bounded at 6, order kept); histories cached by path and revision | blocked |  | high |
-| WI-0078 | Measurement: a test that every repository path and commit the baseline-sources index names exists | ready |  | medium |
+| WI-0078 | Measurement: a test that every repository path and commit the baseline-sources index names exists | complete |  | medium |

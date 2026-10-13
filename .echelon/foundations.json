@@ -9,11 +9,11 @@
     },
     "forma": {
       "required": true,
-      "version": "0.5.0"
+      "version": "0.6.1"
     },
     "folio": {
       "required": true,
-      "version": "0.3.0"
+      "version": "0.4.0"
     },
     "limen": {
       "required": true,

@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-13T16:10:34.000Z",
+  "updatedAt": "2026-10-13T17:46:39.350Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -3278,33 +3278,51 @@
     {
       "id": "WI-0082",
       "type": "task",
-      "state": "active",
-      "semanticState": "active",
-      "evidence": [],
-      "updatedAt": "2026-10-13T16:10:34.000Z",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "implementation",
+          "path": ".conditor/lock.json"
+        },
+        {
+          "type": "implementation",
+          "path": "tools/brand/compile.sh"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/FoundationsConformanceTests.fs"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/BrandTokenTests.fs"
+        }
+      ],
+      "updatedAt": "2026-10-13T17:46:39.350Z",
       "telemetryExecutionIds": [
         "EXE-20261013T161036151Z-06379ba0"
       ],
       "latestCheckpoint": {
-        "id": "67bb8da751b79c3c87741881",
-        "recordedAt": "2026-10-13T17:37:11.837Z",
+        "id": "319577b5c7982aa178d1ca16",
+        "recordedAt": "2026-10-13T17:46:35.291Z",
         "executionId": "EXE-20261013T161036151Z-06379ba0",
         "repository": "chrona",
-        "branch": "chore/echelon-1.22-ordo",
-        "commit": "802ae62ece14db54ae1fe66c85bd0fbc1aee02a0",
+        "branch": "chore/wi-0082-complete",
+        "commit": "6792117b7cab7780a86adbae0707e078dae5d9d6",
         "remote": {
           "name": "origin",
           "url": "https://github.com/kemiller2002/chrona"
         },
-        "remoteBranch": "chore/echelon-1.22-ordo",
-        "remoteCommit": "802ae62ece14db54ae1fe66c85bd0fbc1aee02a0",
-        "summary": "echelon-current 1.22.0 applied with Conditor 0.10.1 from a clean tree: Ordo 1.7.0; ordo verify exit 0; drift overall ok",
-        "nextAction": "PR, gate-merge, then complete WI-0082",
+        "remoteBranch": "chore/wi-0082-complete",
+        "remoteCommit": "6792117b7cab7780a86adbae0707e078dae5d9d6",
+        "summary": "WI-0082 merged: #110 (1.19.0), #111 (compile.sh tag), #113 (1.20.0), #114 (1.21.0), #115 (1.22.0); drift ok",
+        "nextAction": "complete WI-0082",
         "verification": {
           "status": "verified",
           "mechanism": "git-remote-observation"
         }
-      }
+      },
+      "completedAt": "2026-10-13T17:46:39.350Z"
     }
   ]
 }

@@ -2973,7 +2973,27 @@
       "updatedAt": "2026-10-13T11:00:42.000Z",
       "telemetryExecutionIds": [
         "EXE-20261013T110044442Z-b439414e"
-      ]
+      ],
+      "latestCheckpoint": {
+        "id": "3c13ba1b6843c9feb44c94dc",
+        "recordedAt": "2026-10-13T11:03:42.000Z",
+        "executionId": "EXE-20261013T110044442Z-b439414e",
+        "repository": "chrona",
+        "branch": "test/baseline-sources-paths",
+        "commit": "13416e156b8f21b1824ec7691893317751fa946f",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/chrona"
+        },
+        "remoteBranch": "test/baseline-sources-paths",
+        "remoteCommit": "13416e156b8f21b1824ec7691893317751fa946f",
+        "summary": "MeasurementIndexTests: paths (patterns for placeholders and globs) and commit hashes in baseline-sources.md exist; build checks out full history",
+        "nextAction": "Open the PR and merge through the gate",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      }
     }
   ]
 }

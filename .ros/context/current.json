@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-13T13:27:09.000Z",
+  "updatedAt": "2026-10-13T14:08:58.000Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -2935,10 +2935,31 @@
     {
       "id": "WI-0077",
       "type": "task",
-      "state": "active",
-      "semanticState": "active",
-      "evidence": [],
-      "updatedAt": "2026-10-13T13:27:09.000Z",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Application/Store.fs"
+        },
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Application/InTurn.fs"
+        },
+        {
+          "type": "configuration",
+          "path": "conditor.json"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/InTurnTests.fs"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/StoreTests.fs"
+        }
+      ],
+      "updatedAt": "2026-10-13T14:08:58.000Z",
       "telemetryExecutionIds": [
         "EXE-20261013T100858403Z-27654d43"
       ],
@@ -2962,7 +2983,9 @@
           "mechanism": "git-remote-observation"
         }
       },
-      "blockReason": "Chrona's part merged (#91, 43fbfa6). Waiting on Arca: a batched ReadCacheStore save (kemiller2002/arca#38) and no ref fetch before a pinned read (kemiller2002/arca#39); adopt both through Conditor once released."
+      "blockReason": "Chrona's part merged (#91, 43fbfa6). Waiting on Arca: a batched ReadCacheStore save (kemiller2002/arca#38) and no ref fetch before a pinned read (kemiller2002/arca#39); adopt both through Conditor once released.",
+      "completedAt": "2026-10-13T14:08:58.000Z",
+      "conclusion": "Report refresh: reads, histories and cache writes together on the bridge thread with histories cached by path and revision (#91, 43fbfa6); Arca 0.5.0 adopted through Conditor (#102, 6853c74) and used for one-transaction cache keeps (KeepMany) and reads pinned to the observed state (#103, a9110e4, merged 2026-10-13T14:08:13Z). Same-harness read time 1456-2046 ms before vs 337-985 ms after (3 runs each; ranges do not overlap), GitHub requests in the read 45-48 vs 4-14; sign-in 3488-4019 vs 2681-3453 ms, not claimed. Measurement: execution EXE-20261013T100858403Z-27654d43; first PR heads passed every check; 0 repair pushes. Tokens and cost: unavailable. Earlier completion records for WI-0039, 0076, 0078, 0040, 0080 say transcript ingestion was pending; it was rejected by the program. Tokens and cost remain unavailable."
     },
     {
       "id": "WI-0078",

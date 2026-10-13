@@ -151,7 +151,7 @@ let ``no address or copied link carries a sign-in code, state or token`` () =
 /// Working locally, with a project, an activity type and one entry, as the
 /// organization's founder.
 let private working () =
-    (Model.initial Chrona.Application.App.localSession InMemory start, [])
+    (Model.initial Chrona.Application.AppState.localSession InMemory start, [])
     |> step (Started(Support.testPage, "#/", []))
     |> step (EnvironmentDescribed "America/New_York")
     |> step (ConfigurationRead(Some localConfiguration))

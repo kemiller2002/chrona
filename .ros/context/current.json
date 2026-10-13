@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-13T12:53:14.000Z",
+  "updatedAt": "2026-10-13T13:16:22.000Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -3109,33 +3109,52 @@
     {
       "id": "WI-0074",
       "type": "task",
-      "state": "active",
-      "semanticState": "active",
-      "evidence": [],
-      "updatedAt": "2026-10-13T12:53:14.000Z",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Application/Intake.fs"
+        },
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Domain/Deployment.fs"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/StoreTests.fs"
+        },
+        {
+          "type": "documentation",
+          "path": "docs/deployment-configuration.md"
+        }
+      ],
+      "updatedAt": "2026-10-13T13:16:22.000Z",
       "telemetryExecutionIds": [
         "EXE-20261013T125315194Z-1fc14a1f"
       ],
       "latestCheckpoint": {
-        "id": "d1b837bedeee2ef952789745",
-        "recordedAt": "2026-10-13T13:05:38.000Z",
+        "id": "47ec1c6883afbfd799b48c53",
+        "recordedAt": "2026-10-13T13:16:18.000Z",
         "executionId": "EXE-20261013T125315194Z-1fc14a1f",
         "repository": "chrona",
-        "branch": "feature/observation-policies",
-        "commit": "8f3e9dbece5d8e8e0f49628c7a6ef38d3bd7f8e6",
+        "branch": "chore/wi-0074-complete",
+        "commit": "e6f6f67e7fde338022938672c66386f017f31f6c",
         "remote": {
           "name": "origin",
           "url": "https://github.com/kemiller2002/chrona"
         },
-        "remoteBranch": "feature/observation-policies",
-        "remoteCommit": "8f3e9dbece5d8e8e0f49628c7a6ef38d3bd7f8e6",
-        "summary": "sourcePolicies in the deployment; Intake.police auto-accepts a trusted source's observation for a named member in one commit; receipts without candidate listed; CHX-190 tested; .NET 448, Chromium 70",
-        "nextAction": "Open the PR and merge through the gate",
+        "remoteBranch": "main",
+        "remoteCommit": "e6f6f67e7fde338022938672c66386f017f31f6c",
+        "summary": "Merged through the gate (#100, e6f6f67): every check on 23a4573, the first PR head, succeeded",
+        "nextAction": "Record completion",
         "verification": {
           "status": "verified",
           "mechanism": "git-remote-observation"
         }
-      }
+      },
+      "completedAt": "2026-10-13T13:16:22.000Z",
+      "conclusion": "Deployment sourcePolicies accept a trusted source's observation as the named member's time under every ordinary rule, in one commit with its candidate and receipt (CHX-190 tested); receipts naming a candidate no folder holds are listed under More and as an obligation (CHX-390 remainder; publications stay WI-0061). Merged #100 (e6f6f67) at 2026-10-13T13:15:20Z. Measurement: execution EXE-20261013T125315194Z-1fc14a1f; code began about 17 minutes before work start (disclosed); first PR head passed every check; 0 repair pushes; tokens and cost unavailable."
     }
   ]
 }

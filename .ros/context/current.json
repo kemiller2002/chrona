@@ -3286,20 +3286,20 @@
         "EXE-20261013T161036151Z-06379ba0"
       ],
       "latestCheckpoint": {
-        "id": "044b98d9cc8b28bcc04494f5",
-        "recordedAt": "2026-10-13T16:26:47.913Z",
+        "id": "dcf97d5d11355cce5d9dff68",
+        "recordedAt": "2026-10-13T16:39:32.616Z",
         "executionId": "EXE-20261013T161036151Z-06379ba0",
         "repository": "chrona",
-        "branch": "chore/echelon-1.19-forma-folio",
-        "commit": "f3059919ad680e5cc97e1580081610090876092e",
+        "branch": "chore/wi-0082-forma-tag",
+        "commit": "0a059a0e4c06980b4a560c00dbcf884815b8fe69",
         "remote": {
           "name": "origin",
           "url": "https://github.com/kemiller2002/chrona"
         },
-        "remoteBranch": "chore/echelon-1.19-forma-folio",
-        "remoteCommit": "f3059919ad680e5cc97e1580081610090876092e",
-        "summary": "echelon-current 1.19.0 applied through Conditor 0.10.0 stepwise: Forma 0.5.0, Forma and Folio declared; all local suites pass",
-        "nextAction": "open PR, gate and merge, then step 1.20.0",
+        "remoteBranch": "chore/wi-0082-forma-tag",
+        "remoteCommit": "0a059a0e4c06980b4a560c00dbcf884815b8fe69",
+        "summary": "compile.sh derives FORMA_TAG from package-lock.json; test asserts script, lockfile and foundations.json agree",
+        "nextAction": "gate-merge, then step 1.20.0 from a clean tree",
         "verification": {
           "status": "verified",
           "mechanism": "git-remote-observation"

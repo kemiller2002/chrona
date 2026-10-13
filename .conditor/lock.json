@@ -1,7 +1,7 @@
 {
   "schemaVersion": 4,
   "project": "chrona",
-  "manifestSha256": "d894b9532938f95a527ed25a2e4ab0f22bfed4174eaf66f9e4aa40e209a74b99",
+  "manifestSha256": "b9ffe6eab5c638caf9c2afd7679f85f309a4b908737f2f8cc34dc72507c7d68b",
   "manifest": {
     "schemaVersion": 1,
     "name": "chrona",
@@ -45,6 +45,16 @@
         "id": "limen-fsharp",
         "version": "0.9.0",
         "required": true
+      },
+      {
+        "id": "forma",
+        "version": "0.5.0",
+        "required": true
+      },
+      {
+        "id": "folio",
+        "version": "0.3.0",
+        "required": true
       }
     ],
     "requirements": [],
@@ -58,7 +68,7 @@
       "version": "1.5.0",
       "distribution": "host-tool",
       "package": "ordo",
-      "descriptorSha256": "cac222af525161218391dade23d2a583c29315e8df255ffb9f11f0f2bb4eaf3a",
+      "descriptorSha256": "95f0e4d93296abc9707e62df34fc0a023e3d680f1e338d654497ae1597cb85de",
       "authority": "embedded-component-descriptor",
       "sourceReference": "host:ordo@1.5.0"
     },
@@ -111,6 +121,24 @@
       "package": "EchelonFoundry.Limen.Contract,EchelonFoundry.Limen.Guest,EchelonFoundry.Limen.Routing,EchelonFoundry.Limen.Store",
       "authority": "registry-resolved-set",
       "sourceReference": "nuget-feed:kemiller2002/limen@v0.9.0#sha256:d8aec120fdaff6bb2a9dcd6e4d79b8a92d69f8cc0227de1c6b7166c6c3b8ce3a"
+    },
+    {
+      "id": "forma",
+      "version": "0.5.0",
+      "distribution": "npm",
+      "package": "@echelon-foundry/design-system",
+      "descriptorSha256": "4893621f78f0af5165124418db433e37f7b67365dca13453c5994a7ccf4da1d5",
+      "authority": "embedded-component-descriptor",
+      "sourceReference": "npm:@echelon-foundry/design-system@0.5.0"
+    },
+    {
+      "id": "folio",
+      "version": "0.3.0",
+      "distribution": "npm",
+      "package": "@echelon-foundry/print-components",
+      "descriptorSha256": "51240f698d19e0cd11d527ca9dfb22f3495c383fa6fe2a851bd3c4b224da4f8a",
+      "authority": "embedded-component-descriptor",
+      "sourceReference": "npm:@echelon-foundry/print-components@0.3.0"
     }
   ],
   "requirements": [],
@@ -120,28 +148,28 @@
       "code": "SDE-STRUCT-001",
       "band": "justification-required",
       "path": "tests/Chrona.Tests/StoreTests.fs",
-      "lineCount": 3358
+      "lineCount": 3560
     },
     {
       "component": "ordo",
       "code": "SDE-STRUCT-001",
       "band": "justification-required",
       "path": "src/Chrona.Application/Store.fs",
-      "lineCount": 3024
+      "lineCount": 3200
     },
     {
       "component": "ordo",
       "code": "SDE-STRUCT-001",
       "band": "justification-required",
       "path": "src/Chrona.Engine/App/Update.fs",
-      "lineCount": 2603
+      "lineCount": 2680
     },
     {
       "component": "ordo",
       "code": "SDE-STRUCT-001",
       "band": "strong-review",
       "path": "src/Chrona.Engine/App/Project.fs",
-      "lineCount": 1897
+      "lineCount": 1950
     },
     {
       "component": "ordo",
@@ -155,7 +183,7 @@
       "code": "SDE-STRUCT-001",
       "band": "review",
       "path": "tests/Chrona.Tests/AppBoundaryTests.fs",
-      "lineCount": 970
+      "lineCount": 971
     },
     {
       "component": "ordo",
@@ -169,14 +197,14 @@
       "code": "SDE-STRUCT-001",
       "band": "review",
       "path": "src/Chrona.Engine/App/Model.fs",
-      "lineCount": 774
+      "lineCount": 804
     },
     {
       "component": "ordo",
       "code": "SDE-STRUCT-001",
       "band": "review",
       "path": "tests/browser/app-github.spec.js",
-      "lineCount": 725
+      "lineCount": 759
     },
     {
       "component": "ordo",
@@ -197,7 +225,7 @@
       "code": "SDE-STRUCT-001",
       "band": "review",
       "path": "src/Chrona.Engine/App/Places.fs",
-      "lineCount": 585
+      "lineCount": 597
     },
     {
       "component": "ordo",
@@ -211,7 +239,7 @@
       "code": "SDE-STRUCT-001",
       "band": "review",
       "path": "src/Chrona.Application/App.fs",
-      "lineCount": 517
+      "lineCount": 520
     }
   ]
 }

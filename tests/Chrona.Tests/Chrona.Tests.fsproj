@@ -60,7 +60,11 @@
     <Compile Include="ProductionGateTests.fs" />
     <Compile Include="ArchitectureTests.fs" />
     <Compile Include="PlacesTests.fs" />
-    <Compile Include="AppEngineTests.fs" />
+    <Compile Include="AppEngineFixture.fs" />
+    <Compile Include="AppEngineStartTests.fs" />
+    <Compile Include="AppEngineRecordingTests.fs" />
+    <Compile Include="AppEngineCorrectionTests.fs" />
+    <Compile Include="AppEnginePeriodTests.fs" />
     <Compile Include="AppBoundaryTests.fs" />
     <Compile Include="DeepLinkTests.fs" />
     <Compile Include="SummaBillingTests.fs" />

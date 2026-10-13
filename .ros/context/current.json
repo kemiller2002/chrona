@@ -3335,20 +3335,20 @@
         "EXE-20261013T175832132Z-585ab26e"
       ],
       "latestCheckpoint": {
-        "id": "3c9b082624b1a91389d16bb8",
-        "recordedAt": "2026-10-13T22:22:43.735Z",
+        "id": "4ac77988757c199e80e0723d",
+        "recordedAt": "2026-10-13T22:47:12.202Z",
         "executionId": "EXE-20261013T175832132Z-585ab26e",
         "repository": "chrona",
-        "branch": "refactor/wi-0083-persistence-tests",
-        "commit": "eb767c23af82970baf036803db7eb58c8cda4f9e",
+        "branch": "refactor/wi-0083-appengine-tests",
+        "commit": "48fbb28011aa7a87c174b27e2aa7c0f7ffcd7893",
         "remote": {
           "name": "origin",
           "url": "https://github.com/kemiller2002/chrona"
         },
-        "remoteBranch": "refactor/wi-0083-persistence-tests",
-        "remoteCommit": "eb767c23af82970baf036803db7eb58c8cda4f9e",
-        "summary": "PersistenceTests split into a fixture and four test files; 453 .NET, 71 browser pass",
-        "nextAction": "PR and gate-merge; then AppEngineTests",
+        "remoteBranch": "refactor/wi-0083-appengine-tests",
+        "remoteCommit": "48fbb28011aa7a87c174b27e2aa7c0f7ffcd7893",
+        "summary": "AppEngineTests split into a fixture and four test files; 453 .NET, 71 browser pass",
+        "nextAction": "PR and gate-merge; then AppBoundaryTests",
         "verification": {
           "status": "verified",
           "mechanism": "git-remote-observation"

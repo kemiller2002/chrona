@@ -3335,20 +3335,20 @@
         "EXE-20261013T175832132Z-585ab26e"
       ],
       "latestCheckpoint": {
-        "id": "aa77e505f1e0900526703dfd",
-        "recordedAt": "2026-10-13T19:36:52.563Z",
+        "id": "c96855c8b411ba5bb8f83176",
+        "recordedAt": "2026-10-13T19:58:58.623Z",
         "executionId": "EXE-20261013T175832132Z-585ab26e",
         "repository": "chrona",
-        "branch": "refactor/wi-0083-update-split",
-        "commit": "1fbfb3f308856281a80af7694f03c13776f88be7",
+        "branch": "refactor/wi-0083-project-split",
+        "commit": "5e554f8a6479592c945dbe049dcc6829b934cf00",
         "remote": {
           "name": "origin",
           "url": "https://github.com/kemiller2002/chrona"
         },
-        "remoteBranch": "refactor/wi-0083-update-split",
-        "remoteCommit": "1fbfb3f308856281a80af7694f03c13776f88be7",
-        "summary": "Update.fs split: messages stay, rules in 15 App/Update modules; 453 .NET, 71 browser pass",
-        "nextAction": "PR and gate-merge; then split Project.fs",
+        "remoteBranch": "refactor/wi-0083-project-split",
+        "remoteCommit": "5e554f8a6479592c945dbe049dcc6829b934cf00",
+        "summary": "Project.fs split: the whole view stays, its parts in 14 App/Project modules; 453 .NET, 71 browser pass",
+        "nextAction": "PR and gate-merge; then split Model.fs",
         "verification": {
           "status": "verified",
           "mechanism": "git-remote-observation"

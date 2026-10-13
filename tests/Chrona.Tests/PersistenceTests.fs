@@ -14,6 +14,7 @@ open Chrona.Domain.Ledger
 
 module Storage = Chrona.Domain.Storage
 module ActivityRecord = Chrona.Domain.ActivityRecord
+module ActivityRecordReading = Chrona.Domain.ActivityRecordReading
 module Persistence = Chrona.Domain.Persistence
 
 let private ok =
@@ -198,7 +199,7 @@ let ``every field of the activity record survives storage`` () =
     for original in alternatives do
         let text = ActivityRecord.encode original |> ok
         let record = Record.decode Record.DefaultMaxBytes text |> ok
-        Assert.Equal(original, ActivityRecord.ofBody record.Body |> ok)
+        Assert.Equal(original, ActivityRecordReading.ofBody record.Body |> ok)
         // Stored text is canonical, so equal activities are equal bytes.
         Assert.Equal(text, ActivityRecord.encode original |> ok)
 
@@ -210,7 +211,7 @@ let ``every field of the activity record survives storage`` () =
         | Json.Object members -> Json.Object(("rate", Json.Number 150m) :: members)
         | other -> other
 
-    Assert.True(ActivityRecord.ofBody extended |> Result.isError)
+    Assert.True(ActivityRecordReading.ofBody extended |> Result.isError)
 
 // ---- Layout (22, 38) ----------------------------------------------------------
 

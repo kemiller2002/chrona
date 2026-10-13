@@ -2,7 +2,7 @@
 id: DF-CHRONA-2026-0005
 title: Records live on GitHub through Arca's provider behind the store port, every commit conditioned on the repository state and decided again when it moved
 status: accepted
-version: 1.16.0
+version: 1.17.0
 created: 2026-10-08
 updated: 2026-10-13
 owners:
@@ -188,6 +188,16 @@ provenance:
         model: unknown
         runtime: claude-code
       reason: "Trusted observation sources from the deployment, and receipts without their candidate (WI-0074)"
+    EXE-20261013T141631799Z-f54aa096:
+      operations: [modified]
+      at: 2026-10-13T14:50:00.000Z
+      actor:
+        kind: agent
+        id: anthropic/claude-code
+        provider: anthropic
+        model: unknown
+        runtime: claude-code
+      reason: "Reports across a deployment's organizations (WI-0075)"
 ---
 
 # DF-CHRONA-2026-0005 — Records on GitHub through Arca
@@ -528,6 +538,20 @@ and semantic conflicts surfaced.
     decided months from the receipt's on; one that no folder holds (written
     outside Chrona: Chrona writes a receipt only with its candidate) is
     listed under More and as an obligation.
+22. **Reports across organizations (WI-0075).** A deployment serves each
+    organization from its own folder, possibly in its own repository, and a
+    page opens one at a time. A report with `organizations=all` reads each of
+    the deployment's other organizations once for what it asks: the folder
+    is observed and read through a pin at that state; the person's
+    membership is read from that organization's own roster (nothing of an
+    organization they do not belong to is read), and everyone's time only
+    where that roster lets them see the organization's, otherwise only
+    their own. Every month of the range is read for each of its members and
+    for anyone its activity index records time for; records edited outside
+    Chrona stay held there too. What was read is kept apart from the open
+    organization's records (`Model.Elsewhere`), is never written to, and is
+    read again when a report asks for more. Each organization's time is
+    billed by its own policy; the export names every organization.
 
 ## Consequences
 

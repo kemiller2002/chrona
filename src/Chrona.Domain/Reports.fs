@@ -32,6 +32,9 @@ type EntryKind =
 type Filter =
     { From: DateOnly
       To: DateOnly
+      /// The organizations whose time is in the report (27, 28; WI-0075);
+      /// empty, any read.
+      OrganizationIds: string list
       ActorIds: string list
       ProjectIds: string list
       ClientIds: string list
@@ -53,6 +56,7 @@ type Filter =
 let between (from: DateOnly) (``to``: DateOnly) =
     { From = from
       To = ``to``
+      OrganizationIds = []
       ActorIds = []
       ProjectIds = []
       ClientIds = []
@@ -124,6 +128,7 @@ let matches (filter: Filter) (activity: Activity) =
     state
     && activity.Occurrence.LocalDate >= filter.From
     && activity.Occurrence.LocalDate <= filter.To
+    && any filter.OrganizationIds activity.OrganizationId
     && any filter.ActorIds activity.ActorId
     && any filter.ProjectIds activity.Classification.ProjectId
     && anyOf filter.ClientIds activity.Classification.ClientId
@@ -194,6 +199,7 @@ let totals (policies: Billing.BillingPolicy list) (activities: Activity list) =
       CorrectedAfterPublication = counted |> List.filter (fun a -> a.Publication = AdjustmentRequired) |> List.length }
 
 type Grouping =
+    | ByOrganization
     | ByDay
     | ByActor
     | ByClient
@@ -208,6 +214,7 @@ type Grouping =
 let groupBy (policies: Billing.BillingPolicy list) (grouping: Grouping) (activities: Activity list) =
     let keys (a: Activity) =
         match grouping with
+        | ByOrganization -> [ a.OrganizationId ]
         | ByDay -> [ a.Occurrence.LocalDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ]
         | ByActor -> [ a.ActorId ]
         | ByClient -> [ defaultArg a.Classification.ClientId "" ]
@@ -251,6 +258,7 @@ let filterFields (filter: Filter) =
 
     [ "from", iso filter.From
       "to", iso filter.To
+      "organizations", list filter.OrganizationIds
       "actors", list filter.ActorIds
       "clients", list filter.ClientIds
       "projects", list filter.ProjectIds

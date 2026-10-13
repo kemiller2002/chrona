@@ -67,7 +67,8 @@ let private generated (seed: int) =
               IncludeRemoved = random.Next 2 = 0
               People = pick reportPeople
               Person = maybe (fun () -> pick awkward)
-              Grouping = pick [ "project"; "activityType"; "tag"; "day"; "person" ]
+              Organizations = pick reportOrganizations
+              Grouping = pick [ "project"; "activityType"; "tag"; "day"; "person"; "organization" ]
               Format = pick [ "csv"; "json" ] }
     | 9 -> Settings None
     | 10 -> Settings(Some(pick [ References; PeriodSettings; Changes; Account; People; ActivityIndex; Inboxes ]))
@@ -138,6 +139,11 @@ let ``addresses are relative fragment links in Limen's canonical form`` () =
     // Everyone's time, one person's among it, grouped by person (WI-0039):
     // "mine" is the default and omitted.
     Assert.Equal(
+        "/reports?people=everyone&person=Ada%20L&organizations=all&group=organization",
+        ok (formatAt (Reports { allReports with People = "everyone"; Person = Some "Ada L"; Organizations = "all"; Grouping = "organization" }))
+    )
+
+    Assert.Equal(
         "/reports?people=everyone&person=Ada%20L&group=person",
         ok (formatAt (Reports { allReports with People = "everyone"; Person = Some "Ada L"; Grouping = "person" }))
     )
@@ -181,7 +187,7 @@ let ``an address that names nothing, or names it wrongly, is a route error and n
     Assert.Equal(RouteError.Invalid(Names.Section, "section", "billing", "one of references|periods|changes|account|inbox"), error "/more/billing")
     Assert.Equal(RouteError.Invalid(Names.Day, "on", "2026-02-30", "date"), error "/day/2026-02-30")
     Assert.Equal(RouteError.Invalid(Names.Month, "period", "2026-13", "month"), error "/month/2026-13")
-    Assert.Equal(RouteError.Invalid(Names.Reports, "group", "colour", "one of project|type|tag|day|person"), error "/reports?group=colour")
+    Assert.Equal(RouteError.Invalid(Names.Reports, "group", "colour", "one of project|type|tag|day|person|organization"), error "/reports?group=colour")
     Assert.Equal(RouteError.Invalid(Names.Reports, "people", "all", "one of mine|everyone"), error "/reports?people=all")
     Assert.Equal(RouteError.Invalid(Names.Reports, "removed", "yes", "bool"), error "/reports?removed=yes")
     Assert.Equal(RouteError.Invalid(Names.Candidates, "status", "maybe", "one of awaiting|decided|all"), error "/candidates?status=maybe")

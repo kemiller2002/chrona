@@ -96,6 +96,10 @@ type StorePort =
       Read: DateOnly list -> unit
       /// Read other people's months, for a report across people (WI-0039).
       ReadOthers: (string * DateOnly) list -> unit
+      /// Read the deployment's other organizations, for a report across
+      /// organizations (WI-0075): each organization, whether everyone's time
+      /// is wanted, and the months.
+      ReadElsewhere: (string * bool * DateOnly list) list -> unit
       /// Rebuild the activity index from the stored records.
       Rebuild: unit -> unit
       /// Read the producers' inboxes now (WI-0038).
@@ -134,6 +138,7 @@ let inMemory (bridge: Bridge) : StorePort =
       Commit = fun request -> bridge.Start(async { return [ Update.StoreAnswered(request.CommitId, Committed) ] })
       Read = fun _ -> ()
       ReadOthers = fun _ -> ()
+      ReadElsewhere = fun _ -> ()
       Rebuild = fun () -> ()
       ReadInboxes = fun () -> ()
       SendNow = fun () -> ()
@@ -2138,6 +2143,114 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
     /// read yet (38: one folder, on demand).
     /// Reads other people's months for a report across people (WI-0039):
     /// one folder each, on demand, with what is already read.
+    /// One of the deployment's other organizations, for a report across
+    /// organizations (WI-0075): its own folder, read at the state observed,
+    /// as this person may see it. Nothing of it is read unless they are one
+    /// of its members; everyone's time only where its roster lets them see
+    /// the organization's, and otherwise only their own. Every month of the
+    /// range is read for each of its members and for anyone its index
+    /// records time for, so nothing stored is left out.
+    let readElsewhere (config: Deployment.DeploymentConfig) (session: Session) (organizationId: string) (everyone: bool) (dates: DateOnly list) =
+        async {
+            let displayName =
+                Deployment.organization config organizationId |> Option.map _.DisplayName |> Option.defaultValue organizationId
+
+            let months = dates |> List.map monthOf |> List.distinct |> List.sort
+
+            let empty: Elsewhere =
+                { OrganizationId = organizationId
+                  DisplayName = displayName
+                  Member = false
+                  SeesOrganization = false
+                  Activities = []
+                  References = []
+                  Members = []
+                  Everyone = everyone
+                  Months = months
+                  Failure = None }
+
+            let failed (reason: string) = { empty with Failure = Some reason }
+
+            match Storage.binding config with
+            | Error diagnostic -> return failed (code diagnostic)
+            | Ok binding ->
+                match Storage.organizationNamespace config binding organizationId with
+                | Error diagnostic -> return failed (code diagnostic)
+                | Ok folder ->
+                    let connection = backend.Connect folder.Location
+
+                    match! connection.Provider.NamespaceState folder with
+                    | Error failure -> return failed (describeFailure failure)
+                    | Ok observed ->
+                        let pinned = pinnedAt connection observed.RepositoryToken
+
+                        match! readFolders pinned folder (MemberRecord.folder () |> Result.map List.singleton) with
+                        | Error reason -> return failed (reasonOf reason)
+                        | Ok(folders, _) ->
+                            let roster: Access.Roster =
+                                { OrganizationId = organizationId
+                                  Members =
+                                    (Stored.load (folders |> List.collect snd)).Members
+                                    |> Map.toList
+                                    |> List.map (fun (_, found) -> found.Membership.Principal.PrincipalId, found.Membership)
+                                    |> Map.ofList }
+
+                            if not (roster.Members.ContainsKey session.ActorId) then
+                                return empty
+                            else
+                                let sees = Access.permits roster session.ActorId Access.ViewOrganizationTime
+
+                                let! indexed =
+                                    async {
+                                        match! Derived.read pinned folder ActivityIndex.definition with
+                                        | Ok(Some(index, _)) -> return ActivityIndex.totals index |> List.map _.ActorId
+                                        | _ -> return []
+                                    }
+
+                                let others =
+                                    if everyone && sees then
+                                        (roster.Members |> Map.toList |> List.map fst) @ indexed
+                                        |> List.distinct
+                                        |> List.filter ((<>) session.ActorId)
+                                        |> List.collect (fun other -> months |> List.map (fun month -> other, month))
+                                        |> Set.ofList
+                                    else
+                                        Set.empty
+
+                                match! load connection folder session.ActorId (Set.ofList months) others Map.empty with
+                                | Error reason -> return failed (reasonOf reason)
+                                | Ok(_, stored, _, _) ->
+                                    let activities =
+                                        stored.Activities.Activities
+                                        |> Map.toList
+                                        |> List.map (fun (_, found) -> found.Activity)
+                                        |> List.filter (fun activity -> (everyone && sees) || activity.ActorId = session.ActorId)
+
+                                    return
+                                        { empty with
+                                            Member = true
+                                            SeesOrganization = sees
+                                            Activities = activities
+                                            References = stored.References |> Map.toList |> List.map (fun (_, found) -> found.Item)
+                                            Members = roster.Members |> Map.toList |> List.map snd }
+        }
+
+    /// Reads the other organizations a report across organizations asked
+    /// for, one after another (WI-0075).
+    let readElsewhereJob (wanted: (string * bool * DateOnly list) list) () =
+        async {
+            match lastOpen, opened with
+            | Some(config, _, _), Some state ->
+                let mutable read = []
+
+                for organizationId, everyone, dates in wanted do
+                    let! one = readElsewhere config state.Session organizationId everyone dates
+                    read <- read @ [ one ]
+
+                return [ Update.ElsewhereRead read ]
+            | _ -> return []
+        }
+
     let readOthersJob (wanted: (string * DateOnly) list) () =
         async {
             match opened with
@@ -3039,6 +3152,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                 memory.Commit request
       Read = fun dates -> if requested then serial (readJob dates)
       ReadOthers = fun wanted -> if requested then serial (readOthersJob wanted)
+      ReadElsewhere = fun wanted -> if requested then serial (readElsewhereJob wanted)
       Rebuild = fun () -> if requested then serial rebuildJob
       ReadInboxes = fun () -> if requested then readInboxes ()
       SendNow =

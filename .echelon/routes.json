@@ -482,6 +482,17 @@
           "values": null
         },
         {
+          "default": "this",
+          "in": "query",
+          "name": "organizations",
+          "required": false,
+          "type": "enum",
+          "values": [
+            "this",
+            "all"
+          ]
+        },
+        {
           "default": "project",
           "in": "query",
           "name": "group",
@@ -492,7 +503,8 @@
             "type",
             "tag",
             "day",
-            "person"
+            "person",
+            "organization"
           ]
         },
         {

@@ -151,7 +151,9 @@ for the diagnosis, the evidence, and one unexercised watch item.
   from GitHub. Whoever may see the organization's time reports on everyone's
   (`#/reports?people=everyone`, one person with `&person=`, grouped by
   person); other people's months are read on demand, guided by the activity
-  index when it is current. Reports across organizations are WI-0075.
+  index when it is current. `organizations=all` (WI-0075) reads each other
+  organization the person belongs to from its own folder, as its roster lets
+  them see it, grouped and filtered by organization.
 - Telemetry and scenarios (WI-0040): Chrona's only telemetry is the Aegis
   fault event, which records no exception message that could hold what the
   page sent (`Boundary.withheld`); every one of the 44 required scenarios

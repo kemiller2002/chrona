@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-13T14:08:58.000Z",
+  "updatedAt": "2026-10-13T14:16:30.000Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -3178,6 +3178,17 @@
       },
       "completedAt": "2026-10-13T13:16:22.000Z",
       "conclusion": "Deployment sourcePolicies accept a trusted source's observation as the named member's time under every ordinary rule, in one commit with its candidate and receipt (CHX-190 tested); receipts naming a candidate no folder holds are listed under More and as an obligation (CHX-390 remainder; publications stay WI-0061). Merged #100 (e6f6f67) at 2026-10-13T13:15:20Z. Measurement: execution EXE-20261013T125315194Z-1fc14a1f; code began about 17 minutes before work start (disclosed); first PR head passed every check; 0 repair pushes; tokens and cost unavailable."
+    },
+    {
+      "id": "WI-0075",
+      "type": "task",
+      "state": "active",
+      "semanticState": "active",
+      "evidence": [],
+      "updatedAt": "2026-10-13T14:16:30.000Z",
+      "telemetryExecutionIds": [
+        "EXE-20261013T141631799Z-f54aa096"
+      ]
     }
   ]
 }

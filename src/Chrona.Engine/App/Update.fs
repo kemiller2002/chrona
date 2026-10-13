@@ -67,6 +67,8 @@ type Msg =
     | UnsentHandedOver of commitIds: string list
     /// Where reading producers' inboxes stands (WI-0038).
     | InboxReconciled of InboxStatus
+    /// Other organizations read for a report across organizations (WI-0075).
+    | ElsewhereRead of Elsewhere list
     /// Chrona's data was cleared from this browser, or why it was not.
     | DeviceCleared of Result<unit, string>
     /// The device's kept timer under this key, if any (WI-0055).
@@ -145,6 +147,10 @@ type Effect =
     | ReadMonths of dates: DateOnly list
     /// Read other people's months, for a report across people (WI-0039).
     | ReadOthers of wanted: (string * DateOnly) list
+    /// Read other organizations for a report across organizations
+    /// (WI-0075): each organization, whether everyone's time is wanted, and
+    /// the months (their first days).
+    | ReadElsewhere of wanted: (string * bool * DateOnly list) list
     /// Rebuild the activity index from the stored records (40).
     | RebuildIndex
     /// Read the producers' inboxes now (WI-0038).
@@ -212,7 +218,7 @@ let eventNames =
       "candidateActivityType"; "candidateProject"; "candidateDescription"; "candidatePurpose"; "candidateReason"
       "acceptCandidate"; "rejectCandidate"; "readInboxes"
       "reportFrom"; "reportTo"; "reportProject"; "reportActivityType"; "reportTag"; "reportMethod"; "reportBillability"; "reportText"
-      "reportIncludeRemoved"; "reportPeople"; "reportPerson"; "reportGrouping"; "reportFormat"; "copyExport"; "printReport"; "reportMonth"; "goReports"
+      "reportIncludeRemoved"; "reportPeople"; "reportPerson"; "reportOrganizations"; "reportGrouping"; "reportFormat"; "copyExport"; "printReport"; "reportMonth"; "goReports"
       "copyLink"; "skipToContent"; "dayProject"; "previousWeek"; "nextWeek"; "weekProject"; "previousPeriod"; "nextPeriod" ]
 
 // ---- helpers ----------------------------------------------------------------
@@ -545,6 +551,7 @@ let draftOf (query: Places.ReportQuery) (draft: ReportDraft) =
         IncludeRemoved = query.IncludeRemoved
         People = query.People
         Person = text query.Person
+        Organizations = query.Organizations
         Grouping = query.Grouping
         Format = query.Format }
 
@@ -564,6 +571,7 @@ let queryOf (draft: ReportDraft) : Places.ReportQuery =
       People = draft.People
       // One person is chosen only among everyone's time.
       Person = if draft.People = "everyone" then some draft.Person else None
+      Organizations = draft.Organizations
       Grouping = draft.Grouping
       Format = draft.Format }
 
@@ -706,6 +714,40 @@ let private othersNeeded (model: Model) =
         |> List.collect (fun person -> reportMonths model person |> List.map (fun month -> person, month))
     | _ -> []
 
+/// The deployment's other organizations, in its order (WI-0075).
+let otherOrganizations (model: Model) =
+    model.Deployment
+    |> Option.map (fun deployment -> deployment.Organizations |> List.map _.Id |> List.filter ((<>) model.Session.OrganizationId))
+    |> Option.defaultValue []
+
+/// Whether a report covers all of the deployment's organizations the person
+/// belongs to (WI-0075).
+let acrossOrganizations (model: Model) =
+    match model.Place with
+    | Places.Reports query -> query.Organizations = "all"
+    | _ -> false
+
+/// The other organizations a report across organizations still needs read:
+/// one not read yet, or read for less than the report asks (only the
+/// person's time where everyone's is wanted, or fewer months). Which months
+/// hold time there is that organization's own index to say, so every month
+/// of the range is asked for.
+let private elsewhereNeeded (model: Model) =
+    match model.Place with
+    | Places.Reports query when query.Organizations = "all" ->
+        let months = reportRange model ||> monthsBetween
+        let everyone = query.People = "everyone"
+
+        otherOrganizations model
+        |> List.filter (fun id ->
+            match model.Elsewhere.TryFind id with
+            | Some read when read.Failure.IsNone ->
+                (everyone && not read.Everyone && read.SeesOrganization)
+                || months |> List.exists (fun month -> not (List.contains month read.Months))
+            | _ -> true)
+        |> List.map (fun id -> id, everyone, months)
+    | _ -> []
+
 /// A month the person goes to that was not read yet is read now: one month
 /// folder, on demand, never the whole history (38). A report across
 /// everyone reads each person's months it covers the same way (WI-0039).
@@ -724,15 +766,21 @@ let private readNeeded (model: Model) =
 
         let firstOf (year, month) = DateOnly(year, month, 1)
 
+        let elsewhere =
+            elsewhereNeeded model |> List.filter (fun (id, _, _) -> not (List.contains id model.ElsewhereReading))
+
         { model with
             Store =
                 { model.Store with
                     Reading = model.Store.Reading @ unread
-                    OthersReading = model.Store.OthersReading @ theirs } },
+                    OthersReading = model.Store.OthersReading @ theirs }
+            ElsewhereReading = model.ElsewhereReading @ (elsewhere |> List.map (fun (id, _, _) -> id)) },
         [ if not unread.IsEmpty then
               ReadMonths(unread |> List.map firstOf)
           if not theirs.IsEmpty then
-              ReadOthers(theirs |> List.map (fun (person, month) -> person, firstOf month)) ]
+              ReadOthers(theirs |> List.map (fun (person, month) -> person, firstOf month))
+          if not elsewhere.IsEmpty then
+              ReadElsewhere(elsewhere |> List.map (fun (id, everyone, months) -> id, everyone, months |> List.map firstOf)) ]
     | _ -> model, []
 
 /// Moves to a place: the engine moves at once, and asks the browser to
@@ -1112,6 +1160,12 @@ let reportFilter (model: Model) : Reports.Filter =
     let one (value: string) = if value = "" then [] else [ value ]
 
     { Reports.between from ``to`` with
+        OrganizationIds =
+            model.Session.OrganizationId
+            :: (if acrossOrganizations model then
+                    model.Elsewhere |> Map.toList |> List.filter (fun (_, read) -> read.Member) |> List.map fst
+                else
+                    [])
         ActorIds =
             match draft.People, draft.Person with
             | "everyone", "" when seesOrganization model -> []
@@ -1137,17 +1191,30 @@ let reportFilter (model: Model) : Reports.Filter =
 /// The time a report selects from: the person's own, and other people's
 /// as read (the filter decides whose counts, WI-0039).
 let reportActivities (model: Model) =
-    (model.Ledger.Activities |> Map.toList |> List.map snd) @ model.Reviewing
+    (model.Ledger.Activities |> Map.toList |> List.map snd)
+    @ model.Reviewing
+    @ (if acrossOrganizations model then
+           model.Elsewhere |> Map.toList |> List.collect (fun (_, read) -> read.Activities)
+       else
+           [])
 
 /// The export the report form describes, generated at the model's instant.
+/// The billing policies of every organization a report covers: each
+/// organization's own (WI-0075).
+let reportPolicies (model: Model) =
+    (reportFilter model).OrganizationIds |> List.map Billing.legacyDefault
+
 let exportText (model: Model) =
+    let filter = reportFilter model
+
     let header: Reports.Header =
-        { OrganizationId = model.Session.OrganizationId
+        { // Every organization the report covers (WI-0075).
+          OrganizationId = String.Join(";", filter.OrganizationIds)
           GeneratedAt = model.Report.GeneratedAt |> Option.defaultValue model.Now
-          Filter = reportFilter model }
+          Filter = filter }
 
     let all = reportActivities model
-    let policies = [ Billing.legacyDefault model.Session.OrganizationId ]
+    let policies = reportPolicies model
 
     match model.Report.Format with
     | "json" -> Reports.json policies header all
@@ -1794,6 +1861,7 @@ let private onEvent (ctx: Ctx) (name: string) (key: string option) (value: strin
     | "reportIncludeRemoved" -> report (fun r -> { r with IncludeRemoved = checkedOn })
     | "reportPeople" -> report (fun r -> { r with People = value; Person = if value = "everyone" then r.Person else "" })
     | "reportPerson" -> report (fun r -> { r with Person = value })
+    | "reportOrganizations" -> report (fun r -> { r with Organizations = value })
     | "reportGrouping" -> report (fun r -> { r with Grouping = value })
     | "reportFormat" ->
         let next, effects = report (fun r -> { r with Format = value })
@@ -2244,6 +2312,7 @@ let private stillLooking (model: Model) =
     || model.Store.Opening
     || not model.Store.Reading.IsEmpty
     || not model.Store.OthersReading.IsEmpty
+    || not model.ElsewhereReading.IsEmpty
 
 /// A record the place names that does not exist, or is not the person's.
 /// Decided again whenever records arrive.
@@ -2448,6 +2517,13 @@ let private step (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
     | DeviceCleared(Error reason) ->
         { model with Identity = { model.Identity with DeviceClear = None; DeviceNote = Some reason } }, []
     | InboxReconciled status -> { model with Inbox = status }, []
+    | ElsewhereRead read ->
+        let read = read |> List.map (fun elsewhere -> elsewhere.OrganizationId, elsewhere) |> Map.ofList
+
+        { model with
+            Elsewhere = Map.fold (fun all id elsewhere -> Map.add id elsewhere all) model.Elsewhere read
+            ElsewhereReading = model.ElsewhereReading |> List.filter (read.ContainsKey >> not) },
+        []
     | UnsentHandedOver commitIds ->
         let handed = Set.ofList commitIds
         let pending, moved = model.Store.Pending |> List.partition (fun request -> not (handed.Contains request.CommitId))
@@ -2498,6 +2574,7 @@ let private step (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
     | StoreReadFailed reason ->
         { model with
             Store = { model.Store with Reading = []; OthersReading = [] }
+            ElsewhereReading = []
             Announcement = $"That month could not be read. {reason}" },
         []
     | Copied(ExportCopy, true) -> { model with CopyStatus = "Copied to the clipboard."; Announcement = "Copied to the clipboard." }, []

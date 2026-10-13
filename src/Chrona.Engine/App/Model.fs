@@ -233,6 +233,26 @@ let idleInbox =
       Orphaned = []
       LastRun = None }
 
+/// Another of the deployment's organizations, read for a report across
+/// organizations (WI-0075): what this person may see of its time.
+type Elsewhere =
+    { OrganizationId: string
+      DisplayName: string
+      /// The person is one of its members; otherwise nothing of it is read.
+      Member: bool
+      /// The person may see everyone's time there; otherwise only their own
+      /// was read.
+      SeesOrganization: bool
+      Activities: Activity list
+      /// Its reference data, to name its projects and activity types.
+      References: Reference.Item list
+      Members: Access.Membership list
+      /// What was read: everyone's time or only the person's, and the months.
+      Everyone: bool
+      Months: (int * int) list
+      /// Why it could not be read, when it could not.
+      Failure: string option }
+
 /// What the store read from the organization's folder.
 type StoreContents =
     { /// Where the records live, for the person: `owner/repository`.
@@ -351,6 +371,8 @@ type ReportDraft =
       People: string
       /// One person's actor id among everyone's, or "".
       Person: string
+      /// "this" or "all" organizations (WI-0075).
+      Organizations: string
       /// "", "manual" or "timer".
       Method: string
       /// "", "billable", "non-billable" or "pending".
@@ -373,6 +395,7 @@ let emptyReport =
       Tag = ""
       People = "mine"
       Person = ""
+      Organizations = "this"
       Method = ""
       Billability = ""
       Text = ""
@@ -584,6 +607,11 @@ type Model =
       /// approval (WI-0036), and the months a report across everyone read
       /// (WI-0039).
       Reviewing: Activity list
+      /// The deployment's other organizations read for a report across
+      /// organizations, by id (WI-0075).
+      Elsewhere: Map<string, Elsewhere>
+      /// Other organizations asked for and not read yet.
+      ElsewhereReading: string list
       /// What the approver typed for each submission: a note to approve with,
       /// or the reason to return it.
       ReviewNotes: Map<string, string>
@@ -686,6 +714,8 @@ let initial (session: Session) (store: StoreKind) (now: DateTimeOffset) =
       PeriodsStored = None
       Reviews = []
       Reviewing = []
+      Elsewhere = Map.empty
+      ElsewhereReading = []
       ReviewNotes = Map.empty
       ReopenReason = ""
       Candidates = []

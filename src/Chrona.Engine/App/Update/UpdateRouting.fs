@@ -26,7 +26,7 @@ open Chrona.Engine.App.UpdateSession
 open Chrona.Engine.App.UpdateSignOut
 
 /// What the guards need to know about the person now.
-let internal standing (model: Model) : Places.Standing =
+let internal standing (model: Model) : PlaceAddresses.Standing =
     { SignedOut = (model.Identity.Mode = SignInRequired false)
       KeptReturn = model.Identity.ReturnTo
       Administrator =
@@ -35,7 +35,7 @@ let internal standing (model: Model) : Places.Standing =
         else
             None }
 
-let internal guardOf (model: Model) = Places.guard (standing model)
+let internal guardOf (model: Model) = PlaceAddresses.guard (standing model)
 
 /// Someone may work now, and no kept return target is still being read.
 let internal mayResume (model: Model) =
@@ -124,15 +124,15 @@ let rec internal settle (resumed: bool) (model: Model) : Model * Effect list =
     match model.Router.Current with
     | None -> model, []
     | Some location ->
-        let router, result, correction = Limen.Routing.RouteCodec.adopt Places.codec (guardOf model) model.Router location
+        let router, result, correction = Limen.Routing.RouteCodec.adopt PlaceAddresses.codec (guardOf model) model.Router location
         let model = { model with Router = router }
         let corrected = correction |> Option.map Navigate |> Option.toList
 
         match result with
         | Ok { Place = Places.SignIn returnTo } when mayResume model && not resumed ->
-            resumeAt (Places.resume (guardOf model) (returnTo |> Option.orElse model.Identity.ReturnTo)) model
+            resumeAt (PlaceAddresses.resume (guardOf model) (returnTo |> Option.orElse model.Identity.ReturnTo)) model
         | Ok _ when model.Identity.ReturnTo.IsSome && mayResume model && not resumed ->
-            resumeAt (Places.resume (guardOf model) model.Identity.ReturnTo) model
+            resumeAt (PlaceAddresses.resume (guardOf model) model.Identity.ReturnTo) model
         | Ok address ->
             match organizationStep model address with
             | MissingOrganization organization -> { model with RouteProblem = Some(RecordMissing("organization", organization)) }, corrected
@@ -148,7 +148,7 @@ let rec internal settle (resumed: bool) (model: Model) : Model * Effect list =
                 let wanted = { addressOf model (normalize model address.Place) with Organization = wantedOrganization model address }
 
                 if wanted <> address && not resumed then
-                    match Places.format wanted with
+                    match PlaceAddresses.format wanted with
                     | Ok canonical -> resumeAt canonical model
                     | Error error -> invalidOp $"No address for {wanted}: %A{error}"
                 else

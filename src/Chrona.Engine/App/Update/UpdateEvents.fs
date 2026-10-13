@@ -102,11 +102,11 @@ let internal onEvent (ctx: Ctx) (name: string) (key: string option) (value: stri
     | "goTrack" -> navigate Places.Track model
     | "goMore" -> navigate (Places.Settings None) model
     | "copyLink" ->
-        let place = Places.explicit (Model.today model) model.Place |> normalize model
+        let place = PlaceAddresses.explicit (Model.today model) model.Place |> normalize model
 
-        match model.RouteProblem, Places.format (addressOf model place) with
+        match model.RouteProblem, PlaceAddresses.format (addressOf model place) with
         | None, Ok location ->
-            let link = Places.share model.Page.Origin model.Page.Path location
+            let link = PlaceAddresses.share model.Page.Origin model.Page.Path location
             { model with LinkStatus = ""; LinkText = link }, [ CopyText(LinkCopy, link) ]
         | _ -> model, []
     | "dayProject" ->

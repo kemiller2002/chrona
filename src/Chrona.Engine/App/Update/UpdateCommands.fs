@@ -109,7 +109,7 @@ let internal recordAll (model: Model) (context: Ledger.CommandContext) (ledger: 
 /// follow (CHX-460). The place itself is settled from the new address after
 /// every message (`settle`).
 let internal move operation (place: Places.Place) (model: Model) =
-    match operation Places.codec model.Router (addressOf model place) with
+    match operation PlaceAddresses.codec model.Router (addressOf model place) with
     | Ok(router, effect) -> { model with Router = router }, effect |> Option.map Navigate |> Option.toList
     // Every place has an address (PlacesTests); one without is a defect.
     | Error error -> invalidOp $"No address for {place}: %A{error}"

@@ -42,7 +42,7 @@ let internal step (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
 
         { model with
             Page = page
-            Router = { model.Router with Current = Some(Places.ofFragment fragment) }
+            Router = { model.Router with Current = Some(PlaceAddresses.ofFragment fragment) }
             Identity = { model.Identity with Callback = query; ReadingReturn = callback } },
         [ DescribeEnvironment; ReadConfiguration ] @ (if callback then [ ReadReturn ] else [])
     | ReturnRead target ->
@@ -51,7 +51,7 @@ let internal step (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
         { model with
             Identity =
                 { model.Identity with
-                    ReturnTo = target |> Option.bind Places.captureReturn
+                    ReturnTo = target |> Option.bind PlaceAddresses.captureReturn
                     ReadingReturn = false } },
         [ KeepReturn None ]
     | ConfigurationRead text -> configurationRead text model
@@ -75,7 +75,7 @@ let internal step (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
         []
     | EnvironmentUnavailable -> { model with Zone = tryZone "UTC" |> Result.toOption }, []
     // Settled from the new address after this message, like every other.
-    | LocationMoved fragment -> { model with Router = { model.Router with Current = Some(Places.ofFragment fragment) } }, []
+    | LocationMoved fragment -> { model with Router = { model.Router with Current = Some(PlaceAddresses.ofFragment fragment) } }, []
     | Ticked generation ->
         match model.Timer with
         | Timer.Running _ when generation = model.TickGeneration -> model, [ Wake(generation, TickMs) ]

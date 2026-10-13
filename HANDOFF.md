@@ -233,7 +233,7 @@ for the diagnosis, the evidence, and one unexercised watch item.
   against the legacy captures in `docs/legacy/visual-comparison.md`.
 - Deep links (WI-0071, DF-CHRONA-2026-0007, requirement section 46):
   Chrona's places and their canonical fragment addresses are a typed codec
-  (`src/Chrona.Engine/App/Places.fs`) over Limen's URL-state semantics,
+  (`src/Chrona.Engine/App/Places.fs`, `PlaceAddresses.fs`) over Limen's URL-state semantics,
   `EchelonFoundry.Limen.Routing` 0.9.0 installed by Conditor (WI-0072; the
   interim copy is gone); the route inventory `.echelon/routes.json` is
   validated against Limen's `contract/routes.schema.json` and rendered from

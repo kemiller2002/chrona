@@ -209,7 +209,7 @@ let internal wantedOrganization (model: Model) (address: Places.Address) =
 /// a sign-in opens that one rather than the first.
 let internal addressedOrganization (model: Model) (config: Deployment.DeploymentConfig) =
     model.Router.Current
-    |> Option.bind (fun location -> Places.parse Limen.Routing.Router.allowAll location |> Result.toOption)
+    |> Option.bind (fun location -> PlaceAddresses.parse Limen.Routing.Router.allowAll location |> Result.toOption)
     |> Option.bind _.Organization
     |> Option.bind (Deployment.organization config)
     |> Option.map _.Id

@@ -19,7 +19,7 @@ let internal shows (model: Model) (screen: Places.Place -> bool) = model.RoutePr
 
 /// A place's relative link ("#/track"), for an `href`.
 let internal hrefOf (model: Model) (place: Places.Place) =
-    match Places.href (addressOf model place) with
+    match PlaceAddresses.href (addressOf model place) with
     | Ok href -> href
     // Every place has an address (PlacesTests); one without is a defect.
     | Error error -> invalidOp $"No address for {place}: %A{error}"

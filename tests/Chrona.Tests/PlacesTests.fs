@@ -9,6 +9,7 @@ open System.Text.Json
 open Xunit
 open Limen.Routing
 open Chrona.Engine.App.Places
+open Chrona.Engine.App.PlaceAddresses
 open Chrona.Tests.Support
 
 /// A location's place (its organization aside), and a place's location in

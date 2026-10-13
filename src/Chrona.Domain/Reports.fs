@@ -323,6 +323,22 @@ let private quote (value: string) =
     else
         value
 
+/// The columns that are numbers, and stay numbers in a spreadsheet.
+let private numeric = set [ "exactMinutes"; "billableMinutes"; "revision" ]
+
+/// A text cell a spreadsheet would read as a formula (CSV injection): one
+/// beginning with =, +, -, @, a tab or a carriage return (WI-0080).
+let private formulaStarts = [| '='; '+'; '-'; '@'; '\t'; '\r' |]
+
+/// A cell as the CSV holds it: a text cell that a spreadsheet would read as
+/// a formula is prefixed with a single quote, so it stays text; then RFC
+/// 4180 quoting. Numbers are written as they are.
+let cell (column: string) (value: string) =
+    if not (numeric.Contains column) && value.Length > 0 && Array.contains value[0] formulaStarts then
+        quote ("'" + value)
+    else
+        quote value
+
 /// RFC 4180 CSV with LF line endings. The header block, lines beginning
 /// `#`, names the schema, organization, generation time, filter and duration
 /// semantics before the column row.
@@ -335,12 +351,20 @@ let csv (policies: Billing.BillingPolicy list) (header: Header) (activities: Act
           "generatedAt", instant header.GeneratedAt
           yield! filterFields header.Filter |> List.map (fun (k, v) -> $"filter.{k}", v)
           yield! semantics |> List.map (fun (k, v) -> $"semantics.{k}", v) ]
-        |> List.map (fun (k, v) -> $"# {k}: {v}")
+        // One cell each: a filter's text can hold a comma, which would
+        // otherwise open a second cell a spreadsheet could read as a formula.
+        |> List.map (fun (k, v) ->
+            let line = $"# {k}: {v}"
+
+            if line.IndexOfAny([| ','; '"'; '\r'; '\n' |]) >= 0 then
+                "\"" + line.Replace("\"", "\"\"") + "\""
+            else
+                line)
 
     let lines =
         meta
         @ [ String.Join(",", columnNames) ]
-        @ (rows |> List.map (fun a -> columns policies a |> List.map (snd >> quote) |> fun values -> String.Join(",", values)))
+        @ (rows |> List.map (fun a -> columns policies a |> List.map (fun (column, value) -> cell column value) |> fun values -> String.Join(",", values)))
 
     String.Join("\n", lines) + "\n"
 

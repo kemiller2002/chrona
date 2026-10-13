@@ -143,3 +143,80 @@ let ``JSON export carries the same report with typed numbers and stable keys`` (
     Assert.Equal("A1", first.GetProperty("activityId").GetString())
     Assert.Equal(37, first.GetProperty("exactMinutes").GetInt32())
     Assert.Equal("2026-10-05T13:00:00Z", first.GetProperty("startUtc").GetString())
+
+// ---- CSV injection (WI-0080) ---------------------------------------------------------
+
+/// The cells of one CSV line, RFC 4180: quoted cells may hold commas,
+/// quotes (doubled) and line breaks.
+let private cells (line: string) =
+    let rec parse (i: int) (current: string) (quoted: bool) (acc: string list) =
+        if i >= line.Length then
+            List.rev (current :: acc)
+        elif quoted then
+            if line[i] = '"' && i + 1 < line.Length && line[i + 1] = '"' then parse (i + 2) (current + "\"") true acc
+            elif line[i] = '"' then parse (i + 1) current false acc
+            else parse (i + 1) (current + string line[i]) true acc
+        elif line[i] = '"' then
+            parse (i + 1) current true acc
+        elif line[i] = ',' then
+            parse (i + 1) "" false (current :: acc)
+        else
+            parse (i + 1) (current + string line[i]) false acc
+
+    parse 0 "" false []
+
+/// The data rows of an export, one record each: a quoted cell may span lines.
+let private records (text: string) =
+    let lines = text.TrimEnd('\n').Split('\n')
+
+    let rec join (rest: string list) (pending: string option) (acc: string list) =
+        match rest, pending with
+        | [], None -> List.rev acc
+        | [], Some p -> List.rev (p :: acc)
+        | line :: rest, Some p ->
+            let joined = p + "\n" + line
+            if (joined |> Seq.filter ((=) '"') |> Seq.length) % 2 = 0 then join rest None (joined :: acc) else join rest (Some joined) acc
+        | line :: rest, None ->
+            if (line |> Seq.filter ((=) '"') |> Seq.length) % 2 = 0 then join rest None (line :: acc) else join rest (Some line) acc
+
+    join (List.ofArray lines) None [] |> List.filter (fun l -> not (l.StartsWith "#") && not (l.StartsWith "\"#"))
+
+[<Fact>]
+let ``a text cell a spreadsheet would read as a formula is kept as text, for every starting character`` () =
+    let hostile = [ "=1+1"; "+1+1"; "-1+1"; "@SUM(A1)"; "\tTAB=1"; "\rCR=1"; "=HYPERLINK(\"https://evil.example\",\"Click\")" ]
+
+    for value in hostile do
+        let a =
+            { activity "X1" 6 (9, 0) 30 with
+                Classification =
+                    { (activity "X1" 6 (9, 0) 30).Classification with
+                        Description = value
+                        BusinessPurpose = value
+                        ClientId = Some value
+                        Tags = [ value ] } }
+
+        let text = csv policies header [ a ]
+        let row = records text |> List.find (fun r -> r.StartsWith "X1,") |> cells
+        let byName = List.zip columnNames row |> Map.ofList
+
+        for column in [ "description"; "businessPurpose"; "clientId"; "tags" ] do
+            // The cell reads back as the value behind a single quote: text.
+            Assert.Equal("'" + value, byName[column])
+
+        // Numbers stay numbers.
+        Assert.Equal("30", byName["exactMinutes"])
+        Assert.Equal("1", byName["revision"])
+
+[<Fact>]
+let ``an ordinary text cell and a number are written as they are`` () =
+    let text = csv policies header activities
+    let a1 = records text |> List.find (fun r -> r.StartsWith "A1,") |> cells
+    let byName = List.zip columnNames a1 |> Map.ofList
+    Assert.Equal("Implement export", byName["description"])
+    Assert.Equal("37", byName["exactMinutes"])
+
+[<Fact>]
+let ``a search text in the header stays one cell, so it can never open a formula cell`` () =
+    let text = csv policies { header with Filter = { header.Filter with Text = "x, =HYPERLINK(\"https://evil.example\")" } } activities
+    let line = text.Split('\n') |> Array.find (fun l -> l.Contains "filter.text")
+    Assert.Equal<string list>([ "# filter.text: x, =HYPERLINK(\"https://evil.example\")" ], cells line)

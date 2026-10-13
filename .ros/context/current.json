@@ -2943,20 +2943,20 @@
         "EXE-20261013T100858403Z-27654d43"
       ],
       "latestCheckpoint": {
-        "id": "e73eaa54ca267728a2b93b58",
-        "recordedAt": "2026-10-13T13:58:30.000Z",
+        "id": "e5086cfed795094cafa5253c",
+        "recordedAt": "2026-10-13T14:08:55.000Z",
         "executionId": "EXE-20261013T100858403Z-27654d43",
         "repository": "chrona",
-        "branch": "perf/arca-batch",
-        "commit": "5e2cb15b99d8023321f459d39380c5f28a331c76",
+        "branch": "chore/wi-0077-complete",
+        "commit": "a9110e4a9646fb0059b9119e1e8e7fa1998704b1",
         "remote": {
           "name": "origin",
           "url": "https://github.com/kemiller2002/chrona"
         },
-        "remoteBranch": "perf/arca-batch",
-        "remoteCommit": "5e2cb15b99d8023321f459d39380c5f28a331c76",
-        "summary": "KeepMany for a refresh's cache partitions and pinned reads (GitHubStorage.connect, PinAt) at the observed namespace state; read 1456-2046 ms before vs 337-985 ms after (3 runs each); .NET 449, Chromium 70",
-        "nextAction": "Open the PR, merge through the gate, complete WI-0077",
+        "remoteBranch": "main",
+        "remoteCommit": "a9110e4a9646fb0059b9119e1e8e7fa1998704b1",
+        "summary": "Merged through the gate (#103, a9110e4): every check on 7cdc384, the first PR head, succeeded",
+        "nextAction": "Record completion",
         "verification": {
           "status": "verified",
           "mechanism": "git-remote-observation"

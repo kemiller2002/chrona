@@ -80,7 +80,7 @@ let private reviewOnly (stored: Activity option) (mine: Activity) =
 /// earlier attempt landed) needs nothing; one the change made must be the
 /// next revision of the stored one; new or changed time must not overlap
 /// the time stored for other activities.
-let decide (stored: Stored.Stored) (change: Stored.Changed) : Result<Stored.Changed, Divergence list> =
+let decide (stored: Stored.Stored) (change: StoredChanges.Changed) : Result<StoredChanges.Changed, Divergence list> =
     let activities = stored.Activities.Activities
     let storedActivity (id: string) = activities.TryFind id |> Option.map _.Activity
     let storedReference (item: Reference.Item) = stored.References.TryFind(Stored.referenceKey item) |> Option.map _.Item

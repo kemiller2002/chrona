@@ -120,7 +120,7 @@ let commitJob (page: Page) (request: StoreRequest) () =
                 | Error divergences -> return refreshed page state @ answer (Conflict divergences)
                 | Ok changed when isEmpty changed -> return answer Committed
                 | Ok changed ->
-                    match Stored.changes real changed, operationContext state.Session request.CommitId (page.Now ()) with
+                    match StoredChanges.changes real changed, operationContext state.Session request.CommitId (page.Now ()) with
                     | Error diagnostics, _
                     | _, Error diagnostics -> return answer (Failed $"This change cannot be stored ({describeAll diagnostics}).")
                     | Ok [], _ -> return answer Committed

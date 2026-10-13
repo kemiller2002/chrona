@@ -30,7 +30,11 @@
     <Compile Include="ObservationTests.fs" />
     <Compile Include="IntakeTests.fs" />
     <Compile Include="StorageTests.fs" />
-    <Compile Include="PersistenceTests.fs" />
+    <Compile Include="PersistenceFixture.fs" />
+    <Compile Include="PersistenceRecordTests.fs" />
+    <Compile Include="PersistenceChangeTests.fs" />
+    <Compile Include="PersistenceReconcileTests.fs" />
+    <Compile Include="PersistenceDerivedTests.fs" />
     <Compile Include="SignInTests.fs" />
     <Compile Include="AccessTests.fs" />
     <Compile Include="InTurnTests.fs" />
@@ -56,8 +60,15 @@
     <Compile Include="ProductionGateTests.fs" />
     <Compile Include="ArchitectureTests.fs" />
     <Compile Include="PlacesTests.fs" />
-    <Compile Include="AppEngineTests.fs" />
-    <Compile Include="AppBoundaryTests.fs" />
+    <Compile Include="AppEngineFixture.fs" />
+    <Compile Include="AppEngineStartTests.fs" />
+    <Compile Include="AppEngineRecordingTests.fs" />
+    <Compile Include="AppEngineCorrectionTests.fs" />
+    <Compile Include="AppEnginePeriodTests.fs" />
+    <Compile Include="AppBoundaryFixture.fs" />
+    <Compile Include="AppBoundaryKernelTests.fs" />
+    <Compile Include="AppBoundaryPageTests.fs" />
+    <Compile Include="AppBoundaryPackTests.fs" />
     <Compile Include="DeepLinkTests.fs" />
     <Compile Include="SummaBillingTests.fs" />
   </ItemGroup>

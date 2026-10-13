@@ -73,7 +73,7 @@ let private valueOf (activity: Activity) (hash: string) =
 
 /// The entry a stored activity record projects to, keyed by its path.
 let private project (record: Record) =
-    match ActivityRecord.ofBody record.Body with
+    match ActivityRecordReading.ofBody record.Body with
     | Ok activity ->
         match ActivityRecord.path activity with
         | Ok path -> [ RelativePath.render path, valueOf activity (Record.contentHash record) ]

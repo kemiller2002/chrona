@@ -30,6 +30,7 @@
     <Compile Include="Governance.fs" />
     <Compile Include="Storage.fs" />
     <Compile Include="ActivityRecord.fs" />
+    <Compile Include="ActivityRecordReading.fs" />
     <Compile Include="ReferenceRecord.fs" />
     <Compile Include="AttestationRecord.fs" />
     <Compile Include="AuditRecord.fs" />
@@ -41,6 +42,8 @@
     <Compile Include="MemberRecord.fs" />
     <Compile Include="Persistence.fs" />
     <Compile Include="Stored.fs" />
+    <Compile Include="StoredChanges.fs" />
+    <Compile Include="StoredOverlay.fs" />
     <Compile Include="Reconcile.fs" />
     <Compile Include="ActivityIndex.fs" />
   </ItemGroup>

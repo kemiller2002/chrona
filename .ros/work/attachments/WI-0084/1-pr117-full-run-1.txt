@@ -1,0 +1,6 @@
+wasm ok
+  ✘  45 [chromium] › tests/browser/app-reliability.spec.js:26:1 › a hidden page that comes back keeps its timer, and a newer Chrona is offered as a safe reload (7.4s)
+  1 failed
+  70 passed (9.9m)
+
+[exited with code 0]

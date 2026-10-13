@@ -32,6 +32,8 @@
     <Compile Include="Store/InboxPass.fs" />
     <Compile Include="Store/StoreDevice.fs" />
     <Compile Include="Store/ArcaStore.fs" />
+    <Compile Include="AppState.fs" />
+    <Compile Include="AppRequests.fs" />
     <Compile Include="App.fs" />
     <Compile Include="Runtime.fs" />
   </ItemGroup>

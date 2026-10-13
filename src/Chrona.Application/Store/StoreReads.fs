@@ -240,7 +240,7 @@ let shown (state: Opened) =
     state.Queue.Entries
     |> List.filter unsent
     |> List.choose (recordsOf state.Folder >> Result.toOption)
-    |> List.fold (fun stored changed -> Stored.overlay changed stored) state.Stored
+    |> List.fold (fun stored changed -> StoredOverlay.overlay changed stored) state.Stored
 
 let contents (state: Opened) : StoreContents =
     let state = { state with Stored = shown state }

@@ -203,9 +203,9 @@ let ``receiving writes the candidate, its receipt and the file's removal as one 
     let receipt = { SourceSystem = "github"; ObservationId = "obs-1"; Outcome = CandidateRecorded candidate.CandidateId; At = at }
 
     let changes =
-        Stored.changes
+        StoredChanges.changes
             Stored.empty
-            { Stored.nothing with
+            { StoredChanges.nothing with
                 Candidates = [ candidate ]
                 Receipts = [ receipt ]
                 Consumed = [ file, Revision "r1" ] }
@@ -229,7 +229,7 @@ let ``receiving writes the candidate, its receipt and the file's removal as one 
 
     // Deciding it moves it from the open folder to its month.
     let decided = { candidate with Disposition = Rejected "Not mine"; Revision = 2 }
-    let moved = Stored.changes stored { Stored.nothing with Candidates = [ decided ] } |> ok
+    let moved = StoredChanges.changes stored { StoredChanges.nothing with Candidates = [ decided ] } |> ok
 
     match moved with
     | [ Change.Delete(from, Revision "r2"); Change.Create(target, _) ] ->

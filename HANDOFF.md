@@ -166,8 +166,9 @@ for the diagnosis, the evidence, and one unexercised watch item.
   naming a candidate no folder holds are listed under More.
 - Reading together (WI-0077): folders, records, histories and read-cache
   writes go out together, at most six at a time, on the bridge's thread
-  (`InTurn`); histories are kept per page by path and revision. Batched
-  cache writes and pinned reads without a ref fetch wait on arca#38/#39.
+  (`InTurn`); histories are kept per page by path and revision. With Arca
+  0.5.0 a refresh keeps its cache partitions in one transaction (`KeepMany`)
+  and reads every folder through a pin at the state it observed.
 - Derived state (WI-0034): the activity index, an Arca derived index under
   `derived/indexes/activity-months.json` with one entry per activity record,
   is written in the same commit as the records it covers, so it is always

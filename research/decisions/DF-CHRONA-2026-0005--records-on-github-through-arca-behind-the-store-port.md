@@ -2,7 +2,7 @@
 id: DF-CHRONA-2026-0005
 title: Records live on GitHub through Arca's provider behind the store port, every commit conditioned on the repository state and decided again when it moved
 status: accepted
-version: 1.15.0
+version: 1.16.0
 created: 2026-10-08
 updated: 2026-10-13
 owners:
@@ -177,7 +177,7 @@ provenance:
         provider: anthropic
         model: unknown
         runtime: claude-code
-      reason: "Reads, histories and read-cache writes together on the bridge thread; histories by path and revision (WI-0077)"
+      reason: "Reads, histories and read-cache writes together on the bridge thread; histories by path and revision; Arca 0.5.0's batched cache writes and pinned reads (WI-0077)"
     EXE-20261013T125315194Z-1fc14a1f:
       operations: [modified]
       at: 2026-10-13T13:00:00.000Z
@@ -503,11 +503,15 @@ and semantic conflicts surfaced.
     about again, because the same bytes at the same path were judged
     already. A record changed back by another tool to bytes Chrona wrote is
     therefore trusted as those bytes. Read-cache partitions are kept together
-    too. Two costs remain upstream, not worked around here: Arca writes each
-    cache partition in its own IndexedDB transaction (about 40 ms each; a
-    batched save is kemiller2002/arca#38), and fetches the branch ref before
-    every read, even one pinned to a commit (kemiller2002/arca#39). Both are
-    adopted through Conditor once released.
+    too. Two costs were upstream and not worked around: Arca wrote each
+    cache partition in its own IndexedDB transaction (about 40 ms each), and
+    fetched the branch ref before every read. Arca 0.5.0 (echelon-current
+    1.19.0, adopted through Conditor) removes both: a refresh's partitions
+    are kept in one IndexedDB transaction (`IndexedDbCache.KeepMany`,
+    arca#38), and a refresh reads every folder through a pin at the
+    namespace state it observed (`GitHubStorage.connect`, `PinAt`, arca#39),
+    so its reads are one snapshot and none resolves the branch. Histories
+    and commits are never pinned; a backend without pins reads as before.
 21. **Trusted sources and receipt integrity (WI-0074).** The deployment's
     `sourcePolicies` (per organization) say which observation sources are
     accepted without review, with the activity type and business purpose

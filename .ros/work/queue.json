@@ -1803,6 +1803,27 @@
       },
       "source": "manual",
       "sourceReference": null
+    },
+    {
+      "id": "WI-0082",
+      "title": "Echelon current 1.19.0 to 1.22.0 through Conditor 0.9.0: declare Forma and Folio, Forma 0.4.1 to 0.5.0 to 0.6.1, Folio 0.3.0 to 0.4.0, Ordo 1.5.0 to 1.6.0 to 1.7.0 (one registry set per PR)",
+      "description": "Program lead, 2026-10-13: every app on the latest Forma, Folio and Limen. Chrona declares Forma 0.4.1 and Folio 0.3.0 through Conditor 0.9.0's declared-binding opt-in and steps one registry set per PR: 1.19.0 (forma 0.5.0, folio declared), 1.20.0 (forma 0.6.1, folio 0.4.0), 1.21.0 (ordo 1.6.0), 1.22.0 (ordo 1.7.0). Each: conditor upgrade --current --check with an isolated --home, authorize, verify, commit; pins, lockfiles and foundations.json written by the tooling only; visual changes re-rendered through CI and reviewed by the lead before merge. A refused check is reported verbatim and not worked around.",
+      "tags": [],
+      "priority": "high",
+      "status": "ready",
+      "attachments": [],
+      "createdAt": "2026-10-13T16:10:34.000Z",
+      "updatedAt": "2026-10-13T16:10:34.000Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
     }
   ]
 }

@@ -12,7 +12,7 @@ set -eu
 
 FORMA_REPOSITORY="https://github.com/kemiller2002/forma.git"
 # Must match the Forma release pinned in package.json.
-FORMA_TAG="v0.4.1"
+FORMA_TAG="v0.5.0"
 
 root="$(cd "$(dirname "$0")/../.." && pwd)"
 work="$(mktemp -d)"

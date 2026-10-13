@@ -3333,7 +3333,27 @@
       "updatedAt": "2026-10-13T17:58:31.373Z",
       "telemetryExecutionIds": [
         "EXE-20261013T175832132Z-585ab26e"
-      ]
+      ],
+      "latestCheckpoint": {
+        "id": "87efecabafe2208d5e4a7282",
+        "recordedAt": "2026-10-13T18:29:59.251Z",
+        "executionId": "EXE-20261013T175832132Z-585ab26e",
+        "repository": "chrona",
+        "branch": "refactor/wi-0083-store-split",
+        "commit": "074c274a6e0c274f67fc21cee620ac464725f1eb",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/chrona"
+        },
+        "remoteBranch": "refactor/wi-0083-store-split",
+        "remoteCommit": "074c274a6e0c274f67fc21cee620ac464725f1eb",
+        "summary": "Store.fs split into the port plus 15 modules under Store/; 453 .NET and 71 browser tests pass; strict verify: Store.fs finding gone, 12 remain",
+        "nextAction": "PR and gate-merge; then split StoreTests.fs",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      }
     }
   ]
 }

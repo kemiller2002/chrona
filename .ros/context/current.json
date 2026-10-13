@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-13T15:09:14.000Z",
+  "updatedAt": "2026-10-13T15:19:43.000Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -3232,6 +3232,37 @@
       },
       "completedAt": "2026-10-13T15:09:14.000Z",
       "conclusion": "Reports and search across a deployment's organizations: organizations=all reads each other organization the person belongs to from its own folder (pinned), as its roster lets them see it; filter and grouping by organization; each billed by its own policy; export names every organization (CHX-270, CHX-280 tested). Merged #105 (b8da16b) at 2026-10-13T15:08:28Z. Measurement: execution EXE-20261013T141631799Z-f54aa096; work start before code; first PR head failed build on the reports-phone-light visual baseline (the export gained a header line by design); one repair cycle: re-render in #106, reviewed; tokens and cost unavailable."
+    },
+    {
+      "id": "WI-0081",
+      "type": "task",
+      "state": "active",
+      "semanticState": "active",
+      "evidence": [],
+      "updatedAt": "2026-10-13T15:19:43.000Z",
+      "telemetryExecutionIds": [
+        "EXE-20261013T151944996Z-95fa4941"
+      ],
+      "latestCheckpoint": {
+        "id": "a6ba94a13773943889cbc9af",
+        "recordedAt": "2026-10-13T15:49:22.000Z",
+        "executionId": "EXE-20261013T151944996Z-95fa4941",
+        "repository": "chrona",
+        "branch": "perf/sign-in-pins",
+        "commit": "29a5c122adc121d1e7201628e2c4fd3b43848b81",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/chrona"
+        },
+        "remoteBranch": "perf/sign-in-pins",
+        "remoteCommit": "29a5c122adc121d1e7201628e2c4fd3b43848b81",
+        "summary": "Opening's organization manifest reads, the activity index and each inbox pass's discovery read through pins; requests click-to-Hubot 61 -> 57 and ref fetches 9 -> 5 in every run; sign-in time ranges overlap, not claimed; .NET 453, Chromium 71, visual 6",
+        "nextAction": "Open the PR and merge through the gate",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      }
     }
   ]
 }

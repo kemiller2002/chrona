@@ -459,6 +459,20 @@
             "modified"
           ],
           "reason": "Reports across a deployment's organizations (WI-0075)"
+        },
+        "EXE-20261013T151944996Z-95fa4941": {
+          "actor": {
+            "id": "anthropic/claude-code",
+            "kind": "agent",
+            "model": "unknown",
+            "provider": "anthropic",
+            "runtime": "claude-code"
+          },
+          "at": "2026-10-13T16:00:00.000Z",
+          "operations": [
+            "modified"
+          ],
+          "reason": "Opening and inbox reads pinned to observed states (WI-0081)"
         }
       }
     },
@@ -480,7 +494,7 @@
     ],
     "title": "Records live on GitHub through Arca's provider behind the store port, every commit conditioned on the repository state and decided again when it moved",
     "updated": "2026-10-13",
-    "version": "1.17.0"
+    "version": "1.18.0"
   },
   {
     "created": "2026-10-08",

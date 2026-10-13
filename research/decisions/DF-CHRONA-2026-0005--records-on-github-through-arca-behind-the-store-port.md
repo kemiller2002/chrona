@@ -2,7 +2,7 @@
 id: DF-CHRONA-2026-0005
 title: Records live on GitHub through Arca's provider behind the store port, every commit conditioned on the repository state and decided again when it moved
 status: accepted
-version: 1.17.0
+version: 1.18.0
 created: 2026-10-08
 updated: 2026-10-13
 owners:
@@ -198,6 +198,16 @@ provenance:
         model: unknown
         runtime: claude-code
       reason: "Reports across a deployment's organizations (WI-0075)"
+    EXE-20261013T151944996Z-95fa4941:
+      operations: [modified]
+      at: 2026-10-13T16:00:00.000Z
+      actor:
+        kind: agent
+        id: anthropic/claude-code
+        provider: anthropic
+        model: unknown
+        runtime: claude-code
+      reason: "Opening and inbox reads pinned to observed states (WI-0081)"
 ---
 
 # DF-CHRONA-2026-0005 — Records on GitHub through Arca
@@ -521,7 +531,14 @@ and semantic conflicts surfaced.
     arca#38), and a refresh reads every folder through a pin at the
     namespace state it observed (`GitHubStorage.connect`, `PinAt`, arca#39),
     so its reads are one snapshot and none resolves the branch. Histories
-    and commits are never pinned; a backend without pins reads as before.
+    and commits are never pinned; a backend without pins reads as before. Opening
+    (WI-0081) reads the organization's manifest (whether it exists, then
+    to open it) through a pin at one observed state, and the activity index
+    at the state `load` read; each pass over the inboxes reads what is
+    there, which receipts are stored and the receipt check through one pin
+    observed at its start. Deciding an inbox file, and the application's
+    single manifest read, stay current: a pass's own commits move the folder
+    under it, and pinning one read costs what it saves.
 21. **Trusted sources and receipt integrity (WI-0074).** The deployment's
     `sourcePolicies` (per organization) say which observation sources are
     accepted without review, with the activity type and business purpose

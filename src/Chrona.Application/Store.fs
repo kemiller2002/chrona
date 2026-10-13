@@ -260,6 +260,10 @@ let private changeTokenOf =
     | InNamespace state -> state.RepositoryToken
     | InRepository token -> token
 
+/// Reads pinned at the state a condition was observed at (WI-0081): what
+/// is read after a refresh sees exactly what the refresh read.
+let private pinnedFor (connection: Connection) (condition: Condition) = pinnedAt connection (changeTokenOf condition)
+
 /// Holds an operation to the condition.
 let private require (condition: Condition) (operation: Operation) =
     match condition with
@@ -1100,7 +1104,8 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
             match! load { Provider = state.Provider; PinAt = state.PinAt } state.Folder state.Session.ActorId months others state.Histories with
             | Error reason -> return Error(reasonOf reason)
             | Ok(token, stored, read, histories) ->
-                let! indexed = readIndex state.Provider state.Folder state.Session.ActorId months others stored state.Index
+                let! indexed =
+                    readIndex (pinnedFor { Provider = state.Provider; PinAt = state.PinAt } token) state.Folder state.Session.ActorId months others stored state.Index
 
                 let next =
                     { state with
@@ -1784,12 +1789,24 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                             let provider = connection.Provider
                             let manifest = Organization.create organization.Id organization.DisplayName organization.Slug organization.TimeZone at
 
+                            // The organization's manifest is read twice while opening
+                            // (whether it exists, then to open it): both at one state
+                            // observed once, never resolving the branch for each
+                            // (WI-0081). Setting it up still commits through the
+                            // provider, conditioned as always.
+                            let! observedFolder = provider.NamespaceState folder
+
+                            let opening =
+                                match observedFolder with
+                                | Ok observed -> pinnedAt connection observed.RepositoryToken
+                                | Error _ -> provider
+
                             let! existing =
                                 async {
                                     match Layout.manifestPath with
                                     | Error error -> return Error(Unopened.Refused(LocationError.describe error))
                                     | Ok path ->
-                                        match! provider.Read folder path with
+                                        match! opening.Read folder path with
                                         | Ok ReadOutcome.Absent -> return Ok false
                                         | Ok(ReadOutcome.Found _)
                                         | Ok(ReadOutcome.Erased _) -> return Ok true
@@ -1807,7 +1824,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                             | Ok false, Governance.Refused reason -> return Error(Unopened.Refused reason)
                             | Ok isExisting, _ ->
                                 match!
-                                    ensure provider folder (fun () ->
+                                    ensure opening folder (fun () ->
                                         context ()
                                         |> Result.bind (fun context -> Storage.initializeOrganization config binding repository.Visibility None context manifest))
                                 with
@@ -1839,9 +1856,10 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                                               Index = { Index = None; Revision = None; Note = None } }
 
                                         // A new organization's activity index starts empty.
+                                        // The index at the state load read (WI-0081).
                                         let! indexed =
                                             readIndex
-                                                provider
+                                                (pinnedFor connection token)
                                                 folder
                                                 session.ActorId
                                                 months
@@ -2324,9 +2342,9 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
     let mutable inboxStatus = idleInbox
 
     /// A folder's files and subfolders; a folder that does not exist has none.
-    let entriesOf (state: Opened) (path: RelativePath) =
+    let entriesOf (reading: StorageProvider) (state: Opened) (path: RelativePath) =
         async {
-            match! state.Provider.List state.Folder path with
+            match! reading.List state.Folder path with
             | Error failure -> return Error failure
             | Ok listing ->
                 let files = listing.Entries |> List.filter (fun entry -> not entry.IsFolder) |> List.map _.Path
@@ -2384,16 +2402,16 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
     /// this never comes from Chrona. Each receipt is read once per revision;
     /// its candidate is looked for among the open candidates, then in the
     /// decided months from the receipt's on.
-    let receiptsWithoutCandidate (state: Opened) =
+    let receiptsWithoutCandidate (reading: StorageProvider) (state: Opened) =
         async {
             match ReceiptRecord.rootFolder () with
             | Error _ -> return Ok []
             | Ok root ->
-                match! state.Provider.List state.Folder root with
+                match! reading.List state.Folder root with
                 | Error failure -> return Error failure
                 | Ok listing ->
                     let sources = listing.Entries |> List.filter _.IsFolder |> List.map _.Path
-                    let! listings = sources |> List.map (state.Provider.List state.Folder) |> InTurn.together bridge
+                    let! listings = sources |> List.map (reading.List state.Folder) |> InTurn.together bridge
 
                     match listings |> List.tryPick (function Error failure -> Some failure | Ok _ -> None) with
                     | Some failure -> return Error failure
@@ -2411,7 +2429,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                                 | Some(revision, _) -> revision <> entry.Revision
                                 | None -> true)
 
-                        let! reads = unchecked |> List.map (fun entry -> state.Provider.Read state.Folder entry.Path) |> InTurn.together bridge
+                        let! reads = unchecked |> List.map (fun entry -> reading.Read state.Folder entry.Path) |> InTurn.together bridge
 
                         match reads |> List.tryPick (function Error failure -> Some failure | Ok _ -> None) with
                         | Some failure -> return Error failure
@@ -2442,7 +2460,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                                 |> List.distinct
                                 |> List.choose (CandidateRecord.decidedFolder >> Result.toOption)
 
-                            let! decided = wanted |> List.map (state.Provider.List state.Folder) |> InTurn.together bridge
+                            let! decided = wanted |> List.map (reading.List state.Folder) |> InTurn.together bridge
 
                             match decided |> List.tryPick (function Error failure -> Some failure | Ok _ -> None) with
                             | Some failure -> return Error failure
@@ -2615,6 +2633,17 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
             | Some({ Basis = ReadAt _ } as state) when not (state.Queue.Entries |> List.exists unsent) ->
                 bridge.Emit [ Update.InboxReconciled { inboxStatus with Running = true } ]
 
+                // One pin for the pass (WI-0081): what is in the inboxes, which
+                // receipts are stored and the receipt check are read at one
+                // state observed now. Deciding a file reads what is current,
+                // since this pass's own commits move the folder.
+                let! observed = state.Provider.NamespaceState state.Folder
+
+                let discovery =
+                    match observed with
+                    | Ok observed -> pinnedAt { Provider = state.Provider; PinAt = state.PinAt } observed.RepositoryToken
+                    | Error _ -> state.Provider
+
                 let finish (state: Opened) (status: InboxStatus) (changed: bool) =
                     inboxStatus <- { status with Running = false; LastRun = Some(now ()) }
                     (if changed then refreshed state else []) @ [ Update.InboxReconciled inboxStatus ]
@@ -2626,7 +2655,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                 match RelativePath.parse Chrona.Integration.Inbox.Folder with
                 | Error _ -> return finish state inboxStatus false
                 | Ok root ->
-                    match! entriesOf state root with
+                    match! entriesOf discovery state root with
                     | Error failure -> return failed (describeFailure failure)
                     | Ok(_, sources) ->
                         // Every file in every source's inbox, with whether a
@@ -2638,7 +2667,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                             if failure.IsNone then
                                 let sourceSystem = lastSegment source
 
-                                match! entriesOf state source with
+                                match! entriesOf discovery state source with
                                 | Error error -> failure <- Some error
                                 | Ok(files, _) ->
                                     let! receipts =
@@ -2646,7 +2675,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                                             match ReceiptRecord.sourceFolder sourceSystem with
                                             | Error _ -> return Ok Set.empty
                                             | Ok folder ->
-                                                match! entriesOf state folder with
+                                                match! entriesOf discovery state folder with
                                                 | Error error -> return Error error
                                                 | Ok(stored, _) -> return Ok(stored |> List.map lastSegment |> Set.ofList)
                                         }
@@ -2684,7 +2713,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                                         match ReceiptRecord.pathOf sourceSystem observationId with
                                         | Error _ -> ()
                                         | Ok receiptPath ->
-                                            match! state.Provider.Read state.Folder receiptPath with
+                                            match! discovery.Read state.Folder receiptPath with
                                             | Error error -> failure <- Some error
                                             | Ok ReadOutcome.Absent -> work <- work @ [ sourceSystem, observationId, file, false ]
                                             // Its receipt was erased for retention: it was
@@ -2736,7 +2765,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                                 // Receipts whose candidate no folder holds
                                 // (WI-0074); a read that fails keeps what the
                                 // last pass found.
-                                let! orphaned = receiptsWithoutCandidate state
+                                let! orphaned = receiptsWithoutCandidate discovery state
 
                                 let status =
                                     { inboxStatus with

@@ -184,7 +184,7 @@ let ``sign-in outcomes are told by their stable codes`` () =
         let model, _ = opened [] |> step (IdentityChanged(SignedOutWith(Some code)))
         Assert.True(flagOf "hasSignInNotice" model)
         Assert.Equal(code, textOf "signInNoticeCode" model)
-        Assert.Equal(Project.noticeText code, textOf "signInNotice" model)
+        Assert.Equal(ProjectIdentity.noticeText code, textOf "signInNotice" model)
 
     // While signed in, an unreachable provider is a notice, and the session is kept.
     let model, _ = opened [] |> step (IdentityChanged(SignedInAs octocat)) |> step (IdentityChanged ProviderUnavailable)

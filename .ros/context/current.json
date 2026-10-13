@@ -3015,7 +3015,27 @@
       "updatedAt": "2026-10-13T11:23:58.000Z",
       "telemetryExecutionIds": [
         "EXE-20261013T112359536Z-5907f8ac"
-      ]
+      ],
+      "latestCheckpoint": {
+        "id": "5e3d54523bae8a75208bd4ab",
+        "recordedAt": "2026-10-13T11:51:35.000Z",
+        "executionId": "EXE-20261013T112359536Z-5907f8ac",
+        "repository": "chrona",
+        "branch": "feature/telemetry-privacy-and-gate",
+        "commit": "8952003c3903e31e3c38c06d299d39abcb98c19a",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/chrona"
+        },
+        "remoteBranch": "feature/telemetry-privacy-and-gate",
+        "remoteCommit": "8952003c3903e31e3c38c06d299d39abcb98c19a",
+        "summary": "CHX-420 tested (Boundary.withheld, privacy tests); CHX-430 44/44 by name (ScenarioCoverageTests); CHX-440 gate document checked by ProductionGateTests (21/24, rest WI-0052/0068/0079); CHX-001/004/012 tested; .NET 442, Chromium 70",
+        "nextAction": "Open the PR and merge through the gate",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      }
     }
   ]
 }

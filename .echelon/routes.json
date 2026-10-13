@@ -463,6 +463,25 @@
           "values": null
         },
         {
+          "default": "mine",
+          "in": "query",
+          "name": "people",
+          "required": false,
+          "type": "enum",
+          "values": [
+            "mine",
+            "everyone"
+          ]
+        },
+        {
+          "default": null,
+          "in": "query",
+          "name": "person",
+          "required": false,
+          "type": "string",
+          "values": null
+        },
+        {
           "default": "project",
           "in": "query",
           "name": "group",
@@ -472,7 +491,8 @@
             "project",
             "type",
             "tag",
-            "day"
+            "day",
+            "person"
           ]
         },
         {

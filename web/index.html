@@ -1419,6 +1419,24 @@
                   <label class="ef-field__label" for="report-to">To</label>
                   <input type="date" id="report-to" data-event="reportTo" data-bind-value="reportTo" />
                 </div>
+                <template data-if="reportSeesOrganization"><label class="ef-select-field">
+                  <span class="ef-field__label">Whose time</span>
+                  <span class="ef-select">
+                    <select class="ef-select__input" id="report-people" data-event="reportPeople">
+                      <template data-each="reportPeopleOptions" data-key="id"><option data-bind-value="id" data-bind-selected="selected" data-text="name"></option></template>
+                    </select>
+                    <span class="ef-select__indicator" aria-hidden="true"></span>
+                  </span>
+                </label></template>
+                <template data-if="reportChoosesPerson"><label class="ef-select-field">
+                  <span class="ef-field__label">Person</span>
+                  <span class="ef-select">
+                    <select class="ef-select__input" id="report-person" data-event="reportPerson">
+                      <template data-each="reportPersonOptions" data-key="id"><option data-bind-value="id" data-bind-selected="selected" data-text="name"></option></template>
+                    </select>
+                    <span class="ef-select__indicator" aria-hidden="true"></span>
+                  </span>
+                </label></template>
                 <label class="ef-select-field">
                   <span class="ef-field__label">Project</span>
                   <span class="ef-select">

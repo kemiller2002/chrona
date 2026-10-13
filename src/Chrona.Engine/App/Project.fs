@@ -1301,7 +1301,7 @@ let private monthView (model: Model) =
 let private reportView (model: Model) =
     let filter = Update.reportFilter model
     let draft = model.Report
-    let all = model.Ledger.Activities |> Map.toList |> List.map snd
+    let all = Update.reportActivities model
     let policies = [ billing model ]
     let rows = Reports.select filter all
     let totals = Reports.totals policies rows
@@ -1312,8 +1312,12 @@ let private reportView (model: Model) =
         choice "" "Any" current
         :: (Reference.all kind model.References |> List.map (fun item -> choice item.Id item.Name current))
 
+    // Everyone's time, for someone who may see the organization's (WI-0039).
+    let everyone = draft.People = "everyone" && Update.seesOrganization model
+
     let grouping, groupName =
         match draft.Grouping with
+        | "person" -> Reports.ByActor, personName model
         | "activityType" -> Reports.ByActivityType, (fun id -> referenceName model Reference.ActivityType id)
         | "tag" -> Reports.ByTag, (fun id -> if id = "" then "No tag" else referenceName model Reference.Tag id)
         | "day" -> Reports.ByDay, (fun id -> Format.parseIsoDate id |> Option.map Format.longDate |> Option.defaultValue id)
@@ -1340,7 +1344,10 @@ let private reportView (model: Model) =
               t "date" (Format.longDate a.Occurrence.LocalDate)
               t "time" times
               t "title" a.Classification.Description
-              t "classification" $"{referenceName model Reference.ActivityType a.Classification.ActivityTypeId} · {referenceName model Reference.Project a.Classification.ProjectId}"
+              t
+                  "classification"
+                  ((if everyone then $"{personName model a.ActorId} · " else "")
+                   + $"{referenceName model Reference.ActivityType a.Classification.ActivityTypeId} · {referenceName model Reference.Project a.Classification.ProjectId}")
               t "method" (methodLabel a.EntryMethod)
               t "exact" (Format.minutes a.Minutes)
               t "billed" (Format.minutes (Reports.billed policies a))
@@ -1359,7 +1366,21 @@ let private reportView (model: Model) =
       items "reportTagOptions" (anyOf Reference.Tag draft.Tag)
       items "reportMethodOptions" [ choice "" "Any" draft.Method; choice "manual" "Manual entry" draft.Method; choice "timer" "Timer" draft.Method ]
       items "reportBillabilityOptions" [ choice "" "Any" draft.Billability; choice "billable" "Billable" draft.Billability; choice "non-billable" "Non-billable" draft.Billability; choice "pending" "Not yet classified" draft.Billability ]
-      items "reportGroupingOptions" [ choice "project" "Project" draft.Grouping; choice "activityType" "Activity type" draft.Grouping; choice "tag" "Tag" draft.Grouping; choice "day" "Day" draft.Grouping ]
+      flag "reportSeesOrganization" (Update.seesOrganization model)
+      items "reportPeopleOptions" [ choice "mine" "Mine" draft.People; choice "everyone" "Everyone's" draft.People ]
+      flag "reportChoosesPerson" everyone
+      items
+          "reportPersonOptions"
+          (choice "" "Everyone" draft.Person
+           :: (Update.reportPeople model |> List.map (fun id -> choice id (personName model id) draft.Person)))
+      items
+          "reportGroupingOptions"
+          [ choice "project" "Project" draft.Grouping
+            choice "activityType" "Activity type" draft.Grouping
+            choice "tag" "Tag" draft.Grouping
+            choice "day" "Day" draft.Grouping
+            if everyone then
+                choice "person" "Person" draft.Grouping ]
       items "reportFormatOptions" [ choice "csv" "CSV" draft.Format; choice "json" "JSON" draft.Format ]
       text "reportCount" (plural totals.Count "activity" "activities")
       text "reportExact" (Format.minutes totals.ExactMinutes)
@@ -1376,7 +1397,12 @@ let private reportView (model: Model) =
       flag "hasExportProblems" (model.Problems.ContainsKey ExportForm)
       items "exportProblems" (problemItems model ExportForm)
       text "printTitle" "Time report"
-      text "printSubtitle" $"{model.Session.DisplayName} · {range}"
+      text
+          "printSubtitle"
+          (match everyone, draft.Person with
+           | true, "" -> $"Everyone in the organization · {range}"
+           | true, person -> $"{personName model person} · {range}"
+           | false, _ -> $"{model.Session.DisplayName} · {range}")
       text "printGenerated" $"Generated {localStamp model model.Now} · {Reports.Schema}" ]
 
 // ---- the week, a period and projects (CHX-460) --------------------------------------

@@ -143,6 +143,8 @@ type Effect =
     | ConfirmAdministrator
     /// Read the month folders these dates need (a month not read yet).
     | ReadMonths of dates: DateOnly list
+    /// Read other people's months, for a report across people (WI-0039).
+    | ReadOthers of wanted: (string * DateOnly) list
     /// Rebuild the activity index from the stored records (40).
     | RebuildIndex
     /// Read the producers' inboxes now (WI-0038).
@@ -210,7 +212,7 @@ let eventNames =
       "candidateActivityType"; "candidateProject"; "candidateDescription"; "candidatePurpose"; "candidateReason"
       "acceptCandidate"; "rejectCandidate"; "readInboxes"
       "reportFrom"; "reportTo"; "reportProject"; "reportActivityType"; "reportTag"; "reportMethod"; "reportBillability"; "reportText"
-      "reportIncludeRemoved"; "reportGrouping"; "reportFormat"; "copyExport"; "printReport"; "reportMonth"; "goReports"
+      "reportIncludeRemoved"; "reportPeople"; "reportPerson"; "reportGrouping"; "reportFormat"; "copyExport"; "printReport"; "reportMonth"; "goReports"
       "copyLink"; "skipToContent"; "dayProject"; "previousWeek"; "nextWeek"; "weekProject"; "previousPeriod"; "nextPeriod" ]
 
 // ---- helpers ----------------------------------------------------------------
@@ -541,6 +543,8 @@ let draftOf (query: Places.ReportQuery) (draft: ReportDraft) =
         Billability = text query.Billability
         Text = text query.Text
         IncludeRemoved = query.IncludeRemoved
+        People = query.People
+        Person = text query.Person
         Grouping = query.Grouping
         Format = query.Format }
 
@@ -557,6 +561,9 @@ let queryOf (draft: ReportDraft) : Places.ReportQuery =
       Billability = some draft.Billability
       Text = some draft.Text
       IncludeRemoved = draft.IncludeRemoved
+      People = draft.People
+      // One person is chosen only among everyone's time.
+      Person = if draft.People = "everyone" then some draft.Person else None
       Grouping = draft.Grouping
       Format = draft.Format }
 
@@ -604,6 +611,50 @@ let normalize (model: Model) (place: Places.Place) =
     | Places.Period on -> Places.Period (Periods.containing model.PeriodConfig on).Start
     | other -> other
 
+/// Whether the person may see the organization's time, and so report on
+/// everyone's (WI-0039).
+let seesOrganization (model: Model) =
+    Access.permits model.Roster model.Session.ActorId Access.ViewOrganizationTime
+
+/// The people whose time a report across everyone covers: the
+/// organization's members, and anyone the activity index records time for
+/// (someone who has left still has time in it).
+let reportPeople (model: Model) =
+    (model.Roster.Members |> Map.toList |> List.map fst)
+    @ (model.Store.History |> List.map _.ActorId)
+    |> List.distinct
+    |> List.sort
+
+/// The days a report covers: the dates its form names, or this month's
+/// (`Places.defaultRange`).
+let reportRange (model: Model) =
+    let first, last = Places.defaultRange (Model.today model)
+
+    Format.parseIsoDate model.Report.From |> Option.defaultValue first,
+    Format.parseIsoDate model.Report.To |> Option.defaultValue last
+
+/// Every (year, month) from the first day's month to the last day's.
+let private monthsBetween (first: DateOnly) (last: DateOnly) =
+    let start = DateOnly(first.Year, first.Month, 1)
+
+    List.unfold (fun (month: DateOnly) -> if month > last then None else Some((month.Year, month.Month), month.AddMonths 1)) start
+
+/// The months of a report's range that hold someone's time: where the
+/// activity index is current, the months it lists for them; otherwise
+/// every month of the range, so nothing stored is left out (WI-0039).
+let private reportMonths (model: Model) (actorId: string) =
+    let months = reportRange model ||> monthsBetween
+
+    if model.Store.IndexCurrent then
+        let held =
+            model.Store.History
+            |> List.filter (fun total -> total.ActorId = actorId)
+            |> List.map (fun total -> total.Year, total.Month)
+
+        months |> List.filter (fun month -> List.contains month held)
+    else
+        months
+
 /// The months a place shows stored time from. An activity named without its
 /// day is looked for in every month that holds the person's time.
 let private monthsNeeded (model: Model) =
@@ -623,6 +674,9 @@ let private monthsNeeded (model: Model) =
     | Places.Week(on, _) -> let week = weekOf model on in between week.Start week.Finish
     | Places.Period on -> let period = Periods.containing model.PeriodConfig on in between period.Start period.Finish
     | Places.Month(year, month) -> [ year, month ]
+    // A report reads every month of its range from the stored records
+    // (WI-0039), not just the months already open.
+    | Places.Reports _ -> reportMonths model model.Session.ActorId
     | Places.Entry(id, _) when model.Ledger.Activities.ContainsKey id -> []
     | Places.Entry(_, Some on) -> [ monthOf on ]
     | Places.Entry(_, None)
@@ -636,8 +690,25 @@ let private monthsNeeded (model: Model) =
         | None -> history ()
     | _ -> []
 
+/// Other people's months a report across everyone needs: for someone who
+/// may see the organization's time, each person's months in the range
+/// (WI-0039).
+let private othersNeeded (model: Model) =
+    match model.Place with
+    | Places.Reports query when query.People = "everyone" && seesOrganization model ->
+        let people =
+            match query.Person with
+            | Some person -> [ person ]
+            | None -> reportPeople model
+
+        people
+        |> List.filter ((<>) model.Session.ActorId)
+        |> List.collect (fun person -> reportMonths model person |> List.map (fun month -> person, month))
+    | _ -> []
+
 /// A month the person goes to that was not read yet is read now: one month
-/// folder, on demand, never the whole history (38).
+/// folder, on demand, never the whole history (38). A report across
+/// everyone reads each person's months it covers the same way (WI-0039).
 let private readNeeded (model: Model) =
     match model.Store.Kind with
     | Durable _ when canWork model ->
@@ -646,11 +717,22 @@ let private readNeeded (model: Model) =
             |> List.distinct
             |> List.filter (fun month -> not (List.contains month model.Store.Months) && not (List.contains month model.Store.Reading))
 
-        if unread.IsEmpty then
-            model, []
-        else
-            { model with Store = { model.Store with Reading = model.Store.Reading @ unread } },
-            [ ReadMonths(unread |> List.map (fun (year, month) -> DateOnly(year, month, 1))) ]
+        let theirs =
+            othersNeeded model
+            |> List.distinct
+            |> List.filter (fun wanted -> not (List.contains wanted model.Store.Others) && not (List.contains wanted model.Store.OthersReading))
+
+        let firstOf (year, month) = DateOnly(year, month, 1)
+
+        { model with
+            Store =
+                { model.Store with
+                    Reading = model.Store.Reading @ unread
+                    OthersReading = model.Store.OthersReading @ theirs } },
+        [ if not unread.IsEmpty then
+              ReadMonths(unread |> List.map firstOf)
+          if not theirs.IsEmpty then
+              ReadOthers(theirs |> List.map (fun (person, month) -> person, firstOf month)) ]
     | _ -> model, []
 
 /// Moves to a place: the engine moves at once, and asks the browser to
@@ -1020,17 +1102,21 @@ let private rejectCandidate (ctx: Ctx) (model: Model) =
 
 // ---- reports --------------------------------------------------------------------
 
-/// The report filter a draft names, over the session's own records. A date
-/// the address does not name is this month's (`Places.defaultRange`).
+/// The report filter a draft names: over the session's own records, or,
+/// for someone who may see the organization's time, everyone's or one
+/// person's. A date the address does not name is this month's
+/// (`Places.defaultRange`).
 let reportFilter (model: Model) : Reports.Filter =
     let draft = model.Report
-    let first, last = Places.defaultRange (Model.today model)
-    let from = Format.parseIsoDate draft.From |> Option.defaultValue first
-    let ``to`` = Format.parseIsoDate draft.To |> Option.defaultValue last
+    let from, ``to`` = reportRange model
     let one (value: string) = if value = "" then [] else [ value ]
 
     { Reports.between from ``to`` with
-        ActorIds = [ model.Session.ActorId ]
+        ActorIds =
+            match draft.People, draft.Person with
+            | "everyone", "" when seesOrganization model -> []
+            | "everyone", person when seesOrganization model -> [ person ]
+            | _ -> [ model.Session.ActorId ]
         ProjectIds = one draft.ProjectId
         ActivityTypeIds = one draft.ActivityTypeId
         Tags = one draft.Tag
@@ -1048,6 +1134,11 @@ let reportFilter (model: Model) : Reports.Filter =
         Text = draft.Text
         IncludeRemoved = draft.IncludeRemoved }
 
+/// The time a report selects from: the person's own, and other people's
+/// as read (the filter decides whose counts, WI-0039).
+let reportActivities (model: Model) =
+    (model.Ledger.Activities |> Map.toList |> List.map snd) @ model.Reviewing
+
 /// The export the report form describes, generated at the model's instant.
 let exportText (model: Model) =
     let header: Reports.Header =
@@ -1055,7 +1146,7 @@ let exportText (model: Model) =
           GeneratedAt = model.Report.GeneratedAt |> Option.defaultValue model.Now
           Filter = reportFilter model }
 
-    let all = model.Ledger.Activities |> Map.toList |> List.map snd
+    let all = reportActivities model
     let policies = [ Billing.legacyDefault model.Session.OrganizationId ]
 
     match model.Report.Format with
@@ -1701,6 +1792,8 @@ let private onEvent (ctx: Ctx) (name: string) (key: string option) (value: strin
     | "reportBillability" -> report (fun r -> { r with Billability = value })
     | "reportText" -> report (fun r -> { r with Text = value })
     | "reportIncludeRemoved" -> report (fun r -> { r with IncludeRemoved = checkedOn })
+    | "reportPeople" -> report (fun r -> { r with People = value; Person = if value = "everyone" then r.Person else "" })
+    | "reportPerson" -> report (fun r -> { r with Person = value })
     | "reportGrouping" -> report (fun r -> { r with Grouping = value })
     | "reportFormat" ->
         let next, effects = report (fun r -> { r with Format = value })
@@ -1914,11 +2007,14 @@ let private storeOpened (contents: StoreContents) (model: Model) =
                 Integrity = contents.Problems
                 Held = contents.Held
                 Months = contents.Months
+                Others = contents.Others
+                OthersReading = model.Store.OthersReading |> List.filter (fun wanted -> not (List.contains wanted contents.Others))
                 Audited = contents.Audit.Length
                 Waiting = 0
                 Reading = model.Store.Reading |> List.filter (fun month -> not (List.contains month contents.Months))
                 History = contents.History
                 Index = contents.Index
+                IndexCurrent = contents.IndexCurrent
                 Cached = contents.Cached }
         // The organization's periods as saved, reckoned in its zone (WI-0036).
         PeriodsStored = contents.Periods
@@ -2144,7 +2240,10 @@ let private mayResume (model: Model) =
 /// Whether a record an address names may still arrive: the records are
 /// still opening, or a month is still being read.
 let private stillLooking (model: Model) =
-    not (canWork model) || model.Store.Opening || not model.Store.Reading.IsEmpty
+    not (canWork model)
+    || model.Store.Opening
+    || not model.Store.Reading.IsEmpty
+    || not model.Store.OthersReading.IsEmpty
 
 /// A record the place names that does not exist, or is not the person's.
 /// Decided again whenever records arrive.
@@ -2173,6 +2272,16 @@ let private recordProblem (model: Model) =
         | Some _ -> Some(AddressProblem(Limen.Routing.RouteError.NotPermitted Places.Names.Candidate))
         | None when stillLooking model -> None
         | None -> Some(RecordMissing("candidate", id))
+    // Everyone's time is for those who may see the organization's; one
+    // person's must be someone the organization has (WI-0039).
+    | Places.Reports query when query.People = "everyone" && canWork model && not (seesOrganization model) ->
+        Some(AddressProblem(Limen.Routing.RouteError.NotPermitted Places.Names.Reports))
+    | Places.Reports query when
+        canWork model
+        && query.Person |> Option.exists (fun person -> not (List.contains person (reportPeople model)))
+        && not (stillLooking model)
+        ->
+        Some(RecordMissing("person", defaultArg query.Person ""))
     | Places.Reports query ->
         [ missingReference (Reference.Project, "project") query.ProjectId
           missingReference (Reference.ActivityType, "activity type") query.ActivityTypeId
@@ -2388,7 +2497,7 @@ let private step (ctx: Ctx) (msg: Msg) (model: Model) : Model * Effect list =
     | IndexChanged(history, summary) -> { model with Store = { model.Store with History = history; Index = summary } }, []
     | StoreReadFailed reason ->
         { model with
-            Store = { model.Store with Reading = [] }
+            Store = { model.Store with Reading = []; OthersReading = [] }
             Announcement = $"That month could not be read. {reason}" },
         []
     | Copied(ExportCopy, true) -> { model with CopyStatus = "Copied to the clipboard."; Announcement = "Copied to the clipboard." }, []

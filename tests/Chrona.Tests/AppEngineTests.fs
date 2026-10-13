@@ -834,8 +834,10 @@ let ``a page coming back restarts the timer's wake-ups from its timestamps and s
                   Audit = []
                   Problems = []
                   Months = []
+                  Others = []
                   History = []
                   Index = ""
+                  IndexCurrent = false
                   Periods = None
                   Reviews = []
                   Reviewing = []

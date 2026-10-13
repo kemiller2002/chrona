@@ -2897,20 +2897,20 @@
         "EXE-20261013T094631634Z-b33f191e"
       ],
       "latestCheckpoint": {
-        "id": "58cb8d807002b2af887e1193",
-        "recordedAt": "2026-10-13T09:47:48.000Z",
+        "id": "feace71966b92eb885cbf9e8",
+        "recordedAt": "2026-10-13T09:58:24.000Z",
         "executionId": "EXE-20261013T094631634Z-b33f191e",
         "repository": "chrona",
-        "branch": "docs/measurement-baseline-sources",
-        "commit": "0fb76cdec80703dad62e38fe1066956df6eb1099",
+        "branch": "chore/wi-0076-complete",
+        "commit": "68f4cc543b88fbdd5abf0d230375aa8cf73f3c90",
         "remote": {
           "name": "origin",
           "url": "https://github.com/kemiller2002/chrona"
         },
-        "remoteBranch": "docs/measurement-baseline-sources",
-        "remoteCommit": "0fb76cdec80703dad62e38fe1066956df6eb1099",
-        "summary": "baseline-sources.md written",
-        "nextAction": "Open the PR",
+        "remoteBranch": "main",
+        "remoteCommit": "68f4cc543b88fbdd5abf0d230375aa8cf73f3c90",
+        "summary": "Merged through the gate (#89, 68f4cc5)",
+        "nextAction": "Record completion",
         "verification": {
           "status": "verified",
           "mechanism": "git-remote-observation"

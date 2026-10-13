@@ -3075,20 +3075,20 @@
         "EXE-20261013T121552440Z-4acebe34"
       ],
       "latestCheckpoint": {
-        "id": "efa1bc8951025e5811346c1d",
-        "recordedAt": "2026-10-13T12:23:52.000Z",
+        "id": "58bd4be34cc51bcbcc40a5f1",
+        "recordedAt": "2026-10-13T12:32:54.000Z",
         "executionId": "EXE-20261013T121552440Z-4acebe34",
         "repository": "chrona",
-        "branch": "fix/csv-formula-injection",
-        "commit": "a08cf5d85cbdc5e3c2d4c833144197a2e9dd4279",
+        "branch": "chore/wi-0080-complete",
+        "commit": "a91657f04242a8cd62c834921b38007fcd202f36",
         "remote": {
           "name": "origin",
           "url": "https://github.com/kemiller2002/chrona"
         },
-        "remoteBranch": "fix/csv-formula-injection",
-        "remoteCommit": "a08cf5d85cbdc5e3c2d4c833144197a2e9dd4279",
-        "summary": "Reports.cell neutralizes =,+,-,@,tab,CR text cells with a leading single quote then RFC 4180; numbers kept; header lines with commas quoted; tests per prefix and =HYPERLINK; .NET 445",
-        "nextAction": "Open the PR and merge through the gate",
+        "remoteBranch": "main",
+        "remoteCommit": "a91657f04242a8cd62c834921b38007fcd202f36",
+        "summary": "Merged through the gate (#97, a91657f)",
+        "nextAction": "Record completion",
         "verification": {
           "status": "verified",
           "mechanism": "git-remote-observation"

@@ -1,19 +1,19 @@
 {
   "schemaVersion": 4,
   "project": "chrona",
-  "manifestSha256": "ae4e7a5c89046c6370fe6a201a95e681a9286f23774bd195bc5bad452d739171",
+  "manifestSha256": "293712e9485cee883ab2be45bbfacc80bb2015fb179057d8625efa4c9a316484",
   "manifest": {
     "schemaVersion": 1,
     "name": "chrona",
     "registryAuthority": {
       "kind": "resolved-release-set",
       "path": ".conditor/authority/resolved-release-set.json",
-      "sha256": "8ba2e91828ff0fb870a45a137f594d6e3ed49d3721bcd6b37c479850334ec52a"
+      "sha256": "f969e5e92d6a3a208f35df7da4c74cd8159b3d80646de6a9d90ca77ed55fcd72"
     },
     "components": [
       {
         "id": "ordo",
-        "version": "1.6.0",
+        "version": "1.7.0",
         "required": true
       },
       {
@@ -65,12 +65,12 @@
   "components": [
     {
       "id": "ordo",
-      "version": "1.6.0",
+      "version": "1.7.0",
       "distribution": "host-tool",
       "package": "ordo",
       "descriptorSha256": "95f0e4d93296abc9707e62df34fc0a023e3d680f1e338d654497ae1597cb85de",
       "authority": "embedded-component-descriptor",
-      "sourceReference": "host:ordo@1.6.0"
+      "sourceReference": "host:ordo@1.7.0"
     },
     {
       "id": "praxis",

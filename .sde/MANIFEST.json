@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "sdeVersion": "1.6.0",
+  "sdeVersion": "1.7.0",
   "methodVersion": "0.2",
-  "sourceRevision": "85951eb2b8213621854fcc2945e102fba61bb178",
+  "sourceRevision": "e6cbeff8876f870b2636715735bb79041a9a06a0",
   "packageName": "@echelon-foundry/sde",
   "files": [
     {
@@ -11,7 +11,7 @@
     },
     {
       "path": "VERSION",
-      "sha256": "cb1d9a30bc4ab8a397f39b7d786bb82aca0b816077eefc35d7c822017d75f6a5"
+      "sha256": "bb7320d831e7a151aa901c35e7326c752fa2ef5024f30768c42319b8bed171ed"
     },
     {
       "path": "architecture/BOUNDARY-PRESERVATION.md",

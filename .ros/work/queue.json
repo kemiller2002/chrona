@@ -902,10 +902,10 @@
         "order:10"
       ],
       "priority": "medium",
-      "status": "captured",
+      "status": "blocked",
       "attachments": [],
       "createdAt": "2026-10-08T08:41:17.009Z",
-      "updatedAt": "2026-10-08T11:19:14Z",
+      "updatedAt": "2026-10-13T12:42:53.000Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",
@@ -915,7 +915,8 @@
         "runtime": "claude-code"
       },
       "source": "manual",
-      "sourceReference": null
+      "sourceReference": null,
+      "blockedReason": "Waiting on Forma: its WI-0022 (contract gaps G1-G7, tracked as kemiller2002/forma#153) is captured and not yet shipped (Forma 0.6.1). Chrona keeps its chrona-* composition until a Forma release provides them; no Chrona workaround."
     },
     {
       "id": "WI-0043",

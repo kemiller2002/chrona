@@ -2895,7 +2895,27 @@
       "updatedAt": "2026-10-13T09:46:29.000Z",
       "telemetryExecutionIds": [
         "EXE-20261013T094631634Z-b33f191e"
-      ]
+      ],
+      "latestCheckpoint": {
+        "id": "58cb8d807002b2af887e1193",
+        "recordedAt": "2026-10-13T09:47:48.000Z",
+        "executionId": "EXE-20261013T094631634Z-b33f191e",
+        "repository": "chrona",
+        "branch": "docs/measurement-baseline-sources",
+        "commit": "0fb76cdec80703dad62e38fe1066956df6eb1099",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/chrona"
+        },
+        "remoteBranch": "docs/measurement-baseline-sources",
+        "remoteCommit": "0fb76cdec80703dad62e38fe1066956df6eb1099",
+        "summary": "baseline-sources.md written",
+        "nextAction": "Open the PR",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      }
     }
   ]
 }

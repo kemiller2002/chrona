@@ -2941,7 +2941,27 @@
       "updatedAt": "2026-10-13T10:08:56.000Z",
       "telemetryExecutionIds": [
         "EXE-20261013T100858403Z-27654d43"
-      ]
+      ],
+      "latestCheckpoint": {
+        "id": "5656ef43bf85514cde8c6fa2",
+        "recordedAt": "2026-10-13T10:39:41.000Z",
+        "executionId": "EXE-20261013T100858403Z-27654d43",
+        "repository": "chrona",
+        "branch": "perf/report-refresh",
+        "commit": "2d79dcd020b249baf51cb45930e72b0218061fb3",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/chrona"
+        },
+        "remoteBranch": "perf/report-refresh",
+        "remoteCommit": "2d79dcd020b249baf51cb45930e72b0218061fb3",
+        "summary": "InTurn fork-join (6, order kept, resumed at the top of the bridge's turn); readFolders, histories and cache keeps together; histories cached by path and revision; .NET 423 and Chromium 70 pass; measured shell-to-Hubot 1.89-1.98 s before, 1.43-1.60 s after",
+        "nextAction": "Open the PR and merge through gated-merge.sh",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      }
     }
   ]
 }

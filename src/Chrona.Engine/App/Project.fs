@@ -1318,9 +1318,36 @@ let private reportView (model: Model) =
     let filter = Update.reportFilter model
     let draft = model.Report
     let all = Update.reportActivities model
-    let policies = [ billing model ]
+    let policies = Update.reportPolicies model
     let rows = Reports.select filter all
     let totals = Reports.totals policies rows
+
+    // Across organizations (WI-0075): each organization names its own
+    // reference data and people.
+    let across = Update.acrossOrganizations model
+    let elsewhere = model.Elsewhere |> Map.toList |> List.map snd
+
+    let organizationName (id: string) =
+        model.Deployment
+        |> Option.bind (fun deployment -> deployment.Organizations |> List.tryFind (fun o -> o.Id = id))
+        |> Option.map _.DisplayName
+        |> Option.defaultValue id
+
+    let referenceName (model: Model) (kind: Reference.Kind) (id: string) =
+        match Reference.tryName kind id model.References with
+        | Some name -> name
+        | None ->
+            elsewhere
+            |> List.tryPick (fun read -> read.References |> List.tryFind (fun item -> item.Kind = kind && item.Id = id) |> Option.map _.Name)
+            |> Option.defaultValue id
+
+    let personName (model: Model) (actorId: string) =
+        match model.Roster.Members.TryFind actorId with
+        | Some found -> found.Principal.DisplayName
+        | None ->
+            elsewhere
+            |> List.tryPick (fun read -> read.Members |> List.tryFind (fun m -> m.Principal.PrincipalId = actorId) |> Option.map _.Principal.DisplayName)
+            |> Option.defaultValue actorId
 
     let choice (id: string) (name: string) (current: string) = [ t "id" id; t "name" name; f "selected" (id = current) ]
 
@@ -1334,6 +1361,7 @@ let private reportView (model: Model) =
     let grouping, groupName =
         match draft.Grouping with
         | "person" -> Reports.ByActor, personName model
+        | "organization" -> Reports.ByOrganization, organizationName
         | "activityType" -> Reports.ByActivityType, (fun id -> referenceName model Reference.ActivityType id)
         | "tag" -> Reports.ByTag, (fun id -> if id = "" then "No tag" else referenceName model Reference.Tag id)
         | "day" -> Reports.ByDay, (fun id -> Format.parseIsoDate id |> Option.map Format.longDate |> Option.defaultValue id)
@@ -1362,7 +1390,8 @@ let private reportView (model: Model) =
               t "title" a.Classification.Description
               t
                   "classification"
-                  ((if everyone then $"{personName model a.ActorId} · " else "")
+                  ((if across then $"{organizationName a.OrganizationId} · " else "")
+                   + (if everyone then $"{personName model a.ActorId} · " else "")
                    + $"{referenceName model Reference.ActivityType a.Classification.ActivityTypeId} · {referenceName model Reference.Project a.Classification.ProjectId}")
               t "method" (methodLabel a.EntryMethod)
               t "exact" (Format.minutes a.Minutes)
@@ -1396,7 +1425,30 @@ let private reportView (model: Model) =
             choice "tag" "Tag" draft.Grouping
             choice "day" "Day" draft.Grouping
             if everyone then
-                choice "person" "Person" draft.Grouping ]
+                choice "person" "Person" draft.Grouping
+            if across then
+                choice "organization" "Organization" draft.Grouping ]
+      // Several organizations in the deployment: a report may cover all of
+      // those the person belongs to (WI-0075).
+      flag "reportHasOrganizations" (not (Update.otherOrganizations model).IsEmpty)
+      items
+          "reportOrganizationsOptions"
+          [ choice "this" (organizationName model.Session.OrganizationId) draft.Organizations
+            choice "all" "All my organizations" draft.Organizations ]
+      flag "hasReportOrganizationsNote" (across && elsewhere |> List.exists (fun read -> read.Failure.IsSome || not read.Member || (everyone && not read.SeesOrganization)))
+      text
+          "reportOrganizationsNote"
+          (if not across then
+               ""
+           else
+               [ for read in elsewhere do
+                     if read.Failure.IsSome then
+                         $"{organizationName read.OrganizationId} could not be read: {read.Failure.Value}"
+                     elif not read.Member then
+                         $"You are not a member of {organizationName read.OrganizationId}, so none of its time is here."
+                     elif everyone && not read.SeesOrganization then
+                         $"In {organizationName read.OrganizationId} you may see only your own time, so only yours is here." ]
+               |> String.concat " ")
       items "reportFormatOptions" [ choice "csv" "CSV" draft.Format; choice "json" "JSON" draft.Format ]
       text "reportCount" (plural totals.Count "activity" "activities")
       text "reportExact" (Format.minutes totals.ExactMinutes)
@@ -1416,6 +1468,7 @@ let private reportView (model: Model) =
       text
           "printSubtitle"
           (match everyone, draft.Person with
+           | true, "" when across -> $"Everyone in all my organizations · {range}"
            | true, "" -> $"Everyone in the organization · {range}"
            | true, person -> $"{personName model person} · {range}"
            | false, _ -> $"{model.Session.DisplayName} · {range}")

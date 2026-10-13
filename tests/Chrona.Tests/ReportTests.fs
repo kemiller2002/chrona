@@ -220,3 +220,25 @@ let ``a search text in the header stays one cell, so it can never open a formula
     let text = csv policies { header with Filter = { header.Filter with Text = "x, =HYPERLINK(\"https://evil.example\")" } } activities
     let line = text.Split('\n') |> Array.find (fun l -> l.Contains "filter.text")
     Assert.Equal<string list>([ "# filter.text: x, =HYPERLINK(\"https://evil.example\")" ], cells line)
+
+// ---- Organizations (27, 28; WI-0075) ----------------------------------------------------
+
+[<Fact>]
+let ``a report filters and groups by organization, and its export names the organizations`` () =
+    let europe = { activity "E1" 6 (9, 0) 30 with OrganizationId = "ORG-2" }
+    let all = europe :: activities
+    let both = { october with OrganizationIds = [ "ORG-1"; "ORG-2" ] }
+    Assert.Contains("E1", select both all |> List.map _.ActivityId)
+    Assert.DoesNotContain("E1", select { october with OrganizationIds = [ "ORG-1" ] } all |> List.map _.ActivityId)
+    Assert.Equal<string list>([ "E1" ], select { october with OrganizationIds = [ "ORG-2" ] } all |> List.map _.ActivityId)
+
+    let policies = [ Chrona.Domain.Billing.legacyDefault "ORG-1"; Chrona.Domain.Billing.legacyDefault "ORG-2" ]
+    let groups = groupBy policies ByOrganization (select both all) |> List.map fst
+    Assert.Equal<string list>([ "ORG-1"; "ORG-2" ], groups)
+
+    let text = csv policies { header with OrganizationId = "ORG-1;ORG-2"; Filter = both } all
+    Assert.Contains("# organization: ORG-1;ORG-2", text)
+    Assert.Contains("# filter.organizations: ORG-1;ORG-2", text)
+    // Each organization's time is billed by its own policy.
+    let e1 = text.Split('\n') |> Array.find (fun line -> line.StartsWith "E1,")
+    Assert.Contains(",30,30,legacy-six-minute-up@1,", e1)

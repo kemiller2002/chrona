@@ -1663,10 +1663,10 @@
       "description": "Left after WI-0039. Reports and search now read stored records across everyone in one organization (people=everyone, for those holding ViewOrganizationTime, guided by the activity index). A deployment that serves several organizations keeps each in its own folder and opens one at a time, so a report cannot yet cover several: read each organization the person is a member of (its roster checked for ViewOrganizationTime or ViewOwnTime per organization), select across them, group and filter by organization, and name every organization in the export header. The address names the organizations; a link opens cold through sign-in.",
       "tags": [],
       "priority": "medium",
-      "status": "captured",
+      "status": "ready",
       "attachments": [],
       "createdAt": "2026-10-13T09:08:36.000Z",
-      "updatedAt": "2026-10-13T09:08:36.000Z",
+      "updatedAt": "2026-10-13T14:16:30.000Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

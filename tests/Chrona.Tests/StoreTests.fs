@@ -304,6 +304,7 @@ type private Device(github: InMemoryStore, visibility: RepositoryVisibility, env
             | ConfirmAdministrator -> store.Confirm()
             | ReadMonths dates -> store.Read dates
             | ReadOthers wanted -> store.ReadOthers wanted
+            | ReadElsewhere wanted -> store.ReadElsewhere wanted
             | RebuildIndex -> store.Rebuild()
             | ReadInboxes -> store.ReadInboxes()
             | SendUnsent -> store.SendNow()
@@ -3412,3 +3413,112 @@ let ``a refresh reads every folder through a pin at the state it observed, and w
     // The repository moved, so the pin moved with the state observed.
     Assert.NotEqual(device.PinnedAt[pinsBefore - 1], List.last device.PinnedAt)
     Assert.Contains("Pairing", descriptions device)
+
+// ---- Reports across organizations (WI-0075) ---------------------------------------------
+
+[<Fact>]
+let ``a report across organizations reads each organization the person belongs to, as they may see it there`` () =
+    let github = InMemoryStore()
+
+    let config =
+        """{"environment":"production","environmentName":"production","location":{"owner":"acme","repository":"chrona-data","branch":"main","basePath":"deployments"},"identity":{"exchange":"https://fides.test","application":"chrona-test","provider":"github","clientId":"Iv23liTEST","redirectUri":"https://chrona.test/"},"organizations":[{"id":"org_acme","displayName":"Acme Consulting","slug":"acme","timeZone":"America/New_York","administrators":["583231"]},{"id":"org_eu","displayName":"Acme Europe","slug":"acme-eu","timeZone":"Europe/Berlin","administrators":["583231"]},{"id":"org_jp","displayName":"Acme Japan","slug":"acme-jp","timeZone":"Asia/Tokyo","administrators":["1001"]}]}"""
+        |> Deployment.parse
+        |> ok
+
+    // Octocat keeps time in Acme Consulting and in Acme Europe, where he
+    // administers and admits hubot.
+    let octo = Device(github, RepositoryVisibility.Private, "production", octocat, config)
+    octo.Open()
+    record octo "09:00" "10:00" "Acme work"
+    octo.Ui("chooseOrganization", "org_eu")
+    record octo "11:00" "12:00" "Europe work"
+    octo.Ui("memberId", "1001")
+    octo.Ui("memberName", "hubot")
+    octo.Ui("memberAccess", "ownTime")
+    octo.Ui("admitMember", "")
+
+    // Hubot keeps time in Acme Europe, and founds Acme Japan, which
+    // octocat does not belong to.
+    let bot = Device(github, RepositoryVisibility.Private, "production", hubot, config)
+    bot.Open()
+    bot.Ui("chooseOrganization", "org_eu")
+    record bot "13:00" "14:00" "Hubot in Europe"
+    bot.Ui("chooseOrganization", "org_jp")
+    record bot "15:00" "16:00" "Japan work"
+
+    // Octocat, in Acme Consulting, opens a link to everyone's time in all
+    // his organizations, grouped by organization.
+    let lead = Device(github, RepositoryVisibility.Private, "production", octocat, config)
+    lead.Open()
+    lead.Send(LocationMoved "#/reports?from=2026-10-01&to=2026-10-31&people=everyone&organizations=all&group=organization")
+    Assert.Equal(None, lead.Model.RouteProblem)
+    Assert.Empty(lead.Model.ElsewhereReading)
+    Assert.Equal<string list>([ "Acme work"; "Europe work"; "Hubot in Europe" ], reportTitles lead.Model)
+
+    // Acme Japan is read, but he is not a member: nothing of it is here, and
+    // the report says so.
+    Assert.False(lead.Model.Elsewhere["org_jp"].Member)
+    Assert.True(viewFlag "hasReportOrganizationsNote" lead.Model)
+    Assert.Contains("not a member of Acme Japan", viewText "reportOrganizationsNote" lead.Model)
+
+    // Grouped by organization, named as the deployment names them.
+    let groups =
+        match (Project.project lead.Model |> Map.ofList)["reportGroups"] with
+        | Chrona.Engine.View.Items rows ->
+            rows
+            |> List.choose (
+                List.tryPick (function
+                    | "name", Chrona.Engine.View.Text name -> Some name
+                    | _ -> None)
+            )
+        | other -> failwith $"%A{other}"
+
+    Assert.Equal<string list>([ "Acme Consulting"; "Acme Europe" ], groups)
+
+    // The export names both organizations, and holds Acme Europe's time.
+    let export = Update.exportText lead.Model
+    Assert.Contains("# organization: org_acme;org_eu", export)
+    Assert.Contains("# filter.organizations: org_acme;org_eu", export)
+    Assert.Contains("Hubot in Europe", export)
+
+    // Only his own time, in every organization.
+    lead.Ui("reportPeople", "mine")
+    Assert.Equal<string list>([ "Acme work"; "Europe work" ], reportTitles lead.Model)
+
+    // This organization only, as before.
+    lead.Ui("reportOrganizations", "this")
+    Assert.Equal<string list>([ "Acme work" ], reportTitles lead.Model)
+
+[<Fact>]
+let ``across organizations, someone who sees only their own time in one sees only theirs from it`` () =
+    let github = InMemoryStore()
+
+    let config =
+        """{"environment":"production","environmentName":"production","location":{"owner":"acme","repository":"chrona-data","branch":"main","basePath":"deployments"},"identity":{"exchange":"https://fides.test","application":"chrona-test","provider":"github","clientId":"Iv23liTEST","redirectUri":"https://chrona.test/"},"organizations":[{"id":"org_acme","displayName":"Acme Consulting","slug":"acme","timeZone":"America/New_York","administrators":["583231"]},{"id":"org_eu","displayName":"Acme Europe","slug":"acme-eu","timeZone":"Europe/Berlin","administrators":["1001"]}]}"""
+        |> Deployment.parse
+        |> ok
+
+    // Hubot founds Acme Europe, records his time there, and admits octocat
+    // to keep his own time only.
+    let bot = Device(github, RepositoryVisibility.Private, "production", hubot, config)
+    bot.Open()
+    bot.Ui("chooseOrganization", "org_eu")
+    record bot "13:00" "14:00" "Hubot in Europe"
+    bot.Ui("memberId", "583231")
+    bot.Ui("memberName", "octocat")
+    bot.Ui("memberAccess", "ownTime")
+    bot.Ui("admitMember", "")
+
+    let octo = Device(github, RepositoryVisibility.Private, "production", octocat, config)
+    octo.Open()
+    record octo "09:00" "10:00" "Acme work"
+    octo.Ui("chooseOrganization", "org_eu")
+    record octo "11:00" "12:00" "Europe work"
+    octo.Ui("chooseOrganization", "org_acme")
+
+    octo.Send(LocationMoved "#/reports?from=2026-10-01&to=2026-10-31&people=everyone&organizations=all")
+    Assert.True(octo.Model.Elsewhere["org_eu"].Member)
+    Assert.False(octo.Model.Elsewhere["org_eu"].SeesOrganization)
+    // His own time from Acme Europe; never hubot's.
+    Assert.Equal<string list>([ "Acme work"; "Europe work" ], reportTitles octo.Model)
+    Assert.Contains("only your own time", viewText "reportOrganizationsNote" octo.Model)

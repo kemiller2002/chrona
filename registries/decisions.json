@@ -445,6 +445,20 @@
             "modified"
           ],
           "reason": "Trusted observation sources from the deployment, and receipts without their candidate (WI-0074)"
+        },
+        "EXE-20261013T141631799Z-f54aa096": {
+          "actor": {
+            "id": "anthropic/claude-code",
+            "kind": "agent",
+            "model": "unknown",
+            "provider": "anthropic",
+            "runtime": "claude-code"
+          },
+          "at": "2026-10-13T14:50:00.000Z",
+          "operations": [
+            "modified"
+          ],
+          "reason": "Reports across a deployment's organizations (WI-0075)"
         }
       }
     },
@@ -466,7 +480,7 @@
     ],
     "title": "Records live on GitHub through Arca's provider behind the store port, every commit conditioned on the repository state and decided again when it moved",
     "updated": "2026-10-13",
-    "version": "1.16.0"
+    "version": "1.17.0"
   },
   {
     "created": "2026-10-08",

@@ -631,6 +631,40 @@ test.describe("a deployment of two organizations", () => {
     await other.goto("/web/index.html#/more?org=org_none");
     await expect(other.locator("#problem-title")).toHaveText("Not found");
   });
+
+  test("a link to a report across organizations opens cold, and reads each organization's own folder (WI-0075)", async ({ context }) => {
+    await fakeDeployment(context, two);
+    await serveGitHub(context, repository({ owner: "acme", name: "chrona-data" }));
+
+    // Time in Acme Consulting, then in Acme Europe, each with its own reference data.
+    const page = await signedIn(context);
+    await references(page);
+    await record(page, "08:10", "09:02", "Acme research");
+    await expect(headline(page)).toHaveText("All changes saved");
+    await page.goto("/web/index.html#/more?org=org_eu");
+    await expect(page.locator("#organization")).toHaveValue("org_eu");
+    await references(page);
+    await record(page, "10:00", "10:30", "Europe research");
+    await expect(headline(page)).toHaveText("All changes saved");
+    await page.close();
+
+    // A link to all my organizations' time, grouped by organization, opened cold.
+    const lead = await context.newPage();
+    await lead.goto("/web/index.html#/reports?organizations=all&group=organization&org=org_acme");
+    await lead.click("#sign-in-button");
+    await expect(lead.locator(".chrona-shell")).toBeVisible({ timeout: 20_000 });
+    await expect(lead.locator("#report-table")).toContainText("Europe research");
+    await expect(lead.locator("#report-table")).toContainText("Acme research");
+    await expect(lead.locator("#report-table")).toContainText("Acme Europe · Research · HelixNote");
+    await expect(lead.locator("#report-organizations")).toHaveValue("all");
+    await expect(lead.locator("#report-groups")).toContainText("Acme Consulting");
+    await expect(lead.locator("#report-groups")).toContainText("Acme Europe");
+
+    // This organization only: the address follows.
+    await lead.selectOption("#report-organizations", "this");
+    await expect(lead.locator("#report-table")).not.toContainText("Europe research");
+    await expect(lead).not.toHaveURL(/organizations=all/);
+  });
 });
 
 // ---- observation inboxes (WI-0038, requirement 18) ------------------------------

@@ -227,6 +227,9 @@ let private requests (env: Env) (state: State) (effects: Update.Effect list) =
             | Update.ReadOthers wanted ->
                 env.Store.ReadOthers wanted
                 state, requests, immediate
+            | Update.ReadElsewhere wanted ->
+                env.Store.ReadElsewhere wanted
+                state, requests, immediate
             | Update.RebuildIndex ->
                 env.Store.Rebuild()
                 state, requests, immediate

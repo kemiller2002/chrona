@@ -1419,6 +1419,15 @@
                   <label class="ef-field__label" for="report-to">To</label>
                   <input type="date" id="report-to" data-event="reportTo" data-bind-value="reportTo" />
                 </div>
+                <template data-if="reportHasOrganizations"><label class="ef-select-field">
+                  <span class="ef-field__label">Organizations</span>
+                  <span class="ef-select">
+                    <select class="ef-select__input" id="report-organizations" data-event="reportOrganizations">
+                      <template data-each="reportOrganizationsOptions" data-key="id"><option data-bind-value="id" data-bind-selected="selected" data-text="name"></option></template>
+                    </select>
+                    <span class="ef-select__indicator" aria-hidden="true"></span>
+                  </span>
+                </label></template>
                 <template data-if="reportSeesOrganization"><label class="ef-select-field">
                   <span class="ef-field__label">Whose time</span>
                   <span class="ef-select">
@@ -1493,6 +1502,7 @@
 
             <section class="ef-surface chrona-card" aria-labelledby="report-results-title">
               <h2 class="chrona-section-title" id="report-results-title">Activities</h2>
+              <template data-if="hasReportOrganizationsNote"><p class="chrona-intro" id="report-organizations-note" data-text="reportOrganizationsNote"></p></template>
               <p class="chrona-intro"><span id="report-count" data-text="reportCount"></span> · <span data-text="reportRange"></span></p>
               <template data-if="reportEmpty">
                 <p class="chrona-intro" id="report-empty">Nothing matches these filters.</p>

@@ -52,6 +52,7 @@ let private envWith (answer: StoreRequest -> StoreOutcome) =
               Read = fun _ -> ()
               Rebuild = fun () -> ()
               ReadOthers = fun _ -> ()
+              ReadElsewhere = fun _ -> ()
               ReadInboxes = fun () -> ()
               SendNow = fun () -> ()
               Discard = fun () -> ()

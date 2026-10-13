@@ -826,10 +826,10 @@
         "folio"
       ],
       "priority": "medium",
-      "status": "ready",
+      "status": "complete",
       "attachments": [],
       "createdAt": "2026-10-08T07:43:50.164Z",
-      "updatedAt": "2026-10-13T07:06:20.000Z",
+      "updatedAt": "2026-10-13T09:35:49.000Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

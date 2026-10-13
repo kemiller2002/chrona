@@ -3115,7 +3115,27 @@
       "updatedAt": "2026-10-13T12:53:14.000Z",
       "telemetryExecutionIds": [
         "EXE-20261013T125315194Z-1fc14a1f"
-      ]
+      ],
+      "latestCheckpoint": {
+        "id": "d1b837bedeee2ef952789745",
+        "recordedAt": "2026-10-13T13:05:38.000Z",
+        "executionId": "EXE-20261013T125315194Z-1fc14a1f",
+        "repository": "chrona",
+        "branch": "feature/observation-policies",
+        "commit": "8f3e9dbece5d8e8e0f49628c7a6ef38d3bd7f8e6",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/chrona"
+        },
+        "remoteBranch": "feature/observation-policies",
+        "remoteCommit": "8f3e9dbece5d8e8e0f49628c7a6ef38d3bd7f8e6",
+        "summary": "sourcePolicies in the deployment; Intake.police auto-accepts a trusted source's observation for a named member in one commit; receipts without candidate listed; CHX-190 tested; .NET 448, Chromium 70",
+        "nextAction": "Open the PR and merge through the gate",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      }
     }
   ]
 }

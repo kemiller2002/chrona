@@ -271,6 +271,7 @@ type private Device(github: InMemoryStore, visibility: RepositoryVisibility, env
             | Store request -> store.Commit request
             | ConfirmAdministrator -> store.Confirm()
             | ReadMonths dates -> store.Read dates
+            | ReadOthers wanted -> store.ReadOthers wanted
             | RebuildIndex -> store.Rebuild()
             | ReadInboxes -> store.ReadInboxes()
             | SendUnsent -> store.SendNow()
@@ -3080,3 +3081,100 @@ let ``a change revised under Arca 0.4.0, which lost its account id, is attribute
     Assert.True(signedOut device)
     Assert.Empty(queued shared)
     Assert.Equal(commits, github.State.History.Length)
+
+// ---- Reports on stored data, across people (WI-0039) ----------------------------------
+
+/// The titles of the rows a report shows.
+let private reportTitles (model: Model) =
+    match (Project.project model |> Map.ofList)["reportRows"] with
+    | Chrona.Engine.View.Items rows ->
+        rows
+        |> List.choose (fun row ->
+            row
+            |> List.tryPick (function
+                | "title", Chrona.Engine.View.Text value -> Some value
+                | _ -> None))
+        |> List.sort
+    | other -> failwith $"%A{other}"
+
+/// Records an hour of manual time on a day, with the first reference data.
+let private recordOn (device: Device) (date: string) (description: string) =
+    device.Ui("manualActivityType", activityType device.Model)
+    device.Ui("manualProject", project device.Model)
+    device.Ui("manualStartDate", date)
+    device.Ui("manualEndDate", date)
+    device.Ui("manualStartTime", "09:00")
+    device.Ui("manualEndTime", "10:00")
+    device.Ui("manualDescription", description)
+    device.Ui("manualPurpose", "Delivery")
+    device.Ui("manualReason", "From notes")
+    device.Ui("saveManual", "")
+    Assert.Equal(None, device.Model.Store.Problem)
+
+[<Fact>]
+let ``a report reads every month of its range from the stored records, not only the months already open`` () =
+    let github = InMemoryStore()
+    let first = Device(github, RepositoryVisibility.Private, "production")
+    first.Open()
+    record first "08:00" "08:30" "Setup"
+    recordOn first "2026-08-03" "August work"
+
+    let second = Device(github, RepositoryVisibility.Private, "production")
+    second.Open()
+    Assert.DoesNotContain((2026, 8), second.Model.Store.Months)
+
+    // A link to the summer's report opens cold and reads August's folder.
+    second.Send(LocationMoved "#/reports?from=2026-07-01&to=2026-08-31")
+    Assert.Contains((2026, 8), second.Model.Store.Months)
+    Assert.Empty(second.Model.Store.Reading)
+    Assert.Equal<string list>([ "August work" ], reportTitles second.Model)
+    // The index is current, so July, which holds no time, is not read.
+    Assert.True(second.Model.Store.IndexCurrent)
+    Assert.DoesNotContain((2026, 7), second.Model.Store.Months)
+
+[<Fact>]
+let ``someone who may see the organization's time reports on everyone's, read from each person's months`` () =
+    let github = InMemoryStore()
+    let config = configuration "production"
+    let founder = Device(github, RepositoryVisibility.Private, "production")
+    founder.Open()
+    record founder "08:00" "08:30" "Founder's own"
+    founder.Ui("memberId", "1001")
+    founder.Ui("memberName", "hubot")
+    founder.Ui("memberAccess", "ownTime")
+    founder.Ui("admitMember", "")
+
+    let colleague = Device(github, RepositoryVisibility.Private, "production", hubot, config)
+    colleague.Open()
+    recordOn colleague "2026-08-04" "Hubot in August"
+    recordOn colleague "2026-10-06" "Hubot in October"
+
+    // The administrator, on another device, opens a link to everyone's time.
+    let lead = Device(github, RepositoryVisibility.Private, "production")
+    lead.Open()
+    Assert.DoesNotContain("Hubot in October", reportTitles lead.Model)
+    lead.Send(LocationMoved "#/reports?from=2026-08-01&to=2026-10-31&people=everyone&group=person")
+    Assert.Equal(None, lead.Model.RouteProblem)
+    Assert.Contains(("github:1001", (2026, 8)), lead.Model.Store.Others)
+    Assert.Contains(("github:1001", (2026, 10)), lead.Model.Store.Others)
+    Assert.Empty(lead.Model.Store.OthersReading)
+    Assert.Equal<string list>([ "Founder's own"; "Hubot in August"; "Hubot in October" ], reportTitles lead.Model)
+    Assert.Contains("github:1001", Update.exportText lead.Model)
+    Assert.Contains("Everyone in the organization", viewText "printSubtitle" lead.Model)
+
+    // One person's time among everyone's.
+    lead.Ui("reportPerson", "github:1001")
+    Assert.Equal<string list>([ "Hubot in August"; "Hubot in October" ], reportTitles lead.Model)
+    Assert.Equal(Some "github:1001", (match lead.Model.Place with Places.Reports query -> query.Person | _ -> None))
+
+    // Someone the organization does not have is a clear not-found.
+    lead.Send(LocationMoved "#/reports?people=everyone&person=github%3A9999")
+    Assert.Equal(Some(RecordMissing("person", "github:9999")), lead.Model.RouteProblem)
+
+    // The colleague may see only their own time: everyone's is not permitted,
+    // and their own report never includes anyone else's.
+    colleague.Send(LocationMoved "#/reports?from=2026-08-01&to=2026-10-31&people=everyone")
+    Assert.Equal(Some(AddressProblem(Limen.Routing.RouteError.NotPermitted Places.Names.Reports)), colleague.Model.RouteProblem)
+    Assert.Empty(colleague.Model.Store.Others)
+    colleague.Send(LocationMoved "#/reports?from=2026-08-01&to=2026-10-31")
+    Assert.Equal<string list>([ "Hubot in August"; "Hubot in October" ], reportTitles colleague.Model)

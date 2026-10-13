@@ -304,8 +304,10 @@ let ``where a deployment serves several organizations, the address names the one
                   Audit = []
                   Problems = []
                   Months = []
+                  Others = []
                   History = []
                   Index = ""
+                  IndexCurrent = false
                   Periods = None
                   Reviews = []
                   Reviewing = []

@@ -224,6 +224,9 @@ let private requests (env: Env) (state: State) (effects: Update.Effect list) =
             | Update.ReadMonths dates ->
                 env.Store.Read dates
                 state, requests, immediate
+            | Update.ReadOthers wanted ->
+                env.Store.ReadOthers wanted
+                state, requests, immediate
             | Update.RebuildIndex ->
                 env.Store.Rebuild()
                 state, requests, immediate

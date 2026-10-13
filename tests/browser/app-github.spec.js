@@ -541,6 +541,55 @@ test("a member submits their period, the administrator approves it, and the memb
   expect(Object.keys(headFiles(github.current())).filter((path) => path.includes("records/chrona.review/"))).toHaveLength(2);
 });
 
+// ---- reports across people, on stored data (WI-0039) ---------------------------
+
+test("an administrator's link to everyone's time opens cold, reads each person's month from GitHub, and a member is not permitted it", async ({ context, github }) => {
+  const admin = await signedIn(context);
+  await references(admin);
+  await admin.fill("#member-id", "42");
+  await admin.fill("#member-name", "Hubot");
+  await admin.selectOption("#member-access", "ownTime");
+  await admin.click("#admit");
+  await expect(admin.locator("#people")).toContainText("Hubot");
+  await record(admin, "07:30", "08:00", "Octocat's planning");
+  await expect(headline(admin)).toHaveText("All changes saved");
+  await admin.close();
+
+  signInAs("42", "hubot");
+  const member = await signedIn(context);
+  await record(member, "08:10", "09:02", "Hubot's research");
+  await expect(headline(member)).toHaveText("All changes saved");
+  await member.close();
+
+  // The administrator opens a link to everyone's time, grouped by person.
+  signInAs("583231", "octocat");
+  const lead = await context.newPage();
+  await lead.goto("/web/index.html#/reports?people=everyone&group=person");
+  await expect(lead.locator("html")).toHaveAttribute("data-kernel", "running");
+  await lead.click("#sign-in-button");
+  await expect(lead.locator(".chrona-shell")).toBeVisible({ timeout: 20_000 });
+  // The records open, then Hubot's month is read from GitHub: one more read.
+  await expect(lead.locator("#report-table")).toContainText("Hubot's research", { timeout: 20_000 });
+  await expect(lead.locator("#report-table")).toContainText("Hubot · Research · HelixNote");
+  await expect(lead.locator("#report-table")).toContainText("Octocat's planning");
+  await expect(lead.locator("#report-people")).toHaveValue("everyone");
+  await expect(lead.locator("#report-groups")).toContainText("Hubot");
+  await expect(lead.locator("#report-groups")).toContainText("octocat");
+  // One person's time among everyone's; the address follows.
+  await lead.selectOption("#report-person", { label: "Hubot" });
+  await expect(lead.locator("#report-table")).not.toContainText("Octocat's planning");
+  await expect(lead.locator("#report-table")).toContainText("Hubot's research");
+  await expect(lead).toHaveURL(/people=everyone&person=github%3A42/);
+  await lead.close();
+
+  // The member may see only their own time: the same link is not permitted.
+  signInAs("42", "hubot");
+  const refused = await signedIn(context);
+  await refused.goto("/web/index.html#/reports?people=everyone");
+  await expect(refused.locator("#problem-title")).toHaveText("Not permitted");
+  await expect(refused.locator("#report-table")).toHaveCount(0);
+});
+
 // ---- the organization in the address (CHX-460, WI-0071) -----------------------
 
 test.describe("a deployment of two organizations", () => {

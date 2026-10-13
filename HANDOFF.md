@@ -147,6 +147,11 @@ for the diagnosis, the evidence, and one unexercised watch item.
   `#/candidates` and accepted (classified, under every ledger rule) or
   rejected with a reason; a decided candidate moves to its decision month.
   Source policies that auto-accept are WI-0074.
+- Reports on stored data (WI-0039): a report reads every month of its range
+  from GitHub. Whoever may see the organization's time reports on everyone's
+  (`#/reports?people=everyone`, one person with `&person=`, grouped by
+  person); other people's months are read on demand, guided by the activity
+  index when it is current. Reports across organizations are WI-0075.
 - Derived state (WI-0034): the activity index, an Arca derived index under
   `derived/indexes/activity-months.json` with one entry per activity record,
   is written in the same commit as the records it covers, so it is always

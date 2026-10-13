@@ -49,7 +49,12 @@ type ReportQuery =
       Billability: string option
       Text: string option
       IncludeRemoved: bool
-      /// "project", "activityType", "tag" or "day".
+      /// "mine", or "everyone": the organization's time, for those who may
+      /// see it (WI-0039).
+      People: string
+      /// One person's time, among everyone's.
+      Person: string option
+      /// "project", "activityType", "tag", "day" or "person".
       Grouping: string
       /// "csv" or "json".
       Format: string }
@@ -64,6 +69,8 @@ let allReports =
       Billability = None
       Text = None
       IncludeRemoved = false
+      People = "mine"
+      Person = None
       Grouping = "project"
       Format = "csv" }
 
@@ -248,7 +255,10 @@ let administrative (section: Section) =
 /// The parts anyone who works here may open.
 let private openSections = sectionNames |> List.map fst |> List.filter (administrative >> not)
 
-let private groupings = [ "project", "project"; "activityType", "type"; "tag", "tag"; "day", "day" ]
+let private groupings = [ "project", "project"; "activityType", "type"; "tag", "tag"; "day", "day"; "person", "person" ]
+
+/// Whose time a report covers: the person's own, or everyone's (WI-0039).
+let reportPeople = [ "mine"; "everyone" ]
 
 let private optional name kind = QueryParam.optional name kind
 
@@ -292,6 +302,8 @@ let private routes: Route list =
                     optional "billing" (ParamType.Enum [ "billable"; "non-billable"; "pending" ])
                     optional "q" ParamType.String
                     optional "removed" ParamType.Bool |> QueryParam.withDefault (Value.Boolean false)
+                    optional "people" (ParamType.Enum reportPeople) |> QueryParam.withDefault (Value.Text "mine")
+                    optional "person" ParamType.String
                     optional "group" (ParamType.Enum(groupings |> List.map snd)) |> QueryParam.withDefault (Value.Text "project")
                     optional "format" (ParamType.Enum [ "csv"; "json" ]) |> QueryParam.withDefault (Value.Text "csv") ] }
       guarded
@@ -374,6 +386,8 @@ let private placeTarget (place: Place) : Target =
               "billing", text query.Billability
               "q", text query.Text
               "removed", Some(Value.Boolean query.IncludeRemoved)
+              "people", Some(Value.Text query.People)
+              "person", text query.Person
               "group", groupings |> List.tryFind (fst >> (=) query.Grouping) |> Option.map (snd >> Value.Text)
               "format", Some(Value.Text query.Format) ]
     | Candidates query -> target Names.Candidates [] [ "status", Some(Value.Text query.Status); "source", text query.Source ]
@@ -447,6 +461,8 @@ let private placeOf (matched: Match) : Result<Place, string> =
                   Billability = textOf query "billing"
                   Text = textOf query "q"
                   IncludeRemoved = (query.TryFind "removed" = Some(Value.Boolean true))
+                  People = textOf query "people" |> Option.defaultValue allReports.People
+                  Person = textOf query "person"
                   Grouping =
                     textOf query "group"
                     |> Option.bind (fun name -> groupings |> List.tryFind (snd >> (=) name))

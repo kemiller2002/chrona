@@ -71,6 +71,8 @@ type StorePort =
       Commit: StoreRequest -> unit
       /// Read the month folders these dates need.
       Read: DateOnly list -> unit
+      /// Read other people's months, for a report across people (WI-0039).
+      ReadOthers: (string * DateOnly) list -> unit
       /// Rebuild the activity index from the stored records.
       Rebuild: unit -> unit
       /// Read the producers' inboxes now (WI-0038).
@@ -108,6 +110,7 @@ let inMemory (bridge: Bridge) : StorePort =
       Confirm = fun () -> ()
       Commit = fun request -> bridge.Start(async { return [ Update.StoreAnswered(request.CommitId, Committed) ] })
       Read = fun _ -> ()
+      ReadOthers = fun _ -> ()
       Rebuild = fun () -> ()
       ReadInboxes = fun () -> ()
       SendNow = fun () -> ()
@@ -266,6 +269,8 @@ type private Opened =
       Read: Map<string, StoredObject list>
       /// The months read so far.
       Months: Set<int * int>
+      /// Other people's months read for reports across people (WI-0039).
+      Others: Set<string * (int * int)>
       /// The organization as the deployment configures it.
       Organization: Deployment.OrganizationConfig
       /// This page's unsent changes, in order: Arca's offline queue (WI-0033).
@@ -797,7 +802,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
     /// The repository state, then what the folders hold at it: validated,
     /// with records edited outside Chrona held for review. What was read is
     /// kept in the read cache, with which records were held.
-    let load (provider: StorageProvider) (folder: Namespace) (actorId: string) (months: Set<int * int>) =
+    let load (provider: StorageProvider) (folder: Namespace) (actorId: string) (months: Set<int * int>) (others: Set<string * (int * int)>) =
         async {
             match! provider.NamespaceState folder with
             | Error error -> return Error(unopened error)
@@ -812,7 +817,22 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                         | Ok(own, incomplete) ->
                             match! readReviewing provider folder actorId dates (Stored.load (own |> List.collect snd)) with
                             | Error reason -> return Error reason
-                            | Ok(reviewing, more) -> return Ok(own @ reviewing, incomplete @ more)
+                            | Ok(reviewing, more) ->
+                                // Other people's months a report asked for
+                                // (WI-0039), each folder read once.
+                                let already = own @ reviewing |> List.map (fst >> RelativePath.render) |> Set.ofList
+
+                                let wanted =
+                                    others
+                                    |> Set.toList
+                                    |> List.filter (fun (other, _) -> other <> actorId)
+                                    |> List.choose (fun (other, month) -> ActivityRecord.monthFolder other (firstOf month) |> Result.toOption)
+                                    |> List.filter (fun path -> not (already.Contains(RelativePath.render path)))
+                                    |> List.distinctBy RelativePath.render
+
+                                match! readFolders provider folder (Ok wanted) with
+                                | Error reason -> return Error reason
+                                | Ok(theirs, still) -> return Ok(own @ reviewing @ theirs, incomplete @ more @ still)
                     }
 
                 match found with
@@ -890,7 +910,8 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
             | CachedAt at -> Some at
             | ReadAt _ -> None
           // The person's own time; others' is read only where it waits for
-          // their approval (WI-0036).
+          // their approval (WI-0036), or a report across everyone asked for
+          // it (WI-0039).
           Activities = all |> List.filter (fun a -> a.ActorId = actorId)
           Reviewing = all |> List.filter (fun a -> a.ActorId <> actorId)
           Periods = state.Stored.Periods |> Option.map _.Periods
@@ -903,13 +924,16 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
           Audit = Stored.audit state.Stored
           Problems = Stored.problems state.Stored
           Months = state.Months |> Set.toList
+          Others = state.Others |> Set.toList
           History = history state.Index
-          Index = indexText state.Index }
+          Index = indexText state.Index
+          IndexCurrent = state.Index.Note.IsNone && state.Index.Index.IsSome }
 
     /// The stored activity index, checked against the month folders read:
     /// where it disagrees with them (a record changed outside Chrona, for
     /// example), it is said to be out of date there until it is rebuilt.
-    let readIndex (provider: StorageProvider) (folder: Namespace) (actorId: string) (months: Set<int * int>) (stored: Stored.Stored) (previous: Indexed) =
+    /// Other people's months read for a report are checked too (WI-0039).
+    let readIndex (provider: StorageProvider) (folder: Namespace) (actorId: string) (months: Set<int * int>) (others: Set<string * (int * int)>) (stored: Stored.Stored) (previous: Indexed) =
         async {
             match! Derived.read provider folder ActivityIndex.definition with
             | Ok(Some(index, revision)) when index.Version = ActivityIndex.definition.Version && index.Name = ActivityIndex.empty.Name ->
@@ -921,9 +945,9 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                     |> List.map (fun found -> RelativePath.render found.Path, found.ContentHash)
 
                 let differing =
-                    months
-                    |> Set.toList
-                    |> List.choose (fun month -> ActivityRecord.monthFolder actorId (firstOf month) |> Result.toOption)
+                    (months |> Set.toList |> List.map (fun month -> actorId, month))
+                    @ (others |> Set.toList |> List.filter (fun (other, _) -> other <> actorId))
+                    |> List.choose (fun (person, month) -> ActivityRecord.monthFolder person (firstOf month) |> Result.toOption)
                     |> List.collect (fun monthFolder ->
                         let prefix = RelativePath.render monthFolder
                         let inFolder = read |> List.filter (fun (path, _) -> path.StartsWith(prefix + "/", StringComparison.Ordinal))
@@ -975,14 +999,14 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
     /// Reads the state again from GitHub: the same months, plus any these
     /// dates add. From the read cache, this is what makes the records
     /// current again.
-    let refresh (state: Opened) (dates: DateOnly list) =
+    let refreshWith (state: Opened) (dates: DateOnly list) (others: Set<string * (int * int)>) =
         async {
             let months = state.Months + (dates |> List.map monthOf |> Set.ofList)
 
-            match! load state.Provider state.Folder state.Session.ActorId months with
+            match! load state.Provider state.Folder state.Session.ActorId months others with
             | Error reason -> return Error(reasonOf reason)
             | Ok(token, stored, read) ->
-                let! indexed = readIndex state.Provider state.Folder state.Session.ActorId months stored state.Index
+                let! indexed = readIndex state.Provider state.Folder state.Session.ActorId months others stored state.Index
 
                 let next =
                     { state with
@@ -990,12 +1014,15 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                         Stored = stored
                         Read = read
                         Months = months
+                        Others = others
                         Index = indexed }
 
                 do! keepIndex next token
                 opened <- Some next
                 return Ok next
         }
+
+    let refresh (state: Opened) (dates: DateOnly list) = refreshWith state dates state.Others
 
     /// What the next write is conditioned on after a commit this page made:
     /// the folder's state at exactly that commit when GitHub's head is still
@@ -1691,7 +1718,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                                 | Ok() ->
                                     let months = dates |> List.map monthOf |> Set.ofList
 
-                                    match! load provider folder session.ActorId months with
+                                    match! load provider folder session.ActorId months Set.empty with
                                     | Error reason -> return Error reason
                                     | Ok(token, stored, read) ->
                                         let state =
@@ -1703,6 +1730,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                                               Stored = stored
                                               Read = read
                                               Months = months
+                                              Others = Set.empty
                                               Organization = organization
                                               Queue = { OfflineQueue.create OfflinePolicy.QueueWrites with Entries = carried }
                                               Owned = None
@@ -1718,6 +1746,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                                                 folder
                                                 session.ActorId
                                                 months
+                                                Set.empty
                                                 stored
                                                 { state.Index with Index = (if isExisting then None else Some ActivityIndex.empty) }
 
@@ -1856,6 +1885,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
                               Stored = stored
                               Read = Map.empty
                               Months = months
+                              Others = Set.empty
                               Organization = organization
                               Queue = { OfflineQueue.create OfflinePolicy.QueueWrites with Entries = carried }
                               Owned = None
@@ -2010,6 +2040,20 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
 
     /// Reads further month folders, when the person goes to a month not
     /// read yet (38: one folder, on demand).
+    /// Reads other people's months for a report across people (WI-0039):
+    /// one folder each, on demand, with what is already read.
+    let readOthersJob (wanted: (string * DateOnly) list) () =
+        async {
+            match opened with
+            | None -> return []
+            | Some state ->
+                let others = state.Others + (wanted |> List.map (fun (actorId, date) -> actorId, monthOf date) |> Set.ofList)
+
+                match! refreshWith state [] others with
+                | Ok next -> return [ Update.StoreOpened(contents next) ]
+                | Error reason -> return [ Update.StoreReadFailed reason ]
+        }
+
     let readJob (dates: DateOnly list) () =
         async {
             match opened with
@@ -2715,6 +2759,7 @@ let arca (bridge: Bridge) (backend: Backend) (now: unit -> DateTimeOffset) (newK
             else
                 memory.Commit request
       Read = fun dates -> if requested then serial (readJob dates)
+      ReadOthers = fun wanted -> if requested then serial (readOthersJob wanted)
       Rebuild = fun () -> if requested then serial rebuildJob
       ReadInboxes = fun () -> if requested then readInboxes ()
       SendNow =

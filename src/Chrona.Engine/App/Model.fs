@@ -186,10 +186,17 @@ type StoreState =
       Months: (int * int) list
       /// Months asked for and not read yet.
       Reading: (int * int) list
+      /// Other people's months read for reports across people (WI-0039).
+      Others: (string * (int * int)) list
+      /// Other people's months asked for and not read yet.
+      OthersReading: (string * (int * int)) list
       /// Each person's months that hold time, from the activity index.
       History: ActivityIndex.MonthTotal list
       /// What the activity index covers, or why it is not kept.
       Index: string
+      /// The activity index is kept and agrees with every folder read, so
+      /// the months it lists are the only ones that hold time (WI-0039).
+      IndexCurrent: bool
       /// The organization has no administrator the deployment lists: why,
       /// and whether this person, being listed, may confirm themselves.
       Confirmation: (string * bool) option
@@ -241,18 +248,24 @@ type StoreContents =
       Problems: Diagnostic list
       /// The months whose folders were read, as (year, month).
       Months: (int * int) list
+      /// Other people's months read, for reports across people (WI-0039).
+      Others: (string * (int * int)) list
       /// Each person's months that hold time, from the activity index
       /// (derived, WI-0034).
       History: ActivityIndex.MonthTotal list
       /// What the activity index covers, or why it is not kept, for the person.
       Index: string
+      /// The activity index is kept and agrees with every folder read.
+      IndexCurrent: bool
       /// The organization's period configuration, when it was ever saved
       /// (WI-0036).
       Periods: PeriodConfigRecord.StoredPeriods option
       /// Periods' review steps read: this person's, and, for someone who
       /// approves time, everyone's (WI-0036).
       Reviews: PeriodReview.PeriodReview list
-      /// Other people's time that waits for this person's approval.
+      /// Other people's time that was read: what waits for this person's
+      /// approval (WI-0036), and the months a report across everyone read
+      /// (WI-0039).
       Reviewing: Activity list
       /// Observations' candidates read: every one still to decide, and those
       /// decided in the months read (WI-0038).
@@ -329,13 +342,17 @@ type ReportDraft =
       ProjectId: string
       ActivityTypeId: string
       Tag: string
+      /// "mine" or "everyone" (WI-0039).
+      People: string
+      /// One person's actor id among everyone's, or "".
+      Person: string
       /// "", "manual" or "timer".
       Method: string
       /// "", "billable", "non-billable" or "pending".
       Billability: string
       Text: string
       IncludeRemoved: bool
-      /// "project", "activityType", "tag" or "day".
+      /// "project", "activityType", "tag", "day" or "person".
       Grouping: string
       /// "csv" or "json".
       Format: string
@@ -349,6 +366,8 @@ let emptyReport =
       ProjectId = ""
       ActivityTypeId = ""
       Tag = ""
+      People = "mine"
+      Person = ""
       Method = ""
       Billability = ""
       Text = ""
@@ -556,7 +575,9 @@ type Model =
       /// Periods' review steps (WI-0036): this person's, and everyone's for
       /// someone who approves.
       Reviews: PeriodReview.PeriodReview list
-      /// Other people's time that waits for this person's approval.
+      /// Other people's time that was read: what waits for this person's
+      /// approval (WI-0036), and the months a report across everyone read
+      /// (WI-0039).
       Reviewing: Activity list
       /// What the approver typed for each submission: a note to approve with,
       /// or the reason to return it.
@@ -633,8 +654,11 @@ let initial (session: Session) (store: StoreKind) (now: DateTimeOffset) =
           Waiting = 0
           Months = []
           Reading = []
+          Others = []
+          OthersReading = []
           History = []
           Index = ""
+          IndexCurrent = false
           Confirmation = None
           Cached = None }
       Zone = None

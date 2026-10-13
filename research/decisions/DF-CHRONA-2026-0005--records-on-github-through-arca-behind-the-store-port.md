@@ -2,9 +2,9 @@
 id: DF-CHRONA-2026-0005
 title: Records live on GitHub through Arca's provider behind the store port, every commit conditioned on the repository state and decided again when it moved
 status: accepted
-version: 1.12.0
+version: 1.13.0
 created: 2026-10-08
-updated: 2026-10-09
+updated: 2026-10-13
 owners:
   - chrona
 review_cycle: on-trigger
@@ -158,6 +158,16 @@ provenance:
         model: unknown
         runtime: claude-code
       reason: "Arca 0.4.0: namespace-scoped conditions and sign-out by account id (WI-0073)"
+    EXE-20261013T070628338Z-7702b978:
+      operations: [modified]
+      at: 2026-10-13T09:30:00.000Z
+      actor:
+        kind: agent
+        id: anthropic/claude-code
+        provider: anthropic
+        model: unknown
+        runtime: claude-code
+      reason: "Reports on stored data, across the organization's people (WI-0039)"
 ---
 
 # DF-CHRONA-2026-0005 — Records on GitHub through Arca
@@ -443,6 +453,23 @@ and semantic conflicts surfaced.
     changes are queued: an older Arca would read them without their
     condition. Chrona erases nothing; an erased record (Arca's tombstone) is
     read as gone, and an erased receipt as received.
+19. **Reports on stored data (WI-0039).** A report reads every month of its
+    range from GitHub, not only the months already open. Someone holding
+    `ViewOrganizationTime` may report on everyone's time
+    (`#/reports?people=everyone`, optionally `&person=<actor id>`, grouped
+    by person): each other person's month folders in the range are read on
+    demand (`ReadOthers`), one folder each, in the same refresh as the
+    person's own so the report is one snapshot. Which months are read comes
+    from the activity index when it is current (kept and agreeing with every
+    folder read, other people's included); otherwise every month of the
+    range is read, so nothing stored is left out. The people are the roster
+    and anyone the index records time for (someone who has left keeps their
+    time). Other people's time is held apart from the person's own ledger
+    (with what waits for their approval) and is never shown on their day,
+    week or month. Asking for everyone's time without the capability is a
+    not-permitted page; naming someone the organization does not have is a
+    not-found page. Search is the same filter over the same records (CHX-270).
+    A report across several of a deployment's organizations is WI-0075.
 
 ## Consequences
 

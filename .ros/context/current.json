@@ -3335,20 +3335,20 @@
         "EXE-20261013T175832132Z-585ab26e"
       ],
       "latestCheckpoint": {
-        "id": "f7e28e98f5e00aa5f164b284",
-        "recordedAt": "2026-10-13T23:01:16.475Z",
+        "id": "01fa47a1dda752e1a575a4e1",
+        "recordedAt": "2026-10-13T23:17:19.597Z",
         "executionId": "EXE-20261013T175832132Z-585ab26e",
         "repository": "chrona",
-        "branch": "refactor/wi-0083-appboundary-tests",
-        "commit": "c414481ae6f2208a66288796d879005f907ac086",
+        "branch": "refactor/wi-0083-github-spec",
+        "commit": "0f099ec4d2c69499bd03a650378cb4afc70ce444",
         "remote": {
           "name": "origin",
           "url": "https://github.com/kemiller2002/chrona"
         },
-        "remoteBranch": "refactor/wi-0083-appboundary-tests",
-        "remoteCommit": "c414481ae6f2208a66288796d879005f907ac086",
-        "summary": "AppBoundaryTests split into a fixture and three test files; 453 .NET, 71 browser pass",
-        "nextAction": "PR and gate-merge; then app-github.spec.js",
+        "remoteBranch": "refactor/wi-0083-github-spec",
+        "remoteCommit": "0f099ec4d2c69499bd03a650378cb4afc70ce444",
+        "summary": "app-github.spec.js split into online and offline specs with shared github-app.js; 453 .NET, 71 browser pass",
+        "nextAction": "PR and gate-merge; then strict verify on a clean checkout and complete WI-0083",
         "verification": {
           "status": "verified",
           "mechanism": "git-remote-observation"

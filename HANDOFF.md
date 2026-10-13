@@ -220,8 +220,9 @@ for the diagnosis, the evidence, and one unexercised watch item.
 - The GitHub API fake (WI-0069): `tests/browser/github-fake.js` is a pure
   `respond(state, request)` over the endpoints Arca's GitHub provider uses,
   served to every tab of a browser context by one Playwright route.
-  `app-github.spec.js` stores records on it and runs the two-tab queue in
-  Chromium.
+  `app-github.spec.js` stores records on it, and `app-github-offline.spec.js`
+  runs the two-tab queue and the read cache in Chromium (shared fixtures in
+  `github-app.js`).
 - Accessibility and mobile end to end (WI-0064): scenarios 42-44 in a real
   browser, focus kept on the timer control that replaced the pressed one
   (`chrona.host` focus), reflow at 320 CSS pixels, reduced motion, the week's

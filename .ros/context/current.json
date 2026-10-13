@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-13T11:00:42.000Z",
+  "updatedAt": "2026-10-13T11:13:41.000Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -2967,10 +2967,19 @@
     {
       "id": "WI-0078",
       "type": "task",
-      "state": "active",
-      "semanticState": "active",
-      "evidence": [],
-      "updatedAt": "2026-10-13T11:00:42.000Z",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "implementation",
+          "path": "docs/measurement/baseline-sources.md"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/MeasurementIndexTests.fs"
+        }
+      ],
+      "updatedAt": "2026-10-13T11:13:41.000Z",
       "telemetryExecutionIds": [
         "EXE-20261013T110044442Z-b439414e"
       ],
@@ -2993,7 +3002,9 @@
           "status": "verified",
           "mechanism": "git-remote-observation"
         }
-      }
+      },
+      "completedAt": "2026-10-13T11:13:41.000Z",
+      "conclusion": "MeasurementIndexTests checks every repository path (with patterns) and commit hash in docs/measurement/baseline-sources.md; build checks out full history; merged #93 (87fe8c2) at 2026-10-13T11:13:14Z. First run found no wrong path or commit; three bare file names were made full paths so they are checked. Measurement: execution EXE-20261013T110044442Z-b439414e; start 11:00:44Z; first PR head passed every check; 0 repair pushes; tokens and cost unavailable (runtime exposes no per-request usage in-context; transcript ingestion pending program decision)"
     }
   ]
 }

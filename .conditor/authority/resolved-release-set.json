@@ -2,8 +2,8 @@
   "schema": "echelon.resolved-release-set/v1",
   "profile": {
     "id": "echelon-current",
-    "version": "1.18.0",
-    "sha256": "dc4418e294dbc1c28eb7c0688982374fa95a37f71b415256f6a2e47cd615408d"
+    "version": "1.19.0",
+    "sha256": "95ec40bd78bc7d4144c9ee1faa7672cca682340d6ae0de5d5e1ad7c7f37467d5"
   },
   "platform": "linux-x64",
   "resolver": {
@@ -11,7 +11,7 @@
     "version": "0.1.0"
   },
   "catalogSnapshot": {
-    "sha256": "05ed91efa694ba259500beb7a84174509cae97b8a9ef6918cd5dc9e187443db3"
+    "sha256": "66f8f52ed5f331cf68f4df080e500f8d89201a8c1fa2cc7d04c89c5c911bcb94"
   },
   "components": [
     {
@@ -446,47 +446,47 @@
       "systemId": "arca",
       "role": "project-binding",
       "required": false,
-      "version": "0.4.1",
+      "version": "0.5.0",
       "repository": "kemiller2002/arca",
-      "tag": "v0.4.1",
-      "commit": "82745430f209a06807b786d422b56d890f76bd68",
+      "tag": "v0.5.0",
+      "commit": "5dd00d94de60f82db623211a8e5bcab2ab8b2e84",
       "releaseStage": "stable",
       "lifecycleState": "active",
       "distributionClass": "nuget-library",
       "executable": null,
       "releaseManifest": {
         "schema": "echelon.release/v2",
-        "sha256": "76c1d7132147044421a5664c3c77cf339ec90a47044fb67ed79c0768de3bf368"
+        "sha256": "1cab5320290e6084f873e942465fe2289c8bc952b8ec7ce3a445ad24b8ac2e84"
       },
       "distribution": {
         "mechanism": "github-release",
         "package": null,
-        "url": "https://github.com/kemiller2002/arca/releases/tag/v0.4.1"
+        "url": "https://github.com/kemiller2002/arca/releases/tag/v0.5.0"
       },
       "artifacts": [
         {
-          "name": "EchelonFoundry.Arca.Core.0.4.1.nupkg",
+          "name": "EchelonFoundry.Arca.Core.0.5.0.nupkg",
           "purpose": "package",
           "platform": null,
-          "sha256": "aec7b1367be374be8a18fcae09e2f0134b162bca6a10573d21810ef6b273cf46"
+          "sha256": "a593126db171bcb94212ae288fffbc821d6b2d0a6b312aa3e3a490843f8afee4"
         },
         {
-          "name": "EchelonFoundry.Arca.GitHub.0.4.1.nupkg",
+          "name": "EchelonFoundry.Arca.GitHub.0.5.0.nupkg",
           "purpose": "package",
           "platform": null,
-          "sha256": "3f538733798c3f3d52bd63d228941107d9cf5e1bb98f6f28ad4446cff6b026f2"
+          "sha256": "bbd6383ee3c1ca698c83cdb311b1d03665a6231188a65b8e5bad60ef8b3570aa"
         },
         {
-          "name": "EchelonFoundry.Arca.Limen.0.4.1.nupkg",
+          "name": "EchelonFoundry.Arca.Limen.0.5.0.nupkg",
           "purpose": "package",
           "platform": null,
-          "sha256": "294965080a608af757cd1e72782e67bcb5d7741306ff6835fc87a4e62a8262a0"
+          "sha256": "a2fb27e9023698acb14e4228cb657983a9c016aa36880b574e56c945dd175b44"
         },
         {
           "name": "checksums.txt",
           "purpose": "checksums",
           "platform": null,
-          "sha256": "e22c1486598b80206e05812d6dfd2b8fc1d402b1209ca8b95c52a53814385ee5"
+          "sha256": "d790bd43e67d7ccdfe2fc07d6fa05d33dc54caf341da7bbf88a7dbc882493340"
         }
       ]
     },

@@ -4,7 +4,7 @@
   "registryAuthority": {
     "kind": "resolved-release-set",
     "path": ".conditor/authority/resolved-release-set.json",
-    "sha256": "48aeb43c667f9153eea3bdd16a0d600fa8f93dea109a4fa2411c458a393ffbc5"
+    "sha256": "788bcd4907d6ed239684694843d395939266183cb285230cd39f442e2c37ef37"
   },
   "components": [
     {
@@ -24,7 +24,7 @@
     },
     {
       "id": "arca",
-      "version": "0.4.1",
+      "version": "0.5.0",
       "required": true
     },
     {

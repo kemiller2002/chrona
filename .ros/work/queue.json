@@ -1858,7 +1858,7 @@
         "timer"
       ],
       "priority": "medium",
-      "status": "captured",
+      "status": "ready",
       "attachments": [
         {
           "id": "ATT-1",
@@ -1880,7 +1880,7 @@
         }
       ],
       "createdAt": "2026-10-13T22:10:25.928Z",
-      "updatedAt": "2026-10-13T22:10:30.568Z",
+      "updatedAt": "2026-10-13T22:33:26.321Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

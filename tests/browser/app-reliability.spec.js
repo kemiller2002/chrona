@@ -5,6 +5,12 @@ import { test, expect, setUp } from "./support.js";
 
 test.use({ timezoneId: "America/New_York" });
 
+// Evidence for WI-0084: an intermittent failure of the hidden-page test was
+// seen twice in full runs without its failing assertion. Each failure here
+// keeps its trace, screenshot and video in test-results/ (CI uploads them
+// as playwright-traces). Nothing about what the tests do changes.
+test.use({ trace: "retain-on-failure", screenshot: "only-on-failure", video: "retain-on-failure" });
+
 const announcement = (page) => page.locator("p[role=status][aria-live=polite]");
 
 const visibility = (page, state) =>

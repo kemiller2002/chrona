@@ -1915,6 +1915,17 @@
                   </ul>
                 </div>
               </template>
+              <template data-if="hasInboxOrphaned">
+                <div>
+                  <h3 class="chrona-subtitle">Receipts without their candidate</h3>
+                  <p class="chrona-intro">These receipts say an observation became a candidate, but no folder holds that candidate: it was written outside Chrona, or the candidate was removed.</p>
+                  <ul class="chrona-conflicts" id="inbox-orphaned">
+                    <template data-each="inboxOrphaned" data-key="id">
+                      <li class="chrona-conflicts__item"><p><code data-text="receipt"></code></p><p>Names <code data-text="candidate"></code>.</p></li>
+                    </template>
+                  </ul>
+                </div>
+              </template>
               <template data-if="canReadInboxes">
                 <button type="button" class="chrona-action chrona-action--secondary" id="read-inboxes" data-event="readInboxes">Read the inboxes now</button>
               </template>

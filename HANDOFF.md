@@ -160,6 +160,10 @@ for the diagnosis, the evidence, and one unexercised watch item.
   (checked by `ProductionGateTests`): 21 of 24 items demonstrated; GitHub
   identity on a real deployment (WI-0052), the VoiceOver pass (WI-0068) and
   SDE/Ordo validation (WI-0079) remain.
+- Trusted sources (WI-0074): a deployment's `sourcePolicies` accept a
+  trusted source's observations as the named member's time, under every
+  ordinary rule, in one commit with the candidate and receipt; receipts
+  naming a candidate no folder holds are listed under More.
 - Reading together (WI-0077): folders, records, histories and read-cache
   writes go out together, at most six at a time, on the bridge's thread
   (`InTurn`); histories are kept per page by path and revision. Batched

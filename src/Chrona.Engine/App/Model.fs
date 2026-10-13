@@ -218,6 +218,10 @@ type InboxStatus =
       Invalid: (string * string * string list) list
       /// Observations that could not be processed this pass; tried again.
       Failed: int
+      /// Receipts that name a candidate no folder holds (written outside
+      /// Chrona, or the candidate removed): source, observation id and the
+      /// candidate named (expansion 39, WI-0074).
+      Orphaned: (string * string * string) list
       LastRun: DateTimeOffset option }
 
 let idleInbox =
@@ -226,6 +230,7 @@ let idleInbox =
       Waiting = 0
       Invalid = []
       Failed = 0
+      Orphaned = []
       LastRun = None }
 
 /// What the store read from the organization's folder.

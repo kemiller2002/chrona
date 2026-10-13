@@ -622,7 +622,14 @@ let private inboxView (model: Model) =
           [ for source, observation, reasons in inbox.Invalid ->
                 [ t "id" $"{source}/{observation}"
                   t "file" $"inbox/{source}/{observation}.json"
-                  t "reasons" (String.concat "; " reasons) ] ] ]
+                  t "reasons" (String.concat "; " reasons) ] ]
+      flag "hasInboxOrphaned" (not inbox.Orphaned.IsEmpty)
+      items
+          "inboxOrphaned"
+          [ for source, observation, candidate in inbox.Orphaned ->
+                [ t "id" $"{source}/{observation}"
+                  t "receipt" $"records/chrona.receipt/{source}/{observation}.json"
+                  t "candidate" candidate ] ] ]
 
 let private more (model: Model) =
     [ text "zoneId" (model.Zone |> Option.map _.Id |> Option.defaultValue "Not yet known")
@@ -925,6 +932,15 @@ let private obligations (model: Model) =
               "inbox-invalid",
               plural invalid.Length "file in the inbox is" "files in the inbox are" + " not an observation",
               "Its producer can read why beside it. See them under More.",
+              "goMore"
+
+      match model.Inbox.Orphaned with
+      | [] -> ()
+      | orphaned ->
+          yield
+              "inbox-orphaned",
+              plural orphaned.Length "receipt names a candidate" "receipts name candidates" + " that is not stored",
+              "Written outside Chrona, or the candidate was removed. Its observation was not decided here. See them under More.",
               "goMore"
 
       for case in model.Store.Conflicts do

@@ -37,10 +37,10 @@ let private envWith (answer: StoreRequest -> StoreOutcome) =
 
     let bridge = Bridge.Bridge()
 
-    let env: App.Env =
+    let env: AppState.Env =
         { Now = fun () -> clock.Value
           NewId = fun prefix -> $"{prefix}-{Threading.Interlocked.Increment ids}"
-          Session = App.localSession
+          Session = AppState.localSession
           Bridge = bridge
           Identity = Identity.create bridge (fun () -> clock.Value) (fun count -> Array.create count 7uy)
           Store =
@@ -114,14 +114,14 @@ let private handle aegis env state message =
     | None -> state, text
 
 let private run aegis env messages =
-    messages |> List.fold (fun (state, _) message -> handle aegis env state message) (App.initial, "")
+    messages |> List.fold (fun (state, _) message -> handle aegis env state message) (AppState.initial, "")
 
 let private reply (text: string) = JsonNode.Parse text
 let private viewText (name: string) (text: string) = (reply text).["view"].[name].GetValue<string>()
 let private viewFlag (name: string) (text: string) = (reply text).["view"].[name].GetValue<bool>()
 let private effects (text: string) = (reply text).["effects"].AsArray() |> Seq.toList
 
-let private describedAs (zone: string) (state: App.State, text: string) =
+let private describedAs (zone: string) (state: AppState.State, text: string) =
     let id = (effects text).Head.["correlationId"].GetValue<string>()
     capabilityResult id "limen.environment" $"""{{"kind":"Described","environment":{{"locale":"en-US","languages":["en-US"],"timeZone":"{zone}","direction":"ltr","preferences":[]}}}}"""
 
@@ -130,7 +130,7 @@ let private describedAs (zone: string) (state: App.State, text: string) =
 let ``Initialize accepts the core contract and selects the schedule and environment packs`` () =
     let _, aegis = collector ()
     let env, _ = envWith committed
-    let _, text = handle aegis env App.initial initialize
+    let _, text = handle aegis env AppState.initial initialize
     let handshake = (reply text).["handshake"]
     Assert.Equal("Accepted", handshake.["kind"].GetValue<string>())
     Assert.Equal(4, handshake.["protocol"].["minor"].GetValue<int>())
@@ -159,7 +159,7 @@ let ``a pack offered at another fingerprint is not selected`` () =
     let _, aegis = collector ()
     let env, _ = envWith committed
     let stale = """{"id":"limen.schedule","version":1,"fingerprint":"sha256:00"}"""
-    let _, text = handle aegis env App.initial (initializeWith events (offer stale) "")
+    let _, text = handle aegis env AppState.initial (initializeWith events (offer stale) "")
     Assert.Equal(0, (reply text).["handshake"].["capabilities"].AsArray().Count)
     // Without the environment pack the engine falls back to UTC at once; it
     // asks only for the deployment's configuration.
@@ -170,7 +170,7 @@ let ``a pack offered at another fingerprint is not selected`` () =
 let ``a kernel without Navigation is refused as an unavailable capability`` () =
     let sink, aegis = collector ()
     let env, _ = envWith committed
-    let state, text = handle aegis env App.initial (initializeWith """["Storage"]""" (offer "") "")
+    let state, text = handle aegis env AppState.initial (initializeWith """["Storage"]""" (offer "") "")
     Assert.True(viewFlag "hasOperationalFault" text)
     Assert.Equal<string list>([ Boundary.CapabilityUnavailable ], recordedCodes sink)
     Assert.True(state.Model.IsNone)
@@ -179,7 +179,7 @@ let ``a kernel without Navigation is refused as an unavailable capability`` () =
 let ``a kernel without Http or Storage is refused: configuration and sign-in need them`` () =
     let sink, aegis = collector ()
     let env, _ = envWith committed
-    let state, text = App.handle aegis env App.initial (initializeWith """["Navigation","Clipboard"]""" (offer "") "")
+    let state, text = App.handle aegis env AppState.initial (initializeWith """["Navigation","Clipboard"]""" (offer "") "")
     Assert.True(viewFlag "hasOperationalFault" text)
     Assert.Equal<string list>([ Boundary.CapabilityUnavailable ], recordedCodes sink)
     Assert.True(state.Model.IsNone)
@@ -189,7 +189,7 @@ let ``a contract mismatch is answered with the reason and leaves the page unboun
     let _, aegis = collector ()
     let env, _ = envWith committed
     let wrong = """{"protocol":{"major":1,"minor":4},"contract":{"unit":"limen.core","version":1,"fingerprint":"sha256:00"},"capabilities":[]}"""
-    let state, text = handle aegis env App.initial (initializeWith events wrong "")
+    let state, text = handle aegis env AppState.initial (initializeWith events wrong "")
     Assert.Equal("Rejected", (reply text).["handshake"].["kind"].GetValue<string>())
     Assert.Equal("ContractMismatch", (reply text).["handshake"].["reason"].["kind"].GetValue<string>())
     Assert.True(state.Model.IsNone)
@@ -238,7 +238,7 @@ let ``a running timer asks the schedule pack for one-second wake-ups, and a fire
     let _, aegis = collector ()
     let env, _ = envWith committed
 
-    let started = handle aegis env App.initial initialize
+    let started = handle aegis env AppState.initial initialize
     let described = handle aegis env (fst started) (describedAs "America/New_York" started) |> fst
 
     let state, _ =
@@ -272,7 +272,7 @@ let ``focus moves to the timer control that took the pressed one's place, throug
     let _, aegis = collector ()
     let env, _ = envWith committed
     let hostOffer = $"""{{"id":"chrona.host","version":1,"fingerprint":"{AppProtocol.host.Fingerprint}"}}"""
-    let started = handle aegis env App.initial (initializeWith events (offer $"{schedule},{environment},{hostOffer}") "#/track")
+    let started = handle aegis env AppState.initial (initializeWith events (offer $"{schedule},{environment},{hostOffer}") "#/track")
     let described = handle aegis env (fst started) (describedAs "America/New_York" started) |> fst
 
     let state, _ =
@@ -369,9 +369,9 @@ let private toggled (name: string) (key: string) (on: bool) =
 let private richViews () =
     let _, aegis = collector ()
     let env, _ = envWith committed
-    let started = handle aegis env App.initial initialize
-    let send (state: App.State) message = fst (handle aegis env state message)
-    let view (state: App.State) = Chrona.Engine.App.Project.project state.Model.Value
+    let started = handle aegis env AppState.initial initialize
+    let send (state: AppState.State) message = fst (handle aegis env state message)
+    let view (state: AppState.State) = Chrona.Engine.App.Project.project state.Model.Value
     let state = send (fst started) (describedAs "America/New_York" started)
 
     let state =
@@ -399,7 +399,7 @@ let private richViews () =
           event "saveManual" None "" ]
 
     let state = manual "09:00" "10:00" "First" @ manual "10:00" "10:30" "Second" @ manual "11:00" "11:30" "Third" |> List.fold send state
-    let idOf (description: string) (state: App.State) =
+    let idOf (description: string) (state: AppState.State) =
         state.Model.Value.Ledger.Activities |> Map.toList |> List.map snd |> List.find (fun a -> a.Classification.Description = description) |> _.ActivityId
 
     let first, third = idOf "First" state, idOf "Third" state
@@ -681,7 +681,7 @@ let private lifecycleFact (fact: string) =
 let ``when the kernel offers the lifecycle pack, the engine subscribes, and a page coming back catches up`` () =
     let _, aegis = collector ()
     let env, _ = envWith committed
-    let state, text = handle aegis env App.initial (initializeWith events (offer $"{schedule},{environment},{lifecycleOffer}") "#/track")
+    let state, text = handle aegis env AppState.initial (initializeWith events (offer $"{schedule},{environment},{lifecycleOffer}") "#/track")
 
     let subscription =
         effects text |> List.find (fun e -> e.["kind"].GetValue<string>() = "Capability" && e.["capability"].GetValue<string>() = "limen.lifecycle")
@@ -715,7 +715,7 @@ let private coordinationFact (body: string) =
 
 /// Asks the bridge for the queue's lock, as Arca's LimenQueue.takeOver
 /// does ("use this tab instead"), and records the answer.
-let private askLock (env: App.Env) =
+let private askLock (env: AppState.Env) =
     let answers = ResizeArray<Bridge.KernelAnswer>()
 
     let request =
@@ -744,7 +744,7 @@ let ``Arca's lock requests go through the coordination pack as written, the resu
     let env, _ = envWith committed
     let lost = ref 0
     let env = { env with Store = { env.Store with Lost = fun () -> lost.Value <- lost.Value + 1 } }
-    let state, _ = handle aegis env App.initial (initializeWith events (offer $"{schedule},{environment},{coordinationOffer}") "#/track")
+    let state, _ = handle aegis env AppState.initial (initializeWith events (offer $"{schedule},{environment},{coordinationOffer}") "#/track")
 
     let answers = askLock env
     let state, text = App.handle aegis env state (event "goMore" None "")
@@ -777,7 +777,7 @@ let ``Arca's lock requests go through the coordination pack as written, the resu
 let ``without the coordination pack, a lock request is answered at once as missing, and Arca treats ownership as unsupported`` () =
     let _, aegis = collector ()
     let env, _ = envWith committed
-    let state, _ = handle aegis env App.initial initialize
+    let state, _ = handle aegis env AppState.initial initialize
     let answers = askLock env
     let _, text = App.handle aegis env state (event "goMore" None "")
     Assert.DoesNotContain(effects text, fun e -> e.["kind"].GetValue<string>() = "Capability" && e.["capability"].GetValue<string>() = "limen.coordination")
@@ -795,7 +795,7 @@ let private storeResult (id: string) (result: string) =
     $"""{{"kind":"EffectResult","result":{{"kind":"CapabilityResult","correlationId":"{id}","capability":"limen.store","version":2,"outcome":{{"kind":"Completed","result":{result}}}}}}}"""
 
 /// Asks the bridge to open Arca's queue database, as LimenQueue does.
-let private askStore (env: App.Env) =
+let private askStore (env: AppState.Env) =
     let answers = ResizeArray<Bridge.KernelAnswer>()
 
     let request =
@@ -817,7 +817,7 @@ let ``the engine selects limen.store version 2, Arca's store requests go through
     let env, _ = envWith committed
     let reconnected = ref 0
     let env = { env with Store = { env.Store with Reconnect = fun () -> reconnected.Value <- reconnected.Value + 1 } }
-    let state, text = handle aegis env App.initial (initializeWith events (offer $"{schedule},{environment},{storeOffer}") "#/track")
+    let state, text = handle aegis env AppState.initial (initializeWith events (offer $"{schedule},{environment},{storeOffer}") "#/track")
     Assert.True(state.Fault.IsNone, $"%A{state.Fault}")
 
     let answers = askStore env
@@ -849,7 +849,7 @@ let ``the engine selects limen.store version 2, Arca's store requests go through
 let ``without the store pack, a store request is answered at once as missing, and Arca keeps the queue in localStorage`` () =
     let _, aegis = collector ()
     let env, _ = envWith committed
-    let state, _ = handle aegis env App.initial initialize
+    let state, _ = handle aegis env AppState.initial initialize
     let answers = askStore env
     let _, text = App.handle aegis env state (event "goMore" None "")
     Assert.DoesNotContain(effects text, fun e -> e.["kind"].GetValue<string>() = "Capability" && e.["capability"].GetValue<string>() = "limen.store")
@@ -860,7 +860,7 @@ let ``a page built for a deployment asks which build is served, and offers a rel
     let _, aegis = collector ()
     let env, _ = envWith committed
     let env = { env with Build = "a1b2c3" }
-    let state, text = handle aegis env App.initial initialize
+    let state, text = handle aegis env AppState.initial initialize
 
     let check =
         effects text

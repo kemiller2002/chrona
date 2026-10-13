@@ -275,13 +275,13 @@ let private hostResult (id: string) (value: string option) =
 /// Everything the kernel was asked and the page showed, across a pump.
 [<NoComparison; NoEquality>]
 type private Pumped =
-    { State: App.State
+    { State: AppState.State
       Replies: string list }
 
 /// Sends a message, then answers every request the replies make, as the
 /// browser and the exchange would, until nothing is left to answer.
-let private pump aegis (env: App.Env) (browser: Browser) (state: App.State) (message: string) =
-    let rec loop (state: App.State) (queue: string list) (replies: string list) =
+let private pump aegis (env: AppState.Env) (browser: Browser) (state: AppState.State) (message: string) =
+    let rec loop (state: AppState.State) (queue: string list) (replies: string list) =
         match queue with
         | [] -> { State = state; Replies = replies }
         | message :: rest ->
@@ -351,13 +351,13 @@ let private viewText (key: string) (pumped: Pumped) = (view pumped).[key].GetVal
 let private event (name: string) (value: string) =
     $"""{{"kind":"Event","event":{{"kind":"Event","name":"{name}","value":"{value}"}}}}"""
 
-let private envFor (clock: DateTimeOffset ref) : App.Env =
+let private envFor (clock: DateTimeOffset ref) : AppState.Env =
     let counter = ref 0uy
     let bridge = Bridge.Bridge()
 
     { Now = fun () -> clock.Value
       NewId = fun prefix -> $"{prefix}-{Guid.NewGuid():N}"
-      Session = App.localSession
+      Session = AppState.localSession
       Bridge = bridge
       // Deterministic, distinct bytes: the test's stand-in for crypto.getRandomValues.
       Identity =
@@ -375,7 +375,7 @@ let private envFor (clock: DateTimeOffset ref) : App.Env =
 /// a code, a new page load completes the callback. Returns the signed-in page.
 let private signIn aegis (clock: DateTimeOffset ref) (browser: Browser) (retention: string) =
     let first = envFor clock
-    let opened = pump aegis first browser App.initial (initialize "")
+    let opened = pump aegis first browser AppState.initial (initialize "")
     Assert.True(viewFlag "screenSignIn" opened)
     let chosen = pump aegis first browser opened.State (event "signInRetention" retention)
     let leaving = pump aegis first browser chosen.State (event "signIn" "")
@@ -391,7 +391,7 @@ let private signIn aegis (clock: DateTimeOffset ref) (browser: Browser) (retenti
     let state = Uri.EscapeDataString query["state"]
     let back = $"?code=good-code&state={state}"
     let second = envFor clock
-    pump aegis second browser App.initial (initialize back), second
+    pump aegis second browser AppState.initial (initialize back), second
 
 [<Fact>]
 let ``a person signs in with GitHub, and Chrona works as the identity GitHub resolved`` () =
@@ -465,23 +465,23 @@ let ``a session kept for the tab is restored on reload; a refused code is a noti
     let browser = Browser(clock)
     signIn aegis clock browser "tab" |> ignore
 
-    let reloaded = pump aegis (envFor clock) browser App.initial (initialize "")
+    let reloaded = pump aegis (envFor clock) browser AppState.initial (initialize "")
     Assert.True(viewFlag "shellVisible" reloaded)
     Assert.Equal("octocat", viewText "accountLogin" reloaded)
 
     // A fresh tab, and a callback whose code the provider refuses.
     let other = Browser(clock)
     let otherEnv = envFor clock
-    let opened = pump aegis otherEnv other App.initial (initialize "")
+    let opened = pump aegis otherEnv other AppState.initial (initialize "")
     pump aegis otherEnv other opened.State (event "signIn" "") |> ignore
     let state = (AppProtocol.queryPairs (Uri(Seq.exactlyOne other.Left)).Query |> Map.ofList)["state"]
-    let refused = pump aegis (envFor clock) other App.initial (initialize $"?code=bad-code&state={state}")
+    let refused = pump aegis (envFor clock) other AppState.initial (initialize $"?code=bad-code&state={state}")
     Assert.True(viewFlag "screenSignIn" refused)
     Assert.Equal("code_rejected", viewText "signInNoticeCode" refused)
 
     // A callback that did not start in this tab is refused without calling the exchange.
     let posts = other.Posts.Count
-    let forged = pump aegis (envFor clock) other App.initial (initialize "?code=good-code&state=forged")
+    let forged = pump aegis (envFor clock) other AppState.initial (initialize "?code=good-code&state=forged")
     Assert.Equal("state_invalid", viewText "signInNoticeCode" forged)
     Assert.Equal(posts, other.Posts.Count)
 
@@ -491,7 +491,7 @@ let ``a local deployment needs no sign-in`` () =
     let clock = ref start
     let browser = Browser(clock)
     browser.Configuration <- """{"environment":"local","environmentName":"local"}"""
-    let page = pump aegis (envFor clock) browser App.initial (initialize "")
+    let page = pump aegis (envFor clock) browser AppState.initial (initialize "")
     Assert.True(viewFlag "shellVisible" page)
     Assert.True(viewFlag "accountLocal" page)
     Assert.Empty(browser.Posts)

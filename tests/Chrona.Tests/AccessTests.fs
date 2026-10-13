@@ -164,7 +164,7 @@ let ``a command needs its capability; a refusal changes nothing and stores nothi
     Assert.Empty(effects)
     Assert.Equal(before, refused.References)
     Assert.Equal<Scalar list>([ Text "CHRONA.AUTH.UNAUTHORIZED_CAPABILITY" ], problemCodes "referenceProblems" refused)
-    Assert.Equal("You do not have permission to manage tags in this organization.", Project.describe refused (UnauthorizedCapability "ManageTags"))
+    Assert.Equal("You do not have permission to manage tags in this organization.", ProjectWords.describe refused (UnauthorizedCapability "ManageTags"))
 
     // Settings and exports are refused where they were asked for.
     let settings, _ = (model, []) |> send (ui "periodCadence" "monthly")

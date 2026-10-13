@@ -219,7 +219,7 @@ let internal onEvent (ctx: Ctx) (name: string) (key: string option) (value: stri
     | "saveMerge" -> saveMerge ctx model
 
     | "resolveObligation" ->
-        // The obligation's id says where it is resolved (Project.obligations).
+        // The obligation's id says where it is resolved (ProjectObligations.obligations).
         match (defaultArg key "").Split('-', 2) with
         | [| "stopped"; _ |] -> navigate Places.Track model
         | [| "attestation"; date |] ->

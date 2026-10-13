@@ -29,6 +29,20 @@
     <Compile Include="App/Update/UpdateSignOut.fs" />
     <Compile Include="App/Update/UpdateRouting.fs" />
     <Compile Include="App/Update/UpdateDispatch.fs" />
+    <Compile Include="App/Project/ProjectWords.fs" />
+    <Compile Include="App/Project/ProjectShell.fs" />
+    <Compile Include="App/Project/ProjectToday.fs" />
+    <Compile Include="App/Project/ProjectTrack.fs" />
+    <Compile Include="App/Project/ProjectMore.fs" />
+    <Compile Include="App/Project/ProjectConflicts.fs" />
+    <Compile Include="App/Project/ProjectCandidates.fs" />
+    <Compile Include="App/Project/ProjectObligations.fs" />
+    <Compile Include="App/Project/ProjectDetail.fs" />
+    <Compile Include="App/Project/ProjectReview.fs" />
+    <Compile Include="App/Project/ProjectReports.fs" />
+    <Compile Include="App/Project/ProjectWeeks.fs" />
+    <Compile Include="App/Project/ProjectAddresses.fs" />
+    <Compile Include="App/Project/ProjectIdentity.fs" />
     <Compile Include="App/Project.fs" />
   </ItemGroup>
 

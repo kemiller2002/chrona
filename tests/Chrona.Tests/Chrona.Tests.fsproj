@@ -30,7 +30,11 @@
     <Compile Include="ObservationTests.fs" />
     <Compile Include="IntakeTests.fs" />
     <Compile Include="StorageTests.fs" />
-    <Compile Include="PersistenceTests.fs" />
+    <Compile Include="PersistenceFixture.fs" />
+    <Compile Include="PersistenceRecordTests.fs" />
+    <Compile Include="PersistenceChangeTests.fs" />
+    <Compile Include="PersistenceReconcileTests.fs" />
+    <Compile Include="PersistenceDerivedTests.fs" />
     <Compile Include="SignInTests.fs" />
     <Compile Include="AccessTests.fs" />
     <Compile Include="InTurnTests.fs" />

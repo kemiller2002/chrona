@@ -88,4 +88,5 @@
 | WI-0080 | Chrona: CSV exports neutralize spreadsheet formulas (CSV injection) in every text cell, numbers kept as numbers (CHX-290) | complete |  | high |
 | WI-0081 | Chrona: sign-in reads pinned to observed states - the opening's manifests and datasets listing, the activity index at load's state, and one pin per inbox pass | complete |  | medium |
 | WI-0082 | Echelon current 1.19.0 to 1.22.0 through Conditor 0.9.0: declare Forma and Folio, Forma 0.4.1 to 0.5.0 to 0.6.1, Folio 0.3.0 to 0.4.0, Ordo 1.5.0 to 1.6.0 to 1.7.0 (one registry set per PR) | complete |  | high |
-| WI-0083 | Split oversized Chrona modules to SDE-STRUCT-001 limits | ready | sde, structure | medium |
+| WI-0083 | Split oversized Chrona modules to SDE-STRUCT-001 limits | active | sde, structure | medium |
+| WI-0084 | Root-cause the intermittent failure of app-reliability.spec.js 'a hidden page that comes back keeps its timer, and a newer Chrona is offered as a safe reload' | captured | browser-tests, timer | medium |

@@ -65,7 +65,10 @@
     <Compile Include="AppEngineRecordingTests.fs" />
     <Compile Include="AppEngineCorrectionTests.fs" />
     <Compile Include="AppEnginePeriodTests.fs" />
-    <Compile Include="AppBoundaryTests.fs" />
+    <Compile Include="AppBoundaryFixture.fs" />
+    <Compile Include="AppBoundaryKernelTests.fs" />
+    <Compile Include="AppBoundaryPageTests.fs" />
+    <Compile Include="AppBoundaryPackTests.fs" />
     <Compile Include="DeepLinkTests.fs" />
     <Compile Include="SummaBillingTests.fs" />
   </ItemGroup>

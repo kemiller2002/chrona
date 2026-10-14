@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-14T00:09:15.122Z",
+  "updatedAt": "2026-10-14T00:10:01.668Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -3407,13 +3407,34 @@
     {
       "id": "WI-0085",
       "type": "dependency-upgrade",
-      "state": "active",
-      "semanticState": "active",
+      "state": "blocked",
+      "semanticState": "blocked",
       "evidence": [],
-      "updatedAt": "2026-10-14T00:09:15.122Z",
+      "updatedAt": "2026-10-14T00:10:01.668Z",
       "telemetryExecutionIds": [
         "EXE-20261014T000915789Z-09b7cb59"
-      ]
+      ],
+      "latestCheckpoint": {
+        "id": "e46200aa4142ee6c061e954c",
+        "recordedAt": "2026-10-14T00:09:59.720Z",
+        "executionId": "EXE-20261014T000915789Z-09b7cb59",
+        "repository": "chrona",
+        "branch": "chore/echelon-1.23-praxis",
+        "commit": "de0e3fd08c8e714b346d27d72b4e3422c864ef8a",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/chrona"
+        },
+        "remoteBranch": "chore/echelon-1.23-praxis",
+        "remoteCommit": "de0e3fd08c8e714b346d27d72b4e3422c864ef8a",
+        "summary": "Conditor 0.10.4 authorize of 1.23.0 refused (exit 9) after the plan check matched; tree restored to HEAD",
+        "nextAction": "wait for the lead and Conditor on the refusal",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      },
+      "blockReason": "Conditor 0.10.4 authorize of echelon-current 1.23.0 refused (exit 9): \".echelon/foundations.json no longer declares capability 'praxis' at 3.11.0 as one plain value\"; Praxis's own lifecycle upgrade had already written its files, which Conditor did not restore. Reported to the lead."
     }
   ]
 }

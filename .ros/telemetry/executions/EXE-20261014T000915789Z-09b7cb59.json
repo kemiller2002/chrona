@@ -506,14 +506,30 @@
     },
     {
       "metricId": "agent.interruptions",
-      "status": "unknown",
-      "reason": "runtime capability not reported or mapped",
-      "discoveredAt": "2026-10-14T00:09:15.789Z",
+      "status": "derived",
+      "reason": "normalized measurement recorded",
+      "discoveredAt": "2026-10-14T00:10:01.668Z",
       "source": {
-        "type": "environment",
-        "name": "runtime-identity",
-        "mechanism": "whitelisted-claude-environment"
-      }
+        "type": "calculated",
+        "name": "ros-work-protocol",
+        "mechanism": "blocked-transition"
+      },
+      "lastAssessedAt": "2026-10-14T00:10:01.668Z",
+      "recordedAt": "2026-10-14T00:10:01.668Z",
+      "history": [
+        {
+          "status": "unknown",
+          "reason": "runtime capability not reported or mapped",
+          "source": {
+            "type": "environment",
+            "name": "runtime-identity",
+            "mechanism": "whitelisted-claude-environment"
+          },
+          "discoveredAt": "2026-10-14T00:09:15.789Z",
+          "lastAssessedAt": "2026-10-14T00:09:15.789Z",
+          "recordedAt": "2026-10-14T00:09:15.789Z"
+        }
+      ]
     },
     {
       "metricId": "agent.resumes",
@@ -1355,6 +1371,26 @@
       },
       "collectedAt": "2026-10-14T00:09:15.789Z",
       "schemaVersion": "1.0.0"
+    },
+    {
+      "measurementId": "MEAS-56724b09813de76cb7fd8595",
+      "id": "agent.interruptions",
+      "value": 1,
+      "unit": "count",
+      "currency": null,
+      "quality": "derived",
+      "confidence": null,
+      "scope": "execution",
+      "aggregation": "sum",
+      "dimensions": {},
+      "pricing": null,
+      "source": {
+        "type": "calculated",
+        "name": "ros-work-protocol",
+        "mechanism": "blocked-transition"
+      },
+      "collectedAt": "2026-10-14T00:10:01.668Z",
+      "schemaVersion": "1.0.0"
     }
   ],
   "rawTelemetry": [],
@@ -1367,6 +1403,17 @@
         "name": "ros",
         "mechanism": "work-lifecycle"
       }
+    },
+    {
+      "type": "work.blocked",
+      "occurredAt": "2026-10-14T00:10:01.668Z",
+      "reason": "Conditor 0.10.4 authorize of echelon-current 1.23.0 refused (exit 9): \".echelon/foundations.json no longer declares capability 'praxis' at 3.11.0 as one plain value\"; Praxis's own lifecycle upgrade had already written its files, which Conditor did not restore. Reported to the lead.",
+      "source": {
+        "type": "ros-clock",
+        "name": "ros",
+        "mechanism": "work-lifecycle"
+      },
+      "eventId": "TEVT-0ef0bc6b51aa717a7777f039"
     }
   ],
   "repository": {

@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-14T00:10:19.752Z",
+  "updatedAt": "2026-10-14T08:22:55.814Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -3407,33 +3407,51 @@
     {
       "id": "WI-0079",
       "type": "feature",
-      "state": "active",
-      "semanticState": "active",
-      "evidence": [],
-      "updatedAt": "2026-10-14T00:10:19.752Z",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "implementation",
+          "path": ".echelon/state-model.json"
+        },
+        {
+          "type": "implementation",
+          "path": ".github/workflows/sde-verify.yml"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/StateModelTests.fs"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/SdeGateTests.fs"
+        }
+      ],
+      "updatedAt": "2026-10-14T08:22:55.814Z",
       "telemetryExecutionIds": [
         "EXE-20261014T001020376Z-67f94813"
       ],
       "latestCheckpoint": {
-        "id": "1401183783c34394b019ee5c",
-        "recordedAt": "2026-10-14T01:04:50.719Z",
+        "id": "9a217c226641bed4973eb6c8",
+        "recordedAt": "2026-10-14T08:22:51.306Z",
         "executionId": "EXE-20261014T001020376Z-67f94813",
         "repository": "chrona",
-        "branch": "feat/wi-0079-state-model",
-        "commit": "28dc9b58c4d07632cd9a2579c5db3644a519a5ee",
+        "branch": "chore/wi-0079-complete",
+        "commit": "75a74fa181cfbcdd7e669c96b8797ea19f0e7223",
         "remote": {
           "name": "origin",
           "url": "https://github.com/kemiller2002/chrona"
         },
-        "remoteBranch": "feat/wi-0079-state-model",
-        "remoteCommit": "28dc9b58c4d07632cd9a2579c5db3644a519a5ee",
-        "summary": "PR2 pushed: .echelon/state-model.json with four domain lifecycles and StateModelTests (model matches unions, every transition, 46 refused pairs, creation, obligations); .NET 461/461, browser 71/71 after a wasm rebuild",
-        "nextAction": "Open PR2, gate-merge, then complete WI-0079",
+        "remoteBranch": "chore/wi-0079-complete",
+        "remoteCommit": "75a74fa181cfbcdd7e669c96b8797ea19f0e7223",
+        "summary": "PR2 #135 merged as 75a74fa after every check on 945b58b passed; PR1 #134 merged as 93aa834",
+        "nextAction": "Record WI-0079 complete",
         "verification": {
           "status": "verified",
           "mechanism": "git-remote-observation"
         }
-      }
+      },
+      "completedAt": "2026-10-14T08:22:55.814Z"
     }
   ]
 }

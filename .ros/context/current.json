@@ -3456,20 +3456,20 @@
         "EXE-20261014T001020376Z-67f94813"
       ],
       "latestCheckpoint": {
-        "id": "27da2208c92f5bfe415111fa",
-        "recordedAt": "2026-10-14T00:21:11.512Z",
+        "id": "1401183783c34394b019ee5c",
+        "recordedAt": "2026-10-14T01:04:50.719Z",
         "executionId": "EXE-20261014T001020376Z-67f94813",
         "repository": "chrona",
-        "branch": "ci/wi-0079-sde-strict",
-        "commit": "cef31c1984037d6327ff083615c0de4c5e960e15",
+        "branch": "feat/wi-0079-state-model",
+        "commit": "28dc9b58c4d07632cd9a2579c5db3644a519a5ee",
         "remote": {
           "name": "origin",
           "url": "https://github.com/kemiller2002/chrona"
         },
-        "remoteBranch": "ci/wi-0079-sde-strict",
-        "remoteCommit": "cef31c1984037d6327ff083615c0de4c5e960e15",
-        "summary": "SDE verify workflow: ordo verify --strict on exactly the commit, before any build, with the Conditor-resolved Ordo checked by digest; SdeGateTests",
-        "nextAction": "PR and gate-merge; then the state model and refusal sweep",
+        "remoteBranch": "feat/wi-0079-state-model",
+        "remoteCommit": "28dc9b58c4d07632cd9a2579c5db3644a519a5ee",
+        "summary": "PR2 pushed: .echelon/state-model.json with four domain lifecycles and StateModelTests (model matches unions, every transition, 46 refused pairs, creation, obligations); .NET 461/461, browser 71/71 after a wasm rebuild",
+        "nextAction": "Open PR2, gate-merge, then complete WI-0079",
         "verification": {
           "status": "verified",
           "mechanism": "git-remote-observation"

@@ -1834,10 +1834,10 @@
         "structure"
       ],
       "priority": "medium",
-      "status": "ready",
+      "status": "complete",
       "attachments": [],
       "createdAt": "2026-10-13T17:58:13.345Z",
-      "updatedAt": "2026-10-13T17:58:30.846Z",
+      "updatedAt": "2026-10-13T23:41:21.496Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

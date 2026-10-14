@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-13T22:33:26.693Z",
+  "updatedAt": "2026-10-13T23:41:21.496Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -3327,33 +3327,51 @@
     {
       "id": "WI-0083",
       "type": "refactor",
-      "state": "active",
-      "semanticState": "active",
-      "evidence": [],
-      "updatedAt": "2026-10-13T17:58:31.373Z",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Application/Store/StorePage.fs"
+        },
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Engine/App/Update/UpdateDispatch.fs"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/StoreOpeningTests.fs"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/AppEngineStartTests.fs"
+        }
+      ],
+      "updatedAt": "2026-10-13T23:41:21.496Z",
       "telemetryExecutionIds": [
         "EXE-20261013T175832132Z-585ab26e"
       ],
       "latestCheckpoint": {
-        "id": "f7e28e98f5e00aa5f164b284",
-        "recordedAt": "2026-10-13T23:01:16.475Z",
+        "id": "a2814f16f8aba3bf1da49f56",
+        "recordedAt": "2026-10-13T23:41:16.661Z",
         "executionId": "EXE-20261013T175832132Z-585ab26e",
         "repository": "chrona",
-        "branch": "refactor/wi-0083-appboundary-tests",
-        "commit": "c414481ae6f2208a66288796d879005f907ac086",
+        "branch": "chore/wi-0083-complete",
+        "commit": "184d1f94b56a3d456ff03691972e9d3840c56d8a",
         "remote": {
           "name": "origin",
           "url": "https://github.com/kemiller2002/chrona"
         },
-        "remoteBranch": "refactor/wi-0083-appboundary-tests",
-        "remoteCommit": "c414481ae6f2208a66288796d879005f907ac086",
-        "summary": "AppBoundaryTests split into a fixture and three test files; 453 .NET, 71 browser pass",
-        "nextAction": "PR and gate-merge; then app-github.spec.js",
+        "remoteBranch": "chore/wi-0083-complete",
+        "remoteCommit": "184d1f94b56a3d456ff03691972e9d3840c56d8a",
+        "summary": "All 13 SDE-STRUCT-001 findings split in #117-#125, #127, #129-#131; strict verify on a clean checkout: no findings",
+        "nextAction": "complete WI-0083",
         "verification": {
           "status": "verified",
           "mechanism": "git-remote-observation"
         }
-      }
+      },
+      "completedAt": "2026-10-13T23:41:21.496Z"
     },
     {
       "id": "WI-0084",

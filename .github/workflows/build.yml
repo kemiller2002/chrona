@@ -213,6 +213,8 @@ jobs:
       # Publishes the WASM engine, checks the evidence builder, runs every
       # Playwright project and writes the evidence.
       - name: UI conformance
+        env:
+          UI_CONFORMANCE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
         run: npm run ui:conformance
 
       - name: Upload the UI conformance evidence

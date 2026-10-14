@@ -354,7 +354,9 @@ for (const [surface, hash, ready] of LAYOUT) {
       const page = await context.newPage();
       try {
         await page.goto(`/web/index.html${hash}`);
-        await expect(page.locator("html")).toHaveAttribute("data-kernel", "running");
+        // A cold context loads and starts the WASM engine from nothing; on a
+        // busy machine that can take longer than the default 5s wait.
+        await expect(page.locator("html")).toHaveAttribute("data-kernel", "running", { timeout: 30_000 });
         await expect(page.locator(ready)).toBeVisible();
         await scaleDefaultText(page, 2);
         const known = TEXT_SCALE_KNOWN[`${surface}@${width}`];

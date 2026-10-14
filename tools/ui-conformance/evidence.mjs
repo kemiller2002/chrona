@@ -161,6 +161,9 @@ export const summarize = (document) => {
 // ---- IO -------------------------------------------------------------------------
 
 const revisionOf = (cwd) => {
+  // A pull request's run checks out a merge commit (GITHUB_SHA); the
+  // workflow passes the head commit it tested instead.
+  if (process.env.UI_CONFORMANCE_REVISION) return process.env.UI_CONFORMANCE_REVISION;
   if (process.env.GITHUB_SHA) return process.env.GITHUB_SHA;
   try {
     return execFileSync("git", ["rev-parse", "HEAD"], { cwd, encoding: "utf8" }).trim();

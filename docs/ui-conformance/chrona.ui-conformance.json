@@ -1,7 +1,7 @@
 {
   "standardVersion": "1.0.0",
   "repository": "kemiller2002/chrona",
-  "revision": "c404f24d9626e1b00c0bb2c31e81236e52e59f17",
+  "revision": "a5833bcd7f67f07e6dfcd3c61bdbd7dd0d8017a8",
   "classification": "app-ui",
   "surfaces": [
     {
@@ -1809,7 +1809,7 @@
           "expectedOutcome": "A confirmation is asked [owner: engine: clearDevice; state: GitHub, signed in]",
           "status": "pass",
           "evidence": [
-            "tests/browser/app-github.spec.js › clearing this device removes what it keeps to open offline, then signs out: passed (asserts the outcome)"
+            "tests/browser/app-github-offline.spec.js › clearing this device removes what it keeps to open offline, then signs out: passed (asserts the outcome)"
           ],
           "resetStrategy": "fresh page per test"
         },
@@ -1823,7 +1823,7 @@
           "expectedOutcome": "The read cache is removed and the person is signed out [owner: engine: clearDeviceConfirmed; state: GitHub, signed in]",
           "status": "pass",
           "evidence": [
-            "tests/browser/app-github.spec.js › clearing this device removes what it keeps to open offline, then signs out: passed (asserts the outcome)"
+            "tests/browser/app-github-offline.spec.js › clearing this device removes what it keeps to open offline, then signs out: passed (asserts the outcome)"
           ],
           "resetStrategy": "fresh page per test"
         },
@@ -1957,7 +1957,7 @@
         "tests/conformance/app.spec.js › app-more: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @390px — document scrollWidth 390 vs clientWidth 390; 0 text run(s) escaping the viewport or a clipping container",
         "tests/conformance/app.spec.js › app-more: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @768px — document scrollWidth 768 vs clientWidth 768; 0 text run(s) escaping the viewport or a clipping container",
         "tests/conformance/app.spec.js › app-more: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @1280px — document scrollWidth 1280 vs clientWidth 1280; 0 text run(s) escaping the viewport or a clipping container",
-        "tests/conformance/app.spec.js › app-more: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 FAIL @320px x2 text — document scrollWidth 362 vs clientWidth 320; 1 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-more: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 FAIL @320px x2 text — document scrollWidth 346 vs clientWidth 320; 1 text run(s) escaping the viewport or a clipping container",
         "tests/conformance/app.spec.js › app-more: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @390px x2 text — document scrollWidth 390 vs clientWidth 390; 0 text run(s) escaping the viewport or a clipping container",
         "tests/conformance/app.spec.js › app-more: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @768px x2 text — document scrollWidth 768 vs clientWidth 768; 0 text run(s) escaping the viewport or a clipping container",
         "tests/conformance/app.spec.js › app-more: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @1280px x2 text — document scrollWidth 1280 vs clientWidth 1280; 0 text run(s) escaping the viewport or a clipping container"
@@ -2156,7 +2156,7 @@
           "expectedOutcome": "This tab holds and sends them; the other stops [owner: engine: takeOverQueue; state: GitHub, two tabs]",
           "status": "pass",
           "evidence": [
-            "tests/browser/app-github.spec.js › \"use this tab instead\" takes the unsent changes over at once; the other tab says so, and every change is sent once: passed (asserts the outcome)"
+            "tests/browser/app-github-offline.spec.js › \"use this tab instead\" takes the unsent changes over at once; the other tab says so, and every change is sent once: passed (asserts the outcome)"
           ],
           "resetStrategy": "fresh page per test"
         },

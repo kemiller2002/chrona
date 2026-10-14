@@ -41,14 +41,20 @@
         "type": "ros-git",
         "name": "git",
         "mechanism": "repository-baseline"
+      },
+      {
+        "type": "runtime-output",
+        "name": "generic-telemetry-envelope",
+        "mechanism": "json"
       }
     ]
   },
   "classification": {
     "types": [
-      "verification"
+      "testing-verification",
+      "infrastructure-devops"
     ],
-    "rationale": null,
+    "rationale": "A CI verification gate (SDE strict) and the state model's tests; corrects 'verification', which Praxis 3.11.0's work start accepted but its validate rejects.",
     "evidence": [],
     "rd": null
   },
@@ -1357,7 +1363,23 @@
       "schemaVersion": "1.0.0"
     }
   ],
-  "rawTelemetry": [],
+  "rawTelemetry": [
+    {
+      "snapshotId": "classification-1791937373260",
+      "adapter": "generic",
+      "schemaVersion": null,
+      "collectedAt": "2026-10-14T00:22:53.308Z",
+      "source": {
+        "type": "runtime-output",
+        "name": "generic-telemetry-envelope",
+        "mechanism": "json"
+      },
+      "payload": {},
+      "payloadBytes": 2,
+      "discoveredFields": [],
+      "redactions": []
+    }
+  ],
   "events": [
     {
       "type": "execution.started",
@@ -1367,6 +1389,23 @@
         "name": "ros",
         "mechanism": "work-lifecycle"
       }
+    },
+    {
+      "type": "telemetry.snapshot.ingested",
+      "snapshotId": "classification-1791937373260",
+      "adapter": "generic",
+      "rawRetention": {
+        "status": "retained",
+        "reason": null,
+        "payloadBytes": 2
+      },
+      "occurredAt": "2026-10-14T00:22:53.308Z",
+      "source": {
+        "type": "runtime-output",
+        "name": "generic-telemetry-envelope",
+        "mechanism": "json"
+      },
+      "eventId": "TEVT-5edb301eb3a5ee761ef07897"
     }
   ],
   "repository": {

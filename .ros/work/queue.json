@@ -1747,10 +1747,10 @@
       "description": "Left after WI-0040. Section 44 requires SDE/Ordo validation. Chrona's states, legal transitions, refusals, revision checks and obligations are modeled and unit-tested in Chrona.Domain (WI-0021 and later), but no Ordo model of the activity, timer, period review and candidate lifecycles is validated by Ordo in CI. Express them in Ordo's installed methodology (Ordo 1.5.0 through Conditor), validate them in CI, and keep the domain and the model in agreement by test. Coordinate with the program lead before starting: Ordo construction experiments are the lead's Phase H work, and the timer lifecycle is frozen until those trials report.",
       "tags": [],
       "priority": "medium",
-      "status": "captured",
+      "status": "ready",
       "attachments": [],
       "createdAt": "2026-10-13T11:41:23.000Z",
-      "updatedAt": "2026-10-13T11:41:23.000Z",
+      "updatedAt": "2026-10-14T00:10:19.423Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-13T23:41:21.496Z",
+  "updatedAt": "2026-10-14T00:10:19.752Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -3398,6 +3398,37 @@
         "remoteCommit": "83679f7d755f68a688e97db23587e419aba36079",
         "summary": "app-reliability.spec.js keeps trace, screenshot and video on failure; CI uploads test-results on failure",
         "nextAction": "gate-merge; then block until a failure is captured and the Phase H freeze allows the fix",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      }
+    },
+    {
+      "id": "WI-0079",
+      "type": "feature",
+      "state": "active",
+      "semanticState": "active",
+      "evidence": [],
+      "updatedAt": "2026-10-14T00:10:19.752Z",
+      "telemetryExecutionIds": [
+        "EXE-20261014T001020376Z-67f94813"
+      ],
+      "latestCheckpoint": {
+        "id": "27da2208c92f5bfe415111fa",
+        "recordedAt": "2026-10-14T00:21:11.512Z",
+        "executionId": "EXE-20261014T001020376Z-67f94813",
+        "repository": "chrona",
+        "branch": "ci/wi-0079-sde-strict",
+        "commit": "cef31c1984037d6327ff083615c0de4c5e960e15",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/chrona"
+        },
+        "remoteBranch": "ci/wi-0079-sde-strict",
+        "remoteCommit": "cef31c1984037d6327ff083615c0de4c5e960e15",
+        "summary": "SDE verify workflow: ordo verify --strict on exactly the commit, before any build, with the Conditor-resolved Ordo checked by digest; SdeGateTests",
+        "nextAction": "PR and gate-merge; then the state model and refusal sweep",
         "verification": {
           "status": "verified",
           "mechanism": "git-remote-observation"

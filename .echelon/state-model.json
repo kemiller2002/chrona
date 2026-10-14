@@ -1,0 +1,309 @@
+{
+  "schemaVersion": 1,
+  "description": "Chrona's domain lifecycles as Ordo-style state models (WI-0079): for each lifecycle, the domain union whose cases are its states and the union (or, where the domain has none, the functions) whose cases are its commands, the legal transitions, and the codes a refusal may carry. StateModelTests holds the domain to it: every state and command named here is exactly the union's cases, every transition is performed by the domain with the result named here, and every other pair of state and command is refused with one of the listed codes. The timer lifecycle is not modelled while the Phase H freeze on Timer.fs and TimerRecord.fs holds.",
+  "lifecycles": [
+    {
+      "id": "activity-record",
+      "authority": "src/Chrona.Domain/Ledger.fs: Ledger.execute",
+      "states": {
+        "union": "Chrona.Domain.Activity+RecordState",
+        "cases": [
+          "Recorded",
+          "Voided",
+          "Superseded"
+        ]
+      },
+      "commands": {
+        "union": "Chrona.Domain.Ledger+Command",
+        "cases": [
+          "Record",
+          "Amend",
+          "Void",
+          "Restore",
+          "Split",
+          "Merge",
+          "LinkEvidence",
+          "UnlinkEvidence"
+        ]
+      },
+      "creation": {
+        "command": "Record",
+        "to": "Recorded"
+      },
+      "variants": [
+        {
+          "name": "default",
+          "unreachable": [],
+          "transitions": [
+            {
+              "from": "Recorded",
+              "command": "Amend",
+              "to": "Recorded"
+            },
+            {
+              "from": "Recorded",
+              "command": "Void",
+              "to": "Voided"
+            },
+            {
+              "from": "Recorded",
+              "command": "Split",
+              "to": "Superseded"
+            },
+            {
+              "from": "Recorded",
+              "command": "Merge",
+              "to": "Superseded"
+            },
+            {
+              "from": "Recorded",
+              "command": "LinkEvidence",
+              "to": "Recorded"
+            },
+            {
+              "from": "Recorded",
+              "command": "UnlinkEvidence",
+              "to": "Recorded"
+            },
+            {
+              "from": "Voided",
+              "command": "Restore",
+              "to": "Recorded"
+            },
+            {
+              "from": "Voided",
+              "command": "LinkEvidence",
+              "to": "Voided"
+            }
+          ]
+        }
+      ],
+      "refusals": [
+        "CHRONA.LIFECYCLE.ILLEGAL_TRANSITION"
+      ]
+    },
+    {
+      "id": "period-review",
+      "authority": "src/Chrona.Domain/PeriodReview.fs: submit, approve, reject, reopen, stateOf",
+      "states": {
+        "union": "Chrona.Domain.PeriodReview+PeriodState",
+        "cases": [
+          "Open",
+          "AwaitingApproval",
+          "Closed",
+          "Returned"
+        ]
+      },
+      "commands": {
+        "union": "Chrona.Domain.PeriodReview+ReviewKind",
+        "cases": [
+          "Submission",
+          "Approval",
+          "Rejection",
+          "Reopening"
+        ]
+      },
+      "creation": null,
+      "variants": [
+        {
+          "name": "approval required",
+          "unreachable": [],
+          "transitions": [
+            {
+              "from": "Open",
+              "command": "Submission",
+              "to": "AwaitingApproval"
+            },
+            {
+              "from": "Returned",
+              "command": "Submission",
+              "to": "AwaitingApproval"
+            },
+            {
+              "from": "AwaitingApproval",
+              "command": "Approval",
+              "to": "Closed"
+            },
+            {
+              "from": "AwaitingApproval",
+              "command": "Rejection",
+              "to": "Returned"
+            },
+            {
+              "from": "AwaitingApproval",
+              "command": "Reopening",
+              "to": "Open"
+            },
+            {
+              "from": "Closed",
+              "command": "Reopening",
+              "to": "Open"
+            }
+          ]
+        },
+        {
+          "name": "no approval",
+          "unreachable": [
+            "AwaitingApproval",
+            "Returned"
+          ],
+          "transitions": [
+            {
+              "from": "Open",
+              "command": "Submission",
+              "to": "Closed"
+            },
+            {
+              "from": "Closed",
+              "command": "Reopening",
+              "to": "Open"
+            }
+          ]
+        }
+      ],
+      "refusals": [
+        "CHRONA.REVIEW.SUBMITTED_PERIOD",
+        "CHRONA.REVIEW.UNKNOWN_SUBMISSION",
+        "CHRONA.REVIEW.APPROVAL_NOT_ENABLED",
+        "CHRONA.LIFECYCLE.ILLEGAL_TRANSITION"
+      ]
+    },
+    {
+      "id": "observation-candidate",
+      "authority": "src/Chrona.Domain/Observations.fs: accept, reject",
+      "states": {
+        "union": "Chrona.Domain.Observations+Disposition",
+        "cases": [
+          "Pending",
+          "Accepted",
+          "AcceptedWithChanges",
+          "Rejected",
+          "Duplicate",
+          "NeedsAttention"
+        ]
+      },
+      "commands": {
+        "union": null,
+        "module": "Chrona.Domain.Observations",
+        "cases": [
+          "accept",
+          "reject"
+        ],
+        "note": "The domain has no command union for a candidate: its commands are these functions. accept with the observation's own proposal gives Accepted; with a changed project or description it gives AcceptedWithChanges (ObservationTests, scenario 26)."
+      },
+      "creation": {
+        "command": "receive",
+        "to": "Pending"
+      },
+      "variants": [
+        {
+          "name": "default",
+          "unreachable": [],
+          "transitions": [
+            {
+              "from": "Pending",
+              "command": "accept",
+              "to": "Accepted"
+            },
+            {
+              "from": "Pending",
+              "command": "reject",
+              "to": "Rejected"
+            },
+            {
+              "from": "NeedsAttention",
+              "command": "accept",
+              "to": "Accepted"
+            },
+            {
+              "from": "NeedsAttention",
+              "command": "reject",
+              "to": "Rejected"
+            }
+          ]
+        }
+      ],
+      "refusals": [
+        "CHRONA.LIFECYCLE.ILLEGAL_TRANSITION"
+      ]
+    },
+    {
+      "id": "reference-item",
+      "authority": "src/Chrona.Domain/Reference.fs: Reference.execute (items Chrona owns)",
+      "states": {
+        "union": "Chrona.Domain.Reference+Status",
+        "cases": [
+          "Active",
+          "Archived"
+        ]
+      },
+      "commands": {
+        "union": "Chrona.Domain.Reference+Command",
+        "cases": [
+          "Add",
+          "Rename",
+          "Archive",
+          "Reactivate",
+          "Mirror"
+        ]
+      },
+      "creation": {
+        "command": "Add",
+        "to": "Active"
+      },
+      "variants": [
+        {
+          "name": "owned by Chrona",
+          "unreachable": [],
+          "transitions": [
+            {
+              "from": "Active",
+              "command": "Rename",
+              "to": "Active"
+            },
+            {
+              "from": "Active",
+              "command": "Archive",
+              "to": "Archived"
+            },
+            {
+              "from": "Archived",
+              "command": "Rename",
+              "to": "Archived"
+            },
+            {
+              "from": "Archived",
+              "command": "Reactivate",
+              "to": "Active"
+            }
+          ]
+        }
+      ],
+      "refusals": [
+        "CHRONA.LIFECYCLE.ILLEGAL_TRANSITION",
+        "CHRONA.REFERENCE.DUPLICATE",
+        "CHRONA.REFERENCE.OWNED_ELSEWHERE"
+      ]
+    }
+  ],
+  "obligations": [
+    {
+      "id": "published-time-changed",
+      "lifecycle": "activity-record",
+      "authority": "src/Chrona.Domain/Ledger.fs: afterChange",
+      "summary": "Changing time already published or invoiced leaves it AdjustmentRequired (17)."
+    },
+    {
+      "id": "reviewed-time-changed",
+      "lifecycle": "activity-record",
+      "authority": "src/Chrona.Domain/Ledger.fs: reopenIfReviewed",
+      "summary": "Changing submitted or approved time reopens its review (14)."
+    },
+    {
+      "id": "held-period-restricts-changes",
+      "lifecycle": "period-review",
+      "authority": "src/Chrona.Domain/PeriodReview.fs: restrictions",
+      "summary": "Time in a submitted or closed period cannot change until the period is reopened (26)."
+    }
+  ]
+}

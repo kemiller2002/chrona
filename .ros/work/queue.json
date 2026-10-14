@@ -1146,14 +1146,14 @@
     },
     {
       "id": "WI-0052",
-      "title": "Chrona 04b: real end-to-end sign-in against a deployed Fides exchange and GitHub App (CHX-022 remainder)",
+      "title": "Chrona 04b: real end-to-end sign-in against a deployed Fides exchange and GitHub App (CHX-022 remainder; CHX-440 production gate item)",
       "description": "Waits on the user's deployment: Fides is not deployed anywhere yet (no AWS account, domain or GitHub App). When a Fides exchange is hosted (Fides docs/hosting/AWS.md) with Chrona registered (origin and redirect URI) and a GitHub App exists, write that deployment's chrona.deployment.json (docs/deployment-configuration.md), sign in with a real GitHub account, check the identity Chrona shows is GitHub's, that the token is kept as chosen and revoked on sign-out, that a refresh after eight hours works, and that the exchange's CORS allows exactly the deployment's origin. WI-0029 built and tested all of it against a fake exchange and GitHub; this is the check against the real ones. Also the CHX-021 check against a real repository: the records open, a first sign-in sets up the folders, commits land as one commit each with Arca's trailers, and a public production repository is refused. Also the CHX-380 remainder: measure the GitHub requests opening, reading a further month and committing take against a real repository (one request per record read, conditional requests from Arca's ETag cache, rate-limit headroom), and raise an Arca item if a month folder should be read in one batch.",
       "tags": [],
       "priority": "medium",
       "status": "captured",
       "attachments": [],
       "createdAt": "2026-10-08T12:33:30Z",
-      "updatedAt": "2026-10-08T14:59:18Z",
+      "updatedAt": "2026-10-14T08:27:38.976Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",
@@ -1500,14 +1500,14 @@
     },
     {
       "id": "WI-0068",
-      "title": "Chrona 16e: iPhone VoiceOver pass by a person, recorded against docs/accessibility-voiceover-checklist.md (CHX-350)",
+      "title": "Chrona 16e: iPhone VoiceOver pass by a person, recorded against docs/accessibility-voiceover-checklist.md (CHX-350; CHX-440 production gate item)",
       "description": "Split from WI-0064, which built and tested everything in requirement 35 that a browser can check (scenarios 42-44, reflow at 320 CSS pixels, reduced motion, focus kept on the control that replaced the pressed one). iPhone VoiceOver needs a person with an iPhone: they run the 14 checks in docs/accessibility-voiceover-checklist.md on a deployment, record the pass in its table (date, tester, iPhone and iOS, Chrona build), and capture a work item for each failure. CHX-350 becomes tested when a recorded pass has every row passing.",
       "tags": [],
       "priority": "medium",
       "status": "captured",
       "attachments": [],
       "createdAt": "2026-10-08T17:40:38Z",
-      "updatedAt": "2026-10-08T17:40:38Z",
+      "updatedAt": "2026-10-14T08:27:39.387Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

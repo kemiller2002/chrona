@@ -57,7 +57,7 @@
 | WI-0049 | Chrona 14a: search, reports and deterministic export in memory, printable through Folio (CHX-270, CHX-280, CHX-290, CHX-005) | complete | chrona, reporting, folio | medium |
 | WI-0050 | Chrona 13a: observation processing in the pure domain - candidates, dispositions (pending, accepted, accepted with changes, rejected, duplicate, needs attention), source auto-accept policy, deduplication and receipts (CHX-190, CHX-120 import path, CHX-250 import audit; scenarios 25-30) | complete | chrona, observations, domain | high |
 | WI-0051 | Chrona 07a: activity records on Arca - record codec, partitioned layout, change sets and integrity on load (CHX-220, CHX-390, CHX-410, CHX-050 persistence) | complete |  | medium |
-| WI-0052 | Chrona 04b: real end-to-end sign-in against a deployed Fides exchange and GitHub App (CHX-022 remainder) | captured |  | medium |
+| WI-0052 | Chrona 04b: real end-to-end sign-in against a deployed Fides exchange and GitHub App (CHX-022 remainder; CHX-440 production gate item) | captured |  | medium |
 | WI-0053 | Chrona 05b: bootstrap administrators from the deployment configuration; no first-opener takeover (CHX-030, CHX-027) | complete |  | high |
 | WI-0054 | Chrona 16: visual regression against the legacy screens, closing the product UI (CHX-005 look and feel) | complete |  | medium |
 | WI-0055 | Chrona 08b: the active timer persisted across refresh and restart, recovered at startup, and concurrent timers across devices as obligations (CHX-101, CHX-102, CHX-105, CHX-260 remainder) | complete |  | high |
@@ -73,7 +73,7 @@
 | WI-0065 | Move Chrona to Arca 0.2.1 through Conditor: the interim fix for the two-tab offline-queue loss (arca WI-0024, DF-ARCA-2026-0009) | complete | chrona, offline, arca, conditor | high |
 | WI-0066 | Deploy Chrona to GitHub Pages in local demo mode (no Fides): Pages workflow, Pages deployment configuration, CSP meta, docs | complete |  | medium |
 | WI-0067 | Chrona 08f: one tab owns the unsent changes - LocalStorageQueue.own over Limen's coordination pack, hand-off on close (CHX-021, CHX-230, CHX-370) | complete |  | high |
-| WI-0068 | Chrona 16e: iPhone VoiceOver pass by a person, recorded against docs/accessibility-voiceover-checklist.md (CHX-350) | captured |  | medium |
+| WI-0068 | Chrona 16e: iPhone VoiceOver pass by a person, recorded against docs/accessibility-voiceover-checklist.md (CHX-350; CHX-440 production gate item) | captured |  | medium |
 | WI-0069 | Chrona 08g: a GitHub API fake for the browser suite, and the Chromium two-tab queue tests (CHX-021, CHX-230, CHX-370) | complete |  | high |
 | WI-0070 | Chrona 16f: re-render the visual baselines routinely - a workflow that renders them with CI's pinned Chromium and opens a pull request (CHX-005) | complete |  | high |
 | WI-0071 | Chrona 17: deep links - every navigable state in the URL on Limen's URL-state semantics (CHX-460) | complete | chrona, routing, limen | high |

@@ -1,0 +1,71 @@
+# SDE/Ordo verification (WI-0079): `ordo verify --strict` on exactly the
+# commit, as its own required check. Strict mode fails on any SDE-STRUCT-001
+# structural finding as well as on installation integrity.
+#
+# Ordo 1.7.0's structural review also scans untracked, gitignored build
+# output (kemiller2002/ordo#75), so this job runs before any build and
+# refuses to run at all unless the working tree is exactly the commit:
+# nothing modified, untracked or ignored. It can then neither pass nor fail
+# because of local state.
+#
+# The version and the binary's digest are read from what Conditor wrote
+# (.conditor/authority/resolved-release-set.json); nothing here pins Ordo by
+# hand.
+name: SDE verify
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  sde-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: The working tree is exactly the commit
+        run: |
+          left="$(git status --porcelain --ignored)"
+          if [ -n "$left" ]; then
+            echo "::error::The tree is not exactly the commit; strict verification would depend on local state."
+            echo "$left"
+            exit 1
+          fi
+
+      - name: Read the Ordo release Conditor resolved
+        id: ordo
+        run: |
+          set -euo pipefail
+          set_file=.conditor/authority/resolved-release-set.json
+          version="$(jq -r '.components[] | select(.systemId == "ordo") | .version' "$set_file")"
+          sha256="$(jq -r '.components[] | select(.systemId == "ordo") | .artifacts[] | select(.name == "ordo-linux-x64.tar.gz") | .sha256' "$set_file")"
+          pinned="$(jq -r '.ordo' .echelon/toolchain.json)"
+          if [ "$version" != "$pinned" ]; then
+            echo "::error::The resolved set names Ordo $version but .echelon/toolchain.json names $pinned."
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "sha256=$sha256" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch Ordo outside the working tree and check its digest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          dir="$RUNNER_TEMP/ordo"
+          mkdir -p "$dir"
+          gh release download "v${{ steps.ordo.outputs.version }}" -R kemiller2002/ordo -p ordo-linux-x64.tar.gz -D "$dir"
+          echo "${{ steps.ordo.outputs.sha256 }}  $dir/ordo-linux-x64.tar.gz" | sha256sum -c -
+          tar -xzf "$dir/ordo-linux-x64.tar.gz" -C "$dir"
+          "$dir/ordo-linux-x64/ordo" --version
+
+      - name: Verify the SDE installation and structure, strictly
+        run: |
+          set -euo pipefail
+          # Still exactly the commit: nothing above wrote into the tree.
+          test -z "$(git status --porcelain --ignored)"
+          "$RUNNER_TEMP/ordo/ordo-linux-x64/ordo" verify --strict --verbose

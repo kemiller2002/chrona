@@ -90,3 +90,4 @@
 | WI-0082 | Echelon current 1.19.0 to 1.22.0 through Conditor 0.9.0: declare Forma and Folio, Forma 0.4.1 to 0.5.0 to 0.6.1, Folio 0.3.0 to 0.4.0, Ordo 1.5.0 to 1.6.0 to 1.7.0 (one registry set per PR) | complete |  | high |
 | WI-0083 | Split oversized Chrona modules to SDE-STRUCT-001 limits | complete | sde, structure | medium |
 | WI-0084 | Root-cause the intermittent failure of app-reliability.spec.js 'a hidden page that comes back keeps its timer, and a newer Chrona is offered as a safe reload' | active | browser-tests, timer | medium |
+| WI-0085 | echelon-current 1.23.0 through Conditor 0.10.4: Praxis 3.11.0 to 3.12.0 | ready | echelon, conditor | medium |

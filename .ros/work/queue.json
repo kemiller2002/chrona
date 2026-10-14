@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "repository": "chrona",
-  "nextSeq": 85,
+  "nextSeq": 86,
   "items": [
     {
       "id": "WI-0001",
@@ -1881,6 +1881,30 @@
       ],
       "createdAt": "2026-10-13T22:10:25.928Z",
       "updatedAt": "2026-10-13T22:33:26.321Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0085",
+      "title": "echelon-current 1.23.0 through Conditor 0.10.4: Praxis 3.11.0 to 3.12.0",
+      "description": "Registry 29aa5ed: echelon-current 1.23.0 (linux-x64 set sha256 fd7006ea1ad6a8d37a565b6beea7528ff9af494c97366ac17a9c21ac6ac76a91) whose only change is Praxis 3.11.0 to 3.12.0. Through Conditor 0.10.4 (verified sha256, checksums and attestation): stepwise check (one step), authorize with an isolated --home from a clean tree, praxis validate, full .NET and browser suites, gate-merge. Stop and report if the plan differs.",
+      "tags": [
+        "echelon",
+        "conditor"
+      ],
+      "priority": "medium",
+      "status": "ready",
+      "attachments": [],
+      "createdAt": "2026-10-14T00:09:14.397Z",
+      "updatedAt": "2026-10-14T00:09:14.793Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

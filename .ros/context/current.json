@@ -3413,7 +3413,27 @@
       "updatedAt": "2026-10-14T00:10:19.752Z",
       "telemetryExecutionIds": [
         "EXE-20261014T001020376Z-67f94813"
-      ]
+      ],
+      "latestCheckpoint": {
+        "id": "27da2208c92f5bfe415111fa",
+        "recordedAt": "2026-10-14T00:21:11.512Z",
+        "executionId": "EXE-20261014T001020376Z-67f94813",
+        "repository": "chrona",
+        "branch": "ci/wi-0079-sde-strict",
+        "commit": "cef31c1984037d6327ff083615c0de4c5e960e15",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/chrona"
+        },
+        "remoteBranch": "ci/wi-0079-sde-strict",
+        "remoteCommit": "cef31c1984037d6327ff083615c0de4c5e960e15",
+        "summary": "SDE verify workflow: ordo verify --strict on exactly the commit, before any build, with the Conditor-resolved Ordo checked by digest; SdeGateTests",
+        "nextAction": "PR and gate-merge; then the state model and refusal sweep",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      }
     }
   ]
 }

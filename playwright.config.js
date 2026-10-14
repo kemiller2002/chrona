@@ -27,7 +27,13 @@ export default defineConfig({
   timeout: 60_000,
   reporter: process.env.CI ? [["github"], ["list"]] : [["list"]],
   use: { baseURL: origin, trace: "retain-on-failure" },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"], launchOptions } }],
+  projects: [
+    { name: "chromium", use: { ...devices["Desktop Chrome"], launchOptions } },
+    // UI-LAYOUT-INTERACTION@1.0.0 conformance (GH-112): the same page and
+    // browser, its declared actions and alignment groups. `npm run
+    // ui:conformance` runs it and turns its reports into the evidence.
+    { name: "ui-conformance", testDir: "./tests/conformance", use: { ...devices["Desktop Chrome"], launchOptions } }
+  ],
   // Served from the repository root: index.html reaches up into node_modules/
   // for Limen, Forma and Folio, into web-kernel/ for the kernel, and into
   // build/ for the published engine.

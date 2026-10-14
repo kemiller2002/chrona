@@ -1,0 +1,2295 @@
+{
+  "standardVersion": "1.0.0",
+  "repository": "kemiller2002/chrona",
+  "revision": "a5833bcd7f67f07e6dfcd3c61bdbd7dd0d8017a8",
+  "classification": "app-ui",
+  "surfaces": [
+    {
+      "id": "app-shell",
+      "path": "web/index.html (sidebar, tab bar, top bar on every screen)",
+      "kind": "product",
+      "status": "pass",
+      "viewportWidths": [
+        320,
+        390,
+        768,
+        1280
+      ],
+      "alignmentGroups": [
+        {
+          "id": "topbar-actions",
+          "relation": "centerline",
+          "toleranceCssPx": 1,
+          "targets": [
+            {
+              "role": "button",
+              "name": "Copy link"
+            },
+            {
+              "role": "img",
+              "name": "Local session"
+            }
+          ],
+          "rationale": "The top bar's action and the identity mark share a centre line (ULI-L07, ULI-L10).",
+          "evidence": [
+            "tests/conformance/app.spec.js › app-today: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L01 PASS @320px (row) — center-edge delta 0.01 CSS px <= tolerance 1 CSS px",
+            "tests/conformance/app.spec.js › app-today: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L01 PASS @390px (row) — center-edge delta 0.01 CSS px <= tolerance 1 CSS px",
+            "tests/conformance/app.spec.js › app-today: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L01 PASS @768px (row) — center-edge delta 0.01 CSS px <= tolerance 1 CSS px",
+            "tests/conformance/app.spec.js › app-today: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L01 PASS @1280px (row) — center-edge delta 0.01 CSS px <= tolerance 1 CSS px"
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "id": "shell.skip",
+          "control": {
+            "role": "button",
+            "name": "Skip to content"
+          },
+          "intent": "Move keyboard focus past the navigation",
+          "expectedOutcome": "Focus moves to the page's main region; the address is unchanged [owner: engine: skipToContent; state: local, empty]",
+          "status": "pass",
+          "evidence": [
+            "tests/browser/app-deep-links.spec.js › the skip link moves focus to the content and leaves the address alone: passed (asserts the outcome)"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "shell.nav-today",
+          "control": {
+            "role": "link",
+            "name": "Today"
+          },
+          "intent": "Go to today's ledger",
+          "expectedOutcome": "Address becomes #/ and the Today screen shows [owner: route table (Places.fs); state: local, empty]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › primary navigation reaches each place by its link at 1280px (ULI-A01, ULI-A02, ULI-A06): ULI-A02 PASS — expected post-state observed after activation",
+            "tests/conformance/app.spec.js › primary navigation reaches each place by its link at 390px (ULI-A01, ULI-A02, ULI-A06): ULI-A02 PASS — expected post-state observed after activation"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "shell.nav-track",
+          "control": {
+            "role": "link",
+            "name": "Track"
+          },
+          "intent": "Go to the timer and manual entry",
+          "expectedOutcome": "Address becomes #/track and the Track screen shows [owner: route table (Places.fs); state: local, empty]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › primary navigation reaches each place by its link at 1280px (ULI-A01, ULI-A02, ULI-A06): ULI-A02 PASS — expected post-state observed after activation",
+            "tests/conformance/app.spec.js › primary navigation reaches each place by its link at 390px (ULI-A01, ULI-A02, ULI-A06): ULI-A02 PASS — expected post-state observed after activation"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "shell.nav-month",
+          "control": {
+            "role": "link",
+            "name": "Month"
+          },
+          "intent": "Go to the monthly record",
+          "expectedOutcome": "Address becomes #/month and the Month screen shows [owner: route table (Places.fs); state: local, empty]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › primary navigation reaches each place by its link at 1280px (ULI-A01, ULI-A02, ULI-A06): ULI-A02 PASS — expected post-state observed after activation",
+            "tests/conformance/app.spec.js › primary navigation reaches each place by its link at 390px (ULI-A01, ULI-A02, ULI-A06): ULI-A02 PASS — expected post-state observed after activation"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "shell.nav-more",
+          "control": {
+            "role": "link",
+            "name": "More"
+          },
+          "intent": "Go to reference data and session settings",
+          "expectedOutcome": "Address becomes #/more and the More screen shows [owner: route table (Places.fs); state: local, empty]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › primary navigation reaches each place by its link at 1280px (ULI-A01, ULI-A02, ULI-A06): ULI-A02 PASS — expected post-state observed after activation",
+            "tests/conformance/app.spec.js › primary navigation reaches each place by its link at 390px (ULI-A01, ULI-A02, ULI-A06): ULI-A02 PASS — expected post-state observed after activation"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "shell.copy-link",
+          "control": {
+            "role": "button",
+            "name": "Copy link"
+          },
+          "intent": "Copy an absolute link to the current view",
+          "expectedOutcome": "\"Link copied.\" is shown and the clipboard holds the view's address [owner: engine: copyLink; state: local, empty]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › Copy link says it copied, and the clipboard holds the view's address (ULI-A02, ULI-A07): ULI-A02 PASS — expected post-state observed after activation"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "shell.timer-chip",
+          "control": {
+            "role": "button",
+            "name": "Running timer chip"
+          },
+          "intent": "Return to the running timer",
+          "expectedOutcome": "Address becomes #/track [owner: engine: goTrack; state: local, timer running, away from Track]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › the timer runs, pauses, and its chip leads back to it from elsewhere (ULI-A02, ULI-L10): ULI-A02 PASS — expected post-state observed after activation"
+          ],
+          "resetStrategy": "fresh page per test"
+        }
+      ],
+      "evidence": [
+        "tests/conformance/app.spec.js › every enabled action on every screen is declared, empty and with records, at 1280px (ULI-A01, ULI-A09, ULI-A10): ULI-A10 PASS — every enabled, visible action is declared in chrona.contract.mjs",
+        "tests/conformance/app.spec.js › every enabled action on every screen is declared, empty and with records, at 390px (ULI-A01, ULI-A09, ULI-A10): ULI-A10 PASS — every enabled, visible action is declared in chrona.contract.mjs",
+        "tests/conformance/app.spec.js › the navigation's labels stay whole at every width and at 200% text (ULI-L06, ULI-L09): ULI-L06 PASS @320px — content fits; box on screen",
+        "tests/conformance/app.spec.js › the navigation's labels stay whole at every width and at 200% text (ULI-L06, ULI-L09): ULI-L06 PASS @320px — content fits; box on screen",
+        "tests/conformance/app.spec.js › the navigation's labels stay whole at every width and at 200% text (ULI-L06, ULI-L09): ULI-L06 PASS @320px — content fits; box on screen",
+        "tests/conformance/app.spec.js › the navigation's labels stay whole at every width and at 200% text (ULI-L06, ULI-L09): ULI-L06 PASS @320px — content fits; box on screen",
+        "tests/conformance/app.spec.js › the navigation's labels stay whole at every width and at 200% text (ULI-L06, ULI-L09): ULI-L06 PASS @390px — content fits; box on screen",
+        "tests/conformance/app.spec.js › the navigation's labels stay whole at every width and at 200% text (ULI-L06, ULI-L09): ULI-L06 PASS @390px — content fits; box on screen",
+        "tests/conformance/app.spec.js › the navigation's labels stay whole at every width and at 200% text (ULI-L06, ULI-L09): ULI-L06 PASS @390px — content fits; box on screen",
+        "tests/conformance/app.spec.js › the navigation's labels stay whole at every width and at 200% text (ULI-L06, ULI-L09): ULI-L06 PASS @390px — content fits; box on screen",
+        "tests/conformance/app.spec.js › the navigation's labels stay whole at every width and at 200% text (ULI-L06, ULI-L09): ULI-L06 PASS @768px — content fits; box on screen",
+        "tests/conformance/app.spec.js › the navigation's labels stay whole at every width and at 200% text (ULI-L06, ULI-L09): ULI-L06 PASS @768px — content fits; box on screen",
+        "tests/conformance/app.spec.js › the navigation's labels stay whole at every width and at 200% text (ULI-L06, ULI-L09): ULI-L06 PASS @768px — content fits; box on screen",
+        "tests/conformance/app.spec.js › the navigation's labels stay whole at every width and at 200% text (ULI-L06, ULI-L09): ULI-L06 PASS @768px — content fits; box on screen",
+        "tests/conformance/app.spec.js › the navigation's labels stay whole at every width and at 200% text (ULI-L06, ULI-L09): ULI-L06 PASS @1280px — content fits; box on screen",
+        "tests/conformance/app.spec.js › the navigation's labels stay whole at every width and at 200% text (ULI-L06, ULI-L09): ULI-L06 PASS @1280px — content fits; box on screen",
+        "tests/conformance/app.spec.js › the navigation's labels stay whole at every width and at 200% text (ULI-L06, ULI-L09): ULI-L06 PASS @1280px — content fits; box on screen",
+        "tests/conformance/app.spec.js › the navigation's labels stay whole at every width and at 200% text (ULI-L06, ULI-L09): ULI-L06 PASS @1280px — content fits; box on screen",
+        "tests/conformance/app.spec.js › the navigation's labels stay whole at every width and at 200% text (ULI-L06, ULI-L09): ULI-L06 PASS @320px x2 text — content fits; box on screen",
+        "tests/conformance/app.spec.js › the navigation's labels stay whole at every width and at 200% text (ULI-L06, ULI-L09): ULI-L06 PASS @320px x2 text — content fits; box on screen",
+        "tests/conformance/app.spec.js › the navigation's labels stay whole at every width and at 200% text (ULI-L06, ULI-L09): ULI-L06 PASS @320px x2 text — content fits; box on screen",
+        "tests/conformance/app.spec.js › the navigation's labels stay whole at every width and at 200% text (ULI-L06, ULI-L09): ULI-L06 PASS @320px x2 text — content fits; box on screen",
+        "tests/conformance/app.spec.js › the navigation's labels stay whole at every width and at 200% text (ULI-L06, ULI-L09): ULI-L06 PASS @390px x2 text — content fits; box on screen",
+        "tests/conformance/app.spec.js › the navigation's labels stay whole at every width and at 200% text (ULI-L06, ULI-L09): ULI-L06 PASS @390px x2 text — content fits; box on screen",
+        "tests/conformance/app.spec.js › the navigation's labels stay whole at every width and at 200% text (ULI-L06, ULI-L09): ULI-L06 PASS @390px x2 text — content fits; box on screen",
+        "tests/conformance/app.spec.js › the navigation's labels stay whole at every width and at 200% text (ULI-L06, ULI-L09): ULI-L06 PASS @390px x2 text — content fits; box on screen",
+        "tests/conformance/app.spec.js › the navigation's labels stay whole at every width and at 200% text (ULI-L06, ULI-L09): ULI-L06 PASS @768px x2 text — content fits; box on screen",
+        "tests/conformance/app.spec.js › the navigation's labels stay whole at every width and at 200% text (ULI-L06, ULI-L09): ULI-L06 PASS @768px x2 text — content fits; box on screen",
+        "tests/conformance/app.spec.js › the navigation's labels stay whole at every width and at 200% text (ULI-L06, ULI-L09): ULI-L06 PASS @768px x2 text — content fits; box on screen",
+        "tests/conformance/app.spec.js › the navigation's labels stay whole at every width and at 200% text (ULI-L06, ULI-L09): ULI-L06 PASS @768px x2 text — content fits; box on screen",
+        "tests/conformance/app.spec.js › the navigation's labels stay whole at every width and at 200% text (ULI-L06, ULI-L09): ULI-L06 PASS @1280px x2 text — content fits; box on screen",
+        "tests/conformance/app.spec.js › the navigation's labels stay whole at every width and at 200% text (ULI-L06, ULI-L09): ULI-L06 PASS @1280px x2 text — content fits; box on screen",
+        "tests/conformance/app.spec.js › the navigation's labels stay whole at every width and at 200% text (ULI-L06, ULI-L09): ULI-L06 PASS @1280px x2 text — content fits; box on screen",
+        "tests/conformance/app.spec.js › the navigation's labels stay whole at every width and at 200% text (ULI-L06, ULI-L09): ULI-L06 PASS @1280px x2 text — content fits; box on screen",
+        "tests/conformance/app.spec.js › the keyboard reaches the skip link, the navigation and the screen's primary action (ULI-A08): ULI-A08 PASS — each reached by Tab"
+      ],
+      "unknownScope": [
+        "right-to-left and translated text: not exercised (Chrona ships English, left-to-right only)"
+      ]
+    },
+    {
+      "id": "app-today",
+      "path": "web/index.html#/ and #/day/{date}",
+      "kind": "product",
+      "status": "pass",
+      "viewportWidths": [
+        320,
+        390,
+        768,
+        1280
+      ],
+      "alignmentGroups": [
+        {
+          "id": "today-day-nav",
+          "relation": "top-edge",
+          "toleranceCssPx": 1,
+          "targets": [
+            {
+              "role": "button",
+              "name": "Previous day"
+            },
+            {
+              "role": "button",
+              "name": "Next day"
+            },
+            {
+              "role": "button",
+              "name": "Today"
+            }
+          ],
+          "rationale": "The day navigation's related buttons (ULI-L10): aligned where they share a row, in source order where the row wraps (ULI-L09).",
+          "evidence": [
+            "tests/conformance/app.spec.js › app-today: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L09 PASS @320px (stacked) — wrapped or stacked in source order without overlap",
+            "tests/conformance/app.spec.js › app-today: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L09 PASS @390px (stacked) — wrapped or stacked in source order without overlap",
+            "tests/conformance/app.spec.js › app-today: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L01 PASS @768px (row) — top-edge delta 0.00 CSS px <= tolerance 1 CSS px",
+            "tests/conformance/app.spec.js › app-today: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L01 PASS @1280px (row) — top-edge delta 0.00 CSS px <= tolerance 1 CSS px"
+          ]
+        },
+        {
+          "id": "today-day-nav-heights",
+          "relation": "bottom-edge",
+          "toleranceCssPx": 1,
+          "targets": [
+            {
+              "role": "button",
+              "name": "Previous day"
+            },
+            {
+              "role": "button",
+              "name": "Next day"
+            },
+            {
+              "role": "button",
+              "name": "Today"
+            }
+          ],
+          "rationale": "Equivalent quiet buttons have one intrinsic height (ULI-L02, ULI-L07): with equal tops, equal bottoms.",
+          "evidence": [
+            "tests/conformance/app.spec.js › app-today: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L09 PASS @320px (stacked) — wrapped or stacked in source order without overlap",
+            "tests/conformance/app.spec.js › app-today: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L09 PASS @390px (stacked) — wrapped or stacked in source order without overlap",
+            "tests/conformance/app.spec.js › app-today: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L01 PASS @768px (row) — bottom-edge delta 0.00 CSS px <= tolerance 1 CSS px",
+            "tests/conformance/app.spec.js › app-today: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L01 PASS @1280px (row) — bottom-edge delta 0.00 CSS px <= tolerance 1 CSS px"
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "id": "today.previous-day",
+          "control": {
+            "role": "button",
+            "name": "Previous day"
+          },
+          "intent": "Show the day before",
+          "expectedOutcome": "Address becomes #/day/{the day before} [owner: engine: previousDay; state: local, empty]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › Today's day navigation and its ways onward change the place (ULI-A02, ULI-A05): ULI-A02 PASS — expected post-state observed after activation"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "today.next-day",
+          "control": {
+            "role": "button",
+            "name": "Next day"
+          },
+          "intent": "Show the day after",
+          "expectedOutcome": "Address becomes #/day/{the day after} [owner: engine: nextDay; state: local, empty]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › Today's day navigation and its ways onward change the place (ULI-A02, ULI-A05): ULI-A02 PASS — expected post-state observed after activation"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "today.today",
+          "control": {
+            "role": "button",
+            "name": "Today"
+          },
+          "intent": "Return to today from another day",
+          "expectedOutcome": "Address becomes #/ and the title is today's date [owner: engine: goToday; state: local, empty]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › Today's day navigation and its ways onward change the place (ULI-A02, ULI-A05): ULI-A02 PASS — expected post-state observed after activation"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "today.week",
+          "control": {
+            "role": "link",
+            "name": "Week"
+          },
+          "intent": "Show the week holding this day",
+          "expectedOutcome": "Address becomes #/week/{its Monday} [owner: route table; state: local, empty]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › Today's day navigation and its ways onward change the place (ULI-A02, ULI-A05): ULI-A02 PASS — expected post-state observed after activation"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "today.start-tracking",
+          "control": {
+            "role": "button",
+            "name": "Start tracking"
+          },
+          "intent": "Start recording on an empty day",
+          "expectedOutcome": "Address becomes #/track [owner: engine: goTrack; state: local, empty]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › Today's day navigation and its ways onward change the place (ULI-A02, ULI-A05): ULI-A02 PASS — expected post-state observed after activation"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "today.open-period",
+          "control": {
+            "role": "link",
+            "name": "Open the period"
+          },
+          "intent": "Open the timesheet period holding this day",
+          "expectedOutcome": "Address becomes #/periods/{its first day} [owner: route table; state: local, empty]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › Today's day navigation and its ways onward change the place (ULI-A02, ULI-A05): ULI-A02 PASS — expected post-state observed after activation"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "today.review",
+          "control": {
+            "role": "button",
+            "name": "Review this day"
+          },
+          "intent": "Review and attest this day",
+          "expectedOutcome": "Address becomes #/review/{day} [owner: engine: openReview; state: local, empty]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › Today's day navigation and its ways onward change the place (ULI-A02, ULI-A05): ULI-A02 PASS — expected post-state observed after activation"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "today.add-time",
+          "control": {
+            "role": "button",
+            "name": "Add time"
+          },
+          "intent": "Add time to the ledger",
+          "expectedOutcome": "Address becomes #/track [owner: engine: goTrack; state: local, empty]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › Today's day navigation and its ways onward change the place (ULI-A02, ULI-A05): ULI-A02 PASS — expected post-state observed after activation"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "today.record",
+          "control": {
+            "role": "link",
+            "name": "Record title (e.g. First)"
+          },
+          "intent": "Open an activity's detail",
+          "expectedOutcome": "Address becomes #/entries/{id} and its title is the heading [owner: route table; state: local, a day with records]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › from records: an activity opens and leads back; review refuses then accepts an attestation (ULI-A02, ULI-A07): ULI-A02 PASS — expected post-state observed after activation"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "today.merge-select",
+          "control": {
+            "role": "checkbox",
+            "name": "Select to merge"
+          },
+          "intent": "Choose activities to merge",
+          "expectedOutcome": "The merge form appears once two are chosen [owner: engine: mergeSelect; state: local, a day with records]",
+          "status": "pass",
+          "evidence": [
+            "tests/browser/app-lifecycle.spec.js › adjacent activities merge from Today; others are refused with the reason: passed (asserts the outcome)"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "today.merge",
+          "control": {
+            "role": "button",
+            "name": "Merge"
+          },
+          "intent": "Merge the selected adjacent activities",
+          "expectedOutcome": "One merged record replaces them; non-adjacent ones are refused with the reason [owner: engine: saveMerge; state: local, two records selected]",
+          "status": "pass",
+          "evidence": [
+            "tests/browser/app-lifecycle.spec.js › adjacent activities merge from Today; others are refused with the reason: passed (asserts the outcome)"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "today.obligation",
+          "control": {
+            "role": "button",
+            "name": "Obligation action (e.g. Review again)"
+          },
+          "intent": "Resolve what needs attention",
+          "expectedOutcome": "Opens the place the obligation names [owner: engine: resolveObligation; state: local, an attested day changed later]",
+          "status": "pass",
+          "evidence": [
+            "tests/browser/app-lifecycle.spec.js › a day is reviewed and attested; a later change is an obligation until reviewed again: passed (asserts the outcome)"
+          ],
+          "resetStrategy": "fresh page per test"
+        }
+      ],
+      "evidence": [
+        "tests/conformance/app.spec.js › app-today: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @320px — document scrollWidth 320 vs clientWidth 320; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-today: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @390px — document scrollWidth 390 vs clientWidth 390; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-today: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @768px — document scrollWidth 768 vs clientWidth 768; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-today: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @1280px — document scrollWidth 1280 vs clientWidth 1280; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-today: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @320px x2 text — document scrollWidth 320 vs clientWidth 320; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-today: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @390px x2 text — document scrollWidth 390 vs clientWidth 390; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-today: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @768px x2 text — document scrollWidth 768 vs clientWidth 768; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-today: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @1280px x2 text — document scrollWidth 1280 vs clientWidth 1280; 0 text run(s) escaping the viewport or a clipping container"
+      ],
+      "unknownScope": [
+        "right-to-left and translated text: not exercised (Chrona ships English, left-to-right only)"
+      ]
+    },
+    {
+      "id": "app-track",
+      "path": "web/index.html#/track",
+      "kind": "product",
+      "status": "pass",
+      "viewportWidths": [
+        320,
+        390,
+        768,
+        1280
+      ],
+      "alignmentGroups": [
+        {
+          "id": "track-timer-fields",
+          "relation": "top-edge",
+          "toleranceCssPx": 1,
+          "targets": [
+            {
+              "role": "combobox",
+              "name": "Activity type"
+            },
+            {
+              "role": "combobox",
+              "name": "Project"
+            }
+          ],
+          "rationale": "The timer's two required choices share a row where the card is wide enough (ULI-L01); stacked in order otherwise (ULI-L09).",
+          "evidence": [
+            "tests/conformance/app.spec.js › app-track: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L09 PASS @320px (stacked) — wrapped or stacked in source order without overlap",
+            "tests/conformance/app.spec.js › app-track: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L09 PASS @390px (stacked) — wrapped or stacked in source order without overlap",
+            "tests/conformance/app.spec.js › app-track: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L01 PASS @768px (row) — top-edge delta 0.00 CSS px <= tolerance 1 CSS px",
+            "tests/conformance/app.spec.js › app-track: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L01 PASS @1280px (row) — top-edge delta 0.00 CSS px <= tolerance 1 CSS px"
+          ]
+        },
+        {
+          "id": "track-manual-start",
+          "relation": "top-edge",
+          "toleranceCssPx": 1,
+          "targets": [
+            {
+              "role": "textbox",
+              "name": "Start date"
+            },
+            {
+              "role": "textbox",
+              "name": "Start time"
+            }
+          ],
+          "rationale": "A date and its time: side by side when each keeps its whole value, stacked in order otherwise (ULI-L01, ULI-L05, ULI-L09).",
+          "evidence": [
+            "tests/conformance/app.spec.js › app-track: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L09 PASS @320px (stacked) — wrapped or stacked in source order without overlap",
+            "tests/conformance/app.spec.js › app-track: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L01 PASS @390px (row) — top-edge delta 0.00 CSS px <= tolerance 1 CSS px",
+            "tests/conformance/app.spec.js › app-track: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L01 PASS @768px (row) — top-edge delta 0.00 CSS px <= tolerance 1 CSS px",
+            "tests/conformance/app.spec.js › app-track: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L09 PASS @1280px (stacked) — wrapped or stacked in source order without overlap"
+          ]
+        },
+        {
+          "id": "track-manual-end",
+          "relation": "top-edge",
+          "toleranceCssPx": 1,
+          "targets": [
+            {
+              "role": "textbox",
+              "name": "End date"
+            },
+            {
+              "role": "textbox",
+              "name": "End time"
+            }
+          ],
+          "rationale": "As the start pair.",
+          "evidence": [
+            "tests/conformance/app.spec.js › app-track: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L09 PASS @320px (stacked) — wrapped or stacked in source order without overlap",
+            "tests/conformance/app.spec.js › app-track: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L01 PASS @390px (row) — top-edge delta 0.00 CSS px <= tolerance 1 CSS px",
+            "tests/conformance/app.spec.js › app-track: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L01 PASS @768px (row) — top-edge delta 0.00 CSS px <= tolerance 1 CSS px",
+            "tests/conformance/app.spec.js › app-track: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L09 PASS @1280px (stacked) — wrapped or stacked in source order without overlap"
+          ]
+        },
+        {
+          "id": "track-running-actions",
+          "relation": "top-edge",
+          "toleranceCssPx": 1,
+          "targets": [
+            {
+              "role": "button",
+              "name": "Pause"
+            },
+            {
+              "role": "button",
+              "name": "Stop activity"
+            }
+          ],
+          "rationale": "The running timer's two actions (ULI-L10): one row, equal tops, or stacked in order.",
+          "evidence": [
+            "tests/conformance/app.spec.js › the timer runs, pauses, and its chip leads back to it from elsewhere (ULI-A02, ULI-L10): ULI-L09 PASS @320px (stacked) — wrapped or stacked in source order without overlap",
+            "tests/conformance/app.spec.js › the timer runs, pauses, and its chip leads back to it from elsewhere (ULI-A02, ULI-L10): ULI-L09 PASS @390px (stacked) — wrapped or stacked in source order without overlap",
+            "tests/conformance/app.spec.js › the timer runs, pauses, and its chip leads back to it from elsewhere (ULI-A02, ULI-L10): ULI-L01 PASS @768px (row) — top-edge delta 0.00 CSS px <= tolerance 1 CSS px",
+            "tests/conformance/app.spec.js › the timer runs, pauses, and its chip leads back to it from elsewhere (ULI-A02, ULI-L10): ULI-L01 PASS @1280px (row) — top-edge delta 0.00 CSS px <= tolerance 1 CSS px"
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "id": "track.set-up",
+          "control": {
+            "role": "button",
+            "name": "Set them up"
+          },
+          "intent": "Add the reference data every record needs",
+          "expectedOutcome": "Address becomes #/more [owner: engine: goMore; state: local, empty]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › the empty Track screen sends the person to set up, and the timer refuses to start without a type and project (ULI-A02, ULI-A07): ULI-A02 PASS — expected post-state observed after activation"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "track.start-timer",
+          "control": {
+            "role": "button",
+            "name": "Start timer"
+          },
+          "intent": "Start timing work",
+          "expectedOutcome": "Without a type and project the problems are listed; with them the timer runs (Pause shows) [owner: engine: startTimer; state: local, empty]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › the empty Track screen sends the person to set up, and the timer refuses to start without a type and project (ULI-A02, ULI-A07): ULI-A07 PASS — observed by the test: pre-state, invocation and post-state asserted",
+            "tests/conformance/app.spec.js › the timer runs, pauses, and its chip leads back to it from elsewhere (ULI-A02, ULI-L10): ULI-A02 PASS — expected post-state observed after activation"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "track.pause",
+          "control": {
+            "role": "button",
+            "name": "Pause"
+          },
+          "intent": "Pause the running timer",
+          "expectedOutcome": "The timer is paused and Resume replaces Pause [owner: engine: pauseTimer; state: local, timer running]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › the timer runs, pauses, and its chip leads back to it from elsewhere (ULI-A02, ULI-L10): ULI-A02 PASS — expected post-state observed after activation"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "track.resume",
+          "control": {
+            "role": "button",
+            "name": "Resume"
+          },
+          "intent": "Resume a paused timer",
+          "expectedOutcome": "The timer runs and Pause replaces Resume [owner: engine: resumeTimer; state: local, timer paused]",
+          "status": "pass",
+          "evidence": [
+            "tests/browser/app.spec.js › the timer starts, ticks from timestamps, pauses, resumes and stops: passed (asserts the outcome)"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "track.stop",
+          "control": {
+            "role": "button",
+            "name": "Stop activity"
+          },
+          "intent": "Stop the timer and hold the time for completion",
+          "expectedOutcome": "The completion form holds the stopped time [owner: engine: stopTimer; state: local, timer running or paused]",
+          "status": "pass",
+          "evidence": [
+            "tests/browser/app.spec.js › the timer starts, ticks from timestamps, pauses, resumes and stops: passed (asserts the outcome)"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "track.save-completion",
+          "control": {
+            "role": "button",
+            "name": "Save activity (completion)"
+          },
+          "intent": "Record the stopped timer's time with its purpose",
+          "expectedOutcome": "The record is saved and announced [owner: engine: saveCompletion; state: local, timer stopped]",
+          "status": "pass",
+          "evidence": [
+            "tests/browser/app.spec.js › a stopped timer is held for completion and recorded with its business purpose: passed (asserts the outcome)"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "track.timer-recent",
+          "control": {
+            "role": "button",
+            "name": "Recent work (timer)"
+          },
+          "intent": "Fill the timer's type, project and description from recent work",
+          "expectedOutcome": "The timer form is filled [owner: engine: timerUseRecent; state: local, with recent records]",
+          "status": "pass",
+          "evidence": [
+            "tests/browser/app-quick-entry.spec.js › recent work fills the forms, a common duration sets a visible end, and an entry is copied as a draft: passed (asserts the outcome)"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "track.manual-recent",
+          "control": {
+            "role": "button",
+            "name": "Recent work (manual)"
+          },
+          "intent": "Fill the manual form from recent work",
+          "expectedOutcome": "The manual form is filled [owner: engine: manualUseRecent; state: local, with recent records]",
+          "status": "pass",
+          "evidence": [
+            "tests/browser/app-quick-entry.spec.js › recent work fills the forms, a common duration sets a visible end, and an entry is copied as a draft: passed (asserts the outcome)"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "track.duration",
+          "control": {
+            "role": "button",
+            "name": "Duration (15m … 2h)"
+          },
+          "intent": "Set the end from the start",
+          "expectedOutcome": "The end date and time show start plus the duration [owner: engine: manualDuration; state: local, a start given]",
+          "status": "pass",
+          "evidence": [
+            "tests/browser/app-quick-entry.spec.js › recent work fills the forms, a common duration sets a visible end, and an entry is copied as a draft: passed (asserts the outcome)"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "track.save-manual",
+          "control": {
+            "role": "button",
+            "name": "Save activity"
+          },
+          "intent": "Record time entered after the fact",
+          "expectedOutcome": "Every problem is listed beside the form; once corrected the record is saved (\"Saved …\" is announced) [owner: engine: saveManual; state: local, empty]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › a manual entry with problems is refused beside its form, then recorded once corrected (ULI-A07, ULI-A10): ULI-A07 PASS — observed by the test: pre-state, invocation and post-state asserted"
+          ],
+          "resetStrategy": "fresh page per test"
+        }
+      ],
+      "evidence": [
+        "tests/conformance/app.spec.js › app-track: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @320px — document scrollWidth 320 vs clientWidth 320; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-track: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @390px — document scrollWidth 390 vs clientWidth 390; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-track: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @768px — document scrollWidth 768 vs clientWidth 768; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-track: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @1280px — document scrollWidth 1280 vs clientWidth 1280; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-track: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @320px x2 text — document scrollWidth 320 vs clientWidth 320; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-track: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @390px x2 text — document scrollWidth 390 vs clientWidth 390; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-track: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @768px x2 text — document scrollWidth 768 vs clientWidth 768; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-track: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @1280px x2 text — document scrollWidth 1280 vs clientWidth 1280; 0 text run(s) escaping the viewport or a clipping container"
+      ],
+      "unknownScope": [
+        "right-to-left and translated text: not exercised (Chrona ships English, left-to-right only)"
+      ]
+    },
+    {
+      "id": "app-activity",
+      "path": "web/index.html#/entries/{id}",
+      "kind": "product",
+      "status": "unknown",
+      "viewportWidths": [],
+      "alignmentGroups": [],
+      "actions": [
+        {
+          "id": "activity.back",
+          "control": {
+            "role": "button",
+            "name": "← Back to today"
+          },
+          "intent": "Return to today's ledger",
+          "expectedOutcome": "Address becomes #/ [owner: engine: goToday; state: local, a record open]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › from records: an activity opens and leads back; review refuses then accepts an attestation (ULI-A02, ULI-A07): ULI-A02 PASS — expected post-state observed after activation"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "activity.copy",
+          "control": {
+            "role": "button",
+            "name": "Copy as a new entry"
+          },
+          "intent": "Start a new entry from this one",
+          "expectedOutcome": "Address becomes #/track with the manual form filled as a draft [owner: engine: copyActivity; state: local, a record open]",
+          "status": "pass",
+          "evidence": [
+            "tests/browser/app-quick-entry.spec.js › recent work fills the forms, a common duration sets a visible end, and an entry is copied as a draft: passed (asserts the outcome)"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "activity.amend",
+          "control": {
+            "role": "button",
+            "name": "Save correction"
+          },
+          "intent": "Correct the record",
+          "expectedOutcome": "Revision increments and the history lists Amended [owner: engine: saveAmend; state: local, a record open]",
+          "status": "pass",
+          "evidence": [
+            "tests/browser/app-lifecycle.spec.js › an activity is corrected, removed from totals and restored, with its history kept: passed (asserts the outcome)"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "activity.split",
+          "control": {
+            "role": "button",
+            "name": "Split"
+          },
+          "intent": "Split the record into two parts",
+          "expectedOutcome": "Two parts replace it; parts that do not add up are refused [owner: engine: saveSplit; state: local, a record open]",
+          "status": "pass",
+          "evidence": [
+            "tests/browser/app-lifecycle.spec.js › evidence is linked and checked, and a split assigns it to one part: passed (asserts the outcome)"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "activity.void",
+          "control": {
+            "role": "button",
+            "name": "Remove from totals"
+          },
+          "intent": "Void the record, keeping it",
+          "expectedOutcome": "The record is marked removed from totals; Restore appears [owner: engine: voidActivity; state: local, a record open]",
+          "status": "pass",
+          "evidence": [
+            "tests/browser/app-lifecycle.spec.js › an activity is corrected, removed from totals and restored, with its history kept: passed (asserts the outcome)"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "activity.restore",
+          "control": {
+            "role": "button",
+            "name": "Restore to totals"
+          },
+          "intent": "Undo a removal",
+          "expectedOutcome": "Announced as restored; the history lists Restored [owner: engine: restoreActivity; state: local, a voided record open]",
+          "status": "pass",
+          "evidence": [
+            "tests/browser/app-lifecycle.spec.js › an activity is corrected, removed from totals and restored, with its history kept: passed (asserts the outcome)"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "activity.attach",
+          "control": {
+            "role": "button",
+            "name": "Attach evidence"
+          },
+          "intent": "Link evidence to the record",
+          "expectedOutcome": "The evidence is listed; an invalid link or missing label is refused with the reason [owner: engine: attachEvidence; state: local, a record open]",
+          "status": "pass",
+          "evidence": [
+            "tests/browser/app-lifecycle.spec.js › evidence is linked and checked, and a split assigns it to one part: passed (asserts the outcome)"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "activity.unlink",
+          "control": {
+            "role": "button",
+            "name": "Unlink"
+          },
+          "intent": "Remove a piece of evidence",
+          "expectedOutcome": "The evidence is no longer listed [owner: engine: unlinkEvidence; state: local, a record with evidence]",
+          "status": "unknown",
+          "evidence": [],
+          "resetStrategy": "fresh page per test"
+        }
+      ],
+      "evidence": [],
+      "unknownScope": [
+        "layout not measured by the conformance run (overflow, text scale, groups)",
+        "action activity.unlink (button \"Unlink\"): no outcome assertion in this run",
+        "right-to-left and translated text: not exercised (Chrona ships English, left-to-right only)"
+      ]
+    },
+    {
+      "id": "app-review",
+      "path": "web/index.html#/review/{date}",
+      "kind": "product",
+      "status": "pass",
+      "viewportWidths": [
+        320,
+        390,
+        768,
+        1280
+      ],
+      "alignmentGroups": [],
+      "actions": [
+        {
+          "id": "review.back",
+          "control": {
+            "role": "button",
+            "name": "← Back to today"
+          },
+          "intent": "Return to today's ledger",
+          "expectedOutcome": "Address becomes #/ [owner: engine: goToday; state: local, empty]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › from records: an activity opens and leads back; review refuses then accepts an attestation (ULI-A02, ULI-A07): ULI-A02 PASS — expected post-state observed after activation"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "review.attest",
+          "control": {
+            "role": "button",
+            "name": "Attest to this day"
+          },
+          "intent": "Attest the day's records",
+          "expectedOutcome": "Without a statement the problem is listed; with one the attestation is listed [owner: engine: attestDay; state: local, empty]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › from records: an activity opens and leads back; review refuses then accepts an attestation (ULI-A02, ULI-A07): ULI-A07 PASS — observed by the test: pre-state, invocation and post-state asserted"
+          ],
+          "resetStrategy": "fresh page per test"
+        }
+      ],
+      "evidence": [
+        "tests/conformance/app.spec.js › app-review: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @320px — document scrollWidth 320 vs clientWidth 320; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-review: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @390px — document scrollWidth 390 vs clientWidth 390; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-review: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @768px — document scrollWidth 768 vs clientWidth 768; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-review: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @1280px — document scrollWidth 1280 vs clientWidth 1280; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-review: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @320px x2 text — document scrollWidth 320 vs clientWidth 320; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-review: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @390px x2 text — document scrollWidth 390 vs clientWidth 390; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-review: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @768px x2 text — document scrollWidth 768 vs clientWidth 768; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-review: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @1280px x2 text — document scrollWidth 1280 vs clientWidth 1280; 0 text run(s) escaping the viewport or a clipping container"
+      ],
+      "unknownScope": [
+        "right-to-left and translated text: not exercised (Chrona ships English, left-to-right only)"
+      ]
+    },
+    {
+      "id": "app-week",
+      "path": "web/index.html#/week/{date}",
+      "kind": "product",
+      "status": "pass",
+      "viewportWidths": [
+        320,
+        390,
+        768,
+        1280
+      ],
+      "alignmentGroups": [
+        {
+          "id": "week-nav",
+          "relation": "top-edge",
+          "toleranceCssPx": 1,
+          "targets": [
+            {
+              "role": "button",
+              "name": "Previous week"
+            },
+            {
+              "role": "button",
+              "name": "Next week"
+            }
+          ],
+          "rationale": "Paired navigation (ULI-L10).",
+          "evidence": [
+            "tests/conformance/app.spec.js › app-week: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L01 PASS @320px (row) — top-edge delta 0.00 CSS px <= tolerance 1 CSS px",
+            "tests/conformance/app.spec.js › app-week: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L01 PASS @390px (row) — top-edge delta 0.00 CSS px <= tolerance 1 CSS px",
+            "tests/conformance/app.spec.js › app-week: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L01 PASS @768px (row) — top-edge delta 0.00 CSS px <= tolerance 1 CSS px",
+            "tests/conformance/app.spec.js › app-week: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L01 PASS @1280px (row) — top-edge delta 0.00 CSS px <= tolerance 1 CSS px"
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "id": "week.previous",
+          "control": {
+            "role": "button",
+            "name": "Previous week"
+          },
+          "intent": "Show the week before",
+          "expectedOutcome": "Address becomes #/week/{Monday before} [owner: engine: previousWeek; state: local, empty]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › week, month and period navigate, open their days, and a period is submitted and reopened (ULI-A02, ULI-A07): ULI-A02 PASS — expected post-state observed after activation"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "week.next",
+          "control": {
+            "role": "button",
+            "name": "Next week"
+          },
+          "intent": "Show the week after",
+          "expectedOutcome": "Address becomes #/week/{Monday after} [owner: engine: nextWeek; state: local, empty]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › week, month and period navigate, open their days, and a period is submitted and reopened (ULI-A02, ULI-A07): ULI-A02 PASS — expected post-state observed after activation"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "week.day",
+          "control": {
+            "role": "link",
+            "name": "Day of the week (e.g. Monday, October 12)"
+          },
+          "intent": "Open that day",
+          "expectedOutcome": "Address becomes #/day/{date} [owner: route table; state: local, empty]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › week, month and period navigate, open their days, and a period is submitted and reopened (ULI-A02, ULI-A07): ULI-A02 PASS — expected post-state observed after activation"
+          ],
+          "resetStrategy": "fresh page per test"
+        }
+      ],
+      "evidence": [
+        "tests/conformance/app.spec.js › app-week: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @320px — document scrollWidth 320 vs clientWidth 320; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-week: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @390px — document scrollWidth 390 vs clientWidth 390; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-week: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @768px — document scrollWidth 768 vs clientWidth 768; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-week: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @1280px — document scrollWidth 1280 vs clientWidth 1280; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-week: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @320px x2 text — document scrollWidth 320 vs clientWidth 320; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-week: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @390px x2 text — document scrollWidth 390 vs clientWidth 390; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-week: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @768px x2 text — document scrollWidth 768 vs clientWidth 768; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-week: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @1280px x2 text — document scrollWidth 1280 vs clientWidth 1280; 0 text run(s) escaping the viewport or a clipping container"
+      ],
+      "unknownScope": [
+        "right-to-left and translated text: not exercised (Chrona ships English, left-to-right only)"
+      ]
+    },
+    {
+      "id": "app-month",
+      "path": "web/index.html#/month/{yyyy-mm}",
+      "kind": "product",
+      "status": "unknown",
+      "viewportWidths": [
+        320,
+        390,
+        768,
+        1280
+      ],
+      "alignmentGroups": [
+        {
+          "id": "month-nav",
+          "relation": "centerline",
+          "toleranceCssPx": 1,
+          "targets": [
+            {
+              "role": "button",
+              "name": "Previous month"
+            },
+            {
+              "role": "button",
+              "name": "Next month"
+            }
+          ],
+          "rationale": "Paired navigation either side of the month picker (ULI-L10).",
+          "evidence": [
+            "tests/conformance/app.spec.js › app-month: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L09 PASS @320px (stacked) — wrapped or stacked in source order without overlap",
+            "tests/conformance/app.spec.js › app-month: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L01 PASS @390px (row) — center-edge delta 0.00 CSS px <= tolerance 1 CSS px",
+            "tests/conformance/app.spec.js › app-month: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L01 PASS @768px (row) — center-edge delta 0.00 CSS px <= tolerance 1 CSS px",
+            "tests/conformance/app.spec.js › app-month: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L01 PASS @1280px (row) — center-edge delta 0.00 CSS px <= tolerance 1 CSS px"
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "id": "month.previous",
+          "control": {
+            "role": "button",
+            "name": "Previous month"
+          },
+          "intent": "Show the month before",
+          "expectedOutcome": "Address becomes #/month/{month before} [owner: engine: previousMonth; state: local, empty]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › week, month and period navigate, open their days, and a period is submitted and reopened (ULI-A02, ULI-A07): ULI-A02 PASS — expected post-state observed after activation"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "month.next",
+          "control": {
+            "role": "button",
+            "name": "Next month"
+          },
+          "intent": "Show the month after",
+          "expectedOutcome": "Address becomes #/month/{month after} [owner: engine: nextMonth; state: local, empty]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › week, month and period navigate, open their days, and a period is submitted and reopened (ULI-A02, ULI-A07): ULI-A02 PASS — expected post-state observed after activation"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "month.report",
+          "control": {
+            "role": "button",
+            "name": "Report on this month"
+          },
+          "intent": "Open a report for the month",
+          "expectedOutcome": "Address becomes #/reports?from={first}&to={last} [owner: engine: reportMonth; state: local, empty]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › week, month and period navigate, open their days, and a period is submitted and reopened (ULI-A02, ULI-A07): ULI-A02 PASS — expected post-state observed after activation"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "month.history",
+          "control": {
+            "role": "button",
+            "name": "Month with recorded time"
+          },
+          "intent": "Show that month",
+          "expectedOutcome": "Address becomes #/month/{that month} [owner: engine: showMonth; state: local, months with records]",
+          "status": "unknown",
+          "evidence": [],
+          "resetStrategy": "fresh page per test"
+        }
+      ],
+      "evidence": [
+        "tests/conformance/app.spec.js › app-month: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @320px — document scrollWidth 320 vs clientWidth 320; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-month: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @390px — document scrollWidth 390 vs clientWidth 390; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-month: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @768px — document scrollWidth 768 vs clientWidth 768; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-month: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @1280px — document scrollWidth 1280 vs clientWidth 1280; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-month: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @320px x2 text — document scrollWidth 320 vs clientWidth 320; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-month: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @390px x2 text — document scrollWidth 390 vs clientWidth 390; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-month: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @768px x2 text — document scrollWidth 768 vs clientWidth 768; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-month: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @1280px x2 text — document scrollWidth 1280 vs clientWidth 1280; 0 text run(s) escaping the viewport or a clipping container"
+      ],
+      "unknownScope": [
+        "action month.history (button \"Month with recorded time\"): no outcome assertion in this run",
+        "right-to-left and translated text: not exercised (Chrona ships English, left-to-right only)"
+      ]
+    },
+    {
+      "id": "app-period",
+      "path": "web/index.html#/periods/{date}",
+      "kind": "product",
+      "status": "unknown",
+      "viewportWidths": [
+        320,
+        390,
+        768,
+        1280
+      ],
+      "alignmentGroups": [
+        {
+          "id": "period-nav",
+          "relation": "top-edge",
+          "toleranceCssPx": 1,
+          "targets": [
+            {
+              "role": "button",
+              "name": "Previous period"
+            },
+            {
+              "role": "button",
+              "name": "Next period"
+            }
+          ],
+          "rationale": "Paired navigation (ULI-L10).",
+          "evidence": [
+            "tests/conformance/app.spec.js › app-period: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L01 PASS @320px (row) — top-edge delta 0.00 CSS px <= tolerance 1 CSS px",
+            "tests/conformance/app.spec.js › app-period: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L01 PASS @390px (row) — top-edge delta 0.00 CSS px <= tolerance 1 CSS px",
+            "tests/conformance/app.spec.js › app-period: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L01 PASS @768px (row) — top-edge delta 0.00 CSS px <= tolerance 1 CSS px",
+            "tests/conformance/app.spec.js › app-period: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L01 PASS @1280px (row) — top-edge delta 0.00 CSS px <= tolerance 1 CSS px"
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "id": "period.previous",
+          "control": {
+            "role": "button",
+            "name": "Previous period"
+          },
+          "intent": "Show the period before",
+          "expectedOutcome": "Address becomes #/periods/{its first day} [owner: engine: previousPeriod; state: local, empty]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › week, month and period navigate, open their days, and a period is submitted and reopened (ULI-A02, ULI-A07): ULI-A02 PASS — expected post-state observed after activation"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "period.next",
+          "control": {
+            "role": "button",
+            "name": "Next period"
+          },
+          "intent": "Show the period after",
+          "expectedOutcome": "Address becomes #/periods/{its first day} [owner: engine: nextPeriod; state: local, empty]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › week, month and period navigate, open their days, and a period is submitted and reopened (ULI-A02, ULI-A07): ULI-A02 PASS — expected post-state observed after activation"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "period.day",
+          "control": {
+            "role": "link",
+            "name": "Day of the period"
+          },
+          "intent": "Open that day",
+          "expectedOutcome": "Address becomes #/day/{date} [owner: route table; state: local, empty]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › week, month and period navigate, open their days, and a period is submitted and reopened (ULI-A02, ULI-A07): ULI-A02 PASS — expected post-state observed after activation"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "period.submit",
+          "control": {
+            "role": "button",
+            "name": "Submit this period"
+          },
+          "intent": "Submit the period's time",
+          "expectedOutcome": "The period is held and Reopen is offered [owner: engine: submitPeriod; state: local, a period with records]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › week, month and period navigate, open their days, and a period is submitted and reopened (ULI-A02, ULI-A07): ULI-A02 PASS — expected post-state observed after activation"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "period.reopen",
+          "control": {
+            "role": "button",
+            "name": "Reopen this period"
+          },
+          "intent": "Reopen a held period with a reason",
+          "expectedOutcome": "Without a reason the problem is listed; with one the period is open again [owner: engine: reopenPeriod; state: local, a submitted period]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › week, month and period navigate, open their days, and a period is submitted and reopened (ULI-A02, ULI-A07): ULI-A07 PASS — observed by the test: pre-state, invocation and post-state asserted"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "period.approve",
+          "control": {
+            "role": "button",
+            "name": "Approve"
+          },
+          "intent": "Approve a member's submitted period",
+          "expectedOutcome": "The submission is approved and leaves the list [owner: engine: approveSubmission; state: GitHub, administrator with a submission]",
+          "status": "pass",
+          "evidence": [
+            "tests/browser/app-github.spec.js › a member submits their period, the administrator approves it, and the member's period is closed: passed (asserts the outcome)"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "period.return",
+          "control": {
+            "role": "button",
+            "name": "Return for correction"
+          },
+          "intent": "Return a submission with a note",
+          "expectedOutcome": "The submission is returned to its member [owner: engine: rejectSubmission; state: GitHub, administrator with a submission]",
+          "status": "unknown",
+          "evidence": [],
+          "resetStrategy": "fresh page per test"
+        }
+      ],
+      "evidence": [
+        "tests/conformance/app.spec.js › app-period: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @320px — document scrollWidth 320 vs clientWidth 320; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-period: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @390px — document scrollWidth 390 vs clientWidth 390; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-period: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @768px — document scrollWidth 768 vs clientWidth 768; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-period: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @1280px — document scrollWidth 1280 vs clientWidth 1280; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-period: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @320px x2 text — document scrollWidth 320 vs clientWidth 320; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-period: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @390px x2 text — document scrollWidth 390 vs clientWidth 390; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-period: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @768px x2 text — document scrollWidth 768 vs clientWidth 768; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-period: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @1280px x2 text — document scrollWidth 1280 vs clientWidth 1280; 0 text run(s) escaping the viewport or a clipping container"
+      ],
+      "unknownScope": [
+        "action period.return (button \"Return for correction\"): no outcome assertion in this run",
+        "right-to-left and translated text: not exercised (Chrona ships English, left-to-right only)"
+      ]
+    },
+    {
+      "id": "app-projects",
+      "path": "web/index.html#/projects and #/projects/{id}",
+      "kind": "product",
+      "status": "pass",
+      "viewportWidths": [
+        320,
+        390,
+        768,
+        1280
+      ],
+      "alignmentGroups": [],
+      "actions": [
+        {
+          "id": "projects.project",
+          "control": {
+            "role": "link",
+            "name": "Project name (e.g. HelixNote)"
+          },
+          "intent": "Open the project",
+          "expectedOutcome": "Address becomes #/projects/{id} [owner: route table; state: local, a project]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › projects lead to a project, its records, its day, week and report (ULI-A02): ULI-A02 PASS — expected post-state observed after activation"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "project.all",
+          "control": {
+            "role": "link",
+            "name": "← All projects"
+          },
+          "intent": "Return to the list",
+          "expectedOutcome": "Address becomes #/projects [owner: route table; state: local, a project open]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › projects lead to a project, its records, its day, week and report (ULI-A02): ULI-A02 PASS — expected post-state observed after activation"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "project.record",
+          "control": {
+            "role": "link",
+            "name": "Record on the project"
+          },
+          "intent": "Open the record",
+          "expectedOutcome": "Address becomes #/entries/{id} [owner: route table; state: local, a project with records]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › projects lead to a project, its records, its day, week and report (ULI-A02): ULI-A02 PASS — expected post-state observed after activation"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "project.today",
+          "control": {
+            "role": "link",
+            "name": "Today on this project"
+          },
+          "intent": "Today filtered to the project",
+          "expectedOutcome": "Address becomes #/day/{today}?project={id} [owner: route table; state: local, a project open]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › projects lead to a project, its records, its day, week and report (ULI-A02): ULI-A02 PASS — expected post-state observed after activation"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "project.week",
+          "control": {
+            "role": "link",
+            "name": "This week"
+          },
+          "intent": "This week filtered to the project",
+          "expectedOutcome": "Address becomes #/week/{Monday}?project={id} [owner: route table; state: local, a project open]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › projects lead to a project, its records, its day, week and report (ULI-A02): ULI-A02 PASS — expected post-state observed after activation"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "project.report",
+          "control": {
+            "role": "link",
+            "name": "Report on this project"
+          },
+          "intent": "A report filtered to the project",
+          "expectedOutcome": "Address becomes #/reports?project={id} [owner: route table; state: local, a project open]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › projects lead to a project, its records, its day, week and report (ULI-A02): ULI-A02 PASS — expected post-state observed after activation"
+          ],
+          "resetStrategy": "fresh page per test"
+        }
+      ],
+      "evidence": [
+        "tests/conformance/app.spec.js › app-projects: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @320px — document scrollWidth 320 vs clientWidth 320; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-projects: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @390px — document scrollWidth 390 vs clientWidth 390; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-projects: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @768px — document scrollWidth 768 vs clientWidth 768; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-projects: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @1280px — document scrollWidth 1280 vs clientWidth 1280; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-projects: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @320px x2 text — document scrollWidth 320 vs clientWidth 320; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-projects: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @390px x2 text — document scrollWidth 390 vs clientWidth 390; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-projects: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @768px x2 text — document scrollWidth 768 vs clientWidth 768; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-projects: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @1280px x2 text — document scrollWidth 1280 vs clientWidth 1280; 0 text run(s) escaping the viewport or a clipping container"
+      ],
+      "unknownScope": [
+        "right-to-left and translated text: not exercised (Chrona ships English, left-to-right only)"
+      ]
+    },
+    {
+      "id": "app-candidates",
+      "path": "web/index.html#/candidates and #/candidates/{id}",
+      "kind": "product",
+      "status": "unknown",
+      "viewportWidths": [
+        320,
+        390,
+        768,
+        1280
+      ],
+      "alignmentGroups": [],
+      "actions": [
+        {
+          "id": "candidates.status",
+          "control": {
+            "role": "link",
+            "name": "Status filter (Awaiting a decision, Decided, All)"
+          },
+          "intent": "Filter candidates by status",
+          "expectedOutcome": "Address carries ?status= and that filter is current [owner: route table; state: local, empty]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › candidate filters change the address and the current filter (ULI-A02, ULI-A06): ULI-A02 PASS — expected post-state observed after activation",
+            "tests/conformance/app.spec.js › candidate filters change the address and the current filter (ULI-A02, ULI-A06): ULI-A02 PASS — expected post-state observed after activation",
+            "tests/conformance/app.spec.js › candidate filters change the address and the current filter (ULI-A02, ULI-A06): ULI-A02 PASS — expected post-state observed after activation"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "candidates.source",
+          "control": {
+            "role": "link",
+            "name": "Source filter"
+          },
+          "intent": "Filter candidates by source",
+          "expectedOutcome": "Address carries ?source= [owner: route table; state: GitHub, candidates from sources]",
+          "status": "unknown",
+          "evidence": [],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "candidates.open",
+          "control": {
+            "role": "link",
+            "name": "Candidate"
+          },
+          "intent": "Open a candidate",
+          "expectedOutcome": "Address becomes #/candidates/{id} [owner: route table; state: GitHub, a candidate]",
+          "status": "pass",
+          "evidence": [
+            "tests/browser/app-github.spec.js › an observation a producer files becomes a candidate, and accepting it makes it the person's time: passed (asserts the outcome)"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "candidate.all",
+          "control": {
+            "role": "link",
+            "name": "← All candidates"
+          },
+          "intent": "Return to the list",
+          "expectedOutcome": "Address becomes #/candidates [owner: route table; state: GitHub, a candidate open]",
+          "status": "unknown",
+          "evidence": [],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "candidate.link",
+          "control": {
+            "role": "link",
+            "name": "Candidate's source link"
+          },
+          "intent": "Open the observation at its source",
+          "expectedOutcome": "A valid external address (not followed) [owner: external; state: GitHub, a candidate open]",
+          "status": "unknown",
+          "evidence": [],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "candidate.accept",
+          "control": {
+            "role": "button",
+            "name": "Accept"
+          },
+          "intent": "Make the candidate the person's time",
+          "expectedOutcome": "The candidate is decided and its time is recorded [owner: engine: acceptCandidate; state: GitHub, a candidate open]",
+          "status": "pass",
+          "evidence": [
+            "tests/browser/app-github.spec.js › an observation a producer files becomes a candidate, and accepting it makes it the person's time: passed (asserts the outcome)"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "candidate.reject",
+          "control": {
+            "role": "button",
+            "name": "Reject"
+          },
+          "intent": "Reject the candidate with a reason",
+          "expectedOutcome": "The candidate is decided as rejected [owner: engine: rejectCandidate; state: GitHub, a candidate open]",
+          "status": "unknown",
+          "evidence": [],
+          "resetStrategy": "fresh page per test"
+        }
+      ],
+      "evidence": [
+        "tests/conformance/app.spec.js › app-candidates: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @320px — document scrollWidth 320 vs clientWidth 320; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-candidates: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @390px — document scrollWidth 390 vs clientWidth 390; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-candidates: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @768px — document scrollWidth 768 vs clientWidth 768; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-candidates: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @1280px — document scrollWidth 1280 vs clientWidth 1280; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-candidates: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @320px x2 text — document scrollWidth 320 vs clientWidth 320; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-candidates: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @390px x2 text — document scrollWidth 390 vs clientWidth 390; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-candidates: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @768px x2 text — document scrollWidth 768 vs clientWidth 768; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-candidates: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @1280px x2 text — document scrollWidth 1280 vs clientWidth 1280; 0 text run(s) escaping the viewport or a clipping container"
+      ],
+      "unknownScope": [
+        "action candidates.source (link \"Source filter\"): no outcome assertion in this run",
+        "action candidate.all (link \"← All candidates\"): no outcome assertion in this run",
+        "action candidate.link (link \"Candidate's source link\"): no outcome assertion in this run",
+        "action candidate.reject (button \"Reject\"): no outcome assertion in this run",
+        "right-to-left and translated text: not exercised (Chrona ships English, left-to-right only)"
+      ]
+    },
+    {
+      "id": "app-reports",
+      "path": "web/index.html#/reports",
+      "kind": "product",
+      "status": "pass",
+      "viewportWidths": [
+        320,
+        390,
+        768,
+        1280
+      ],
+      "alignmentGroups": [
+        {
+          "id": "reports-dates",
+          "relation": "top-edge",
+          "toleranceCssPx": 1,
+          "targets": [
+            {
+              "role": "textbox",
+              "name": "From"
+            },
+            {
+              "role": "textbox",
+              "name": "To"
+            }
+          ],
+          "rationale": "The report's date range shares a row where the grid gives two columns (ULI-L01).",
+          "evidence": [
+            "tests/conformance/app.spec.js › app-reports: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L09 PASS @320px (stacked) — wrapped or stacked in source order without overlap",
+            "tests/conformance/app.spec.js › app-reports: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L09 PASS @390px (stacked) — wrapped or stacked in source order without overlap",
+            "tests/conformance/app.spec.js › app-reports: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L01 PASS @768px (row) — top-edge delta 0.00 CSS px <= tolerance 1 CSS px",
+            "tests/conformance/app.spec.js › app-reports: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L01 PASS @1280px (row) — top-edge delta 0.00 CSS px <= tolerance 1 CSS px"
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "id": "reports.print",
+          "control": {
+            "role": "button",
+            "name": "Print or save as PDF"
+          },
+          "intent": "Print Folio's document of the report",
+          "expectedOutcome": "The browser's print dialog opens for the report document [owner: engine: printReport (chrona.print pack); state: local, empty]",
+          "status": "pass",
+          "evidence": [
+            "tests/browser/app-reports.spec.js › printing opens the browser's dialog for Folio's document of the report: passed (asserts the outcome)"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "reports.copy-export",
+          "control": {
+            "role": "button",
+            "name": "Copy export"
+          },
+          "intent": "Copy the CSV or JSON export",
+          "expectedOutcome": "The clipboard holds the export and the copy is confirmed [owner: engine: copyExport; state: local, empty]",
+          "status": "pass",
+          "evidence": [
+            "tests/browser/app-reports.spec.js › the export is deterministic CSV or JSON and is copied to the clipboard: passed (asserts the outcome)"
+          ],
+          "resetStrategy": "fresh page per test"
+        }
+      ],
+      "evidence": [
+        "tests/conformance/app.spec.js › app-reports: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @320px — document scrollWidth 320 vs clientWidth 320; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-reports: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @390px — document scrollWidth 390 vs clientWidth 390; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-reports: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @768px — document scrollWidth 768 vs clientWidth 768; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-reports: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @1280px — document scrollWidth 1280 vs clientWidth 1280; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-reports: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @320px x2 text — document scrollWidth 320 vs clientWidth 320; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-reports: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @390px x2 text — document scrollWidth 390 vs clientWidth 390; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-reports: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @768px x2 text — document scrollWidth 768 vs clientWidth 768; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-reports: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @1280px x2 text — document scrollWidth 1280 vs clientWidth 1280; 0 text run(s) escaping the viewport or a clipping container"
+      ],
+      "unknownScope": [
+        "right-to-left and translated text: not exercised (Chrona ships English, left-to-right only)"
+      ]
+    },
+    {
+      "id": "app-more",
+      "path": "web/index.html#/more and #/more/{section}",
+      "kind": "product",
+      "status": "fail",
+      "viewportWidths": [
+        320,
+        390,
+        768,
+        1280
+      ],
+      "alignmentGroups": [
+        {
+          "id": "more-add-project",
+          "relation": "bottom-edge",
+          "toleranceCssPx": 1,
+          "targets": [
+            {
+              "role": "textbox",
+              "name": "New project"
+            },
+            {
+              "role": "button",
+              "name": "Add project"
+            }
+          ],
+          "rationale": "A text field and its submit button share a bottom edge (the composition aligns them flex-end) or wrap in order (ULI-L01, ULI-L10).",
+          "evidence": [
+            "tests/conformance/app.spec.js › app-more: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L09 PASS @320px (stacked) — wrapped or stacked in source order without overlap",
+            "tests/conformance/app.spec.js › app-more: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L09 PASS @390px (stacked) — wrapped or stacked in source order without overlap",
+            "tests/conformance/app.spec.js › app-more: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L01 PASS @768px (row) — bottom-edge delta 0.00 CSS px <= tolerance 1 CSS px",
+            "tests/conformance/app.spec.js › app-more: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L01 PASS @1280px (row) — bottom-edge delta 0.00 CSS px <= tolerance 1 CSS px"
+          ]
+        },
+        {
+          "id": "more-add-type",
+          "relation": "bottom-edge",
+          "toleranceCssPx": 1,
+          "targets": [
+            {
+              "role": "textbox",
+              "name": "New activity type"
+            },
+            {
+              "role": "button",
+              "name": "Add activity type"
+            }
+          ],
+          "rationale": "As above.",
+          "evidence": [
+            "tests/conformance/app.spec.js › app-more: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L09 PASS @320px (stacked) — wrapped or stacked in source order without overlap",
+            "tests/conformance/app.spec.js › app-more: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L09 PASS @390px (stacked) — wrapped or stacked in source order without overlap",
+            "tests/conformance/app.spec.js › app-more: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L01 PASS @768px (row) — bottom-edge delta 0.00 CSS px <= tolerance 1 CSS px",
+            "tests/conformance/app.spec.js › app-more: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L01 PASS @1280px (row) — bottom-edge delta 0.00 CSS px <= tolerance 1 CSS px"
+          ]
+        },
+        {
+          "id": "more-add-tag",
+          "relation": "bottom-edge",
+          "toleranceCssPx": 1,
+          "targets": [
+            {
+              "role": "textbox",
+              "name": "New tag"
+            },
+            {
+              "role": "button",
+              "name": "Add tag"
+            }
+          ],
+          "rationale": "As above.",
+          "evidence": [
+            "tests/conformance/app.spec.js › app-more: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L09 PASS @320px (stacked) — wrapped or stacked in source order without overlap",
+            "tests/conformance/app.spec.js › app-more: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L09 PASS @390px (stacked) — wrapped or stacked in source order without overlap",
+            "tests/conformance/app.spec.js › app-more: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L01 PASS @768px (row) — bottom-edge delta 0.00 CSS px <= tolerance 1 CSS px",
+            "tests/conformance/app.spec.js › app-more: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L01 PASS @1280px (row) — bottom-edge delta 0.00 CSS px <= tolerance 1 CSS px"
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "id": "more.all-projects",
+          "control": {
+            "role": "link",
+            "name": "See every project and your time on it"
+          },
+          "intent": "Open the projects list",
+          "expectedOutcome": "Address becomes #/projects [owner: route table; state: local, empty]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › More adds reference data, saves the period and leads to projects and reports (ULI-A02, ULI-A07): ULI-A02 PASS — expected post-state observed after activation"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "more.add-project",
+          "control": {
+            "role": "button",
+            "name": "Add project"
+          },
+          "intent": "Add a project",
+          "expectedOutcome": "The project is listed (checked) under Projects [owner: engine: addProject; state: local, empty]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › More adds reference data, saves the period and leads to projects and reports (ULI-A02, ULI-A07): ULI-A02 PASS — expected post-state observed after activation"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "more.add-type",
+          "control": {
+            "role": "button",
+            "name": "Add activity type"
+          },
+          "intent": "Add an activity type",
+          "expectedOutcome": "The activity type is listed under Activity types [owner: engine: addActivityType; state: local, empty]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › More adds reference data, saves the period and leads to projects and reports (ULI-A02, ULI-A07): ULI-A02 PASS — expected post-state observed after activation"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "more.add-tag",
+          "control": {
+            "role": "button",
+            "name": "Add tag"
+          },
+          "intent": "Add a tag",
+          "expectedOutcome": "The tag is listed under Tags [owner: engine: addTag; state: local, empty]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › More adds reference data, saves the period and leads to projects and reports (ULI-A02, ULI-A07): ULI-A02 PASS — expected post-state observed after activation"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "more.reference-active",
+          "control": {
+            "role": "checkbox",
+            "name": "Reference item (e.g. HelixNote)"
+          },
+          "intent": "Stop or resume offering an item for new work",
+          "expectedOutcome": "Unchecked items stay listed but are no longer offered [owner: engine: referenceActive; state: local, reference data]",
+          "status": "pass",
+          "evidence": [
+            "tests/browser/app.spec.js › archived reference data stays listed but is no longer offered for new work: passed (asserts the outcome)"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "more.reports",
+          "control": {
+            "role": "button",
+            "name": "Reports & export"
+          },
+          "intent": "Open reports",
+          "expectedOutcome": "Address becomes #/reports [owner: engine: goReports; state: local, empty]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › More adds reference data, saves the period and leads to projects and reports (ULI-A02, ULI-A07): ULI-A02 PASS — expected post-state observed after activation"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "more.save-period",
+          "control": {
+            "role": "button",
+            "name": "Save period settings"
+          },
+          "intent": "Save the organization's timesheet period",
+          "expectedOutcome": "The period the Today screen shows follows the saved cadence [owner: engine: savePeriodSettings; state: local, empty]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › More adds reference data, saves the period and leads to projects and reports (ULI-A02, ULI-A07): ULI-A02 PASS — observed by the test: pre-state, invocation and post-state asserted"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "more.sign-out",
+          "control": {
+            "role": "button",
+            "name": "Sign out and clear the token"
+          },
+          "intent": "Sign out",
+          "expectedOutcome": "The sign-in screen shows; the token is gone [owner: engine: signOut; state: GitHub, signed in]",
+          "status": "pass",
+          "evidence": [
+            "tests/browser/app-sign-in.spec.js › a person signs in with GitHub and works as the identity GitHub resolved, then signs out: passed (asserts the outcome)"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "more.sign-out-send",
+          "control": {
+            "role": "button",
+            "name": "Send them now, then sign out"
+          },
+          "intent": "Sign out after sending unsent changes",
+          "expectedOutcome": "Unsent changes are sent, then the sign-in screen shows [owner: engine: signOutSend; state: GitHub, unsent changes]",
+          "status": "unknown",
+          "evidence": [],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "more.sign-out-keep",
+          "control": {
+            "role": "button",
+            "name": "Keep them on this device for this account"
+          },
+          "intent": "Sign out keeping unsent changes",
+          "expectedOutcome": "Changes stay queued for this account [owner: engine: signOutKeep; state: GitHub, unsent changes]",
+          "status": "unknown",
+          "evidence": [],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "more.sign-out-discard",
+          "control": {
+            "role": "button",
+            "name": "Discard them"
+          },
+          "intent": "Discard unsent changes, asking first",
+          "expectedOutcome": "A confirmation is asked [owner: engine: signOutDiscard; state: GitHub, unsent changes]",
+          "status": "unknown",
+          "evidence": [],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "more.sign-out-cancel",
+          "control": {
+            "role": "button",
+            "name": "Stay signed in"
+          },
+          "intent": "Cancel signing out",
+          "expectedOutcome": "The choice closes; still signed in [owner: engine: signOutCancel; state: GitHub, unsent changes]",
+          "status": "unknown",
+          "evidence": [],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "more.sign-out-discard-confirm",
+          "control": {
+            "role": "button",
+            "name": "Discard and sign out"
+          },
+          "intent": "Confirm discarding and sign out",
+          "expectedOutcome": "Changes are discarded and the sign-in screen shows [owner: engine: signOutDiscardConfirmed; state: GitHub, unsent changes]",
+          "status": "unknown",
+          "evidence": [],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "more.sign-out-discard-cancel",
+          "control": {
+            "role": "button",
+            "name": "Keep them and stay signed in"
+          },
+          "intent": "Cancel the discard",
+          "expectedOutcome": "Still signed in, changes kept [owner: engine: signOutCancel; state: GitHub, unsent changes]",
+          "status": "unknown",
+          "evidence": [],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "more.clear-device",
+          "control": {
+            "role": "button",
+            "name": "Clear this device"
+          },
+          "intent": "Remove what this device keeps, asking first",
+          "expectedOutcome": "A confirmation is asked [owner: engine: clearDevice; state: GitHub, signed in]",
+          "status": "pass",
+          "evidence": [
+            "tests/browser/app-github-offline.spec.js › clearing this device removes what it keeps to open offline, then signs out: passed (asserts the outcome)"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "more.clear-device-confirmed",
+          "control": {
+            "role": "button",
+            "name": "Clear and sign out"
+          },
+          "intent": "Confirm clearing the device",
+          "expectedOutcome": "The read cache is removed and the person is signed out [owner: engine: clearDeviceConfirmed; state: GitHub, signed in]",
+          "status": "pass",
+          "evidence": [
+            "tests/browser/app-github-offline.spec.js › clearing this device removes what it keeps to open offline, then signs out: passed (asserts the outcome)"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "more.clear-device-cancel",
+          "control": {
+            "role": "button",
+            "name": "Keep them"
+          },
+          "intent": "Cancel clearing the device",
+          "expectedOutcome": "Nothing is removed [owner: engine: clearDeviceCancel; state: GitHub, signed in]",
+          "status": "unknown",
+          "evidence": [],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "more.redo",
+          "control": {
+            "role": "button",
+            "name": "Redo the failed change"
+          },
+          "intent": "Redo a change GitHub refused",
+          "expectedOutcome": "The change is made again [owner: engine: redoChange; state: GitHub, a refused change]",
+          "status": "unknown",
+          "evidence": [],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "more.retry-change",
+          "control": {
+            "role": "button",
+            "name": "Try again (change)"
+          },
+          "intent": "Retry sending a change",
+          "expectedOutcome": "The change is sent again [owner: engine: retryChange; state: GitHub, a failed change]",
+          "status": "unknown",
+          "evidence": [],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "more.keep-stored",
+          "control": {
+            "role": "button",
+            "name": "Keep what is stored"
+          },
+          "intent": "Keep the stored version over the local change",
+          "expectedOutcome": "The local change is dropped [owner: engine: keepStored; state: GitHub, a conflict]",
+          "status": "unknown",
+          "evidence": [],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "more.accept-outside",
+          "control": {
+            "role": "button",
+            "name": "Accept this version"
+          },
+          "intent": "Accept a record edited outside Chrona",
+          "expectedOutcome": "The record counts again [owner: engine: acceptOutsideEdit; state: GitHub, an outside edit]",
+          "status": "unknown",
+          "evidence": [],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "more.remove-member",
+          "control": {
+            "role": "button",
+            "name": "Remove"
+          },
+          "intent": "Remove a member",
+          "expectedOutcome": "The member is no longer listed [owner: engine: removeMember; state: GitHub, administrator]",
+          "status": "unknown",
+          "evidence": [],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "more.admit",
+          "control": {
+            "role": "button",
+            "name": "Add member"
+          },
+          "intent": "Add a member",
+          "expectedOutcome": "The member is listed [owner: engine: admitMember; state: GitHub, administrator]",
+          "status": "pass",
+          "evidence": [
+            "tests/browser/app-github.spec.js › a member submits their period, the administrator approves it, and the member's period is closed: passed (asserts the outcome)"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "more.rebuild-index",
+          "control": {
+            "role": "button",
+            "name": "Rebuild from the records"
+          },
+          "intent": "Rebuild the activity index",
+          "expectedOutcome": "The index is rebuilt and reported [owner: engine: rebuildIndex; state: GitHub, administrator]",
+          "status": "unknown",
+          "evidence": [],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "more.inbox-candidates",
+          "control": {
+            "role": "link",
+            "name": "See the candidates"
+          },
+          "intent": "Open the candidates",
+          "expectedOutcome": "Address becomes #/candidates [owner: route table; state: GitHub, inboxes]",
+          "status": "unknown",
+          "evidence": [],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "more.read-inboxes",
+          "control": {
+            "role": "button",
+            "name": "Read the inboxes now"
+          },
+          "intent": "Read producers' inboxes",
+          "expectedOutcome": "New observations become candidates [owner: engine: readInboxes; state: GitHub, inboxes]",
+          "status": "pass",
+          "evidence": [
+            "tests/browser/app-github.spec.js › an observation a producer files becomes a candidate, and accepting it makes it the person's time: passed (asserts the outcome)"
+          ],
+          "resetStrategy": "fresh page per test"
+        }
+      ],
+      "evidence": [
+        "tests/conformance/app.spec.js › app-more: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @320px — document scrollWidth 320 vs clientWidth 320; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-more: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @390px — document scrollWidth 390 vs clientWidth 390; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-more: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @768px — document scrollWidth 768 vs clientWidth 768; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-more: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @1280px — document scrollWidth 1280 vs clientWidth 1280; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-more: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 FAIL @320px x2 text — document scrollWidth 346 vs clientWidth 320; 1 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-more: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @390px x2 text — document scrollWidth 390 vs clientWidth 390; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-more: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @768px x2 text — document scrollWidth 768 vs clientWidth 768; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-more: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @1280px x2 text — document scrollWidth 1280 vs clientWidth 1280; 0 text run(s) escaping the viewport or a clipping container"
+      ],
+      "unknownScope": [
+        "action more.sign-out-send (button \"Send them now, then sign out\"): no outcome assertion in this run",
+        "action more.sign-out-keep (button \"Keep them on this device for this account\"): no outcome assertion in this run",
+        "action more.sign-out-discard (button \"Discard them\"): no outcome assertion in this run",
+        "action more.sign-out-cancel (button \"Stay signed in\"): no outcome assertion in this run",
+        "action more.sign-out-discard-confirm (button \"Discard and sign out\"): no outcome assertion in this run",
+        "action more.sign-out-discard-cancel (button \"Keep them and stay signed in\"): no outcome assertion in this run",
+        "action more.clear-device-cancel (button \"Keep them\"): no outcome assertion in this run",
+        "action more.redo (button \"Redo the failed change\"): no outcome assertion in this run",
+        "action more.retry-change (button \"Try again (change)\"): no outcome assertion in this run",
+        "action more.keep-stored (button \"Keep what is stored\"): no outcome assertion in this run",
+        "action more.accept-outside (button \"Accept this version\"): no outcome assertion in this run",
+        "action more.remove-member (button \"Remove\"): no outcome assertion in this run",
+        "action more.rebuild-index (button \"Rebuild from the records\"): no outcome assertion in this run",
+        "action more.inbox-candidates (link \"See the candidates\"): no outcome assertion in this run",
+        "right-to-left and translated text: not exercised (Chrona ships English, left-to-right only)"
+      ]
+    },
+    {
+      "id": "app-not-found",
+      "path": "web/index.html#/{unknown}",
+      "kind": "product",
+      "status": "pass",
+      "viewportWidths": [
+        320,
+        390,
+        768,
+        1280
+      ],
+      "alignmentGroups": [],
+      "actions": [
+        {
+          "id": "problem.home",
+          "control": {
+            "role": "link",
+            "name": "Go to today"
+          },
+          "intent": "Leave a page that names nothing",
+          "expectedOutcome": "Address becomes #/ and Today shows [owner: route table; state: local, empty]",
+          "status": "pass",
+          "evidence": [
+            "tests/conformance/app.spec.js › a page that names nothing leads home (ULI-A02): ULI-A02 PASS — expected post-state observed after activation"
+          ],
+          "resetStrategy": "fresh page per test"
+        }
+      ],
+      "evidence": [
+        "tests/conformance/app.spec.js › app-not-found: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @320px — document scrollWidth 320 vs clientWidth 320; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-not-found: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @390px — document scrollWidth 390 vs clientWidth 390; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-not-found: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @768px — document scrollWidth 768 vs clientWidth 768; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-not-found: no overflow or clipping at 320/390/768/1280, declared groups align or stack in order (ULI-L01, ULI-L05, ULI-L09, ULI-L10): ULI-L05 PASS @1280px — document scrollWidth 1280 vs clientWidth 1280; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-not-found: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @320px x2 text — document scrollWidth 320 vs clientWidth 320; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-not-found: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @390px x2 text — document scrollWidth 390 vs clientWidth 390; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-not-found: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @768px x2 text — document scrollWidth 768 vs clientWidth 768; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/app.spec.js › app-not-found: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @1280px x2 text — document scrollWidth 1280 vs clientWidth 1280; 0 text run(s) escaping the viewport or a clipping container"
+      ],
+      "unknownScope": [
+        "right-to-left and translated text: not exercised (Chrona ships English, left-to-right only)"
+      ]
+    },
+    {
+      "id": "app-gates",
+      "path": "web/index.html (sign-in, opening, store failure, administrator and membership gates; shell notices)",
+      "kind": "product",
+      "status": "unknown",
+      "viewportWidths": [],
+      "alignmentGroups": [],
+      "actions": [
+        {
+          "id": "gate.sign-in",
+          "control": {
+            "role": "button",
+            "name": "Sign in with GitHub"
+          },
+          "intent": "Start GitHub sign-in",
+          "expectedOutcome": "GitHub's authorize page is reached and the person returns signed in [owner: engine: signIn; state: deployment with sign-in]",
+          "status": "pass",
+          "evidence": [
+            "tests/browser/app-sign-in.spec.js › a person signs in with GitHub and works as the identity GitHub resolved, then signs out: passed (asserts the outcome)"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "gate.retention",
+          "control": {
+            "role": "radio",
+            "name": "Keep me signed in choice"
+          },
+          "intent": "Choose how long the token is kept",
+          "expectedOutcome": "The choice is checked and governs storage [owner: engine: signInRetention; state: deployment with sign-in]",
+          "status": "pass",
+          "evidence": [
+            "tests/browser/app-sign-in.spec.js › session-only retention keeps the token in the page, never in storage: passed (asserts the outcome)"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "gate.retry-store",
+          "control": {
+            "role": "button",
+            "name": "Try again"
+          },
+          "intent": "Retry opening the records",
+          "expectedOutcome": "GitHub is asked again; while it cannot be reached the failure stays on screen (no false success) [owner: engine: retryStore; state: GitHub out of reach]",
+          "status": "pass",
+          "evidence": [
+            "tests/browser/app-accessibility.spec.js › the problem, and trying again, are on the screen: passed (asserts the outcome)"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "gate.offline-pause",
+          "control": {
+            "role": "button",
+            "name": "Pause (offline)"
+          },
+          "intent": "Pause the device's timer while records cannot open",
+          "expectedOutcome": "The timer pauses [owner: engine: pauseTimer; state: GitHub out of reach, timer running]",
+          "status": "unknown",
+          "evidence": [],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "gate.offline-resume",
+          "control": {
+            "role": "button",
+            "name": "Resume (offline)"
+          },
+          "intent": "Resume the device's timer",
+          "expectedOutcome": "The timer runs [owner: engine: resumeTimer; state: GitHub out of reach, timer paused]",
+          "status": "unknown",
+          "evidence": [],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "gate.offline-stop",
+          "control": {
+            "role": "button",
+            "name": "Stop and hold the time"
+          },
+          "intent": "Stop and hold the time until records open",
+          "expectedOutcome": "The stopped time is held [owner: engine: stopTimer; state: GitHub out of reach, timer on]",
+          "status": "unknown",
+          "evidence": [],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "gate.confirm-admin",
+          "control": {
+            "role": "button",
+            "name": "Confirm me as administrator"
+          },
+          "intent": "Become the organization's administrator",
+          "expectedOutcome": "The organization opens with administrator rights [owner: engine: confirmAdministrator; state: GitHub, new organization]",
+          "status": "unknown",
+          "evidence": [],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "gate.sign-out",
+          "control": {
+            "role": "button",
+            "name": "Sign out"
+          },
+          "intent": "Sign out from a gate",
+          "expectedOutcome": "The sign-in screen shows [owner: engine: signOut; state: GitHub, not a member or confirming]",
+          "status": "unknown",
+          "evidence": [],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "shell.reload",
+          "control": {
+            "role": "button",
+            "name": "Reload now"
+          },
+          "intent": "Reload into a newer Chrona",
+          "expectedOutcome": "The page reloads safely [owner: engine: reloadShell; state: a newer build published]",
+          "status": "pass",
+          "evidence": [
+            "tests/browser/app-reliability.spec.js › a hidden page that comes back keeps its timer, and a newer Chrona is offered as a safe reload: passed (asserts the outcome)"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "shell.take-over",
+          "control": {
+            "role": "button",
+            "name": "Use this tab instead"
+          },
+          "intent": "Take unsent changes over from another tab",
+          "expectedOutcome": "This tab holds and sends them; the other stops [owner: engine: takeOverQueue; state: GitHub, two tabs]",
+          "status": "pass",
+          "evidence": [
+            "tests/browser/app-github-offline.spec.js › \"use this tab instead\" takes the unsent changes over at once; the other tab says so, and every change is sent once: passed (asserts the outcome)"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "shell.send-earlier",
+          "control": {
+            "role": "button",
+            "name": "They are mine: send them"
+          },
+          "intent": "Send unsent changes from an earlier version",
+          "expectedOutcome": "They are sent [owner: engine: sendEarlier; state: GitHub, earlier unsent changes]",
+          "status": "unknown",
+          "evidence": [],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "shell.keep-earlier",
+          "control": {
+            "role": "button",
+            "name": "Keep them (earlier)"
+          },
+          "intent": "Keep earlier unsent changes",
+          "expectedOutcome": "They are kept [owner: engine: keepEarlier; state: GitHub, earlier unsent changes]",
+          "status": "unknown",
+          "evidence": [],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "shell.discard-earlier",
+          "control": {
+            "role": "button",
+            "name": "Discard them (earlier)"
+          },
+          "intent": "Discard earlier unsent changes, asking first",
+          "expectedOutcome": "A confirmation is asked [owner: engine: discardEarlier; state: GitHub, earlier unsent changes]",
+          "status": "unknown",
+          "evidence": [],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "shell.discard-earlier-confirmed",
+          "control": {
+            "role": "button",
+            "name": "Discard"
+          },
+          "intent": "Confirm discarding",
+          "expectedOutcome": "They are discarded [owner: engine: discardEarlierConfirmed; state: GitHub, earlier unsent changes]",
+          "status": "unknown",
+          "evidence": [],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "shell.discard-earlier-cancel",
+          "control": {
+            "role": "button",
+            "name": "Cancel"
+          },
+          "intent": "Cancel discarding",
+          "expectedOutcome": "They are kept [owner: engine: discardEarlierCancel; state: GitHub, earlier unsent changes]",
+          "status": "unknown",
+          "evidence": [],
+          "resetStrategy": "fresh page per test"
+        }
+      ],
+      "evidence": [],
+      "unknownScope": [
+        "layout not measured by the conformance run (overflow, text scale, groups)",
+        "action gate.offline-pause (button \"Pause (offline)\"): no outcome assertion in this run",
+        "action gate.offline-resume (button \"Resume (offline)\"): no outcome assertion in this run",
+        "action gate.offline-stop (button \"Stop and hold the time\"): no outcome assertion in this run",
+        "action gate.confirm-admin (button \"Confirm me as administrator\"): no outcome assertion in this run",
+        "action gate.sign-out (button \"Sign out\"): no outcome assertion in this run",
+        "action shell.send-earlier (button \"They are mine: send them\"): no outcome assertion in this run",
+        "action shell.keep-earlier (button \"Keep them (earlier)\"): no outcome assertion in this run",
+        "action shell.discard-earlier (button \"Discard them (earlier)\"): no outcome assertion in this run",
+        "action shell.discard-earlier-confirmed (button \"Discard\"): no outcome assertion in this run",
+        "action shell.discard-earlier-cancel (button \"Cancel\"): no outcome assertion in this run",
+        "right-to-left and translated text: not exercised (Chrona ships English, left-to-right only)"
+      ]
+    },
+    {
+      "id": "kernel-slice",
+      "path": "web/kernel-slice.html",
+      "kind": "other",
+      "status": "pass",
+      "viewportWidths": [
+        320,
+        390,
+        768,
+        1280
+      ],
+      "alignmentGroups": [],
+      "actions": [
+        {
+          "id": "slice.save",
+          "control": {
+            "role": "button",
+            "name": "Save"
+          },
+          "intent": "Save a label through the engine and Storage",
+          "expectedOutcome": "The label is saved and shown [owner: engine (Chrona.Engine slice): save; state: slice page]",
+          "status": "pass",
+          "evidence": [
+            "tests/browser/kernel-slice.spec.js › the bridge vocabulary, a Storage round trip and reload, end to end: passed (asserts the outcome)"
+          ],
+          "resetStrategy": "fresh page per test"
+        },
+        {
+          "id": "slice.load",
+          "control": {
+            "role": "button",
+            "name": "Load"
+          },
+          "intent": "Load the saved label",
+          "expectedOutcome": "The saved label is shown [owner: engine (Chrona.Engine slice): load; state: slice page]",
+          "status": "pass",
+          "evidence": [
+            "tests/browser/kernel-slice.spec.js › the bridge vocabulary, a Storage round trip and reload, end to end: passed (asserts the outcome)"
+          ],
+          "resetStrategy": "fresh page per test"
+        }
+      ],
+      "evidence": [
+        "tests/conformance/kernel-slice.spec.js › kernel-slice: no overflow or clipping at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @320px — document scrollWidth 320 vs clientWidth 320; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/kernel-slice.spec.js › kernel-slice: no overflow or clipping at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @390px — document scrollWidth 390 vs clientWidth 390; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/kernel-slice.spec.js › kernel-slice: no overflow or clipping at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @768px — document scrollWidth 768 vs clientWidth 768; 0 text run(s) escaping the viewport or a clipping container",
+        "tests/conformance/kernel-slice.spec.js › kernel-slice: no overflow or clipping at 320/390/768/1280 (ULI-L05, ULI-L09): ULI-L05 PASS @1280px — document scrollWidth 1280 vs clientWidth 1280; 0 text run(s) escaping the viewport or a clipping container"
+      ],
+      "unknownScope": [
+        "right-to-left and translated text: not exercised (Chrona ships English, left-to-right only)"
+      ]
+    }
+  ],
+  "exceptions": [],
+  "notes": "Contract: visual-engineering/UI-LAYOUT-INTERACTION@1.0.0 (visual-engineering 8da8fbc); helpers: @echelon-foundry/forma-conformance 0.1.0, vendored from Forma PR #158 (tests/conformance/forma-conformance). Generated by tools/ui-conformance/evidence.mjs from one Playwright run of every project in playwright.config.js; statuses are only what that run observed. Print/PDF output (ULI-L12) of the report document is Folio's and is not measured here; tests/browser/app-reports.spec.js proves the print dialog opens for it. Upstream (Forma) defects are recorded in docs/ui-conformance/upstream-defects.md and stay FAIL here."
+}

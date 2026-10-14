@@ -160,3 +160,69 @@ jobs:
             test-results/
             tests/visual/baselines/
           retention-days: 7
+
+  # UI-LAYOUT-INTERACTION@1.0.0 conformance (GH-112, chrona#112): the
+  # browser suite and the conformance specs in one run, turned into the
+  # evidence document (tools/ui-conformance/evidence.mjs) and validated
+  # against the pinned schema. Blocking: a failed assertion or an invalid
+  # document fails the job. The evidence is uploaded either way.
+  ui-conformance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      # The same pinned, cached Chromium as the build job (see there).
+      - name: Resolve the pinned Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('./package-lock.json').packages['node_modules/playwright-core'].version")" >> "$GITHUB_OUTPUT"
+
+      - name: Restore the Chromium build for that version
+        id: chromium-cache
+        uses: actions/cache@v4
+        env:
+          SEGMENT_DOWNLOAD_TIMEOUT_MINS: "2"
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ runner.arch }}-${{ steps.playwright.outputs.version }}
+
+      - name: Download Chromium for the browser suite
+        if: steps.chromium-cache.outputs.cache-hit != 'true'
+        timeout-minutes: 5
+        run: npx playwright install chromium
+
+      - name: Verify Chromium's OS libraries
+        timeout-minutes: 2
+        run: |
+          missing="$(find ~/.cache/ms-playwright -type f \( -name chrome -o -name chrome-headless-shell \) -print0 \
+            | xargs -0 --no-run-if-empty ldd | awk '/not found/ { print $1 }' | sort -u)"
+          if [ -n "$missing" ]; then
+            echo "::error::Chromium cannot start; missing shared libraries: $(echo $missing)"
+            exit 1
+          fi
+
+      # Publishes the WASM engine, checks the evidence builder, runs every
+      # Playwright project and writes the evidence.
+      - name: UI conformance
+        env:
+          UI_CONFORMANCE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: npm run ui:conformance
+
+      - name: Upload the UI conformance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-conformance-evidence
+          path: |
+            test-results/ui-conformance/
+            test-results/**/trace.zip
+          retention-days: 14

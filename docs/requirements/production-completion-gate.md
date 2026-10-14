@@ -8,9 +8,8 @@ checks that every item of section 44 is here, that every named test, file
 and decision exists, and that every item not yet demonstrated names an open
 work item.
 
-**The gate is not yet met.** Three items wait on open work: GitHub identity
-on a real deployment (WI-0052), the iPhone VoiceOver pass (WI-0068) and
-SDE/Ordo validation (WI-0079).
+**The gate is not yet met.** Two items wait on open work: GitHub identity
+on a real deployment (WI-0052) and the iPhone VoiceOver pass (WI-0068).
 
 | Item | Status | Evidence |
 |---|---|---|
@@ -36,5 +35,5 @@ SDE/Ordo validation (WI-0079).
 | mobile core workflow | demonstrated | `app-accessibility.spec.js: scenario 42: on a phone`; `app.spec.js: the sidebar gives way to a bottom tab bar, with no sideways scrolling` |
 | derived-state rebuild | demonstrated | `StoreDerivedTests.fs: scenario 40: every projection is rebuilt from the stored records alone`; `StoreDerivedTests.fs: a record changed outside Chrona shows where the index is out of date, and a rebuild repairs it` |
 | ROS validation | demonstrated | `.github/workflows/praxis-validation.yml` (`praxis registry check` and `praxis validate` on every push and pull request) |
-| SDE/Ordo validation | not yet: WI-0079 | Chrona's states, legal transitions, refusals, revision checks and obligations are modeled and tested in `src/Chrona.Domain`; no Ordo model of them is validated yet (WI-0079) |
+| SDE/Ordo validation | demonstrated | `.github/workflows/sde-verify.yml` (`ordo verify --strict` with the Ordo release Conditor resolved, on exactly the commit, before any build); `.echelon/state-model.json`; `StateModelTests.fs: the model names exactly the domain's states and commands`; `StateModelTests.fs: every transition in the model is performed by the domain, with the result it names`; `StateModelTests.fs: every other pair of state and command is refused with one of the lifecycle's stable codes`; `SdeGateTests.fs: strict verification runs on a tree that is exactly the commit, before anything is built` |
 | Limen architecture verification | demonstrated | `.github/workflows/limen-verify.yml` (`limen verify --strict` with the recorded Limen version); `ArchitectureTests.fs: the engine depends on the domain alone` |

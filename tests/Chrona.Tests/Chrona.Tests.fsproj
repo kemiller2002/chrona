@@ -59,6 +59,7 @@
     <Compile Include="ScenarioCoverageTests.fs" />
     <Compile Include="ProductionGateTests.fs" />
     <Compile Include="SdeGateTests.fs" />
+    <Compile Include="StateModelTests.fs" />
     <Compile Include="ArchitectureTests.fs" />
     <Compile Include="PlacesTests.fs" />
     <Compile Include="AppEngineFixture.fs" />

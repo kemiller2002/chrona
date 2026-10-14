@@ -39,3 +39,10 @@ test("an empty run still yields a valid document in which nothing passes", () =>
   assert.ok(document.surfaces.every((surface) => surface.status === "unknown"));
   assert.ok(document.surfaces.flatMap((surface) => surface.actions).every((item) => item.status === "unknown"));
 });
+
+test("every existing test the contract cites is still there, under that title", async () => {
+  const { ALL_SURFACES } = await import("../../tests/conformance/chrona.contract.mjs");
+  const cited = ALL_SURFACES.flatMap((surface) => surface.actions).filter((item) => item.verify && item.verify.spec);
+  const missing = cited.filter((item) => !readFileSync(item.verify.spec, "utf8").includes(JSON.stringify(item.verify.title).slice(1, -1)));
+  assert.deepEqual(missing.map((item) => `${item.id}: ${item.verify.spec} › ${item.verify.title}`), []);
+});

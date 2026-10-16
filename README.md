@@ -34,3 +34,9 @@ The operating system is itself under evaluation. Do not infer that
 Chrona is a validated discipline, method, or product merely because
 the repository follows a rigorous process. Measure whether the process improves
 decisions, traceability, handoffs, and rework relative to the declared baseline.
+
+## License
+
+Source available under PolyForm Noncommercial 1.0.0 for permitted noncommercial uses. Commercial use requires a separate license from Echelon Foundry. Previously distributed versions remain subject to the licenses under which they were released.
+
+Commercial licensing information is forthcoming.

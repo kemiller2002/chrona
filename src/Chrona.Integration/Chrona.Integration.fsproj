@@ -11,6 +11,7 @@
 
   <PropertyGroup>
     <PackageId>EchelonFoundry.Chrona.Integration</PackageId>
+    <PackageLicenseExpression>PolyForm-Noncommercial-1.0.0</PackageLicenseExpression>
     <Version>1.0.0</Version>
     <Description>The receiver-owned contract for time observations sent to Chrona.</Description>
   </PropertyGroup>

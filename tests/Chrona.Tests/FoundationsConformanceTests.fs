@@ -183,7 +183,7 @@ let ``Chrona's compositions use Forma's tokens, never literal colours`` () =
 let ``Aegis is referenced, pinned and its boundary codes are declared`` () =
     let project = readRepoFile "src/Chrona.Application/Chrona.Application.fsproj"
     Assert.Contains("<PackageReference Include=\"EchelonFoundry.Aegis.Core\" />", project)
-    Assert.Contains("<PackageVersion Include=\"EchelonFoundry.Aegis.Core\" Version=\"1.0.0\" />", readRepoFile "Directory.Packages.props")
+    Assert.Contains("<PackageVersion Include=\"EchelonFoundry.Aegis.Core\" Version=\"2.0.0\" />", readRepoFile "Directory.Packages.props")
 
     let manifest = json "aegis-boundaries.json"
     Assert.Equal("aegis/boundaries/v1", str manifest.["schema"])

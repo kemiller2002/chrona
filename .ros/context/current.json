@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-11-25T17:50:16Z",
+  "updatedAt": "2026-11-25T18:39:25Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -3562,13 +3562,43 @@
     {
       "id": "WI-0087",
       "type": "task",
-      "state": "active",
-      "semanticState": "active",
-      "evidence": [],
-      "updatedAt": "2026-11-25T17:50:16Z",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Application/Store/StoreUnsentQueue.fs"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/StoreAccountTests.fs"
+        }
+      ],
+      "updatedAt": "2026-11-25T18:39:25Z",
       "telemetryExecutionIds": [
         "EXE-20261125T175017085Z-99627841"
-      ]
+      ],
+      "latestCheckpoint": {
+        "id": "930d4fa2b2f6065245ed2a70",
+        "recordedAt": "2026-11-25T18:39:21Z",
+        "executionId": "EXE-20261125T175017085Z-99627841",
+        "repository": "chrona",
+        "branch": "claude/vigila-implementation-jdeps1",
+        "commit": "1fc9059dac871856c437f79186a123285b0ff930",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/chrona"
+        },
+        "remoteBranch": "claude/vigila-implementation-jdeps1",
+        "remoteCommit": "1fc9059dac871856c437f79186a123285b0ff930",
+        "summary": "echelon-current 1.42.0 applied by Conditor 0.10.29; Forma 1.0 namespace and Arca 0.7 opaque-queue migrations done; build, 461 .NET tests, browser, pages and conformance suites pass locally",
+        "nextAction": "Watch CI on chrona#137; re-render visual baselines through the visual-baselines workflow if the Forma 1.0 screens differ",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      },
+      "completedAt": "2026-11-25T18:39:25Z"
     }
   ]
 }

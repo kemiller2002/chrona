@@ -67,19 +67,19 @@ let ``the manifest keeps the legacy palette, type and radii`` () =
 let ``the page's brand CSS is the compiler's output for this manifest`` () =
     let css = readRepoFile "web/brand/chrona.css"
     Assert.StartsWith("/* Generated from chrona.brand.json. Do not edit directly. */", css)
-    Assert.Contains("[data-ef-brand=\"chrona\"]", css)
+    Assert.Contains("[data-forma-brand=\"chrona\"]", css)
 
     // Each theme's block declares every manifest colour under its Forma name.
     for theme in themes do
         let block =
-            Regex.Match(css, $"\\[data-ef-brand=\"chrona\"\\]\\[data-ef-theme=\"{theme}\"\\] \\{{([^}}]*)\\}}").Groups[1].Value
+            Regex.Match(css, $"\\[data-forma-brand=\"chrona\"\\]\\[data-forma-theme=\"{theme}\"\\] \\{{([^}}]*)\\}}").Groups[1].Value
 
         Assert.NotEmpty block
         let groups = manifest.Value.["themes"].[theme].["color"].AsObject()
 
         for group in groups do
             for role in group.Value.AsObject() do
-                Assert.Contains($"--ef-color-{group.Key}-{role.Key}: {role.Value.GetValue<string>()};", block)
+                Assert.Contains($"--forma-color-{group.Key}-{role.Key}: {role.Value.GetValue<string>()};", block)
 
 /// The Forma tag the compile script resolves, by running it with --tag.
 let private compileScriptTag () =

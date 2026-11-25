@@ -198,7 +198,9 @@ let ``a change revised under Arca 0.4.0, which lost its account id, is attribute
     device.UnreachableAfter 1
     device.Open()
     Assert.Equal(0, device.Model.Store.Sync.Earlier)
-    Assert.Equal<string option list>([ Some "actor:github:583231" ], accounts shared)
+    // Attributed when read, not stamped into the kept entry: from Arca 0.6.0
+    // only Arca changes an entry (ARCA-OFF-009).
+    Assert.Equal<string option list>([ None ], accounts shared)
 
     // Its person discards it at sign-out, after the confirmation.
     device.Ui("signOut", "")

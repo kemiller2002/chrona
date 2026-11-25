@@ -9,23 +9,23 @@
     },
     "forma": {
       "required": true,
-      "version": "0.6.1"
+      "version": "1.0.1"
     },
     "folio": {
       "required": true,
-      "version": "0.4.0"
+      "version": "0.4.1"
     },
     "limen": {
       "required": true,
-      "version": "0.9.0"
+      "version": "0.9.1"
     },
     "ordo": {
       "required": true,
-      "version": "1.7.0"
+      "version": "1.20.0"
     },
     "praxis": {
       "required": true,
-      "version": "3.11.0"
+      "version": "3.25.0"
     }
   }
 }

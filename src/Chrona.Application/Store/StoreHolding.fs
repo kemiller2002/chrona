@@ -50,7 +50,7 @@ let ready (page: Page) (state: Opened) =
                 // what is kept.
                 let mine = state.Queue.Entries |> List.filter unsent
 
-                match result |> Result.map (Option.map stamped) with
+                match result with
                 | Ok None when mine.IsEmpty -> return kept
                 // Kept before anything is sent (write-ahead).
                 | Ok None -> return! persist page kept kept.Queue
@@ -74,7 +74,7 @@ let ready (page: Page) (state: Opened) =
                 | Ok(Some queue) ->
                     // Decisions were counted by the old numbers.
                     page.Decided.Clear()
-                    return! persist page kept (laidOver (OfflineQueue.recover queue) mine)
+                    return! persist page kept (laidOver state.Folder (OfflineQueue.recover queue) mine)
                 | Error failure -> return { state with Owned = None; Notice = notice; Note = Some(describeQueueStore failure) }
             }
 
@@ -140,12 +140,15 @@ let discardJob (page: Page) () =
             match accountOf state.Session with
             | None -> return [ Update.UnsentDiscarded 0; sync page state false ]
             | Some who ->
-                let queue = stamped state.Queue
+                // Arca discards (pending, conflicted and refused entries
+                // only); whose each entry is, is Chrona's `ownerOf`, which
+                // also reads an entry from before Arca 0.4.0 by its actor.
+                let kept, count = OfflineQueue.discardUnsent (belongsTo who) state.Queue
 
                 match state.Owned with
                 | Some owned ->
-                    match! owned.DiscardAccount who queue with
-                    | Ok(kept, count) ->
+                    match! owned.Store.Save kept with
+                    | Ok() ->
                         let saved = { state with Queue = kept }
                         page.Opened <- Some saved
                         return [ Update.UnsentDiscarded count; sync page saved false ]
@@ -154,7 +157,6 @@ let discardJob (page: Page) () =
                         page.Opened <- Some saved
                         return [ Update.UnsentDiscarded 0; sync page saved false ]
                 | None ->
-                    let kept, count = Arca.Limen.QueueSignOut.discardAccount who queue
                     let! saved = persist page state kept
                     page.Opened <- Some saved
                     return [ Update.UnsentDiscarded count; sync page saved false ]
@@ -180,13 +182,13 @@ let adoptJob (page: Page) (owned: Arca.Limen.OwnedQueue) (lock: string) () =
                 let state = { here with Owned = None; Note = Some(describeQueueStore failure) }
                 page.Opened <- Some state
                 return [ sync page state false ]
-            | Ok(Some kept) when kept.Entries |> List.exists earlier || (stamped kept).Entries |> List.exists (othersOf state.Session) ->
+            | Ok(Some kept) when kept.Entries |> List.exists (fun entry -> earlier entry || othersOf state.Session entry) ->
                 let state =
                     { here with
                         Owned = None
                         Note =
                             Some(
-                                if (stamped kept).Entries |> List.exists earlier then
+                                if kept.Entries |> List.exists earlier then
                                     earlierNote
                                 else
                                     "Another account left changes in this browser that have not been sent; they are kept for that account."
@@ -195,8 +197,8 @@ let adoptJob (page: Page) (owned: Arca.Limen.OwnedQueue) (lock: string) () =
                 page.Opened <- Some state
                 return [ sync page state false ]
             | Ok kept ->
-                let before = kept |> Option.map (stamped >> OfflineQueue.recover) |> Option.defaultValue (OfflineQueue.create OfflinePolicy.QueueWrites)
-                let queue = laidOver before mine
+                let before = kept |> Option.map OfflineQueue.recover |> Option.defaultValue (OfflineQueue.create OfflinePolicy.QueueWrites)
+                let queue = laidOver state.Folder before mine
 
                 // Decisions were counted by the old numbers.
                 page.Decided.Clear()
@@ -224,7 +226,8 @@ let adoptJob (page: Page) (owned: Arca.Limen.OwnedQueue) (lock: string) () =
     }
 
 /// The person decided about unsent changes from an earlier version that
-/// name no one: sent as theirs (each stamped with their account), or
+/// name no one: sent as theirs (each queued again with their account,
+/// after what is kept), or
 /// discarded where they cannot have landed; one in flight or of unknown
 /// outcome stays, to be reconciled. Then the queue is opened again.
 let earlierJob (page: Page) (send: bool) () =
@@ -235,29 +238,33 @@ let earlierJob (page: Page) (send: bool) () =
             | (true, owned), Some who ->
                 match! owned.Store.Load() with
                 | Ok(Some kept) ->
+                    // Arca removes the earlier changes that cannot have
+                    // reached GitHub (pending, conflicted, refused); one in
+                    // flight or of unknown outcome stays, to be reconciled.
+                    let rest, _ = OfflineQueue.discardUnsent earlier kept
+
                     let decided =
                         if send then
-                            { kept with
-                                Entries =
-                                    kept.Entries
-                                    |> List.map (fun entry ->
-                                        if earlier entry then
-                                            // Theirs, as they said: made by them, of their account.
-                                            { entry with
-                                                Operation =
-                                                    { entry.Operation with
-                                                        ActorId = state.Session.ActorId
-                                                        AccountId = Some(AccountId.toWire who.Account) } }
-                                        else
-                                            entry) }
-                        else
-                            let mayHaveLanded (entry: QueueEntry) =
-                                match entry.State with
-                                | EntryState.InFlight _
-                                | EntryState.OutcomeUnknown _ -> true
-                                | _ -> false
+                            // Theirs, as they said: made by them, of their
+                            // account. From Arca 0.6.0 an entry cannot be
+                            // changed in place (ARCA-OFF-009), so each is
+                            // queued again, in order, after what is kept.
+                            let remaining = rest.Entries |> List.map _.Sequence |> Set.ofList
 
-                            { kept with Entries = kept.Entries |> List.filter (fun entry -> not (earlier entry) || mayHaveLanded entry) }
+                            kept.Entries
+                            |> List.filter (fun entry -> not (remaining.Contains entry.Sequence))
+                            |> List.fold
+                                (fun queue entry ->
+                                    enqueueAgain
+                                        state.Folder
+                                        entry.EnqueuedAt
+                                        { entry.Operation with
+                                            ActorId = state.Session.ActorId
+                                            AccountId = Some(AccountId.toWire who.Account) }
+                                        queue)
+                                rest
+                        else
+                            rest
 
                     match! owned.Store.Save decided with
                     | Ok() -> return! ready page state
@@ -374,7 +381,7 @@ let lostJob (page: Page) () =
 
             let state =
                 { state with
-                    Queue = { state.Queue with Entries = [] }
+                    Queue = OfflineQueue.create state.Queue.Policy
                     Owned = None
                     Holder = HeldElsewhere false
                     Note = None }
@@ -397,7 +404,7 @@ let waiting (page: Page) (config: Deployment.DeploymentConfig) (session: Session
                     match kept with
                     | Ok(Some kept) ->
                         match accountOf session with
-                        | Some who -> Arca.Limen.QueueSignOut.unsentOfAccount who (stamped kept)
+                        | Some who -> unsentOfAccount who kept
                         | None -> 0
                     | _ -> 0
 

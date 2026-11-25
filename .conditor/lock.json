@@ -1,24 +1,24 @@
 {
   "schemaVersion": 4,
   "project": "chrona",
-  "manifestSha256": "293712e9485cee883ab2be45bbfacc80bb2015fb179057d8625efa4c9a316484",
+  "manifestSha256": "9aa5c4b467d1d967d7679d76851327e6f08648509bdd98b9a5a07084b9dfe6ad",
   "manifest": {
     "schemaVersion": 1,
     "name": "chrona",
     "registryAuthority": {
       "kind": "resolved-release-set",
       "path": ".conditor/authority/resolved-release-set.json",
-      "sha256": "f969e5e92d6a3a208f35df7da4c74cd8159b3d80646de6a9d90ca77ed55fcd72"
+      "sha256": "6be3bc97fbdd314abc4c712c2b1b47c1a18487995d9e1b9db445b4d141a8ee8a"
     },
     "components": [
       {
         "id": "ordo",
-        "version": "1.7.0",
+        "version": "1.20.0",
         "required": true
       },
       {
         "id": "praxis",
-        "version": "3.11.0",
+        "version": "3.25.0",
         "required": true
       },
       {
@@ -28,7 +28,7 @@
       },
       {
         "id": "arca",
-        "version": "0.5.0",
+        "version": "0.7.0",
         "required": true
       },
       {
@@ -48,12 +48,17 @@
       },
       {
         "id": "forma",
-        "version": "0.6.1",
+        "version": "1.0.1",
         "required": true
       },
       {
         "id": "folio",
-        "version": "0.4.0",
+        "version": "0.4.1",
+        "required": true
+      },
+      {
+        "id": "limen",
+        "version": "0.9.1",
         "required": true
       }
     ],
@@ -65,21 +70,21 @@
   "components": [
     {
       "id": "ordo",
-      "version": "1.7.0",
+      "version": "1.20.0",
       "distribution": "host-tool",
       "package": "ordo",
-      "descriptorSha256": "95f0e4d93296abc9707e62df34fc0a023e3d680f1e338d654497ae1597cb85de",
+      "descriptorSha256": "e0c49f0c717fd5afdd14699c77add4a12f68eded63231b80206cbe6a3cb374e5",
       "authority": "embedded-component-descriptor",
-      "sourceReference": "host:ordo@1.7.0"
+      "sourceReference": "host:ordo@1.20.0"
     },
     {
       "id": "praxis",
-      "version": "3.11.0",
+      "version": "3.25.0",
       "distribution": "host-tool",
       "package": "praxis",
-      "descriptorSha256": "5ff0736baf99518b2a8b9652a9bb0bd4f9403c77170d711c28e69025dba5f6a0",
+      "descriptorSha256": "a6a854d426d865133e7d1440e2ca80245dbf425aecdf1aafdb7ffddf5bd4487a",
       "authority": "embedded-component-descriptor",
-      "sourceReference": "host:praxis@3.11.0"
+      "sourceReference": "host:praxis@3.25.0"
     },
     {
       "id": "visual-engineering",
@@ -92,11 +97,11 @@
     },
     {
       "id": "arca",
-      "version": "0.5.0",
+      "version": "0.7.0",
       "distribution": "nuget",
       "package": "EchelonFoundry.Arca.Core,EchelonFoundry.Arca.GitHub,EchelonFoundry.Arca.Limen",
       "authority": "registry-resolved-set",
-      "sourceReference": "nuget-feed:kemiller2002/arca@v0.5.0#sha256:1cab5320290e6084f873e942465fe2289c8bc952b8ec7ce3a445ad24b8ac2e84"
+      "sourceReference": "nuget-feed:kemiller2002/arca@v0.7.0#sha256:dca9f0ebd2ab0edc1c2a7a5e902359df45d3a8b664d25b779a6f48cd4189b600"
     },
     {
       "id": "fides",
@@ -124,115 +129,31 @@
     },
     {
       "id": "forma",
-      "version": "0.6.1",
+      "version": "1.0.1",
       "distribution": "npm",
       "package": "@echelon-foundry/design-system",
-      "descriptorSha256": "4893621f78f0af5165124418db433e37f7b67365dca13453c5994a7ccf4da1d5",
+      "descriptorSha256": "8f57f88e60ee9e5284c60304a91e3c45c967f059c7123cb646e15f74062212bd",
       "authority": "embedded-component-descriptor",
-      "sourceReference": "npm:@echelon-foundry/design-system@0.6.1"
+      "sourceReference": "npm:@echelon-foundry/design-system@1.0.1"
     },
     {
       "id": "folio",
-      "version": "0.4.0",
+      "version": "0.4.1",
       "distribution": "npm",
       "package": "@echelon-foundry/print-components",
-      "descriptorSha256": "51240f698d19e0cd11d527ca9dfb22f3495c383fa6fe2a851bd3c4b224da4f8a",
+      "descriptorSha256": "d56d30819e76bac24b0716238f937ccfc11a29643994a1233a734f5292836085",
       "authority": "embedded-component-descriptor",
-      "sourceReference": "npm:@echelon-foundry/print-components@0.4.0"
+      "sourceReference": "npm:@echelon-foundry/print-components@0.4.1"
+    },
+    {
+      "id": "limen",
+      "version": "0.9.1",
+      "distribution": "npm",
+      "package": "@echelon-foundry/limen",
+      "descriptorSha256": "620f8d3a1342a8b2df5351a229d4f9c48c8f1e80a454a579d278ace48144fd9c",
+      "authority": "embedded-component-descriptor",
+      "sourceReference": "npm:@echelon-foundry/limen@0.9.1"
     }
   ],
-  "requirements": [],
-  "reviewSignals": [
-    {
-      "component": "ordo",
-      "code": "SDE-STRUCT-001",
-      "band": "justification-required",
-      "path": "tests/Chrona.Tests/StoreTests.fs",
-      "lineCount": 3560
-    },
-    {
-      "component": "ordo",
-      "code": "SDE-STRUCT-001",
-      "band": "justification-required",
-      "path": "src/Chrona.Application/Store.fs",
-      "lineCount": 3200
-    },
-    {
-      "component": "ordo",
-      "code": "SDE-STRUCT-001",
-      "band": "justification-required",
-      "path": "src/Chrona.Engine/App/Update.fs",
-      "lineCount": 2680
-    },
-    {
-      "component": "ordo",
-      "code": "SDE-STRUCT-001",
-      "band": "strong-review",
-      "path": "src/Chrona.Engine/App/Project.fs",
-      "lineCount": 1950
-    },
-    {
-      "component": "ordo",
-      "code": "SDE-STRUCT-001",
-      "band": "review",
-      "path": "tests/Chrona.Tests/AppBoundaryTests.fs",
-      "lineCount": 971
-    },
-    {
-      "component": "ordo",
-      "code": "SDE-STRUCT-001",
-      "band": "review",
-      "path": "tests/Chrona.Tests/AppEngineTests.fs",
-      "lineCount": 954
-    },
-    {
-      "component": "ordo",
-      "code": "SDE-STRUCT-001",
-      "band": "review",
-      "path": "src/Chrona.Engine/App/Model.fs",
-      "lineCount": 804
-    },
-    {
-      "component": "ordo",
-      "code": "SDE-STRUCT-001",
-      "band": "review",
-      "path": "tests/browser/app-github.spec.js",
-      "lineCount": 759
-    },
-    {
-      "component": "ordo",
-      "code": "SDE-STRUCT-001",
-      "band": "review",
-      "path": "src/Chrona.Domain/Stored.fs",
-      "lineCount": 718
-    },
-    {
-      "component": "ordo",
-      "code": "SDE-STRUCT-001",
-      "band": "review",
-      "path": "tests/Chrona.Tests/PersistenceTests.fs",
-      "lineCount": 711
-    },
-    {
-      "component": "ordo",
-      "code": "SDE-STRUCT-001",
-      "band": "review",
-      "path": "src/Chrona.Engine/App/Places.fs",
-      "lineCount": 597
-    },
-    {
-      "component": "ordo",
-      "code": "SDE-STRUCT-001",
-      "band": "review",
-      "path": "src/Chrona.Domain/ActivityRecord.fs",
-      "lineCount": 534
-    },
-    {
-      "component": "ordo",
-      "code": "SDE-STRUCT-001",
-      "band": "review",
-      "path": "src/Chrona.Application/App.fs",
-      "lineCount": 520
-    }
-  ]
+  "requirements": []
 }

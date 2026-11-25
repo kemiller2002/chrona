@@ -215,7 +215,7 @@ let openFresh (page: Page) (config: Deployment.DeploymentConfig) (session: Sessi
                                           Others = Set.empty
                                           Histories = histories
                                           Organization = organization
-                                          Queue = { OfflineQueue.create OfflinePolicy.QueueWrites with Entries = carried }
+                                          Queue = laidOver folder (OfflineQueue.create OfflinePolicy.QueueWrites) carried
                                           Owned = None
                                           Holder = HeldHere
                                           Note = None
@@ -373,7 +373,7 @@ let openCached (page: Page) (config: Deployment.DeploymentConfig) (session: Sess
                           Others = Set.empty
                           Histories = Map.empty
                           Organization = organization
-                          Queue = { OfflineQueue.create OfflinePolicy.QueueWrites with Entries = carried }
+                          Queue = laidOver folder (OfflineQueue.create OfflinePolicy.QueueWrites) carried
                           Owned = None
                           Holder = HeldHere
                           Note = None

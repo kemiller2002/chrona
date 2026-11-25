@@ -52,14 +52,20 @@ let persist (page: Page) (state: Opened) (queue: OfflineQueue) =
                 // Another tab took the queue over ("use this tab
                 // instead"): this save was fenced and wrote nothing. What
                 // was kept is that tab's now, to send or reconcile, never
-                // sent from here too; what this save added stays here.
+                // sent from here too; what this save added stays here,
+                // queued again by Arca in a queue of this page's own
+                // (ARCA-OFF-009), numbered afresh.
                 page.Held.Remove(lockOf state.Folder) |> ignore
                 let kept = state.Queue.Entries |> List.map _.Sequence |> Set.ofList
                 page.Handed.AddRange(state.Queue.Entries |> List.filter unsent |> List.map _.Operation.IdempotencyKey)
+                // Decisions were counted by the old numbers.
+                page.Decided.Clear()
+
+                let added = queue.Entries |> List.filter (fun entry -> not (kept.Contains entry.Sequence))
 
                 return
                     { state with
-                        Queue = { queue with Entries = queue.Entries |> List.filter (fun entry -> not (kept.Contains entry.Sequence)) }
+                        Queue = laidOver state.Folder (OfflineQueue.create queue.Policy) added
                         Owned = None
                         Holder = HeldElsewhere false
                         Note = None }
@@ -226,20 +232,28 @@ and drain (page: Page) () : Async<Update.Msg list> =
                     // GitHub holds before it is sent, as a change the
                     // repository moved under is (WI-0057, LCP-085).
                     | EntryState.Pending, Ok operation when operation.ExpectedChangeToken.IsNone && operation.ExpectedNamespaceToken.IsNone ->
-                        let paths = operation.Changes |> List.map (Change.path >> RelativePath.render)
+                        // Nothing is sent: Chrona records, through Arca's own
+                        // commands, the failure it decided on, a conflict on
+                        // every path the change touches. From Arca 0.6.0 an
+                        // application cannot set an entry's state (ARCA-OFF-009);
+                        // only a provider can confirm a write, while a failure
+                        // is the application's to record.
+                        let conflicts =
+                            operation.Changes
+                            |> List.map (fun change ->
+                                { Path = Change.path change
+                                  Expected = None
+                                  Actual = None })
 
                         let queue =
-                            { state.Queue with
-                                Entries =
-                                    state.Queue.Entries
-                                    |> List.map (fun queued ->
-                                        if queued.Sequence = entry.Sequence then
-                                            { queued with State = EntryState.Conflicted paths }
-                                        else
-                                            queued) }
+                            OfflineQueue.markInFlight entry.Sequence (changeTokenOf token) state.Queue
+                            |> Result.bind (OfflineQueue.recordResult entry.Sequence (Error(StorageFailure.Conflicted conflicts)))
 
-                        let! _ = save queue
-                        return! step messages
+                        match queue with
+                        | Error _ -> return messages @ [ answer (Failed "The queued change could not be decided again.") ]
+                        | Ok queue ->
+                            let! _ = save queue
+                            return! step messages
                     | EntryState.Conflicted _, Ok operation ->
                         // The repository moved under it: Chrona's rules
                         // decide it again on what is stored now (21).

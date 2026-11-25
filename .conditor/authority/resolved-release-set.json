@@ -2,8 +2,8 @@
   "schema": "echelon.resolved-release-set/v1",
   "profile": {
     "id": "echelon-current",
-    "version": "1.22.0",
-    "sha256": "4cef6996750ed4973b6dc8eb640e56bdb527384ad40243e83705a54a88523fac"
+    "version": "1.42.0",
+    "sha256": "7f4b25b0a1730a4f4b7c74301aa3d71e454311ad92a4364265d9dc6c03243b84"
   },
   "platform": "linux-x64",
   "resolver": {
@@ -11,42 +11,42 @@
     "version": "0.1.0"
   },
   "catalogSnapshot": {
-    "sha256": "9ab9380be1886fc06cbb40c3e4e07bc7cd22e5f672478b91dd4ee2aa9f8c9b20"
+    "sha256": "459db46f1669dabf8374e13dd685ebdd8cd25aa620242f2d1a607d033736ad7c"
   },
   "components": [
     {
       "systemId": "praxis",
       "role": "host-tool",
       "required": true,
-      "version": "3.11.0",
+      "version": "3.25.0",
       "repository": "kemiller2002/praxis",
-      "tag": "v3.11.0",
-      "commit": "5673d6ab07aad07b51ceadaeb4230b1591800886",
+      "tag": "v3.25.0",
+      "commit": "12bf9951253fc15e6973c2d3f5b88076f4556245",
       "releaseStage": "stable",
       "lifecycleState": "active",
       "distributionClass": "self-contained-native-cli",
       "executable": "praxis",
       "releaseManifest": {
         "schema": "echelon.release/v2",
-        "sha256": "c535097a24754f58dac21947d822cbfdbb78277ff2e41cd72e320f86eb65b58e"
+        "sha256": "b42b9cf7cf2b3a436f7419c03fccc32d123abe0594839889fe8b6372cfb46a41"
       },
       "distribution": {
         "mechanism": "github-release",
         "package": null,
-        "url": "https://github.com/kemiller2002/praxis/releases/tag/v3.11.0"
+        "url": "https://github.com/kemiller2002/praxis/releases/tag/v3.25.0"
       },
       "artifacts": [
         {
           "name": "praxis-linux-x64.tar.gz",
           "purpose": "executable",
           "platform": "linux-x64",
-          "sha256": "b107557ec0a33556c5c97abeddabd676a81afbcfd30a735d9e2fdd3d052038c2"
+          "sha256": "98e2ecaccac3f0502d755569bf2dddef852947b43a7989c570fcfff25f82d0c8"
         },
         {
           "name": "native-checksums.txt",
           "purpose": "checksums",
           "platform": null,
-          "sha256": "05ffa0f06a2ce5fb85e8f8b026b70c9724dd20d6a5a4d02a8e16b415daf19378"
+          "sha256": "c109ef21729f176cbd44f998cadc9bc92a6c0f1ee4ed386dd61f937d4f8b7dc4"
         }
       ]
     },
@@ -54,35 +54,35 @@
       "systemId": "ordo",
       "role": "host-tool",
       "required": true,
-      "version": "1.7.0",
+      "version": "1.20.0",
       "repository": "kemiller2002/ordo",
-      "tag": "v1.7.0",
-      "commit": "e6cbeff8876f870b2636715735bb79041a9a06a0",
+      "tag": "v1.20.0",
+      "commit": "05933dfa442a5d8a998bc09c1941588f9bdf12a6",
       "releaseStage": "stable",
       "lifecycleState": "active",
       "distributionClass": "self-contained-native-cli",
       "executable": "ordo",
       "releaseManifest": {
         "schema": "echelon.release/v2",
-        "sha256": "5261ec97e76008c64553f35719d961019a7d89a803bfb6a4bd1de70a9bc0bcba"
+        "sha256": "ac58cf8b42542ad3ad3cb3d5e9e95abaf660e3dcef5b84f85a6b52b7255563c0"
       },
       "distribution": {
         "mechanism": "github-release",
         "package": null,
-        "url": "https://github.com/kemiller2002/ordo/releases/tag/v1.7.0"
+        "url": "https://github.com/kemiller2002/ordo/releases/tag/v1.20.0"
       },
       "artifacts": [
         {
           "name": "ordo-linux-x64.tar.gz",
           "purpose": "executable",
           "platform": "linux-x64",
-          "sha256": "3b11f7b8218678fce0bce124bf1d8ad5875992b970c4c915ac40633687a46e74"
+          "sha256": "c5851a5bead4145d6bb5bb56bfab67927c9db06c84960136f677bc94fc84e3cf"
         },
         {
           "name": "native-checksums.txt",
           "purpose": "checksums",
           "platform": null,
-          "sha256": "2b48abc9f87961c08b8a7ca3a3dc4c85053b58236958006b6fe7cb6d4f0718a6"
+          "sha256": "5f9fa741a83ecc6b3b33ebbe9d2035ce01315ae639c7ed974c98ea2d73b22c9c"
         }
       ]
     },
@@ -123,13 +123,49 @@
       ]
     },
     {
+      "systemId": "percepta-semantic",
+      "role": "host-tool",
+      "required": true,
+      "version": "0.4.0",
+      "repository": "kemiller2002/percepta",
+      "tag": "percepta-semantic-v0.4.0",
+      "commit": "4a53688238f205fdde474cc340378a89ddea0c09",
+      "releaseStage": "stable",
+      "lifecycleState": "active",
+      "distributionClass": "self-contained-native-cli",
+      "executable": "percepta",
+      "releaseManifest": {
+        "schema": "echelon.release/v2",
+        "sha256": "07e4e640816e480b456ad3ce6e3562cc7aae8717a75db5683a2addcac02b1ee8"
+      },
+      "distribution": {
+        "mechanism": "github-release",
+        "package": null,
+        "url": "https://github.com/kemiller2002/percepta/releases/tag/percepta-semantic-v0.4.0"
+      },
+      "artifacts": [
+        {
+          "name": "percepta-semantic-0.4.0-linux-x64.tar.gz",
+          "purpose": "executable",
+          "platform": "linux-x64",
+          "sha256": "6c498b170818bbeeb0eae22da236007440d806c645e9e7a0acc1c0e0bcb67a34"
+        },
+        {
+          "name": "checksums.txt",
+          "purpose": "checksums",
+          "platform": null,
+          "sha256": "f2740b9e9302a88e648d8fe763cdf4412ed13eb93942e21de31a363101f7a2d8"
+        }
+      ]
+    },
+    {
       "systemId": "dokimos",
       "role": "repository-lifecycle",
       "required": true,
-      "version": "0.2.0",
+      "version": "0.11.1",
       "repository": "kemiller2002/dokimos",
-      "tag": "dokimos-v0.2.0",
-      "commit": "e641048c52edd8755c2964b6bafa4ae860e34062",
+      "tag": "dokimos-v0.11.1",
+      "commit": "fecbe0c51dda4d87a78e43a034c38c00e6045c7b",
       "releaseStage": "stable",
       "lifecycleState": "active",
       "distributionClass": "self-contained-native-cli",
@@ -140,31 +176,31 @@
       },
       "releaseManifest": {
         "schema": "echelon.release/v2",
-        "sha256": "1c75d80b9eb76a47239f2db7163c8e9e2f10e4ad303cd487284afd14c5a56737"
+        "sha256": "c5bf0df99823aaf1f3d2fc0f11f56cc92f266952df4733e32f18719a56f9b285"
       },
       "distribution": {
         "mechanism": "github-release",
         "package": null,
-        "url": "https://github.com/kemiller2002/dokimos/releases/tag/dokimos-v0.2.0"
+        "url": "https://github.com/kemiller2002/dokimos/releases/tag/dokimos-v0.11.1"
       },
       "artifacts": [
         {
           "name": "dokimos-linux-x64.tar.gz",
           "purpose": "executable",
           "platform": "linux-x64",
-          "sha256": "bb61505cf8fa23bf6b0992019ca2e2805bda46eeba42eecde9497e15a060441a"
+          "sha256": "31578ce40622823c323cd2d9699aebd08c98503c59122d61b4bc98e6f06dc337"
         },
         {
           "name": "dokimos-checksums.txt",
           "purpose": "checksums",
           "platform": null,
-          "sha256": "bcdb3676c409ae47ec083bbc016ce65d41a137fd305d367ff3923d0221298acc"
+          "sha256": "c3b301b8c3678a0d335cf5412e86705cca4ddf3f797e32743525432fd1783a40"
         },
         {
           "name": "LICENSE",
           "purpose": "licenses",
           "platform": null,
-          "sha256": "e26da7c631b207a3ea65b0eb4761774fa246183e2855c52001d080b41577e9f2"
+          "sha256": "ffcca38841adb694b6f380647e15f17c446a4d1656fed51a1e2041d064c94cc8"
         }
       ]
     },
@@ -274,29 +310,29 @@
       "systemId": "aegis",
       "role": "project-binding",
       "required": true,
-      "version": "1.0.0",
+      "version": "2.0.2",
       "repository": "kemiller2002/aegis",
-      "tag": "nuget:EchelonFoundry.Aegis.Core@1.0.0",
-      "commit": "56935c889b4f5cbf0b8046d3c2078f205cdb20c7",
+      "tag": "nuget:EchelonFoundry.Aegis.Core@2.0.2",
+      "commit": "711e02603da02cb05731ddfa7f45f2e553273fab",
       "releaseStage": "stable",
       "lifecycleState": "active",
       "distributionClass": "nuget-library",
       "executable": null,
       "releaseManifest": {
         "schema": "echelon.release/v2",
-        "sha256": "4530cfa3396c1e57d3e1a6500c661cd2d520236e852d1d9e88aa44c385d0bd6b"
+        "sha256": "ec8d1004560e9735901d966574ac0f220344a2161cac696b59c2a22b463d5f5c"
       },
       "distribution": {
         "mechanism": "nuget",
         "package": "EchelonFoundry.Aegis.Core",
-        "url": "https://api.nuget.org/v3-flatcontainer/echelonfoundry.aegis.core/1.0.0/echelonfoundry.aegis.core.1.0.0.nupkg"
+        "url": "https://api.nuget.org/v3-flatcontainer/echelonfoundry.aegis.core/2.0.2/echelonfoundry.aegis.core.2.0.2.nupkg"
       },
       "artifacts": [
         {
-          "name": "EchelonFoundry.Aegis.Core.1.0.0.nupkg",
+          "name": "EchelonFoundry.Aegis.Core.2.0.2.nupkg",
           "purpose": "package",
           "platform": null,
-          "sha256": "24255d245463f1ce819ce98f10bc5f6a062f8b3342d0bf4eee00fef9a45a835d"
+          "sha256": "56342207b7db3384f970c3953a64cfd25db859b0419c5e00382a85841126da4e"
         }
       ]
     },
@@ -304,29 +340,29 @@
       "systemId": "limen",
       "role": "project-binding",
       "required": true,
-      "version": "0.9.0",
+      "version": "0.9.1",
       "repository": "kemiller2002/limen",
-      "tag": "v0.9.0",
-      "commit": "96eb75fb5c5aeea41f59e7476d76e143dc35a759",
+      "tag": "v0.9.1",
+      "commit": "743cdb9be8971c0a3a250906a6e2e112170dfae0",
       "releaseStage": "stable",
       "lifecycleState": "active",
       "distributionClass": "web-package",
       "executable": null,
       "releaseManifest": {
         "schema": "echelon.release/v2",
-        "sha256": "5ffc580705cb612f9a5c99ee7ee0f81c7f18904947336a6e14a9be19393a74db"
+        "sha256": "54f088e76880308b2db1f7d447ad946d95d1a7f384893f0da2ae63937f6a1655"
       },
       "distribution": {
         "mechanism": "npm",
         "package": "@echelon-foundry/limen",
-        "url": "https://registry.npmjs.org/@echelon-foundry/limen/-/limen-0.9.0.tgz"
+        "url": "https://registry.npmjs.org/@echelon-foundry/limen/-/limen-0.9.1.tgz"
       },
       "artifacts": [
         {
-          "name": "echelon-foundry-limen-0.9.0.tgz",
+          "name": "echelon-foundry-limen-0.9.1.tgz",
           "purpose": "package",
           "platform": null,
-          "sha256": "45b64d580548fc5ecd13bb391104bc3d1d135faf5fccab46900c1a7cc64685ec"
+          "sha256": "a7dd300577a145ff56bfa2d8ebae21e864c00b1409e701ebb3704cc367d4ddc8"
         }
       ]
     },
@@ -334,35 +370,35 @@
       "systemId": "forma",
       "role": "project-binding",
       "required": true,
-      "version": "0.6.1",
+      "version": "1.0.1",
       "repository": "kemiller2002/forma",
-      "tag": "v0.6.1",
-      "commit": "0bce8d120364f6df5e480929a172c5e77b4d08a9",
+      "tag": "v1.0.1",
+      "commit": "0ddbfc968aeb79062513da97d06d1ea959dcf02a",
       "releaseStage": "stable",
       "lifecycleState": "active",
       "distributionClass": "web-package",
       "executable": null,
       "releaseManifest": {
         "schema": "echelon.release/v2",
-        "sha256": "164660ba86d913aaf4715c790ac81034142d4cf90e5c1ebd56d3bbb73041feb9"
+        "sha256": "9ba65daedb5171c3bd369ae34d01ef8e1b159e1d3f0f6a3db3e58db5abae5774"
       },
       "distribution": {
         "mechanism": "github-release",
         "package": "@echelon-foundry/design-system",
-        "url": "https://github.com/kemiller2002/forma/releases/tag/v0.6.1"
+        "url": "https://github.com/kemiller2002/forma/releases/tag/v1.0.1"
       },
       "artifacts": [
         {
-          "name": "echelon-foundry-design-system-0.6.1.tgz",
+          "name": "echelon-foundry-design-system-1.0.1.tgz",
           "purpose": "package",
           "platform": null,
-          "sha256": "0b28b9d320bb4a821dbcedfae5ed0e3c43b6191bd1f4d2acafbe75e197f4b4d0"
+          "sha256": "db4a8bf7bcf6ba7826f1605c4265ea86c456464f2e2a3eef18d026f24c242056"
         },
         {
           "name": "forma-marketing.sha256",
           "purpose": "checksums",
           "platform": null,
-          "sha256": "c647d7b2316ec099d66899745186d6a1c12343120e4393ddae4d88bbc7b9bc61"
+          "sha256": "4fa7e5b24926e085543d0f6e00142256d255df367f9f236ccd38512109d1d6ca"
         }
       ]
     },
@@ -370,35 +406,35 @@
       "systemId": "folio",
       "role": "project-binding",
       "required": true,
-      "version": "0.4.0",
+      "version": "0.4.1",
       "repository": "kemiller2002/folio",
-      "tag": "v0.4.0",
-      "commit": "de2832735f3b8a4426f7e180af2859bf4888a938",
+      "tag": "v0.4.1",
+      "commit": "a94cea73dd4b4c5409fb0d4399ba65f7dbc51f5e",
       "releaseStage": "stable",
       "lifecycleState": "active",
       "distributionClass": "web-package",
       "executable": null,
       "releaseManifest": {
         "schema": "echelon.release/v2",
-        "sha256": "1263b1825061e33dd71134659293b3d73946b5fd70e59d9526956d586905df4a"
+        "sha256": "d453d980ce7f81e3c5bd227e34bd8d287417ea79ca09aa97ae9fdc56a28c6880"
       },
       "distribution": {
         "mechanism": "github-release",
         "package": "@echelon-foundry/print-components",
-        "url": "https://github.com/kemiller2002/folio/releases/tag/v0.4.0"
+        "url": "https://github.com/kemiller2002/folio/releases/tag/v0.4.1"
       },
       "artifacts": [
         {
-          "name": "echelon-foundry-print-components-0.4.0.tgz",
+          "name": "echelon-foundry-print-components-0.4.1.tgz",
           "purpose": "package",
           "platform": null,
-          "sha256": "50453b89c055135f4991a5b81532d4aad198f3226e874692fd4b317fc2d3156d"
+          "sha256": "57c6a0eccad41e6acef7c0b91a6e072276b0ebaddda27fbb3b36abd956aeea1b"
         },
         {
           "name": "checksums.txt",
           "purpose": "checksums",
           "platform": null,
-          "sha256": "e03983078bb0c15eeecde9a58b4ce5c9a1daf35d7fd9ca17817d970d8828be4b"
+          "sha256": "aab49e9b12a85db0fd5a206b33378cbc3038b326664d6c6e2eab6c3812a2e328"
         }
       ]
     },
@@ -446,47 +482,47 @@
       "systemId": "arca",
       "role": "project-binding",
       "required": false,
-      "version": "0.5.0",
+      "version": "0.7.0",
       "repository": "kemiller2002/arca",
-      "tag": "v0.5.0",
-      "commit": "5dd00d94de60f82db623211a8e5bcab2ab8b2e84",
+      "tag": "v0.7.0",
+      "commit": "7e1f90d6b461af68439a4289f46ee5e6efa5921d",
       "releaseStage": "stable",
       "lifecycleState": "active",
       "distributionClass": "nuget-library",
       "executable": null,
       "releaseManifest": {
         "schema": "echelon.release/v2",
-        "sha256": "1cab5320290e6084f873e942465fe2289c8bc952b8ec7ce3a445ad24b8ac2e84"
+        "sha256": "dca9f0ebd2ab0edc1c2a7a5e902359df45d3a8b664d25b779a6f48cd4189b600"
       },
       "distribution": {
         "mechanism": "github-release",
         "package": null,
-        "url": "https://github.com/kemiller2002/arca/releases/tag/v0.5.0"
+        "url": "https://github.com/kemiller2002/arca/releases/tag/v0.7.0"
       },
       "artifacts": [
         {
-          "name": "EchelonFoundry.Arca.Core.0.5.0.nupkg",
+          "name": "EchelonFoundry.Arca.Core.0.7.0.nupkg",
           "purpose": "package",
           "platform": null,
-          "sha256": "a593126db171bcb94212ae288fffbc821d6b2d0a6b312aa3e3a490843f8afee4"
+          "sha256": "931a1f29c1df1f815104a58daa85cca59d38f68fff6598bd20c0327edafd7622"
         },
         {
-          "name": "EchelonFoundry.Arca.GitHub.0.5.0.nupkg",
+          "name": "EchelonFoundry.Arca.GitHub.0.7.0.nupkg",
           "purpose": "package",
           "platform": null,
-          "sha256": "bbd6383ee3c1ca698c83cdb311b1d03665a6231188a65b8e5bad60ef8b3570aa"
+          "sha256": "9f8ef324119e25cba1c3d9dfcfac9c457db31b78ac7f30ddc2eef1499b20bc94"
         },
         {
-          "name": "EchelonFoundry.Arca.Limen.0.5.0.nupkg",
+          "name": "EchelonFoundry.Arca.Limen.0.7.0.nupkg",
           "purpose": "package",
           "platform": null,
-          "sha256": "a2fb27e9023698acb14e4228cb657983a9c016aa36880b574e56c945dd175b44"
+          "sha256": "966966a23dc85e02bbb69f8dd82525af23336e38daaf542305980f8d853c15e7"
         },
         {
           "name": "checksums.txt",
           "purpose": "checksums",
           "platform": null,
-          "sha256": "d790bd43e67d7ccdfe2fc07d6fa05d33dc54caf341da7bbf88a7dbc882493340"
+          "sha256": "0d5f20005137405b6e9e6dd699dfa098d7cefc310d53497846749c56bb860590"
         }
       ]
     },
@@ -633,6 +669,76 @@
           "sha256": "91983b9587c4fdafc0aef079db8690ae0f31d9cde025fff0483b1c4515f44e35"
         }
       ]
+    },
+    {
+      "systemId": "echelon-theme",
+      "role": "project-binding",
+      "required": false,
+      "version": "1.1.0",
+      "repository": "kemiller2002/echelon-design-system",
+      "tag": "v1.1.0",
+      "commit": "a03c5ac05d99c0bace43df35c90e74c3fe352d02",
+      "releaseStage": "stable",
+      "lifecycleState": "active",
+      "distributionClass": "web-package",
+      "executable": null,
+      "releaseManifest": {
+        "schema": "echelon.release/v2",
+        "sha256": "7909ed0a38348327efd46ae4bdaf72d626550b46071e5d788a1e021bacc3d295"
+      },
+      "distribution": {
+        "mechanism": "github-release",
+        "package": "@echelon-foundry/echelon-theme",
+        "url": "https://github.com/kemiller2002/echelon-design-system/releases/tag/v1.1.0"
+      },
+      "artifacts": [
+        {
+          "name": "echelon-foundry-echelon-theme-1.1.0.tgz",
+          "purpose": "package",
+          "platform": null,
+          "sha256": "e9360d743ad9e9a62abb3cf22d29bc8a26a4f9fd2b4980dd1d050c27937ec6bd"
+        },
+        {
+          "name": "ibm-plex-mono-OFL.txt",
+          "purpose": "licenses",
+          "platform": null,
+          "sha256": "23b0a9d0c6d3f140a0b77e483c5cfa6bba574325ef5cb189ed9f2fec4884533f"
+        },
+        {
+          "name": "manrope-OFL.txt",
+          "purpose": "licenses",
+          "platform": null,
+          "sha256": "d826ab6583b12c26807d8716a545bdbbb672df04f48608a364ba9efdbe501c30"
+        },
+        {
+          "name": "newsreader-OFL.txt",
+          "purpose": "licenses",
+          "platform": null,
+          "sha256": "26028ec4e13b650065fa525a09532176f8a668b76ff849ea01c564a7480f91e7"
+        },
+        {
+          "name": "checksums.txt",
+          "purpose": "checksums",
+          "platform": null,
+          "sha256": "753cb364b9e4bdfca60ff5d32a5f4195ca1839c417cd205d86155d1233f733a9"
+        }
+      ]
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "verified-completion-attested",
+      "state": "enabled",
+      "host": {
+        "systemId": "praxis",
+        "range": "\u003E=3.17.0",
+        "selected": "3.25.0"
+      },
+      "requires": {
+        "systemId": "dokimos",
+        "range": "\u003E=0.7.0",
+        "selected": "0.11.1"
+      }
     }
   ]
 }

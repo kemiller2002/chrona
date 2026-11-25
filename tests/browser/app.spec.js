@@ -15,8 +15,8 @@ test("the page runs on Limen with the schedule, environment, print, host, lifecy
 
   // The legacy palette arrives as Forma tokens from the compiled brand.
   const token = (name) => page.evaluate((n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim(), name);
-  expect(await token("--ef-color-surface-primary")).toBe("#e8e4dc");
-  expect(await token("--ef-color-accent-primary")).toBe("#215d57");
+  expect(await token("--forma-color-surface-primary")).toBe("#e8e4dc");
+  expect(await token("--forma-color-accent-primary")).toBe("#215d57");
   await expect(page.locator("body")).toHaveCSS("background-color", "rgb(232, 228, 220)");
   await expect(page.locator(".chrona-sidebar")).toHaveCSS("background-color", "rgb(35, 49, 46)");
 
@@ -75,7 +75,7 @@ test("manual entry reports every problem, then records exact time on Today", asy
   await expect(record.locator(".chrona-record__title")).toHaveText("Visual research");
   await expect(record.locator(".chrona-record__time")).toHaveText("12:10 AM12:17 AM");
   await expect(record.locator(".chrona-record__classification")).toHaveText("Research · HelixNote");
-  await expect(record.locator(".ef-status-lozenge").first()).toHaveText("Manual entry");
+  await expect(record.locator(".forma-status-lozenge").first()).toHaveText("Manual entry");
 
   // Overlapping time is refused, naming what it overlaps.
   await page.click(".chrona-nav__link:has-text('Track')");
@@ -157,13 +157,13 @@ test("a stopped timer is held for completion and recorded with its business purp
   await expect(page.locator("#completion")).toHaveCount(0);
 
   await page.click(".chrona-nav__link:has-text('Today')");
-  await expect(page.locator("#day-records .chrona-record .ef-status-lozenge").first()).toHaveText("Timer");
+  await expect(page.locator("#day-records .chrona-record .forma-status-lozenge").first()).toHaveText("Timer");
 });
 
 test("archived reference data stays listed but is no longer offered for new work", async ({ app: page }) => {
   await setUp(page);
   await page.uncheck("#projects input[type=checkbox]");
-  await expect(page.locator("#projects .ef-checkbox__description")).toHaveText("Archived: kept on past records");
+  await expect(page.locator("#projects .forma-checkbox__description")).toHaveText("Archived: kept on past records");
   await page.click(".chrona-nav__link:has-text('Track')");
   await expect(page.locator("#manual-project option:not([value=''])")).toHaveCount(0);
   await expect(page.locator(".chrona-notice").first()).toContainText("Add a project and an activity type first");

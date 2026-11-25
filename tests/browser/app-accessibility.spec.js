@@ -139,7 +139,7 @@ test("scenario 43: the timer, from the keyboard alone, keeps focus on the contro
   await page.keyboard.type("Research");
   await tabTo(page, "#add-activity-type");
   await page.keyboard.press("Enter");
-  await expect(page.locator("#projects .ef-checkbox__label")).toHaveText(["HelixNote"]);
+  await expect(page.locator("#projects .forma-checkbox__label")).toHaveText(["HelixNote"]);
 
   await tabTo(page, ".chrona-nav__link:has-text('Track')");
   await page.keyboard.press("Enter");

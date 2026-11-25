@@ -1919,10 +1919,10 @@
       "description": null,
       "tags": [],
       "priority": "medium",
-      "status": "ready",
+      "status": "complete",
       "attachments": [],
       "createdAt": "2026-11-25T15:43:45.262Z",
-      "updatedAt": "2026-11-25T15:43:50Z",
+      "updatedAt": "2026-11-25T15:45:50Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

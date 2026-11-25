@@ -92,4 +92,4 @@
 | WI-0083 | Split oversized Chrona modules to SDE-STRUCT-001 limits | complete | sde, structure | medium |
 | WI-0084 | Root-cause the intermittent failure of app-reliability.spec.js 'a hidden page that comes back keeps its timer, and a newer Chrona is offered as a safe reload' | active | browser-tests, timer | medium |
 | WI-0085 | Upgrade Aegis 1.0.0 -> 2.0.0 (echelon-current 1.40.0) | complete |  | medium |
-| WI-0086 | Retarget Aegis 2.0.1 -> 2.0.2 (detached capture no longer blocks single-threaded WebAssembly hosts) | ready |  | medium |
+| WI-0086 | Retarget Aegis 2.0.1 -> 2.0.2 (detached capture no longer blocks single-threaded WebAssembly hosts) | complete |  | medium |

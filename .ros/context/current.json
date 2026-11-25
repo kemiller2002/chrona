@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-11-25T15:43:50Z",
+  "updatedAt": "2026-11-25T15:45:50Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -3521,13 +3521,43 @@
     {
       "id": "WI-0086",
       "type": "task",
-      "state": "active",
-      "semanticState": "active",
-      "evidence": [],
-      "updatedAt": "2026-11-25T15:43:50Z",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "implementation",
+          "path": "Directory.Packages.props"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/FoundationsConformanceTests.fs"
+        }
+      ],
+      "updatedAt": "2026-11-25T15:45:50Z",
       "telemetryExecutionIds": [
         "EXE-20261125T154351800Z-60b577a2"
-      ]
+      ],
+      "latestCheckpoint": {
+        "id": "6bb1f594642ea810bb08ab11",
+        "recordedAt": "2026-11-25T15:45:47Z",
+        "executionId": "EXE-20261125T154351800Z-60b577a2",
+        "repository": "chrona",
+        "branch": "claude/vigila-implementation-jdeps1",
+        "commit": "a1f9c7f962f3a05607273f93dd413a22c9b124e3",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/chrona"
+        },
+        "remoteBranch": "claude/vigila-implementation-jdeps1",
+        "remoteCommit": "a1f9c7f962f3a05607273f93dd413a22c9b124e3",
+        "summary": "Aegis retargeted 2.0.1 -> 2.0.2 (pin, foundations.json, conformance tests); build green on SDK 10.0.404; 461 tests pass",
+        "nextAction": "Complete WI-0086; update PR to 2.0.2 and confirm CI",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      },
+      "completedAt": "2026-11-25T15:45:50Z"
     }
   ]
 }

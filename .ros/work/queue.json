@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "repository": "chrona",
-  "nextSeq": 87,
+  "nextSeq": 88,
   "items": [
     {
       "id": "WI-0001",
@@ -1923,6 +1923,27 @@
       "attachments": [],
       "createdAt": "2026-11-25T15:43:45.262Z",
       "updatedAt": "2026-11-25T15:45:50Z",
+      "createdBy": "unknown",
+      "createdByActor": {
+        "kind": "agent",
+        "id": "anthropic/claude-code",
+        "provider": "anthropic",
+        "model": "unknown",
+        "runtime": "claude-code"
+      },
+      "source": "manual",
+      "sourceReference": null
+    },
+    {
+      "id": "WI-0087",
+      "title": "Upgrade to echelon-current 1.42.0 (praxis 3.25.0, ordo 1.20.0, Arca 0.7.0, Forma 1.0.1, Folio 0.4.1, Limen 0.9.1)",
+      "description": null,
+      "tags": [],
+      "priority": "medium",
+      "status": "ready",
+      "attachments": [],
+      "createdAt": "2026-11-25T17:50:13.265Z",
+      "updatedAt": "2026-11-25T17:50:16Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

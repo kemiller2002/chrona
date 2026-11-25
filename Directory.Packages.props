@@ -11,7 +11,7 @@
          report a downgrade, so the version is pinned here and the implicit
          reference is disabled in Directory.Build.props. -->
     <PackageVersion Include="FSharp.Core" Version="10.1.401" />
-    <PackageVersion Include="EchelonFoundry.Aegis.Core" Version="2.0.1" />
+    <PackageVersion Include="EchelonFoundry.Aegis.Core" Version="2.0.2" />
     <!-- Arca 0.3.0: attested GitHub release assets in vendor/nuget, installed
          and proven by Conditor (conditor.json, vendor/nuget/arca.lock). -->
     <PackageVersion Include="EchelonFoundry.Arca.Core" Version="0.5.0" />

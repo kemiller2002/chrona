@@ -4,6 +4,7 @@
 |---|---|---|---|---|
 | CHR-REQ-001 | CHR-REQ-001 | complete |  |  |
 | FOUNDATIONS-APPLICABILITY | FOUNDATIONS-APPLICABILITY | complete |  |  |
+| GH-112 | GH-112 | complete |  |  |
 | GH-4 | Prepare Chrona implementation baseline | active | readiness,bootstrap | high |
 | ROS-INSTALL-2-0-1 | ROS-INSTALL-2-0-1 | complete |  |  |
 | WI-0001 | Install and verify Echelon Foundry toolchain: ROS, SDE, typescript-wasm-kernel | complete | setup,dependencies | high |
@@ -84,9 +85,12 @@
 | WI-0076 | Measurement: index where Chrona's historical evidence lives and when each Echelon capability was adopted (docs/measurement/baseline-sources.md) | complete |  | medium |
 | WI-0077 | Chrona: report refresh latency - reads, histories and read-cache writes run together on the bridge thread (bounded at 6, order kept); histories cached by path and revision | complete |  | high |
 | WI-0078 | Measurement: a test that every repository path and commit the baseline-sources index names exists | complete |  | medium |
-| WI-0079 | Chrona: SDE/Ordo validation of Chrona's domain lifecycles - production completion gate item (CHX-002, CHX-440 remainders) | ready |  | medium |
+| WI-0079 | Chrona: SDE/Ordo validation of Chrona's domain lifecycles - production completion gate item (CHX-002, CHX-440 remainders) | active |  | medium |
 | WI-0080 | Chrona: CSV exports neutralize spreadsheet formulas (CSV injection) in every text cell, numbers kept as numbers (CHX-290) | complete |  | high |
 | WI-0081 | Chrona: sign-in reads pinned to observed states - the opening's manifests and datasets listing, the activity index at load's state, and one pin per inbox pass | complete |  | medium |
 | WI-0082 | Echelon current 1.19.0 to 1.22.0 through Conditor 0.9.0: declare Forma and Folio, Forma 0.4.1 to 0.5.0 to 0.6.1, Folio 0.3.0 to 0.4.0, Ordo 1.5.0 to 1.6.0 to 1.7.0 (one registry set per PR) | complete |  | high |
 | WI-0083 | Split oversized Chrona modules to SDE-STRUCT-001 limits | complete | sde, structure | medium |
 | WI-0084 | Root-cause the intermittent failure of app-reliability.spec.js 'a hidden page that comes back keeps its timer, and a newer Chrona is offered as a safe reload' | active | browser-tests, timer | medium |
+| WI-0085 | Upgrade Aegis 1.0.0 -> 2.0.0 (echelon-current 1.40.0) | complete |  | medium |
+| WI-0086 | Retarget Aegis 2.0.1 -> 2.0.2 (detached capture no longer blocks single-threaded WebAssembly hosts) | complete |  | medium |
+| WI-0087 | Upgrade to echelon-current 1.42.0 (praxis 3.25.0, ordo 1.20.0, Arca 0.7.0, Forma 1.0.1, Folio 0.4.1, Limen 0.9.1) | complete |  | medium |

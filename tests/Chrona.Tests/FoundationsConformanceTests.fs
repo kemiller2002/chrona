@@ -16,16 +16,16 @@ let private json (relative: string) = JsonNode.Parse(readRepoFile relative)
 let private str (node: JsonNode) = node.GetValue<string>()
 
 let private formaRelease =
-    "https://github.com/kemiller2002/forma/releases/download/v0.6.1/echelon-foundry-design-system-0.6.1.tgz"
+    "https://github.com/kemiller2002/forma/releases/download/v1.0.1/echelon-foundry-design-system-1.0.1.tgz"
 
 let private folioRelease =
-    "https://github.com/kemiller2002/folio/releases/download/v0.4.0/echelon-foundry-print-components-0.4.0.tgz"
+    "https://github.com/kemiller2002/folio/releases/download/v0.4.1/echelon-foundry-print-components-0.4.1.tgz"
 
 [<Fact>]
 let ``foundations.json requires every foundation, at the echelon-current versions`` () =
     let capabilities = (json ".echelon/foundations.json").["capabilities"]
 
-    for name, version in [ "aegis", "1.0.0"; "forma", "0.6.1"; "folio", "0.4.0"; "limen", "0.9.0" ] do
+    for name, version in [ "aegis", "2.0.2"; "forma", "1.0.1"; "folio", "0.4.1"; "limen", "0.9.1" ] do
         Assert.True(capabilities.[name].["required"].GetValue<bool>(), $"{name} must be required")
         Assert.Equal(version, str capabilities.[name].["version"])
 
@@ -36,17 +36,17 @@ let ``the npm foundations are pinned to immutable releases and locked`` () =
     let dependencies = (json "package.json").["dependencies"]
     Assert.Equal(formaRelease, str dependencies.["@echelon-foundry/design-system"])
     Assert.Equal(folioRelease, str dependencies.["@echelon-foundry/print-components"])
-    Assert.Equal("0.9.0", str dependencies.["@echelon-foundry/limen"])
-    // The npm tarball whose SHA-256 the Registry records for limen 0.9.0
-    // (45b64d58...), as npm locks it.
-    Assert.Equal("sha512-noI4TcIfuomBmb2IDSEtm93RpYV3l+9D1eeqtHhW6dld63hpe9McKT335hEaLhc0EEbxNVd1dKlcvw+Nb+PMsw==", str (json "package-lock.json").["packages"].["node_modules/@echelon-foundry/limen"].["integrity"])
+    Assert.Equal("0.9.1", str dependencies.["@echelon-foundry/limen"])
+    // The npm tarball whose SHA-256 the Registry records for limen 0.9.1
+    // (a7dd3005...), as npm locks it.
+    Assert.Equal("sha512-9lKFnMmRuNjpn5PapSW0frO2rqINvmt66SBwV/SwDmEC2EfjXXNDBuju/r7+7NGJLiNKCTHdVjD+QNrfh4d8jA==", str (json "package-lock.json").["packages"].["node_modules/@echelon-foundry/limen"].["integrity"])
 
     let packages = (json "package-lock.json").["packages"]
 
     for name, version in
-        [ "@echelon-foundry/design-system", "0.6.1"
-          "@echelon-foundry/print-components", "0.4.0"
-          "@echelon-foundry/limen", "0.9.0" ] do
+        [ "@echelon-foundry/design-system", "1.0.1"
+          "@echelon-foundry/print-components", "0.4.1"
+          "@echelon-foundry/limen", "0.9.1" ] do
         let locked = packages.[$"node_modules/{name}"]
         Assert.Equal(version, str locked.["version"])
         Assert.StartsWith("sha512-", str locked.["integrity"])
@@ -89,7 +89,7 @@ let ``both pages take Forma and Folio from the installed packages`` () =
     Assert.Contains("from \"../web-kernel/limen-wasm.js\"", readRepoFile "web/kernel-slice.js")
 
     let app = readRepoFile "web/index.html"
-    Assert.Contains("<html lang=\"en\" data-ef-brand=\"chrona\">", app)
+    Assert.Contains("<html lang=\"en\" data-forma-brand=\"chrona\">", app)
     Assert.Contains("<link rel=\"stylesheet\" href=\"./styles.css\" />", app)
     Assert.Contains("<script type=\"module\" src=\"./app.js\"></script>", app)
     Assert.Contains("from \"../web-kernel/limen-wasm.js\"", readRepoFile "web/app.js")
@@ -119,12 +119,12 @@ let ``the slice page composes Forma's components and Folio's document primitives
     let html = readRepoFile "web/kernel-slice.html"
 
     for marker in
-        [ "<ef-fault-inline class=\"ef-component-tag\">"
-          "class=\"ef-fault ef-fault--inline"
-          "<ef-alert class=\"ef-component-tag\">"
-          "class=\"ef-record-header"
-          "class=\"ef-field\""
-          "class=\"ef-status-lozenge\""
+        [ "<forma-fault-inline class=\"forma-component-tag\">"
+          "class=\"forma-fault forma-fault--inline"
+          "<forma-alert class=\"forma-component-tag\">"
+          "class=\"forma-record-header"
+          "class=\"forma-field\""
+          "class=\"forma-status-lozenge\""
           "<ef-print-document"
           "<ef-print-table>"
           "<ef-print-page-number>" ] do
@@ -135,18 +135,18 @@ let ``the application page composes Forma's components`` () =
     let html = readRepoFile "web/index.html"
 
     for marker in
-        [ "<ef-fault-inline class=\"ef-component-tag\">"
-          "class=\"ef-fault ef-fault--inline"
-          "class=\"ef-alert"
-          "class=\"ef-surface"
-          "class=\"ef-field\""
-          "class=\"ef-select-field\""
-          "class=\"ef-checkbox\""
-          "class=\"ef-facts"
-          "class=\"ef-status-lozenge\""
-          "class=\"ef-empty-state"
-          "class=\"ef-visually-hidden\""
-          "class=\"ef-metric-card\""
+        [ "<forma-fault-inline class=\"forma-component-tag\">"
+          "class=\"forma-fault forma-fault--inline"
+          "class=\"forma-alert"
+          "class=\"forma-surface"
+          "class=\"forma-field\""
+          "class=\"forma-select-field\""
+          "class=\"forma-checkbox\""
+          "class=\"forma-facts"
+          "class=\"forma-status-lozenge\""
+          "class=\"forma-empty-state"
+          "class=\"forma-visually-hidden\""
+          "class=\"forma-metric-card\""
           "<ef-print-document"
           "<ef-print-table>"
           "<ef-print-page-number>" ] do
@@ -162,8 +162,8 @@ let ``nothing forks Forma or bypasses Limen's binding rules`` () =
     for source in sources do
         let text = readRepoFile source
         // No local design tokens and no restyled Forma components.
-        Assert.False(Regex.IsMatch(text, @"--ef-[\w-]+\s*:"), $"{source} defines a Forma token")
-        Assert.False(Regex.IsMatch(text, @"(^|[\s,}])\.ef-[\w-]+[^{;]*\{", RegexOptions.Multiline), $"{source} restyles a Forma component")
+        Assert.False(Regex.IsMatch(text, @"--forma-[\w-]+\s*:"), $"{source} defines a Forma token")
+        Assert.False(Regex.IsMatch(text, @"(^|[\s,}])\.forma-[\w-]+[^{;]*\{", RegexOptions.Multiline), $"{source} restyles a Forma component")
         // Forma's wrappers are inert; only Folio registers elements.
         Assert.DoesNotContain("customElements.define", text)
         // State cues are data-* attributes plus CSS: never inline or bound styles.
@@ -177,13 +177,13 @@ let ``Chrona's compositions use Forma's tokens, never literal colours`` () =
     let rules = Regex.Replace(css, @"/\*[\s\S]*?\*/", "")
     Assert.False(Regex.IsMatch(rules, @"#[0-9a-fA-F]{3,8}\b"), "web/chrona.css has a hex colour")
     Assert.False(Regex.IsMatch(rules, @"\b(rgb|rgba|hsl|hsla|hwb|lab|lch|oklab|oklch)\("), "web/chrona.css has a literal colour function")
-    Assert.Contains("var(--ef-color-", rules)
+    Assert.Contains("var(--forma-color-", rules)
 
 [<Fact>]
 let ``Aegis is referenced, pinned and its boundary codes are declared`` () =
     let project = readRepoFile "src/Chrona.Application/Chrona.Application.fsproj"
     Assert.Contains("<PackageReference Include=\"EchelonFoundry.Aegis.Core\" />", project)
-    Assert.Contains("<PackageVersion Include=\"EchelonFoundry.Aegis.Core\" Version=\"1.0.0\" />", readRepoFile "Directory.Packages.props")
+    Assert.Contains("<PackageVersion Include=\"EchelonFoundry.Aegis.Core\" Version=\"2.0.2\" />", readRepoFile "Directory.Packages.props")
 
     let manifest = json "aegis-boundaries.json"
     Assert.Equal("aegis/boundaries/v1", str manifest.["schema"])

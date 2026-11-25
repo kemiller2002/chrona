@@ -5,7 +5,7 @@
    rule; the Chrona brand (web/brand/chrona.css, compiled by Forma from
    brand/chrona.brand.json) supplies the legacy palette, type and radii as
    Forma tokens. This file composes Chrona's own `chrona-*` classes from
-   those tokens only: no literal colours, no restyled `ef-*` component.
+   those tokens only: no literal colours, no restyled `forma-*` component.
    What Forma 0.4.1 cannot express yet is inventory gaps G1-G6 (WI-0042).
 
    State cues are data-* attributes the engine projects, matched here; never
@@ -17,7 +17,7 @@
 }
 
 :root {
-  --chrona-radius-large: calc(var(--ef-primitive-radius-medium) * 1.5);
+  --chrona-radius-large: calc(var(--forma-primitive-radius-medium) * 1.5);
   --chrona-gutter: clamp(1.25rem, 4vw, 4rem);
   /* The narrowest a native date or time input shows its whole value. */
   --chrona-pair-min: 8.5rem;
@@ -25,9 +25,9 @@
 
 body {
   margin: 0;
-  background: var(--ef-color-surface-primary);
-  color: var(--ef-color-text-primary);
-  font-family: var(--ef-primitive-font-family-sans);
+  background: var(--forma-color-surface-primary);
+  color: var(--forma-color-text-primary);
+  font-family: var(--forma-primitive-font-family-sans);
   line-height: 1.5;
 }
 
@@ -40,9 +40,9 @@ body {
   inset-inline-start: 0.75rem;
   padding: 0.7rem 1rem;
   transform: translateY(-150%);
-  border-radius: var(--ef-primitive-radius-small);
-  background: var(--ef-color-surface-inverse);
-  color: var(--ef-color-text-inverse);
+  border-radius: var(--forma-primitive-radius-small);
+  background: var(--forma-color-surface-inverse);
+  color: var(--forma-color-text-inverse);
   font-weight: 800;
 }
 
@@ -73,8 +73,8 @@ body {
   block-size: 100vh;
   flex-direction: column;
   padding: 1.5rem 1.1rem;
-  background: var(--ef-color-surface-inverse);
-  color: var(--ef-color-text-inverse);
+  background: var(--forma-color-surface-inverse);
+  color: var(--forma-color-text-inverse);
 }
 
 .chrona-brand {
@@ -97,13 +97,13 @@ body {
 .chrona-brand__mark {
   inline-size: 2rem;
   block-size: 2rem;
-  font-family: var(--ef-primitive-font-family-display);
+  font-family: var(--forma-primitive-font-family-display);
   font-size: 1.1rem;
   font-weight: 700;
 }
 
 .chrona-brand__name {
-  font-family: var(--ef-primitive-font-family-display);
+  font-family: var(--forma-primitive-font-family-display);
   font-size: 1.25rem;
   font-weight: 700;
 }
@@ -123,7 +123,7 @@ body {
   align-items: center;
   gap: 0.8rem;
   border: 0;
-  border-radius: var(--ef-primitive-radius-small);
+  border-radius: var(--forma-primitive-radius-small);
   padding: 0.65rem 0.8rem;
   background: transparent;
   color: inherit;
@@ -134,11 +134,11 @@ body {
 
 .chrona-nav__link:hover,
 .chrona-nav__link[aria-current="page"] {
-  background: color-mix(in srgb, var(--ef-color-text-inverse) 10%, transparent);
+  background: color-mix(in srgb, var(--forma-color-text-inverse) 10%, transparent);
 }
 
 .chrona-nav__link[aria-current="page"] {
-  box-shadow: inset 3px 0 var(--ef-color-text-inverse);
+  box-shadow: inset 3px 0 var(--forma-color-text-inverse);
 }
 
 .chrona-nav__mark {
@@ -151,7 +151,7 @@ body {
 
 .chrona-sidebar__status {
   margin-block-start: auto;
-  border-block-start: 1px solid color-mix(in srgb, var(--ef-color-text-inverse) 20%, transparent);
+  border-block-start: 1px solid color-mix(in srgb, var(--forma-color-text-inverse) 20%, transparent);
   padding: 1.1rem 0.45rem 0;
 }
 
@@ -219,10 +219,10 @@ body {
   inline-size: 2.65rem;
   block-size: 2.65rem;
   place-items: center;
-  border: 1px solid var(--ef-color-border-functional);
+  border: 1px solid var(--forma-color-border-functional);
   border-radius: 50%;
-  background: var(--ef-color-surface-elevated);
-  color: var(--ef-color-accent-primary);
+  background: var(--forma-color-surface-elevated);
+  color: var(--forma-color-accent-primary);
   font-size: 0.78rem;
   font-weight: 900;
 }
@@ -233,10 +233,10 @@ button.chrona-timer-chip {
   align-items: center;
   gap: 0.9rem;
   border: 0;
-  border-radius: var(--ef-primitive-radius-medium);
+  border-radius: var(--forma-primitive-radius-medium);
   padding: 0.5rem 0.9rem;
-  background: var(--ef-color-surface-inverse);
-  color: var(--ef-color-text-inverse);
+  background: var(--forma-color-surface-inverse);
+  color: var(--forma-color-text-inverse);
   text-align: start;
   cursor: pointer;
 }
@@ -247,7 +247,7 @@ button.chrona-timer-chip {
 }
 
 .chrona-timer-chip__time {
-  font-family: var(--ef-primitive-font-family-mono);
+  font-family: var(--forma-primitive-font-family-mono);
   font-variant-numeric: tabular-nums;
   font-weight: 700;
 }
@@ -260,7 +260,7 @@ button.chrona-timer-chip {
 
 .chrona-eyebrow {
   margin: 0 0 0.45rem;
-  color: var(--ef-color-accent-primary);
+  color: var(--forma-color-accent-primary);
   font-size: 0.72rem;
   font-weight: 900;
   letter-spacing: 0.13em;
@@ -270,7 +270,7 @@ button.chrona-timer-chip {
 .chrona-title {
   max-inline-size: 16ch;
   margin: 0;
-  font-family: var(--ef-primitive-font-family-display);
+  font-family: var(--forma-primitive-font-family-display);
   font-size: clamp(2.2rem, 5vw, 4.4rem);
   font-weight: 500;
   letter-spacing: -0.035em;
@@ -280,21 +280,21 @@ button.chrona-timer-chip {
 .chrona-intro {
   max-inline-size: 46rem;
   margin: 0.9rem 0 0;
-  color: var(--ef-color-text-secondary);
+  color: var(--forma-color-text-secondary);
 }
 
 .chrona-section-title {
   margin: 0 0 1rem;
-  font-family: var(--ef-primitive-font-family-display);
+  font-family: var(--forma-primitive-font-family-display);
   font-size: 1.6rem;
   font-weight: 600;
 }
 
 .chrona-footer {
   margin-block-start: 3.5rem;
-  border-block-start: 1px solid var(--ef-color-border-subtle);
+  border-block-start: 1px solid var(--forma-color-border-subtle);
   padding-block-start: 1.25rem;
-  color: var(--ef-color-text-secondary);
+  color: var(--forma-color-text-secondary);
   font-size: 0.8rem;
 }
 
@@ -345,7 +345,7 @@ button.chrona-timer-chip {
   align-items: flex-end;
   justify-content: space-between;
   gap: 1rem;
-  border-block-end: 1px solid var(--ef-color-border-subtle);
+  border-block-end: 1px solid var(--forma-color-border-subtle);
   padding-block-end: 1rem;
 }
 
@@ -363,7 +363,7 @@ button.chrona-timer-chip {
 
 .chrona-summary-count {
   margin: 0;
-  color: var(--ef-color-text-secondary);
+  color: var(--forma-color-text-secondary);
   font-size: 0.82rem;
 }
 
@@ -391,7 +391,7 @@ button.chrona-timer-chip {
   position: absolute;
   inset-block: 1.5rem;
   inset-inline-start: 5.33rem;
-  border-inline-start: 1px solid var(--ef-color-border-functional);
+  border-inline-start: 1px solid var(--forma-color-border-functional);
   content: "";
 }
 
@@ -404,7 +404,7 @@ button.chrona-timer-chip {
 }
 
 .chrona-record + .chrona-record {
-  border-block-start: 1px solid var(--ef-color-border-subtle);
+  border-block-start: 1px solid var(--forma-color-border-subtle);
 }
 
 .chrona-record::before {
@@ -413,16 +413,16 @@ button.chrona-timer-chip {
   inset-inline-start: 5rem;
   inline-size: 0.7rem;
   block-size: 0.7rem;
-  border: 2px solid var(--ef-color-accent-primary);
+  border: 2px solid var(--forma-color-accent-primary);
   border-radius: 50%;
-  background: var(--ef-color-surface-secondary);
+  background: var(--forma-color-surface-secondary);
   content: "";
 }
 
 /* A voided record keeps its place, visibly out of the totals: hollow
    marker, struck duration and its "Removed from totals" label. */
 .chrona-record[data-voided="true"] {
-  color: var(--ef-color-text-secondary);
+  color: var(--forma-color-text-secondary);
 }
 
 .chrona-record[data-voided="true"] .chrona-record__duration {
@@ -430,13 +430,13 @@ button.chrona-timer-chip {
 }
 
 .chrona-record[data-voided="false"]::before {
-  background: var(--ef-color-accent-primary);
+  background: var(--forma-color-accent-primary);
 }
 
 .chrona-record__time {
   display: grid;
   margin: 0;
-  font-family: var(--ef-primitive-font-family-mono);
+  font-family: var(--forma-primitive-font-family-mono);
   font-size: 0.72rem;
   font-variant-numeric: tabular-nums;
   text-align: end;
@@ -456,13 +456,13 @@ button.chrona-timer-chip {
 
 .chrona-record__title {
   margin: 0;
-  font-family: var(--ef-primitive-font-family-display);
+  font-family: var(--forma-primitive-font-family-display);
   font-size: 1.2rem;
   font-weight: 600;
 }
 
 .chrona-record__duration {
-  font-family: var(--ef-primitive-font-family-mono);
+  font-family: var(--forma-primitive-font-family-mono);
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   white-space: nowrap;
@@ -471,13 +471,13 @@ button.chrona-timer-chip {
 .chrona-record__classification,
 .chrona-record__purpose {
   margin: 0.2rem 0 0;
-  color: var(--ef-color-text-secondary);
+  color: var(--forma-color-text-secondary);
   font-size: 0.9rem;
 }
 
 .chrona-record__billed {
-  color: var(--ef-color-text-secondary);
-  font-family: var(--ef-primitive-font-family-mono);
+  color: var(--forma-color-text-secondary);
+  font-family: var(--forma-primitive-font-family-mono);
   font-size: 0.76rem;
   align-self: center;
 }
@@ -498,8 +498,8 @@ button.chrona-timer-chip {
   container-type: inline-size;
   border-radius: calc(var(--chrona-radius-large) * 1.1);
   padding: clamp(1.4rem, 5vw, 3.25rem);
-  background: var(--ef-color-surface-inverse-secondary);
-  color: var(--ef-color-text-inverse);
+  background: var(--forma-color-surface-inverse-secondary);
+  color: var(--forma-color-text-inverse);
 }
 
 .chrona-tracker__label {
@@ -532,7 +532,7 @@ button.chrona-timer-chip {
 
 .chrona-tracker__activity {
   margin: 2rem 0 0.35rem;
-  font-family: var(--ef-primitive-font-family-display);
+  font-family: var(--forma-primitive-font-family-display);
   font-size: clamp(1.8rem, 5vw, 3.45rem);
   font-weight: 500;
   letter-spacing: -0.025em;
@@ -547,7 +547,7 @@ button.chrona-timer-chip {
 
 .chrona-tracker__display {
   margin: clamp(1.6rem, 6vw, 3.5rem) 0 1rem;
-  font-family: var(--ef-primitive-font-family-mono);
+  font-family: var(--forma-primitive-font-family-mono);
   /* 8 tabular digits and colons need about 4.8em of the card's inline size:
      18cqi keeps "00:00:00" on one line in a narrow card (a 1280px window
      beside the manual form wrapped it as "00:00:0" / "0"), and never
@@ -583,7 +583,7 @@ button.chrona-timer-chip {
 
 .chrona-completion-total {
   margin: 0 0 0.5rem;
-  font-family: var(--ef-primitive-font-family-display);
+  font-family: var(--forma-primitive-font-family-display);
   font-size: 3rem;
   font-weight: 700;
   line-height: 1;
@@ -646,7 +646,7 @@ button.chrona-timer-chip {
 
 .chrona-reference__legend {
   margin-block-end: 0.5rem;
-  font-family: var(--ef-primitive-font-family-display);
+  font-family: var(--forma-primitive-font-family-display);
   font-size: 1.15rem;
   font-weight: 600;
 }
@@ -677,7 +677,7 @@ button.chrona-timer-chip {
 
 /* Controls take the brand's small radius (G6). */
 .chrona-page :where(input:not([type="checkbox"], [type="radio"]), select, textarea) {
-  border-radius: var(--ef-primitive-radius-small);
+  border-radius: var(--forma-primitive-radius-small);
 }
 
 /* ---- actions (G6) ---------------------------------------------------------- */
@@ -690,25 +690,25 @@ button.chrona-timer-chip {
   align-items: center;
   justify-content: center;
   gap: 0.55rem;
-  border: 1px solid var(--ef-color-border-functional);
-  border-radius: var(--ef-primitive-radius-small);
+  border: 1px solid var(--forma-color-border-functional);
+  border-radius: var(--forma-primitive-radius-small);
   padding: 0.72rem 1rem;
-  background: var(--ef-color-surface-elevated);
-  color: var(--ef-color-text-primary);
+  background: var(--forma-color-surface-elevated);
+  color: var(--forma-color-text-primary);
   font-weight: 800;
   line-height: 1.2;
   cursor: pointer;
 }
 
 :is(button, a).chrona-action--primary {
-  border-color: var(--ef-color-accent-primary);
-  background: var(--ef-color-accent-primary);
-  color: var(--ef-color-surface-primary);
+  border-color: var(--forma-color-accent-primary);
+  background: var(--forma-color-accent-primary);
+  color: var(--forma-color-surface-primary);
 }
 
 :is(button, a).chrona-action--primary:hover {
-  border-color: var(--ef-color-accent-hover);
-  background: var(--ef-color-accent-hover);
+  border-color: var(--forma-color-accent-hover);
+  background: var(--forma-color-accent-hover);
 }
 
 :is(button, a).chrona-action--quiet {
@@ -717,15 +717,15 @@ button.chrona-timer-chip {
 }
 
 :is(button, a).chrona-action--light {
-  border-color: var(--ef-color-text-inverse);
-  background: var(--ef-color-text-inverse);
-  color: var(--ef-color-surface-inverse-secondary);
+  border-color: var(--forma-color-text-inverse);
+  background: var(--forma-color-text-inverse);
+  color: var(--forma-color-surface-inverse-secondary);
 }
 
 :is(button, a).chrona-action--ghost-light {
-  border-color: var(--ef-color-text-inverse);
+  border-color: var(--forma-color-text-inverse);
   background: transparent;
-  color: var(--ef-color-text-inverse);
+  color: var(--forma-color-text-inverse);
 }
 
 :is(button, a).chrona-action--full {
@@ -740,7 +740,7 @@ button.chrona-timer-chip {
   border: 0;
   padding: 0;
   background: transparent;
-  color: var(--ef-color-accent-primary);
+  color: var(--forma-color-accent-primary);
   font: inherit;
   font-weight: 700;
   text-align: start;
@@ -788,13 +788,13 @@ button.chrona-timer-chip {
 
 .chrona-evidence__item,
 .chrona-history > li {
-  border-block-end: 1px solid var(--ef-color-border-subtle);
+  border-block-end: 1px solid var(--forma-color-border-subtle);
   padding-block-end: 0.75rem;
 }
 
 .chrona-evidence__meta,
 .chrona-history__meta {
-  color: var(--ef-color-text-secondary);
+  color: var(--forma-color-text-secondary);
   font-size: 0.85rem;
   overflow-wrap: anywhere;
 }
@@ -804,7 +804,7 @@ button.chrona-timer-chip {
   align-items: center;
   gap: 0.75rem;
   grid-template-columns: 1.6rem minmax(0, 1fr) auto;
-  border-block-end: 1px solid var(--ef-color-border-subtle);
+  border-block-end: 1px solid var(--forma-color-border-subtle);
   padding-block: 0.75rem;
 }
 
@@ -813,7 +813,7 @@ button.chrona-timer-chip {
   inline-size: 1.4rem;
   block-size: 1.4rem;
   place-items: center;
-  border: 1px solid var(--ef-color-border-functional);
+  border: 1px solid var(--forma-color-border-functional);
   border-radius: 50%;
   font-size: 0.8rem;
   font-weight: 900;
@@ -835,7 +835,7 @@ button.chrona-timer-chip {
 }
 
 .chrona-check__status {
-  font-family: var(--ef-primitive-font-family-mono);
+  font-family: var(--forma-primitive-font-family-mono);
   font-size: 0.8rem;
   font-weight: 700;
 }
@@ -851,7 +851,7 @@ button.chrona-timer-chip {
   display: grid;
   gap: 0.75rem;
   grid-template-columns: minmax(0, 1fr) auto auto;
-  border-block-end: 1px solid var(--ef-color-border-subtle);
+  border-block-end: 1px solid var(--forma-color-border-subtle);
   padding-block-end: 0.6rem;
 }
 
@@ -859,7 +859,7 @@ button.chrona-timer-chip {
   display: flex;
   justify-content: space-between;
   gap: 1rem;
-  font-family: var(--ef-primitive-font-family-mono);
+  font-family: var(--forma-primitive-font-family-mono);
 }
 
 .chrona-bars__meter {
@@ -880,26 +880,26 @@ button.chrona-timer-chip {
 
 .chrona-table th,
 .chrona-table td {
-  border-block-end: 1px solid var(--ef-color-border-subtle);
+  border-block-end: 1px solid var(--forma-color-border-subtle);
   padding: 0.6rem 0.5rem;
   text-align: start;
   vertical-align: top;
 }
 
 .chrona-table__number {
-  font-family: var(--ef-primitive-font-family-mono);
+  font-family: var(--forma-primitive-font-family-mono);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
 .chrona-table__note {
-  color: var(--ef-color-text-secondary);
+  color: var(--forma-color-text-secondary);
   font-size: 0.85rem;
 }
 
 textarea.chrona-export {
   inline-size: 100%;
-  font-family: var(--ef-primitive-font-family-mono);
+  font-family: var(--forma-primitive-font-family-mono);
   font-size: 0.75rem;
   white-space: pre;
 }
@@ -958,9 +958,9 @@ textarea.chrona-export {
     inset-block-end: 0;
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    border-block-start: 1px solid var(--ef-color-border-functional);
+    border-block-start: 1px solid var(--forma-color-border-functional);
     padding: 0.35rem max(0.4rem, env(safe-area-inset-right)) max(0.35rem, env(safe-area-inset-bottom)) max(0.4rem, env(safe-area-inset-left));
-    background: var(--ef-color-surface-secondary);
+    background: var(--forma-color-surface-secondary);
   }
 
   .chrona-tabbar__link {
@@ -971,22 +971,22 @@ textarea.chrona-export {
     align-content: center;
     gap: 0.15rem;
     border: 0;
-    border-radius: var(--ef-primitive-radius-small);
+    border-radius: var(--forma-primitive-radius-small);
     background: transparent;
-    color: var(--ef-color-text-secondary);
+    color: var(--forma-color-text-secondary);
     font-size: 0.7rem;
     font-weight: 800;
     cursor: pointer;
   }
 
   .chrona-tabbar__mark {
-    font-family: var(--ef-primitive-font-family-mono);
+    font-family: var(--forma-primitive-font-family-mono);
     font-weight: 900;
   }
 
   .chrona-tabbar__link[aria-current="page"] {
-    background: color-mix(in srgb, var(--ef-color-accent-primary) 16%, var(--ef-color-surface-secondary));
-    color: var(--ef-color-text-primary);
+    background: color-mix(in srgb, var(--forma-color-accent-primary) 16%, var(--forma-color-surface-secondary));
+    color: var(--forma-color-text-primary);
     text-decoration: underline;
     text-underline-offset: 0.2em;
   }
@@ -1084,8 +1084,8 @@ textarea.chrona-export {
   justify-content: space-between;
   gap: 3rem;
   padding: 3rem clamp(1.5rem, 5vw, 5rem);
-  background: var(--ef-color-surface-inverse);
-  color: var(--ef-color-text-inverse);
+  background: var(--forma-color-surface-inverse);
+  color: var(--forma-color-text-inverse);
 }
 
 .chrona-signin__story :where(p, span, strong) {
@@ -1094,7 +1094,7 @@ textarea.chrona-export {
 
 .chrona-signin__headline {
   margin: 1rem 0;
-  font-family: var(--ef-primitive-font-family-display);
+  font-family: var(--forma-primitive-font-family-display);
   font-size: clamp(2.6rem, 6vw, 5.4rem);
   font-weight: 400;
   letter-spacing: -0.04em;
@@ -1125,10 +1125,10 @@ textarea.chrona-export {
 .chrona-session-notice {
   margin: 0;
   padding: 0.85rem 1rem;
-  border-inline-start: 4px solid var(--ef-color-accent-primary);
-  border-radius: var(--ef-primitive-radius-small);
-  background: var(--ef-color-surface-secondary);
-  color: var(--ef-color-text-primary);
+  border-inline-start: 4px solid var(--forma-color-accent-primary);
+  border-radius: var(--forma-primitive-radius-small);
+  background: var(--forma-color-surface-secondary);
+  color: var(--forma-color-text-primary);
 }
 
 .chrona-session-notice {
@@ -1137,7 +1137,7 @@ textarea.chrona-export {
 
 .chrona-signin__footnote {
   margin: 0;
-  color: var(--ef-color-text-secondary);
+  color: var(--forma-color-text-secondary);
   font-size: 0.8rem;
 }
 
@@ -1185,9 +1185,9 @@ textarea.chrona-export {
 
 .chrona-access__list li {
   padding: 0.2rem 0.6rem;
-  border: 1px solid var(--ef-color-border-subtle);
-  border-radius: var(--ef-primitive-radius-small);
-  color: var(--ef-color-text-secondary);
+  border: 1px solid var(--forma-color-border-subtle);
+  border-radius: var(--forma-primitive-radius-small);
+  color: var(--forma-color-text-secondary);
   font-size: 0.85rem;
 }
 
@@ -1224,7 +1224,7 @@ textarea.chrona-export {
 
 .chrona-members__account {
   display: block;
-  color: var(--ef-color-text-secondary);
+  color: var(--forma-color-text-secondary);
   font-size: 0.85rem;
 }
 
@@ -1248,7 +1248,7 @@ textarea.chrona-export {
   display: grid;
   gap: 0.5rem;
   padding-block-start: 1rem;
-  border-block-start: 1px solid var(--ef-color-border-subtle);
+  border-block-start: 1px solid var(--forma-color-border-subtle);
 }
 
 .chrona-conflicts__item p {
@@ -1256,9 +1256,9 @@ textarea.chrona-export {
 }
 
 .chrona-conflicts__code {
-  color: var(--ef-color-text-secondary);
+  color: var(--forma-color-text-secondary);
   font-size: 0.8rem;
-  font-family: var(--ef-primitive-font-family-mono);
+  font-family: var(--forma-primitive-font-family-mono);
   overflow-wrap: anywhere;
 }
 
@@ -1293,16 +1293,16 @@ textarea.chrona-export {
 }
 
 .chrona-quick__label {
-  color: var(--ef-color-text-secondary);
+  color: var(--forma-color-text-secondary);
   font-size: 0.85rem;
 }
 
 .chrona-chip {
   min-height: 44px;
   padding: 0.25rem 0.75rem;
-  border: 1px solid var(--ef-color-border-functional);
-  border-radius: var(--ef-primitive-radius-small);
-  background: var(--ef-color-surface-secondary);
+  border: 1px solid var(--forma-color-border-functional);
+  border-radius: var(--forma-primitive-radius-small);
+  background: var(--forma-color-surface-secondary);
   color: inherit;
   font: inherit;
   cursor: pointer;
@@ -1320,13 +1320,13 @@ textarea.chrona-export {
 }
 
 .chrona-tracker .chrona-quick__label {
-  color: var(--ef-color-text-inverse);
+  color: var(--forma-color-text-inverse);
 }
 
 .chrona-tracker .chrona-chip {
-  border-color: var(--ef-color-text-inverse);
+  border-color: var(--forma-color-text-inverse);
   background: transparent;
-  color: var(--ef-color-text-inverse);
+  color: var(--forma-color-text-inverse);
 }
 
 /* ---- observations' candidates (WI-0038) -------------------------------------- */
@@ -1345,14 +1345,14 @@ textarea.chrona-export {
 }
 
 .chrona-filters .chrona-chip[aria-current="page"] {
-  border-color: var(--ef-color-accent-primary);
-  background: var(--ef-color-accent-primary);
-  color: var(--ef-color-surface-primary);
+  border-color: var(--forma-color-accent-primary);
+  background: var(--forma-color-accent-primary);
+  color: var(--forma-color-surface-primary);
 }
 
 .chrona-candidate-reject {
   margin-block-start: 1.5rem;
-  border-block-start: 1px solid var(--ef-color-border-subtle);
+  border-block-start: 1px solid var(--forma-color-border-subtle);
   padding-block-start: 1rem;
 }
 
@@ -1372,7 +1372,7 @@ textarea.chrona-export {
 
 .chrona-link-status p {
   margin: 0;
-  color: var(--ef-color-text-secondary);
+  color: var(--forma-color-text-secondary);
 }
 
 .chrona-day-filter {

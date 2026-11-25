@@ -54,8 +54,8 @@ export async function setUp(page) {
   await page.click("#add-activity-type");
   await page.fill("#new-tag-name", "Backend");
   await page.click("#add-tag");
-  await expect(page.locator("#projects .ef-checkbox__label")).toHaveText(["HelixNote"]);
-  await expect(page.locator("#activity-types .ef-checkbox__label")).toHaveText(["Research"]);
+  await expect(page.locator("#projects .forma-checkbox__label")).toHaveText(["HelixNote"]);
+  await expect(page.locator("#activity-types .forma-checkbox__label")).toHaveText(["Research"]);
 }
 
 // Yesterday in New York: a whole past day, so a fixed time of day is never in

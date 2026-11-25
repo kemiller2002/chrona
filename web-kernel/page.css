@@ -28,7 +28,7 @@
    engine); a busy phase is muted so the cue is not the text alone. */
 #status[data-phase="Saving"],
 #status[data-phase="Loading"] {
-  color: var(--ef-color-text-secondary);
+  color: var(--forma-color-text-secondary);
 }
 
 /* Folio's document is a projection of the same round trips; on screen the

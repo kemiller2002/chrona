@@ -140,17 +140,15 @@ let unsent (entry: QueueEntry) =
 let accountOfActor (actorId: string) =
     ActorId.create actorId |> Result.toOption |> Option.map AccountId.ofActor
 
-/// Entries queued without an account id (before Arca 0.4.0) stamped with
-/// the account of the actor each one records itself; never with whoever is
-/// signed in now. An entry that records no usable actor stays unstamped.
-let stamped (queue: OfflineQueue) =
-    { queue with
-        Entries =
-            queue.Entries
-            |> List.map (fun entry ->
-                match entry.Operation.AccountId, accountOfActor entry.Operation.ActorId with
-                | None, Some account -> { entry with Operation = { entry.Operation with AccountId = Some(AccountId.toWire account) } }
-                | _ -> entry) }
+/// The account an entry belongs to, in its stored form: the one it records
+/// (Arca 0.4.0 and later), else the account of the actor it records
+/// (entries queued before Arca 0.4.0); never whoever is signed in now. None:
+/// the entry names no usable account. Read, not stamped into the entry:
+/// from Arca 0.6.0 only Arca makes or changes entries (ARCA-OFF-009).
+let ownerOf (entry: QueueEntry) =
+    match entry.Operation.AccountId with
+    | Some recorded -> Some recorded
+    | None -> accountOfActor entry.Operation.ActorId |> Option.map AccountId.toWire
 
 /// The person signing out or working now, matched by account id only: an
 /// entry from an earlier version that names no account is never theirs on a
@@ -161,26 +159,58 @@ let accountOf (session: Session) : Arca.Limen.SignOutAccount option =
 /// An unsent entry that names no account: from an earlier version, with no
 /// actor to attribute it to. The person decides what becomes of it.
 let earlier (entry: QueueEntry) =
-    unsent entry && entry.Operation.AccountId.IsNone
+    unsent entry && (ownerOf entry).IsNone
+
+/// True when the entry is the account's (`ownerOf`).
+let belongsTo (who: Arca.Limen.SignOutAccount) (entry: QueueEntry) =
+    ownerOf entry = Some(AccountId.toWire who.Account)
+
+/// How many of the account's entries have not reached GitHub.
+let unsentOfAccount (who: Arca.Limen.SignOutAccount) (queue: OfflineQueue) =
+    queue.Entries |> List.filter (fun entry -> unsent entry && belongsTo who entry) |> List.length
 
 /// An unsent entry of another account than this session's.
 let othersOf (session: Session) (entry: QueueEntry) =
     unsent entry
-    && entry.Operation.AccountId.IsSome
+    && (ownerOf entry).IsSome
     && (match accountOf session with
-        | Some who -> not (Arca.Limen.QueueSignOut.belongsToAccount who entry)
+        | Some who -> not (belongsTo who entry)
         | None -> true)
 
-/// The queue kept in this browser with this page's own unsent changes after
-/// it, in order and renumbered after it. A change already kept (the same
-/// change, by its idempotency key) is not doubled.
-let laidOver (kept: OfflineQueue) (mine: QueueEntry list) =
-    let known = kept.Entries |> List.map _.Operation.IdempotencyKey |> Set.ofList
-    let added = mine |> List.filter (fun entry -> not (known.Contains entry.Operation.IdempotencyKey))
+/// The operation queued again after what `queue` holds, by Arca, as a
+/// change still to send, made at `at` and, when it records one, of its
+/// account. From Arca 0.6.0 an application cannot build or copy an entry
+/// (ARCA-OFF-009): an entry moves from one queue to another only this way.
+/// An operation that no longer validates in `folder` cannot be queued again
+/// (sending it would set it aside as no longer valid), so `queue` is kept.
+let enqueueAgain (folder: Namespace) (at: DateTimeOffset) (queued: QueuedOperation) (queue: OfflineQueue) =
+    match OfflineQueue.operationOf folder queued with
+    | Error _ -> queue
+    | Ok operation ->
+        let enqueued =
+            match queued.AccountId |> Option.bind AccountId.ofWire with
+            | Some account -> OfflineQueue.enqueueFor account at operation queue
+            | None -> OfflineQueue.enqueue at operation queue
 
-    { kept with
-        NextSequence = kept.NextSequence + int64 added.Length
-        Entries = kept.Entries @ (added |> List.mapi (fun index entry -> { entry with Sequence = kept.NextSequence + int64 index })) }
+        match enqueued with
+        | Ok(next, _) -> next
+        | Error _ -> queue
+
+/// The queue kept in this browser with this page's own unsent changes after
+/// it, in order and numbered after it. A change already kept (the same
+/// change, by its idempotency key) is not doubled. Each follows as a change
+/// still to send (`enqueueAgain`): one this page was sending, or whose
+/// outcome it did not learn, is conditioned on the state it was built on
+/// (or, made from the read cache, decided again before it is sent), so if
+/// it landed meanwhile GitHub refuses it as stale and it is decided again
+/// on what is stored, which leaves nothing to send; it is never written
+/// twice.
+let laidOver (folder: Namespace) (kept: OfflineQueue) (mine: QueueEntry list) =
+    let known = kept.Entries |> List.map _.Operation.IdempotencyKey |> Set.ofList
+
+    mine
+    |> List.filter (fun entry -> not (known.Contains entry.Operation.IdempotencyKey))
+    |> List.fold (fun queue entry -> enqueueAgain folder entry.EnqueuedAt entry.Operation queue) kept
 
 /// The records a queued entry carries.
 let recordsOf (folder: Namespace) (entry: QueueEntry) =

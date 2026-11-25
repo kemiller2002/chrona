@@ -341,11 +341,9 @@ for (const [surface, hash, ready, groups] of LAYOUT) {
 
 // 200% default text (a reader's font-size setting), each width on a fresh
 // page so the larger text applies from the first layout.
-const TEXT_SCALE_KNOWN = {
-  // Forma 0.6.1 `.ef-facts__item > dd` cannot break an unbreakable value;
-  // recorded upstream (docs/ui-conformance/upstream-defects.md, F-1).
-  "app-more@320": "Forma-owned: an ef-facts value (time zone \"America/New_York\") cannot wrap"
-};
+// Each entry is a defect a pinned package owns (docs/ui-conformance/
+// upstream-defects.md). None is open: Forma 1.0.1 fixed F-1.
+const TEXT_SCALE_KNOWN = {};
 
 for (const [surface, hash, ready] of LAYOUT) {
   test(`${surface}: at 200% text, nothing overflows or clips at 320/390/768/1280 (ULI-L05, ULI-L09)`, async ({ browser, baseURL }) => {

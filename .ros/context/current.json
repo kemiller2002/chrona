@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-10-14T01:04:10.457Z",
+  "updatedAt": "2026-11-25T18:39:25Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -3475,6 +3475,130 @@
           "mechanism": "git-remote-observation"
         }
       }
+    },
+    {
+      "id": "WI-0085",
+      "type": "task",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "implementation",
+          "path": "Directory.Packages.props"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/FoundationsConformanceTests.fs"
+        }
+      ],
+      "updatedAt": "2026-11-25T13:10:45.529Z",
+      "telemetryExecutionIds": [
+        "EXE-20261125T121726972Z-7c7a47a6"
+      ],
+      "latestCheckpoint": {
+        "id": "9acaee07010e8a86c71f219f",
+        "recordedAt": "2026-11-25T13:10:31.626Z",
+        "executionId": "EXE-20261125T121726972Z-7c7a47a6",
+        "repository": "chrona",
+        "branch": "claude/vigila-implementation-jdeps1",
+        "commit": "9bf324876ebbe8f61361c9bade9561e8ff12b668",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/chrona"
+        },
+        "remoteBranch": "claude/vigila-implementation-jdeps1",
+        "remoteCommit": "9bf324876ebbe8f61361c9bade9561e8ff12b668",
+        "summary": "Aegis pins retargeted 2.0.0 -> 2.0.1; restore, build and tests green on the global.json SDK",
+        "nextAction": "Complete WI-0085; update PR to 2.0.1 and confirm CI",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      },
+      "blockReason": "Aegis 2.0.0 packaging defect: nuspec requires FSharp.Core >= 11.0.101, restore fails with NU1605/NU1109 on the repository's .NET 10 SDK; waiting for Aegis 2.0.1",
+      "completedAt": "2026-11-25T13:10:45.529Z"
+    },
+    {
+      "id": "WI-0086",
+      "type": "task",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "implementation",
+          "path": "Directory.Packages.props"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/FoundationsConformanceTests.fs"
+        }
+      ],
+      "updatedAt": "2026-11-25T15:45:50Z",
+      "telemetryExecutionIds": [
+        "EXE-20261125T154351800Z-60b577a2"
+      ],
+      "latestCheckpoint": {
+        "id": "6bb1f594642ea810bb08ab11",
+        "recordedAt": "2026-11-25T15:45:47Z",
+        "executionId": "EXE-20261125T154351800Z-60b577a2",
+        "repository": "chrona",
+        "branch": "claude/vigila-implementation-jdeps1",
+        "commit": "a1f9c7f962f3a05607273f93dd413a22c9b124e3",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/chrona"
+        },
+        "remoteBranch": "claude/vigila-implementation-jdeps1",
+        "remoteCommit": "a1f9c7f962f3a05607273f93dd413a22c9b124e3",
+        "summary": "Aegis retargeted 2.0.1 -> 2.0.2 (pin, foundations.json, conformance tests); build green on SDK 10.0.404; 461 tests pass",
+        "nextAction": "Complete WI-0086; update PR to 2.0.2 and confirm CI",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      },
+      "completedAt": "2026-11-25T15:45:50Z"
+    },
+    {
+      "id": "WI-0087",
+      "type": "task",
+      "state": "complete",
+      "semanticState": "complete",
+      "evidence": [
+        {
+          "type": "implementation",
+          "path": "src/Chrona.Application/Store/StoreUnsentQueue.fs"
+        },
+        {
+          "type": "tests",
+          "path": "tests/Chrona.Tests/StoreAccountTests.fs"
+        }
+      ],
+      "updatedAt": "2026-11-25T18:39:25Z",
+      "telemetryExecutionIds": [
+        "EXE-20261125T175017085Z-99627841"
+      ],
+      "latestCheckpoint": {
+        "id": "930d4fa2b2f6065245ed2a70",
+        "recordedAt": "2026-11-25T18:39:21Z",
+        "executionId": "EXE-20261125T175017085Z-99627841",
+        "repository": "chrona",
+        "branch": "claude/vigila-implementation-jdeps1",
+        "commit": "1fc9059dac871856c437f79186a123285b0ff930",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/chrona"
+        },
+        "remoteBranch": "claude/vigila-implementation-jdeps1",
+        "remoteCommit": "1fc9059dac871856c437f79186a123285b0ff930",
+        "summary": "echelon-current 1.42.0 applied by Conditor 0.10.29; Forma 1.0 namespace and Arca 0.7 opaque-queue migrations done; build, 461 .NET tests, browser, pages and conformance suites pass locally",
+        "nextAction": "Watch CI on chrona#137; re-render visual baselines through the visual-baselines workflow if the Forma 1.0 screens differ",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      },
+      "completedAt": "2026-11-25T18:39:25Z"
     }
   ]
 }

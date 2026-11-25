@@ -7,7 +7,13 @@ ULI-L13). Each one stays FAIL in the evidence until the pinned package fixes
 it. The test that observes it fails when the defect stops reproducing, so the
 entry cannot go stale.
 
-## F-1 — Forma: a facts value cannot wrap (ULI-L05)
+## F-1 — Forma: a facts value cannot wrap (ULI-L05) — fixed in Forma 1.0.1
+
+- **Status:** fixed upstream. With `@echelon-foundry/design-system` 1.0.1
+  (echelon-current 1.42.0, WI-0087) the run passes at 320 CSS px and 200%
+  text, so the entry was removed from `TEXT_SCALE_KNOWN`. Forma's containers
+  now break a token too long for its line (Forma 0.13 changelog), and 1.0.0
+  renamed the class `.forma-facts__item`. The record below is as found.
 
 - **Package:** `@echelon-foundry/design-system` 0.6.1 (Forma), `dist/all.css`.
 - **Rule:** `.ef-facts__item > dd` sets margin, colour and size and nothing for

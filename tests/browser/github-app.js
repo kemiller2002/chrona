@@ -62,10 +62,10 @@ export async function references(page, navigation = ".chrona-nav__link") {
   await page.click(`${navigation}:has-text('More')`);
   await page.fill("#new-project-name", "HelixNote");
   await page.click("#add-project");
-  await expect(page.locator("#projects .ef-checkbox__label")).toHaveText(["HelixNote"]);
+  await expect(page.locator("#projects .forma-checkbox__label")).toHaveText(["HelixNote"]);
   await page.fill("#new-activity-type-name", "Research");
   await page.click("#add-activity-type");
-  await expect(page.locator("#activity-types .ef-checkbox__label")).toHaveText(["Research"]);
+  await expect(page.locator("#activity-types .forma-checkbox__label")).toHaveText(["Research"]);
 }
 
 // Records today's time on Track, from `start` to `end`.

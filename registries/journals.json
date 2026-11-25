@@ -6,6 +6,24 @@
     "hypothesis_ids": [],
     "id": "JR-WASMKERNEL-2026-17F6",
     "path": "research/journals/JR-WASMKERNEL-2026-17F6--wasm-kernel-assumptions-findings-difficulties.md",
+    "provenance": {
+      "contributions": {
+        "EXE-20261125T175017085Z-99627841": {
+          "actor": {
+            "id": "anthropic/claude-code",
+            "kind": "agent",
+            "model": "unknown",
+            "provider": "anthropic",
+            "runtime": "claude-code"
+          },
+          "at": "2026-11-25T18:38:41.099Z",
+          "operations": [
+            "modified"
+          ],
+          "reason": "Limen 0.9.1 with echelon-current 1.42.0 (WI-0087)"
+        }
+      }
+    },
     "related_mission": {},
     "related_package": {},
     "research_area": "wasm-kernel",
@@ -20,6 +38,6 @@
     ],
     "theory_ids": [],
     "title": "Running log — assumptions, findings, and difficulties using the wasm kernel",
-    "updated": "2026-10-05"
+    "updated": "2026-11-25"
   }
 ]

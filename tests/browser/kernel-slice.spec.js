@@ -17,7 +17,7 @@ test("the page runs on Limen, Forma and Folio from the pinned packages", async (
     "../node_modules/@echelon-foundry/print-components/src/styles/print.css"
   ]));
   const token = await page.evaluate(() =>
-    getComputedStyle(document.documentElement).getPropertyValue("--ef-color-accent-primary").trim());
+    getComputedStyle(document.documentElement).getPropertyValue("--forma-color-accent-primary").trim());
   expect(token).not.toBe("");
   // A plain <span> is inline; Forma's status lozenge rule lays it out.
   await expect(page.locator("#log-count")).not.toHaveCSS("display", "inline");
@@ -26,7 +26,7 @@ test("the page runs on Limen, Forma and Folio from the pinned packages", async (
   expect(await page.evaluate(() => ["ef-print-document", "ef-print-table", "ef-print-page-number"]
     .every((name) => customElements.get(name) !== undefined))).toBe(true);
   // Forma's authoring wrappers stay inert: never registered as elements.
-  expect(await page.evaluate(() => customElements.get("ef-alert"))).toBeUndefined();
+  expect(await page.evaluate(() => customElements.get("forma-alert"))).toBeUndefined();
 });
 
 test("the bridge vocabulary, a Storage round trip and reload, end to end", async ({ slice: page }) => {

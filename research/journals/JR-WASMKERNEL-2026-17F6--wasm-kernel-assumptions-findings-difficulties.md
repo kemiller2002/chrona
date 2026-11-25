@@ -4,7 +4,7 @@ title: Running log — assumptions, findings, and difficulties using the wasm ke
 research_area: wasm-kernel
 author_agent: claude-code
 created: 2026-09-14
-updated: 2026-10-05
+updated: 2026-11-25
 status: active
 related_mission:
 related_package:
@@ -12,6 +12,18 @@ evidence_ids: []
 hypothesis_ids: []
 theory_ids: []
 tags: [wasm-kernel, typescript-wasm-kernel, running-log, assumptions, findings, difficulties]
+provenance:
+  contributions:
+    EXE-20261125T175017085Z-99627841:
+      operations: [modified]
+      at: 2026-11-25T18:38:41.099Z
+      actor:
+        kind: agent
+        id: anthropic/claude-code
+        provider: anthropic
+        model: unknown
+        runtime: claude-code
+      reason: "Limen 0.9.1 with echelon-current 1.42.0 (WI-0087)"
 ---
 
 # Running log — wasm kernel
@@ -564,3 +576,47 @@ It was repaired to a single label.
 
 F13 (the kernel works in a real browser from this repository) is re-established
 at 0.7.0. A8 still stands.
+
+## 2026-11-25 — Limen 0.9.0 to 0.9.1 with echelon-current 1.42.0 (WI-0087)
+
+`@echelon-foundry/limen` is the package `@echelon-foundry/typescript-wasm-kernel`
+was renamed to, so this upgrade is recorded here. The same change moved Forma
+to 1.0.1, Folio to 0.4.1 and Arca to 0.7.0.
+
+### A9 — That Limen 0.9.1 needs no code change
+
+The brief for the upgrade said so. It held for this repository's checks (F22,
+F23), but no Limen 0.9.1 changelog was read for it, so it stays an assumption
+beyond what those checks cover.
+
+### F22 — Conditor moves the npm Limen pin only once it is declared
+
+*Verified by Conditor 0.10.29's `drift --json` and `upgrade --current --check`
+output.* With only `limen-fsharp` in `conditor.json`, the plan did not move
+the npm package, and `drift` reported it undeclared at 0.9.0 with a
+`declare` entry. Adding `{ "id": "limen", "version": "0.9.0" }` (the opt-in of
+`docs/web-package-upgrade-contract.md` in Conditor) put
+`limen: 0.9.0 -> 0.9.1 [web-package-binding]` in the plan; the authorized
+upgrade moved `package.json`, `package-lock.json` and the foundations
+capability. `npx limen upgrade` then wrote the installation manifest
+(`.echelon/limen.json`, `installedVersion` 0.9.1), which `limen-verify.yml`
+reads.
+
+### F23 — The slice and the app run on 0.9.1
+
+*Verified by running them.* `npm run check:limen`: verification passed
+(strict), 69 engine and 6 kernel source files. The full Playwright suite
+(`npx playwright test`, Chromium from `/opt/pw-browsers`) passed 110 of 111,
+including all of `tests/browser/kernel-slice.spec.js`; the one failure was a
+UI-conformance check that a Forma defect no longer reproduces, fixed by
+removing that known-defect entry, after which it passed.
+
+### D14 — Forma's codemod also renames Folio's elements
+
+The Forma 1.0 `NamespaceMigrator` rewrites every `<ef-*>` tag and `--ef-*`
+property, including Folio's `<ef-print-*>` elements and `--ef-print-*`
+properties. Folio 0.4.1 still defines those names (checked in its release
+tarball's `src/`), so the print surface of `web/kernel-slice.html` would have
+lost its custom elements. Worked around by restoring every `forma-print-` that
+the codemod wrote to `ef-print-`. `kernel-slice.spec.js` ("the print surface
+is Folio's document") passes.

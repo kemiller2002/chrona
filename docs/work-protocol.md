@@ -68,7 +68,7 @@ changes exist on a branch whose name is not the ID of a work item in the work
 context, so each work item runs on a branch named for its ID (DER-01 of
 `requirements/PRAXIS-DUAL-ENTRY-RECONCILIATION.md`). Pull-request CI uses
 `GITHUB_HEAD_REF`; a detached HEAD with meaningful work fails. See
-[`identity.md`](https://github.com/kemiller2002/praxis/blob/v3.11.0/docs/identity.md#branch-policy-der-01).
+[`identity.md`](https://github.com/kemiller2002/praxis/blob/v3.25.0/docs/identity.md#branch-policy-der-01).
 
 ## Quality evidence at completion
 
@@ -314,6 +314,148 @@ move after any observation. Repositories without a usable upstream set
 `./praxis status` includes the same read-only report as additive
 `upstreamSync` output; it does not fetch.
 
+## Integrating parallel workstreams
+
+When several agents work in parallel, each one is a **stream**: a work item
+worked on its own ref. Integration follows this policy (`RQ-ROS-2026-A036`):
+
+1. **Define interfaces.** Name the shared files every stream relies on,
+   who owns each one, and how a change to it is approved.
+2. **Assign ownership.** Each stream owns paths. Every other change needs
+   an approval recorded in the contract or in a Decision Record.
+3. **Implement independently** on the stream's ref, within its ownership.
+4. **Verify locally.** Run the stream's required tests, then record a
+   verified completion (`work complete-verified`, see
+   [`work-claims.md`](https://github.com/kemiller2002/praxis/blob/v3.25.0/docs/work-claims.md)).
+5. **Integrate in dependency order.** Producers merge before consumers.
+   Before each merge, check the stream against the target and its siblings.
+6. **Run targeted integration tests** for the interfaces the merge touched,
+   right after the merge.
+7. **Run broader verification at checkpoints**, not after every merge
+   (`work checkpoint`, group checkpoints).
+
+### The integration contract
+
+The contract is the `integration` member of `ros.json`
+(`praxis.integration-contract/1`, schema
+[`schemas/praxis-integration-contract.schema.json`](https://github.com/kemiller2002/praxis/blob/v3.25.0/schemas/praxis-integration-contract.schema.json)):
+
+```json
+{
+  "planner": { "areas": { "WI-12": ["src/app"] } },
+  "integration": {
+    "schema": "praxis.integration-contract/1",
+    "managedPaths": [".ros/**"],
+    "commonPaths": ["docs/**"],
+    "streams": [
+      { "id": "core", "workItem": "WI-11", "ref": "streams/core",
+        "owns": ["src/engine/**", "tests/Engine/**"],
+        "requiredTests": ["tests/Engine"], "artifacts": ["docs/interface-manifest.json"] },
+      { "id": "ui", "workItem": "WI-12", "ref": "streams/ui",
+        "ownsPlannerArea": true, "dependsOn": ["core"] }
+    ],
+    "interfaces": [
+      { "id": "ports", "owner": "ui", "paths": ["src/app/Port.fs"],
+        "approvals": [ { "stream": "core", "decision": "DF-APP-2026-0003" },
+                       { "stream": "core", "paths": ["src/app/Port.fs"], "approvedBy": "coordinator", "reason": "..." } ] }
+    ]
+  }
+}
+```
+
+The contract reuses existing Praxis concepts instead of declaring them
+again:
+
+- **Ownership** is a list of globs (`*` and `?` within a path segment, `**`
+  across segments; the same matcher as Ordo boundary projections). It can
+  also be `"ownsPlannerArea": true`, which takes the work item's
+  `planner.areas` entry. Each area path owns itself and everything below
+  it, the same rule `praxis plan analyze` uses for collisions.
+- **Dependencies** are `dependsOn` plus every hard `planner.dependencies`
+  edge between bound work items.
+- **Shared interfaces:**
+  - The owner may change an interface freely.
+  - Another stream needs an approval that covers the path. An approval
+    either cites a Decision Record, which must exist at the integration
+    target, or is recorded in the contract with `approvedBy`.
+- **`managedPaths`** are merged by tooling, for example `.ros/` by `praxis
+  work history merge`. They are neither owned nor counted as overlap.
+- **`commonPaths`** may be changed by any stream. Overlap on them is still
+  reported.
+- **`readiness`** selects merge-readiness conditions: `ownership`,
+  `interfaces`, `overlap`, `dependencies`, `artifacts` and
+  `verified-completion`. The default is all six.
+
+### `praxis streams check`
+
+```bash
+./praxis streams check [--stream ID]* [--against REF] [--contract FILE] [--json]
+```
+
+The check is read-only and uses Git facts only. It never fetches, so run
+`sync check` first. A stream's ref that does not resolve is also tried
+under the upstream remote. The integration target is `--against`, else
+the contract's `target`, else the upstream-sync branch. For each stream, the
+check reports:
+
+- **Ownership:** changed paths outside its ownership
+  (`outside-ownership`, naming the streams that own them), shared-interface
+  changes without an approval (`interface-unapproved`), and approvals
+  citing a Decision Record that is not at the target
+  (`approval-decision-not-found`). The changes are the paths changed from
+  the stream's merge base with the target to its tip.
+- **Overlap:** paths both the stream and the target changed since their
+  merge base, and paths both of two unintegrated sibling streams changed
+  since their own merge base. This is the overlap computation of `sync
+  check` (`UpstreamSync.overlap`), applied before a merge exists. Overlap
+  is a warning signal, not a proof of conflict.
+- **Integration sequence:** a topological order of all streams. A cycle is
+  an error that blocks every stream in it.
+- **Merge readiness:**
+  - `ready` when every selected condition is met.
+  - `blocked` when one is unmet.
+  - `unavailable` when the stream's ref does not resolve.
+  - `unverified` when nothing is unmet but evidence is missing. A required
+    test counts only through a `work.completion.verified` event for the
+    stream's work item at its tip, whose verified commit differs from the
+    tip only under `.ros/`. Otherwise it is `unverified`, never assumed to
+    pass.
+
+Exit codes:
+
+| Exit code | Meaning |
+| --- | --- |
+| 0 | Every reported stream is ready. |
+| 3 | At least one stream is not ready, or the contract has findings or cycles. |
+| 2 | Invalid arguments, or a contract that is missing or malformed. |
+
+### How agents consume the contract
+
+- **Before starting:** read your stream in the contract. Work only on its
+  ref and within its ownership. Treat the paths of shared interfaces you do
+  not own as read-only until an approval is recorded.
+- **While working:** run `praxis streams check --stream YOUR-ID` at the same
+  boundaries as `sync check`. Fix `outside-ownership` findings by moving
+  the change to the owning stream, or by getting an approval recorded. A
+  stream never edits the contract to approve itself.
+- **Before merging:** the check must show your stream `ready`. If it shows
+  `unverified`, run your required tests and record a verified completion.
+  Merge in the reported sequence, then run the targeted integration tests
+  for the interfaces you touched.
+- **Coordinators:** own the contract. Record approvals in it, or as
+  Decision Records, before the edit lands. Read sibling overlap as the
+  conflict forecast for the next merges.
+
+`EX-ROS-2026-A025` replays Rehearsal 5's 55 merges against a contract
+reconstructed after the fact:
+
+- the overlap rule flagged all 7 conflicting merges before merging;
+- it also flagged 7 of the 48 clean merges;
+- the contract would have attributed 3 of the 19 reconciliation commits by
+  itself.
+
+The replay is retrospective and non-causal; its biases are recorded with it.
+
 ## Durable checkpoints and continuity
 
 **An executor session is disposable. Repository state and Praxis state are
@@ -501,6 +643,20 @@ execution record is never edited or re-identified. When the work later
 completes, finalization closes every active execution; "finalized" means
 closed, not successful, and the `work.continued` event remains the record of
 the interruption.
+
+An interrupted predecessor may have left steps planned, active or blocked.
+Only their owner may resolve a step, and the owner is gone, so completion
+does not wait for it (WI-0088). Its `execution.finalized` event carries an
+`interruption` naming those step IDs, the continuation event and the
+successor, with `disposition: interrupted` and `dispositionSource:
+observed-by-successor`. The steps themselves keep their last recorded state;
+nothing marks them completed or abandoned. This applies only to an execution
+that a `work.continued` event for the same work item took over as
+interrupted. Unresolved steps of any other execution, including the
+successor's own, still refuse completion. `validate` accepts a finalized
+execution with unresolved steps only when its interruption lists exactly
+those steps and cites a continuation that took that execution over as
+interrupted for the named successor.
 
 The output also includes the checkpoint, the completed work, the next
 action, the completion evidence still required, the test measurements every
@@ -694,6 +850,13 @@ with its own small lifecycle: `captured -> ready -> {blocked, abandoned}`.
 Canonical storage is `.ros/work/queue.json`; `.ros/work/queue.md` is a
 generated human-readable projection, and `.ros/work/items/<ID>.md` is an
 optional free-form detail file `work show` will include when present.
+
+When two branches each capture backlog rows, `queue.json` and `queue.md`
+conflict in Git. Do not take one side's queue, which drops the other
+branch's rows, and do not hand-edit them: run `./praxis work history merge`
+(preview) and `--apply`, which merges the queue by row ID together with the
+conflicted native history and regenerates `queue.md`. See
+[native history reconciliation](https://github.com/kemiller2002/praxis/blob/v3.25.0/docs/work-history-merge.md#backlog-queue).
 
 The backlog is **not** a second work-item authority. `work start` requires
 `ready`, then delegates directly to the existing `begin` transition above --

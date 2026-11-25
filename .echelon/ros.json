@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "tool": "ros",
   "package": "@echelon-foundry/repository-operating-system",
-  "installedVersion": "3.11.0",
+  "installedVersion": "3.25.0",
   "configurationVersion": 1,
   "profile": "greenfield",
   "managedArtifacts": [
     {
       "path": ".echelon/toolchain.json",
       "ownership": "shared",
-      "sha256": "e7808278868a88e5c658055a0562465973bddcba936f7150eccc9fa2b868c38c"
+      "sha256": "510b28746b4d6826c75e58e0f15ec8fc0d51ae9ee8100db1613753a854fbe9c0"
     },
     {
       "path": ".editorconfig",
@@ -59,7 +59,7 @@
     {
       "path": "HANDOFF.md",
       "ownership": "shared",
-      "sha256": "eb4e57f93fc9e6ef1246052d6e1cd6953c6325925f77b7163439d82c0be16986"
+      "sha256": "d61967e26da84dfe9ec1da5f98b7dfd1170b5b7766c3665901a4ba625a934efd"
     },
     {
       "path": "PROJECT-CHARTER.md",
@@ -69,7 +69,7 @@
     {
       "path": "README.md",
       "ownership": "user-owned",
-      "sha256": "63c9abe7c566287ba37185d681926ca772b872eaac9d4fb30331a6be9e1f258a"
+      "sha256": "978d60dd8ed0209a065979f7daee17e0a88002e343a192b2e917fa89a383191a"
     },
     {
       "path": "context/ARCHITECTURE.md",
@@ -149,12 +149,12 @@
     {
       "path": "docs/development-telemetry.md",
       "ownership": "tool-owned",
-      "sha256": "935758d1fd3859555cae2ddf179ca5677b0bdb2880330eef9d842fe2d92bd9db"
+      "sha256": "619e56266fc9f5834d530531ff7e3c4e7b5487404e97bd1a1fbeb1916040c59c"
     },
     {
       "path": "docs/fallback-reconciliation.md",
       "ownership": "tool-owned",
-      "sha256": "efb9579419a803c2885c41ed5e23b0fcc2baf2c560ca13340b2c5aa2268bd0a6"
+      "sha256": "cd8b12aeca89d95397a42e6bd68f75ada96aaf6575deeb2279eb61a6ca00d2a9"
     },
     {
       "path": "docs/ordo-observation.md",
@@ -169,7 +169,7 @@
     {
       "path": "docs/remote-protocol.md",
       "ownership": "tool-owned",
-      "sha256": "627256968eb663181649da221fa0dd41b8e9ded3c97779ee43b248df3fb8510c"
+      "sha256": "504a0ce2ed13eee21307b686f78eb47ac11f2cd984774553e3ea8c1235b7b08d"
     },
     {
       "path": "docs/work-adapter-contract.md",
@@ -179,7 +179,7 @@
     {
       "path": "docs/work-protocol.md",
       "ownership": "tool-owned",
-      "sha256": "f260212e3fbd31ffe5d9cc4bf84600f7d08e7279437d112fae69e18d89c56258"
+      "sha256": "ac171a29724c7f1cd6606df031d68602a5d26c206a6f384aa5658b69859eb0d1"
     },
     {
       "path": "framework/REP-SPECIFICATION.md",
@@ -269,7 +269,7 @@
     {
       "path": "registries/decisions.json",
       "ownership": "generated",
-      "sha256": "7f90b52d512b100c8548032f54384846ee4f24cd7453e7bf75658c2cf426871b"
+      "sha256": "8aaebf0dd08b8d1e78554cbcabeeb294b84da317a0ea202808bfd377105144d2"
     },
     {
       "path": "registries/evidence.json",
@@ -372,6 +372,11 @@
       "sha256": "dfc3b8726c44dc9b4c9b380882155cc2ef8665c031722c4419e34fda375ae5d3"
     },
     {
+      "path": "schemas/ecir-approval-v1.schema.json",
+      "ownership": "tool-owned",
+      "sha256": "63730005d1310bc5bf37d3cd9505fcf67277179f1a8e4ad3039ea04ac7d2aa93"
+    },
+    {
       "path": "schemas/evidence.schema.json",
       "ownership": "tool-owned",
       "sha256": "0591b832d246c107f7517e27e428739fa8934e250824d30a7c51286a4d8dffba"
@@ -379,7 +384,7 @@
     {
       "path": "schemas/execution-telemetry.schema.json",
       "ownership": "tool-owned",
-      "sha256": "22b08ad49695139177f4eea44aa4ea1aa589fa9b5294b31979ec9caf4aabdbec"
+      "sha256": "cf16dc704b78f87918f7c49513fce9fef64da8e81ea751203a2a56145cf4ba06"
     },
     {
       "path": "schemas/experiment.schema.json",

@@ -4,7 +4,7 @@
   "repository": "chrona",
   "actor": "anthropic/claude-code",
   "startedAt": "2026-09-13T23:27:16.701Z",
-  "updatedAt": "2026-11-25T12:17:26.000Z",
+  "updatedAt": "2026-11-25T12:32:06.000Z",
   "baselineDirtyPaths": [],
   "workItems": [
     {
@@ -3479,13 +3479,34 @@
     {
       "id": "WI-0085",
       "type": "task",
-      "state": "active",
-      "semanticState": "active",
+      "state": "blocked",
+      "semanticState": "blocked",
       "evidence": [],
-      "updatedAt": "2026-11-25T12:17:26.000Z",
+      "updatedAt": "2026-11-25T12:32:06.000Z",
       "telemetryExecutionIds": [
         "EXE-20261125T121726972Z-7c7a47a6"
-      ]
+      ],
+      "latestCheckpoint": {
+        "id": "c5f88f98ba7b4ef25b6b3a2b",
+        "recordedAt": "2026-11-25T12:32:03.000Z",
+        "executionId": "EXE-20261125T121726972Z-7c7a47a6",
+        "repository": "chrona",
+        "branch": "claude/vigila-implementation-jdeps1",
+        "commit": "310d139cec770bd2f996d64f9d35febacd4a135c",
+        "remote": {
+          "name": "origin",
+          "url": "https://github.com/kemiller2002/chrona"
+        },
+        "remoteBranch": "claude/vigila-implementation-jdeps1",
+        "remoteCommit": "310d139cec770bd2f996d64f9d35febacd4a135c",
+        "summary": "Aegis pin bumped 1.0.0 -> 2.0.0 (Directory.Packages.props); restore fails on SDK 10 because Aegis 2.0.0 declares FSharp.Core >= 11.0.101",
+        "nextAction": "Retarget the pin to Aegis 2.0.1 (restored FSharp.Core 10.1.400 floor), rebuild and test, then complete",
+        "verification": {
+          "status": "verified",
+          "mechanism": "git-remote-observation"
+        }
+      },
+      "blockReason": "Aegis 2.0.0 packaging defect: nuspec requires FSharp.Core >= 11.0.101, restore fails with NU1605/NU1109 on the repository's .NET 10 SDK; waiting for Aegis 2.0.1"
     }
   ]
 }

@@ -25,7 +25,7 @@ let private folioRelease =
 let ``foundations.json requires every foundation, at the echelon-current versions`` () =
     let capabilities = (json ".echelon/foundations.json").["capabilities"]
 
-    for name, version in [ "aegis", "1.0.0"; "forma", "0.6.1"; "folio", "0.4.0"; "limen", "0.9.0" ] do
+    for name, version in [ "aegis", "2.0.1"; "forma", "0.6.1"; "folio", "0.4.0"; "limen", "0.9.0" ] do
         Assert.True(capabilities.[name].["required"].GetValue<bool>(), $"{name} must be required")
         Assert.Equal(version, str capabilities.[name].["version"])
 
@@ -183,7 +183,7 @@ let ``Chrona's compositions use Forma's tokens, never literal colours`` () =
 let ``Aegis is referenced, pinned and its boundary codes are declared`` () =
     let project = readRepoFile "src/Chrona.Application/Chrona.Application.fsproj"
     Assert.Contains("<PackageReference Include=\"EchelonFoundry.Aegis.Core\" />", project)
-    Assert.Contains("<PackageVersion Include=\"EchelonFoundry.Aegis.Core\" Version=\"2.0.0\" />", readRepoFile "Directory.Packages.props")
+    Assert.Contains("<PackageVersion Include=\"EchelonFoundry.Aegis.Core\" Version=\"2.0.1\" />", readRepoFile "Directory.Packages.props")
 
     let manifest = json "aegis-boundaries.json"
     Assert.Equal("aegis/boundaries/v1", str manifest.["schema"])

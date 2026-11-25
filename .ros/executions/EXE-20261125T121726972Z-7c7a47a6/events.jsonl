@@ -1,2 +1,3 @@
 {"entry":"transition","transition":"execution.start","state":"active","origin":"work-transition","originReference":"work.begin","actor":"anthropic/claude-code","actorKind":"agent","at":"2026-11-25T12:17:27.516Z"}
 {"entry":"transition","transition":"work.block","state":"blocked","reason":"Aegis 2.0.0 packaging defect: nuspec requires FSharp.Core >= 11.0.101, restore fails with NU1605/NU1109 on the repository's .NET 10 SDK; waiting for Aegis 2.0.1","actor":"anthropic/claude-code","actorKind":"agent","at":"2026-11-25T12:32:08.331Z"}
+{"entry":"transition","transition":"work.resume","state":"active","reason":null,"actor":"anthropic/claude-code","actorKind":"agent","at":"2026-11-25T12:52:50.024Z"}

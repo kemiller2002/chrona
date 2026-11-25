@@ -43,6 +43,8 @@ All of these come from Forma tokens compiled from `brand/`:
 
 Every screen's top bar also has "Copy link" (WI-0071), and the day's ledger a project filter (so `today-*` is taller: about 70 pixels at desktop width, 100 at phone width); the navigation items and record titles are links to their places, styled as the buttons they replaced. The day's navigation also links to its week ("Week"), "This period" to the period's own page, and More's reference data to the projects.
 
+Forma 1.0.1 (echelon-current 1.42.0, WI-0087) re-rendered every screen. The palette, type, sidebar, cards and layout are unchanged: Chrona's brand is compiled by Forma 1.0.1's brand compiler from the same `brand/chrona.brand.json`, under Forma 1.0's `forma-` names. What moved is Forma's own: status lozenges ("Manual entry", "Recorded", and the like) carry Forma 1.0's left rule and slightly wider padding, so rows that hold them shift by a pixel or two, and some screens grow by a few pixels (15 for More at phone width) as wrapped content takes new line breaks. No element lost its styles.
+
 ## Remaining gaps
 
 Forma cannot yet express some of the legacy presentation: the dark sidebar, the large radius, the display scale, the inverse hero, the timeline and the filled primary action (G1-G6 in the inventory, filed as WI-0042). Chrona composes these from tokens, and the baselines hold that composition.

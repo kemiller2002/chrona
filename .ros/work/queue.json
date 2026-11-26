@@ -1961,10 +1961,10 @@
       "description": null,
       "tags": [],
       "priority": "medium",
-      "status": "ready",
+      "status": "complete",
       "attachments": [],
       "createdAt": "2026-11-26T00:22:26.422Z",
-      "updatedAt": "2026-11-26T00:22:28Z",
+      "updatedAt": "2026-11-26T00:45:55Z",
       "createdBy": "unknown",
       "createdByActor": {
         "kind": "agent",

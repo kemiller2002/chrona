@@ -94,4 +94,4 @@
 | WI-0085 | Upgrade Aegis 1.0.0 -> 2.0.0 (echelon-current 1.40.0) | complete |  | medium |
 | WI-0086 | Retarget Aegis 2.0.1 -> 2.0.2 (detached capture no longer blocks single-threaded WebAssembly hosts) | complete |  | medium |
 | WI-0087 | Upgrade to echelon-current 1.42.0 (praxis 3.25.0, ordo 1.20.0, Arca 0.7.0, Forma 1.0.1, Folio 0.4.1, Limen 0.9.1) | complete |  | medium |
-| WI-0088 | Upgrade to echelon-current 1.43.0 (Praxis 3.26.0, Arca 0.7.1) | ready |  | medium |
+| WI-0088 | Upgrade to echelon-current 1.43.0 (Praxis 3.26.0, Arca 0.7.1) | complete |  | medium |

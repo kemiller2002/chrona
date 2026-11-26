@@ -620,3 +620,33 @@ tarball's `src/`), so the print surface of `web/kernel-slice.html` would have
 lost its custom elements. Worked around by restoring every `forma-print-` that
 the codemod wrote to `ef-print-`. `kernel-slice.spec.js` ("the print surface
 is Folio's document") passes.
+
+## 2026-11-26 — echelon-current 1.43.0 (WI-0088)
+
+echelon-current 1.43.0 moves only Praxis (3.25.0 -> 3.26.0) and Arca
+(0.7.0 -> 0.7.1). `@echelon-foundry/limen` stays at 0.9.1 and no slice or
+kernel source changed; it is recorded here because `EchelonFoundry.Arca.Limen`
+(the offline queue over Limen's store pack, running in the WASM guest) moved.
+
+### A10 — That Arca 0.7.1 has the same public API as 0.7.0
+
+The upgrade brief said so. No API diff was read; it is supported only by the
+build compiling unchanged (F25).
+
+### F24 — Arca 0.7.1 removes the transitive Aegis 1.0.0
+
+*Verified by reading the nuspecs and by `dotnet list package
+--include-transitive`.* The 0.7.0 `EchelonFoundry.Arca.GitHub` nuspec depends on
+`EchelonFoundry.Aegis.Core` and `EchelonFoundry.Aegis.Integration.GitHub`
+1.0.0; the 0.7.1 nuspec on 2.0.2. After Conditor 0.10.30's
+`upgrade --current` replaced the vendored nupkgs, every project (including
+`Chrona.Wasm`) resolves `Aegis.Integration.GitHub` and `Aegis.Core` at 2.0.2;
+no 1.0.0 Aegis package remains.
+
+### F25 — The slice and the app run unchanged on Arca 0.7.1
+
+*Verified by running them.* `dotnet test` 461/461; `npm run check:limen`
+passed (strict, 69 engine and 6 kernel files); `npm run build:wasm` published;
+`npx playwright test` (Chromium from `/opt/pw-browsers`) 111/111; the Pages
+deep-link suite 4/4. The visual-baseline suite was left to CI, whose runner
+renders the baselines.
